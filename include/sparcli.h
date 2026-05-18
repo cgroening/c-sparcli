@@ -118,12 +118,16 @@ typedef struct {
     ScAlign     align;
     int         valign_set;  /* 1 = overrides row valignment */
     ScValign    valign;
+    int         colspan;     /* 0/1=normal, >1=spans N cols, -1=skip (covered by span) */
 } ScCell;
 
-#define SC_CELL(s)           ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0 })
-#define SC_CELL_A(s,ha,va)   ((ScCell){ SC_CELL_STR,  (s), NULL, 1,(ha), 1,(va) })
-#define SC_CELL_T(t)         ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0 })
-#define SC_CELL_TA(t,ha,va)  ((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 1,(va) })
+#define SC_CELL(s)           ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, 0 })
+#define SC_CELL_A(s,ha,va)   ((ScCell){ SC_CELL_STR,  (s), NULL, 1,(ha), 1,(va), 0 })
+#define SC_CELL_T(t)         ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, 0 })
+#define SC_CELL_TA(t,ha,va)  ((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 1,(va), 0 })
+#define SC_CELL_CS(s,cs)     ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, (cs) })
+#define SC_CELL_TCS(t,cs)    ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, (cs) })
+#define SC_CELL_SKIP         ((ScCell){ SC_CELL_STR,  "",  NULL, 0, 0, 0, 0, -1 })
 
 typedef struct {
     int      min_w;    /* minimum column width, 0 = none  */
@@ -131,6 +135,7 @@ typedef struct {
     int      fixed_w;  /* fixed column width,   0 = auto  */
     ScAlign  align;    /* default horizontal alignment    */
     ScValign valign;   /* default vertical alignment      */
+    int      wrap;     /* 1 = word-wrap instead of truncate */
 } ScColOpts;
 
 typedef struct {
@@ -153,6 +158,9 @@ typedef struct {
     ScOptions      header_opts;      /* style applied to header cells */
     int            striped;          /* 1 = alternating row bg colors */
     ScColor        stripe_bg;        /* bg for odd data rows (0-indexed) */
+    ScColor        footer_row_bg;    /* bg for footer rows */
+    ScColor        footer_col_bg;    /* bg for footer col (col 0 when header_col) */
+    ScOptions      footer_opts;      /* style applied to footer cells */
     const char    *title;
     ScOptions      title_opts;
     ScTitlePos     title_pos;
@@ -160,6 +168,9 @@ typedef struct {
     int            title_pad;        /* spaces around title text, default 1 */
     int            cell_pad_x;
     int            cell_pad_y;
+    int            total_width;      /* 0 = auto; >0 = scale cols to fit */
+    int            max_rows;         /* 0 = unlimited; >0 = limit + indicator */
+    int            rtl;              /* 1 = right-to-left column order */
 } ScTableOpts;
 
 typedef struct ScTable ScTable;
@@ -167,6 +178,8 @@ typedef struct ScTable ScTable;
 ScTable *sc_table_new(ScTableOpts opts);
 void     sc_table_add_col(ScTable *t, const char *header, ScColOpts col);
 void     sc_table_add_row(ScTable *t, ScCell *cells, size_t n);
+void     sc_table_add_row_bg(ScTable *t, ScCell *cells, size_t n, ScColor bg);
+void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
 void     sc_table_print(const ScTable *t);
 void     sc_table_free(ScTable *t);
 

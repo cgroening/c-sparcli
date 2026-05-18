@@ -154,9 +154,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Name", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Age",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "City", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Name", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Age",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "City", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"), SC_CELL("30"), SC_CELL("Berlin")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("24"), SC_CELL("Hamburg") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"), SC_CELL("35"), SC_CELL("München") }, 3);
@@ -176,10 +176,10 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Product",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Q1",       (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Q2",       (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Q3",       (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Product",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q1",       (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q2",       (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q3",       (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Apples"),   SC_CELL("120"), SC_CELL("95"),  SC_CELL("140") }, 4);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bananas"),  SC_CELL("80"),  SC_CELL("110"), SC_CELL("70")  }, 4);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Cherries"), SC_CELL("45"),  SC_CELL("60"),  SC_CELL("90")  }, 4);
@@ -199,9 +199,9 @@ void test_tables(void) {
             .striped     = 1, .stripe_bg = sc_rgb(40, 40, 60),
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Lang",   (ScColOpts){0,0,12, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Year",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Typed",  (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Lang",   (ScColOpts){0,0,12, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Year",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Typed",  (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("C"),      SC_CELL("1972"), SC_CELL("Static")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Python"), SC_CELL("1991"), SC_CELL("Dynamic") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Rust"),   SC_CELL("2010"), SC_CELL("Static")  }, 3);
@@ -239,9 +239,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD | SC_STYLE_UNDER, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Service", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Status",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Uptime",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Service", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Status",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Uptime",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL_T(lbl), SC_CELL_T(ok),  SC_CELL("99.9%")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("database"), SC_CELL_T(err), SC_CELL("72.1%")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("cache"),    SC_CELL_T(ok),  SC_CELL("100.0%") }, 3);
@@ -263,9 +263,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 2, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Left",   (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Center", (ScColOpts){0,0,14, SC_ALIGN_CENTER, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Right",  (ScColOpts){0,0,14, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Left",   (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Center", (ScColOpts){0,0,14, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Right",  (ScColOpts){0,0,14, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("abc"),         SC_CELL("abc"),         SC_CELL("abc")         }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("longer text"), SC_CELL("longer text"), SC_CELL("longer text") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("x"),           SC_CELL("x"),           SC_CELL("x")           }, 3);
@@ -288,10 +288,10 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 1,
         });
-        sc_table_add_col(tb, "Tall Cell", (ScColOpts){0,0,0,  SC_ALIGN_LEFT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Top",       (ScColOpts){0,0,10, SC_ALIGN_LEFT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Middle",    (ScColOpts){0,0,10, SC_ALIGN_LEFT, SC_VALIGN_MIDDLE});
-        sc_table_add_col(tb, "Bottom",    (ScColOpts){0,0,10, SC_ALIGN_LEFT, SC_VALIGN_BOTTOM});
+        sc_table_add_col(tb, "Tall Cell", (ScColOpts){0,0,0,  SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Top",       (ScColOpts){0,0,10, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Middle",    (ScColOpts){0,0,10, SC_ALIGN_LEFT, SC_VALIGN_MIDDLE, 0});
+        sc_table_add_col(tb, "Bottom",    (ScColOpts){0,0,10, SC_ALIGN_LEFT, SC_VALIGN_BOTTOM, 0});
         sc_table_add_row(tb, (ScCell[]){
             SC_CELL_T(tall), SC_CELL("▲ top"), SC_CELL("● mid"), SC_CELL("▼ bot"),
         }, 4);
@@ -311,10 +311,10 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Fixed=16", (ScColOpts){0,  0,  16, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Min=10",   (ScColOpts){10, 0,  0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Max=8",    (ScColOpts){0,  8,  0,  SC_ALIGN_RIGHT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Auto",     (ScColOpts){0,  0,  0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Fixed=16", (ScColOpts){0,  0,  16, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Min=10",   (ScColOpts){10, 0,  0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Max=8",    (ScColOpts){0,  8,  0,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Auto",     (ScColOpts){0,  0,  0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("short"),       SC_CELL("hi"),  SC_CELL("truncated?"), SC_CELL("auto") }, 4);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("a bit longer"), SC_CELL("pad"), SC_CELL("clipped"),   SC_CELL("fits") }, 4);
         sc_table_print(tb);
@@ -332,9 +332,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD | SC_STYLE_UNDER, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Animal", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Sound",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Legs",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Animal", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Sound",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Legs",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Dog"),   SC_CELL("Woof"),  SC_CELL("4") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bird"),  SC_CELL("Tweet"), SC_CELL("2") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Snake"), SC_CELL("Hiss"),  SC_CELL("0") }, 3);
@@ -353,8 +353,8 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Key",   (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Value", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Key",   (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Value", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("host"),    SC_CELL("localhost") }, 2);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("port"),    SC_CELL("8080")      }, 2);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("timeout"), SC_CELL("30s")       }, 2);
@@ -373,9 +373,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, sc_rgb(255,180,0), SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "OS",     (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Kernel", (ScColOpts){0,0,0, SC_ALIGN_CENTER, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Shell",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
+        sc_table_add_col(tb, "OS",     (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Kernel", (ScColOpts){0,0,0, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Shell",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Linux"),   SC_CELL("6.8"),   SC_CELL("bash") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("macOS"),   SC_CELL("XNU"),   SC_CELL("zsh")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Windows"), SC_CELL("NT 10"), SC_CELL("pwsh") }, 3);
@@ -400,9 +400,9 @@ void test_tables(void) {
             .title_pad   = 1,
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Rank",   (ScColOpts){0,0,6,  SC_ALIGN_CENTER, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Player", (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Score",  (ScColOpts){0,0,8,  SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Rank",   (ScColOpts){0,0,6,  SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Player", (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Score",  (ScColOpts){0,0,8,  SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("1"), SC_CELL("Alice"),   SC_CELL("9800") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("2"), SC_CELL("Bob"),     SC_CELL("7650") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("3"), SC_CELL("Charlie"), SC_CELL("6100") }, 3);
@@ -421,9 +421,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 0, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "A", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "B", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "C", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "A", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "B", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "C", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("1"), SC_CELL("2"), SC_CELL("3") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("4"), SC_CELL("5"), SC_CELL("6") }, 3);
         sc_table_print(tb);
@@ -441,9 +441,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Age",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP});
-        sc_table_add_col(tb, "City",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Age",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "City",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"),   SC_CELL("30"), SC_CELL("Berlin")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),     SC_CELL("24"), SC_CELL("Hamburg") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"),   SC_CELL("35"), SC_CELL("München") }, 3);
@@ -464,9 +464,9 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Role",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Team",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Role",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Team",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"), SC_CELL("Engineer"),  SC_CELL("Backend")  }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("Designer"),  SC_CELL("Frontend") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"), SC_CELL("Manager"),   SC_CELL("Platform") }, 3);
@@ -486,9 +486,9 @@ void test_tables(void) {
             .striped     = 1, .stripe_bg = sc_rgb(40, 40, 60),
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Level", (ScColOpts){0,0,0, SC_ALIGN_CENTER, SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Level", (ScColOpts){0,0,0, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"),   SC_CELL("9800"), SC_CELL("Expert") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),     SC_CELL("7650"), SC_CELL("Master") }, 3);
         sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"),   SC_CELL("6100"), SC_CELL("Expert") }, 3);
@@ -581,11 +581,11 @@ void test_tables(void) {
             .header_opts = { SC_STYLE_BOLD, sc_rgb(180,180,220), SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
-        sc_table_add_col(tb, "Service",   (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Status",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Latency",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Requests",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
-        sc_table_add_col(tb, "Err-Rate",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Service",   (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Status",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Latency",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Requests",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Err-Rate",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
         sc_table_add_row(tb, (ScCell[]){
             SC_CELL_T(c_api),  SC_CELL_T(s_ok),   SC_CELL_T(l_fast), SC_CELL_T(r_high), SC_CELL_T(e_none),
         }, 5);
@@ -603,5 +603,241 @@ void test_tables(void) {
         sc_text_free(l_fast); sc_text_free(l_mid);  sc_text_free(l_slow);
         sc_text_free(r_high); sc_text_free(r_mid);  sc_text_free(r_low);
         sc_text_free(e_none); sc_text_free(e_some); sc_text_free(e_high);
+    }
+
+    printf("\n");
+
+    /* ── 17. Word-Wrap: lange Texte umbrechen statt abschneiden ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_ROUNDED, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title       = " Word Wrap ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Component",   (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP,    0});
+        sc_table_add_col(tb, "Description", (ScColOpts){0,0,24, SC_ALIGN_LEFT,   SC_VALIGN_TOP,    1});
+        sc_table_add_col(tb, "Status",      (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_MIDDLE, 0});
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Auth Service"),
+            SC_CELL("Handles OAuth2 token validation and refresh for all API clients"),
+            SC_CELL("OK"),
+        }, 3);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Data Pipeline"),
+            SC_CELL("Ingests streaming events from Kafka and writes to the data warehouse"),
+            SC_CELL("WARN"),
+        }, 3);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Scheduler"),
+            SC_CELL("Runs periodic jobs using a distributed cron-like mechanism"),
+            SC_CELL("OK"),
+        }, 3);
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 18. Footer Row: Zusammenfassung / Summenzeile ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .footer_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .footer_row_bg = sc_rgb(30, 40, 30),
+            .title       = " Footer Row (Totals) ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Item",  (ScColOpts){0,0,0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Qty",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Price", (ScColOpts){0,0,9,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Total", (ScColOpts){0,0,10, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Widget A"),   SC_CELL("3"), SC_CELL("$ 12.00"), SC_CELL("$  36.00"),
+        }, 4);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Gadget B"),   SC_CELL("1"), SC_CELL("$ 49.99"), SC_CELL("$  49.99"),
+        }, 4);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Doohickey"),  SC_CELL("5"), SC_CELL("$  4.50"), SC_CELL("$  22.50"),
+        }, 4);
+        sc_table_add_footer_row(tb, (ScCell[]){
+            SC_CELL("TOTAL"), SC_CELL("9"), SC_CELL(""), SC_CELL("$ 108.49"),
+        }, 4);
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 19. Per-Row Background: einzelne Zeilen hervorheben ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title       = " Per-Row Background ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_YELLOW, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Build",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Branch", (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Result", (ScColOpts){0,0,0, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Time",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("#101"), SC_CELL("main"),      SC_CELL("PASS"), SC_CELL("1m 23s"),
+        }, 4);
+        sc_table_add_row_bg(tb, (ScCell[]){
+            SC_CELL("#102"), SC_CELL("feature/x"), SC_CELL("FAIL"), SC_CELL("0m 47s"),
+        }, 4, sc_rgb(60, 20, 20));
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("#103"), SC_CELL("main"),      SC_CELL("PASS"), SC_CELL("1m 31s"),
+        }, 4);
+        sc_table_add_row_bg(tb, (ScCell[]){
+            SC_CELL("#104"), SC_CELL("hotfix/y"),  SC_CELL("PASS"), SC_CELL("2m 05s"),
+        }, 4, sc_rgb(20, 50, 20));
+        sc_table_add_row_bg(tb, (ScCell[]){
+            SC_CELL("#105"), SC_CELL("release/2"), SC_CELL("FAIL"), SC_CELL("3m 12s"),
+        }, 4, sc_rgb(60, 20, 20));
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 20. Total Width: Spalten proportional auf feste Gesamtbreite skalieren ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .total_width = 60,
+            .title       = " Total Width = 60 cols ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_MAGENTA, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Country",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Capital",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Population", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Germany"),     SC_CELL("Berlin"),    SC_CELL("83M") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ SC_CELL("France"),      SC_CELL("Paris"),     SC_CELL("68M") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Netherlands"), SC_CELL("Amsterdam"), SC_CELL("18M") }, 3);
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 21. Colspan: Zellen über mehrere Spalten spannen ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_YELLOW, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title       = " Colspan ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_YELLOW, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Name", (ScColOpts){0,0,12, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q1",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q2",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q3",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Q4",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        /* spanning row: "H1" spans Q1+Q2, "H2" spans Q3+Q4 */
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL(""),
+            SC_CELL_CS("H1 (Q1+Q2)", 2), SC_CELL_SKIP,
+            SC_CELL_CS("H2 (Q3+Q4)", 2), SC_CELL_SKIP,
+        }, 5);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Alice"),
+            SC_CELL("120"), SC_CELL("95"), SC_CELL("140"), SC_CELL("110"),
+        }, 5);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Bob"),
+            SC_CELL("80"), SC_CELL("110"), SC_CELL("70"), SC_CELL("95"),
+        }, 5);
+        /* full-width spanning note */
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL_CS("* values in units sold", 5),
+            SC_CELL_SKIP, SC_CELL_SKIP, SC_CELL_SKIP, SC_CELL_SKIP,
+        }, 5);
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 22. RTL: Spalten von rechts nach links ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .rtl         = 1,
+            .title       = " RTL Column Order ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Col A", (ScColOpts){0,0,10, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Col B", (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Col C", (ScColOpts){0,0,10, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0});
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("Alpha"), SC_CELL("Beta"), SC_CELL("Gamma"),
+        }, 3);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL("1"), SC_CELL("2"), SC_CELL("3"),
+        }, 3);
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 23. Max Rows: Tabelle auf n Zeilen begrenzen + Indikator ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .max_rows    = 4,
+            .title       = " Max Rows = 4 (10 total) ",
+            .title_opts  = { SC_STYLE_BOLD, SC_COLOR_RED, SC_COLOR_NONE },
+            .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad   = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "#",     (ScColOpts){0,0,4,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,12, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Score", (ScColOpts){0,0,7,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        /* Strings must outlive sc_table_print; use per-row arrays rather than loop-local buffers. */
+        char row_idx[10][4], row_name[10][12], row_score[10][8];
+        for (int i = 1; i <= 10; i++) {
+            snprintf(row_idx[i-1],   sizeof(row_idx[i-1]),   "%d", i);
+            snprintf(row_name[i-1],  sizeof(row_name[i-1]),  "Player %d", i);
+            snprintf(row_score[i-1], sizeof(row_score[i-1]), "%d", 10000 - i * 850);
+            sc_table_add_row(tb, (ScCell[]){
+                SC_CELL(row_idx[i-1]), SC_CELL(row_name[i-1]), SC_CELL(row_score[i-1]),
+            }, 3);
+        }
+        sc_table_print(tb);
+        sc_table_free(tb);
     }
 }
