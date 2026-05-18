@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 
 /* ── Border character sets ──────────────────────────────────────────────── */
 
@@ -156,13 +154,6 @@ static void free_plines(PLine *lines, size_t n) {
 
 /* ── Panel rendering ────────────────────────────────────────────────────── */
 
-static int get_term_width(void) {
-    struct winsize ws;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
-        return (int)ws.ws_col;
-    return 80;
-}
-
 static void render_content_line(PLine *line, int inner_w, int pad_x,
                                  ScBorderStyle border, ScColor bc,
                                  ScAlign align) {
@@ -196,7 +187,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     int min4title   = opts.title ? title_len + 2 * title_pad + 2 : 0;
     int inner_w;
     if (opts.full_width) {
-        inner_w = get_term_width() - 2;
+        inner_w = sc_term_width() - 2;
         if (inner_w < 2) inner_w = 2;
     } else if (opts.width > 0) {
         inner_w = opts.width - 2;

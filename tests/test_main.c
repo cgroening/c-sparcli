@@ -7,6 +7,7 @@ void test_colors(void);
 void test_panels(void);
 void test_tables(void);
 void test_columns(void);
+void test_rules(void);
 
 
 int main(void) {
@@ -15,6 +16,7 @@ int main(void) {
     test_panels();
     test_tables();
     test_columns();
+    test_rules();
     return 0;
 }
 
@@ -1217,5 +1219,114 @@ void test_columns(void) {
         sc_table_free(t1);
         sc_table_free(t2);
         sc_table_free(t3);
+    }
+}
+
+
+void test_rules(void) {
+    printf("\n");
+
+    /* ── 1. Verschiedene Linienstile, keine Farbe ── */
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_ASCII,   .color = SC_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_SINGLE,  .color = SC_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_DOUBLE,  .color = SC_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_ROUNDED, .color = SC_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_THICK,   .color = SC_COLOR_NONE });
+
+    printf("\n");
+
+    /* ── 2. Linienstile mit Farbe ── */
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_SINGLE, .color = SC_COLOR_CYAN    });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_DOUBLE, .color = SC_COLOR_YELLOW  });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_THICK,  .color = sc_rgb(180,60,60) });
+
+    printf("\n");
+
+    /* ── 3. Titel: Ausrichtung links / mitte / rechts ── */
+    sc_rule_str("Links",  (ScRuleOpts){
+        .style = SC_BORDER_SINGLE, .color = SC_COLOR_NONE,
+        .title_opts  = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_LEFT,
+    });
+    sc_rule_str("Mitte",  (ScRuleOpts){
+        .style = SC_BORDER_SINGLE, .color = SC_COLOR_NONE,
+        .title_opts  = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+    });
+    sc_rule_str("Rechts", (ScRuleOpts){
+        .style = SC_BORDER_SINGLE, .color = SC_COLOR_NONE,
+        .title_opts  = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_RIGHT,
+    });
+
+    printf("\n");
+
+    /* ── 4. Titel mit Linien- und Textfarbe ── */
+    sc_rule_str("Section A", (ScRuleOpts){
+        .style       = SC_BORDER_SINGLE,
+        .color       = SC_COLOR_CYAN,
+        .title_opts  = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+        .title_pad   = 2,
+    });
+    sc_rule_str("Warning", (ScRuleOpts){
+        .style       = SC_BORDER_DOUBLE,
+        .color       = SC_COLOR_YELLOW,
+        .title_opts  = { SC_STYLE_BOLD, SC_COLOR_YELLOW, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+    });
+    sc_rule_str("Error", (ScRuleOpts){
+        .style       = SC_BORDER_THICK,
+        .color       = sc_rgb(200, 50, 50),
+        .title_opts  = { SC_STYLE_BOLD, sc_rgb(200, 50, 50), SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+        .title_pad   = 2,
+    });
+
+    printf("\n");
+
+    /* ── 5. Feste Breite mit Ausrichtung im Terminal ── */
+    sc_rule_str("left-aligned rule", (ScRuleOpts){
+        .style = SC_BORDER_SINGLE, .color = SC_COLOR_NONE,
+        .title_opts  = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+        .width = 40, .align = SC_ALIGN_LEFT,
+    });
+    sc_rule_str("centered rule", (ScRuleOpts){
+        .style = SC_BORDER_SINGLE, .color = SC_COLOR_NONE,
+        .title_opts  = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+        .width = 40, .align = SC_ALIGN_CENTER,
+    });
+    sc_rule_str("right-aligned rule", (ScRuleOpts){
+        .style = SC_BORDER_SINGLE, .color = SC_COLOR_NONE,
+        .title_opts  = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+        .width = 40, .align = SC_ALIGN_RIGHT,
+    });
+
+    printf("\n");
+
+    /* ── 6. Margin und pad_y ── */
+    sc_rule_str("mit Margin und pad_y", (ScRuleOpts){
+        .style       = SC_BORDER_ROUNDED,
+        .color       = SC_COLOR_GREEN,
+        .title_opts  = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE },
+        .title_align = SC_ALIGN_CENTER,
+        .margin      = 8,
+        .pad_y       = 1,
+    });
+
+    /* ── 7. ScText-Variante mit mehreren Spans ── */
+    {
+        ScText *t = sc_text_new();
+        sc_text_append(t, "Status: ", (ScOptions){ SC_STYLE_NONE, SC_COLOR_NONE,  SC_COLOR_NONE });
+        sc_text_append(t, "OK",       (ScOptions){ SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE });
+        sc_rule_text(t, (ScRuleOpts){
+            .style       = SC_BORDER_SINGLE,
+            .color       = SC_COLOR_NONE,
+            .title_align = SC_ALIGN_CENTER,
+        });
+        sc_text_free(t);
     }
 }

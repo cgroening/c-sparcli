@@ -192,6 +192,23 @@ void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
 void     sc_table_print(const ScTable *t);
 void     sc_table_free(ScTable *t);
 
+/* ── Rule ───────────────────────────────────────────────────────────────────── */
+
+typedef struct {
+    ScBorderStyle style;       /* line character, default SC_BORDER_SINGLE */
+    ScColor       color;       /* line color, SC_COLOR_NONE = no color     */
+    ScOptions     title_opts;  /* style/color for the title text           */
+    ScAlign       title_align; /* LEFT/CENTER/RIGHT placement of title     */
+    int           title_pad;   /* spaces on each side of title, default 1 */
+    int           width;       /* 0 = full terminal width                  */
+    ScAlign       align;       /* placement of rule when width > 0         */
+    int           margin;      /* symmetric left+right indent in chars     */
+    int           pad_y;       /* blank lines above and below the rule     */
+} ScRuleOpts;
+
+void sc_rule_str (const char *title, ScRuleOpts opts);
+void sc_rule_text(const ScText *title, ScRuleOpts opts);
+
 /* ── Columns ────────────────────────────────────────────────────────────────── */
 
 typedef struct {

@@ -4,8 +4,17 @@
 #include "sparcli.h"
 #include <stddef.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 void sc_apply_colors(ScColor fg, ScColor bg);
+
+static inline int sc_term_width(void) {
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+        return (int)ws.ws_col;
+    return 80;
+}
 
 /* Count visible terminal columns in the first byte_len bytes of a UTF-8
    string.  Assumes all code points occupy 1 column (correct for non-CJK). */
