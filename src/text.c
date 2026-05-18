@@ -57,11 +57,11 @@ void sc_print_text(const ScText *t) {
 size_t sc_text_visible_width(const ScText *t) {
     size_t max_w = 0, cur_w = 0;
     for (size_t i = 0; i < t->count; i++) {
-        for (const char *s = t->spans[i].text; *s; s++) {
+        for (const unsigned char *s = (const unsigned char *)t->spans[i].text; *s; s++) {
             if (*s == '\n') {
                 if (cur_w > max_w) max_w = cur_w;
                 cur_w = 0;
-            } else {
+            } else if ((*s & 0xC0) != 0x80) {  /* skip UTF-8 continuation bytes */
                 cur_w++;
             }
         }

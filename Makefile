@@ -1,7 +1,7 @@
 CC      = cc
 CFLAGS  = -std=c11 -Wall -Wextra -Iinclude
 
-SRC     = src/style.c src/panel.c src/color.c src/text.c
+SRC     = src/style.c src/panel.c src/color.c src/text.c src/table.c
 OBJ     = $(SRC:.c=.o)
 LIB     = libsparcli.a
 

@@ -104,4 +104,70 @@ typedef struct {
 void sc_panel_str(const char *content, ScPanelOpts opts);
 void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+
+typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScValign;
+
+typedef enum { SC_CELL_STR, SC_CELL_TEXT } ScCellKind;
+
+typedef struct {
+    ScCellKind  kind;
+    const char *str;         /* not owned; used when kind == SC_CELL_STR */
+    ScText     *text;        /* not owned; used when kind == SC_CELL_TEXT */
+    int         align_set;   /* 1 = overrides column alignment */
+    ScAlign     align;
+    int         valign_set;  /* 1 = overrides row valignment */
+    ScValign    valign;
+} ScCell;
+
+#define SC_CELL(s)           ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0 })
+#define SC_CELL_A(s,ha,va)   ((ScCell){ SC_CELL_STR,  (s), NULL, 1,(ha), 1,(va) })
+#define SC_CELL_T(t)         ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0 })
+#define SC_CELL_TA(t,ha,va)  ((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 1,(va) })
+
+typedef struct {
+    int      min_w;    /* minimum column width, 0 = none  */
+    int      max_w;    /* maximum column width, 0 = none  */
+    int      fixed_w;  /* fixed column width,   0 = auto  */
+    ScAlign  align;    /* default horizontal alignment    */
+    ScValign valign;   /* default vertical alignment      */
+} ScColOpts;
+
+typedef struct {
+    ScBorderStyle style;
+    ScColor       outer_color;
+    ScColor       inner_color;
+    ScColor       header_row_sep_color;
+    ScColor       header_col_sep_color;
+    int           no_outer;    /* 1 = suppress outer frame */
+    int           no_inner_h;  /* 1 = suppress inner row separators */
+    int           no_inner_v;  /* 1 = suppress inner col separators (except header col) */
+} ScTableBorders;
+
+typedef struct {
+    ScTableBorders borders;
+    int            header_row;       /* 1 = first added row is header */
+    int            header_col;       /* 1 = first column is header    */
+    ScColor        header_row_bg;
+    ScColor        header_col_bg;
+    ScOptions      header_opts;      /* style applied to header cells */
+    int            striped;          /* 1 = alternating row bg colors */
+    ScColor        stripe_bg;        /* bg for odd data rows (0-indexed) */
+    const char    *title;
+    ScOptions      title_opts;
+    ScTitlePos     title_pos;
+    ScAlign        title_align;
+    int            title_pad;        /* spaces around title text, default 1 */
+    int            cell_pad_x;
+    int            cell_pad_y;
+} ScTableOpts;
+
+typedef struct ScTable ScTable;
+
+ScTable *sc_table_new(ScTableOpts opts);
+void     sc_table_add_col(ScTable *t, const char *header, ScColOpts col);
+void     sc_table_add_row(ScTable *t, ScCell *cells, size_t n);
+void     sc_table_print(const ScTable *t);
+void     sc_table_free(ScTable *t);
+
 #endif /* SPARCLI_H */

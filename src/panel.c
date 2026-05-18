@@ -1,5 +1,6 @@
 #include "sparcli.h"
 #include "internal.h"
+#include <string.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -101,7 +102,7 @@ static PLine *make_plines(const ScText *t, size_t *out_n) {
                         buf = realloc(buf, buf_cap * sizeof(PSpan));
                     }
                     buf[buf_n++] = (PSpan){ strndup(start, seglen), opts };
-                    buf_w += seglen;
+                    buf_w += sc_utf8_vis_w(start, seglen);
                 }
                 /* flush line */
                 if (nlines == lines_cap) {
@@ -124,7 +125,7 @@ static PLine *make_plines(const ScText *t, size_t *out_n) {
                 buf = realloc(buf, buf_cap * sizeof(PSpan));
             }
             buf[buf_n++] = (PSpan){ strndup(start, seglen), opts };
-            buf_w += seglen;
+            buf_w += sc_utf8_vis_w(start, seglen);
         }
     }
 
