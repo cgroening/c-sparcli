@@ -483,6 +483,7 @@ static void render_inner_sep(const ScTable *t, int *cw,
 
         if (is_rs && is_rs[c]) {
             /* Spanning column: try to render cell content at this line */
+            ScColor col_bg = t->cols[c].opts.bg;
             if (rsc && rsc[c].cell) {
                 int content_w = cw[c] - 2 * cpx;
                 if (content_w < 0) content_w = 0;
@@ -498,7 +499,7 @@ static void render_inner_sep(const ScTable *t, int *cw,
                 else if (rsc[c].valign == SC_VALIGN_BOTTOM) top = extra;
                 int cli   = rsc[c].vis_offset - top;
 
-                print_spaces_bg(cpx, SC_COLOR_NONE);
+                print_spaces_bg(cpx, col_bg);
                 if (cli >= 0 && cli < cn) {
                     TLine *line = &cl[cli];
                     int rw = content_w - (int)line->vis_w;
@@ -507,33 +508,33 @@ static void render_inner_sep(const ScTable *t, int *cw,
                         int lp = 0, rp = rw;
                         if (ha == SC_ALIGN_CENTER) { lp = rw/2; rp = rw-lp; }
                         else if (ha == SC_ALIGN_RIGHT) { lp = rw; rp = 0; }
-                        print_spaces_bg(lp, SC_COLOR_NONE);
+                        print_spaces_bg(lp, col_bg);
                         for (size_t s = 0; s < line->count; s++)
-                            sc_print(line->spans[s].text, line->spans[s].opts);
-                        print_spaces_bg(rp, SC_COLOR_NONE);
+                            print_span_bg(line->spans[s].text, line->spans[s].opts, col_bg);
+                        print_spaces_bg(rp, col_bg);
                     } else {
                         int rem = content_w;
                         for (size_t s = 0; s < line->count && rem > 0; s++) {
                             const char *txt = line->spans[s].text;
                             int sw = (int)sc_utf8_vis_w(txt, strlen(txt));
                             if (sw <= rem) {
-                                sc_print(txt, line->spans[s].opts);
+                                print_span_bg(txt, line->spans[s].opts, col_bg);
                                 rem -= sw;
                             } else {
                                 size_t bytes = sc_utf8_trim_to_cols(txt, rem);
                                 char *part = strndup(txt, bytes);
-                                sc_print(part, line->spans[s].opts);
+                                print_span_bg(part, line->spans[s].opts, col_bg);
                                 free(part); rem = 0;
                             }
                         }
                     }
                 } else {
-                    print_spaces_bg(content_w, SC_COLOR_NONE);
+                    print_spaces_bg(content_w, col_bg);
                 }
-                print_spaces_bg(cpx, SC_COLOR_NONE);
+                print_spaces_bg(cpx, col_bg);
                 free_tlines(cl, ncl);
             } else {
-                for (int i = 0; i < cw[c]; i++) fputc(' ', stdout);
+                print_spaces_bg(cw[c], col_bg);
             }
         } else {
             sc_apply_colors(ic, SC_COLOR_NONE);
@@ -696,7 +697,8 @@ static void render_row(const ScTable *t, const ScCell *cells,
             if ((int)c + ecs > (int)t->ncols) ecs = (int)t->ncols - (int)c;
 
             /* per-cell background */
-            ScColor cell_bg = row_bg;
+            ScColor col_bg  = t->cols[c].opts.bg;
+            ScColor cell_bg = (row_bg.index != -2) ? row_bg : col_bg;
             int is_hcol_c = (t->opts.header_col && c == hcol_phys);
             if (is_hcol_c && !is_hdr) {
                 ScColor hcol_bg = is_ftr ? t->opts.footer_col_bg : t->opts.header_col_bg;

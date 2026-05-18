@@ -140,6 +140,7 @@ typedef struct {
     ScAlign  align;    /* default horizontal alignment    */
     ScValign valign;   /* default vertical alignment      */
     int      wrap;     /* 1 = word-wrap instead of truncate */
+    ScColor  bg;       /* per-column background, SC_COLOR_NONE = not set */
 } ScColOpts;
 
 typedef struct {
