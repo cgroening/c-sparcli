@@ -16,7 +16,7 @@ Compiler: `cc -std=c11 -Wall -Wextra -Iinclude`
 Source files in `SRC` (Makefile):
 ```
 src/style.c  src/panel.c  src/color.c  src/text.c
-src/table.c  src/columns.c  src/rule.c
+src/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
 ```
 
 When adding a new source file, append it to `SRC` in the Makefile.
@@ -248,6 +248,8 @@ void sc_columns_add_panel_text(ScColumns *cl, const ScText    *content, ScPanelO
 void sc_columns_add_text      (ScColumns *cl, const ScText    *t,       ScColItem item);
 void sc_columns_add_str       (ScColumns *cl, const char      *s,       ScColItem item);
 void sc_columns_add_columns   (ScColumns *cl, const ScColumns *nested,  ScColItem item);
+void sc_columns_add_tree      (ScColumns *cl, const ScTree    *tree,    ScColItem item);
+void sc_columns_add_list      (ScColumns *cl, const ScList    *list,    ScColItem item);
 void sc_columns_print(const ScColumns *cl);
 void sc_columns_free(ScColumns *cl);
 ```
@@ -282,6 +284,65 @@ typedef struct {
 
 Width priority: `fixed_w` > `min_w`/`max_w` clamping > natural content width.
 Flex columns (fixed_w == 0) participate in `total_width` distribution.
+
+---
+
+## List
+
+Bulleted and numbered lists with word-wrap, hanging indent, and arbitrary nesting.
+
+```c
+ScList     *sc_list_new     (ScListOpts opts);
+ScListItem *sc_list_add_str (ScList *l, const char *str, ScOptions opts);
+ScListItem *sc_list_add_text(ScList *l, const ScText *t);
+ScList     *sc_list_add_sub (ScListItem *parent, ScListOpts opts);
+void        sc_list_print   (const ScList *l);
+void        sc_list_free    (ScList *l);
+```
+
+`sc_list_add_sub` attaches a sub-list to an item; the sub-list is owned by the item
+and freed when the parent list is freed.
+
+### ScListMarker
+
+| Constant | Style |
+|----------|-------|
+| `SC_LIST_BULLET` | Fixed character (default `•`) |
+| `SC_LIST_NUMBER` | `1.` `2.` `3.` … |
+| `SC_LIST_ALPHA_LC` | `a.` `b.` `c.` … |
+| `SC_LIST_ALPHA_UC` | `A.` `B.` `C.` … |
+| `SC_LIST_ROMAN_LC` | `i.` `ii.` `iii.` … |
+| `SC_LIST_ROMAN_UC` | `I.` `II.` `III.` … |
+
+### ScListOpts
+
+| Field | Description |
+|-------|-------------|
+| `marker` | Marker type (see above) |
+| `bullet` | `SC_LIST_BULLET` only; `NULL` = default `•` |
+| `marker_prefix` | Text before the value, e.g. `"("` → `(1`; default `""` |
+| `marker_suffix` | Text after the value, e.g. `"."` → `1.`; default `"."` |
+| `marker_opts` | Style/color for the marker; **zero-init = no formatting** (see below) |
+| `indent` | Left indent relative to parent, in columns |
+| `item_gap` | Blank lines between items |
+| `width` | 0 = terminal width |
+| `margin` | Symmetric left+right outer margin |
+
+**Zero-init of `marker_opts`:** Unlike other `ScOptions` fields, a zero-initialized
+`marker_opts` in `ScListOpts` is explicitly treated as "no formatting" by the renderer.
+You can safely write `(ScListOpts){ .marker = SC_LIST_NUMBER }` without specifying
+`marker_opts` and no color escape codes will be emitted for the marker.
+
+**Alignment:** Numbered/alpha/roman markers are right-aligned within a field sized to
+the widest marker value in the list (e.g. `VIII.` sets the field width for all items).
+
+**Hanging indent:** Continuation lines of a word-wrapped item are indented to the same
+column as the start of the text (i.e., aligned under the first word, not the marker).
+
+**Nesting:** Sub-lists start at `text_start` of the parent item. Each level's
+`indent` adds further indentation relative to that base.
+
+**Integration with ScColumns:** use `sc_columns_add_list(cl, list, item)`.
 
 ---
 

@@ -192,6 +192,39 @@ void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
 void     sc_table_print(const ScTable *t);
 void     sc_table_free(ScTable *t);
 
+/* ── List ───────────────────────────────────────────────────────────────────── */
+
+typedef enum {
+    SC_LIST_BULLET,    /* fixed bullet character              */
+    SC_LIST_NUMBER,    /* 1, 2, 3, ...                        */
+    SC_LIST_ALPHA_LC,  /* a, b, c, ...                        */
+    SC_LIST_ALPHA_UC,  /* A, B, C, ...                        */
+    SC_LIST_ROMAN_LC,  /* i, ii, iii, ...                     */
+    SC_LIST_ROMAN_UC,  /* I, II, III, ...                     */
+} ScListMarker;
+
+typedef struct {
+    ScListMarker  marker;         /* marker type, default SC_LIST_BULLET       */
+    const char   *bullet;         /* BULLET only, default "•"                  */
+    const char   *marker_prefix;  /* e.g. "(" → "(1"    default ""             */
+    const char   *marker_suffix;  /* e.g. "." → "1."    default "."            */
+    ScOptions     marker_opts;    /* style/color for marker                    */
+    int           indent;         /* left indent relative to parent, default 0 */
+    int           item_gap;       /* blank lines between items, default 0      */
+    int           width;          /* 0 = terminal width                        */
+    int           margin;         /* symmetric left+right outer margin         */
+} ScListOpts;
+
+typedef struct ScListItem ScListItem;
+typedef struct ScList     ScList;
+
+ScList     *sc_list_new     (ScListOpts opts);
+ScListItem *sc_list_add_str (ScList *l, const char *str, ScOptions opts);
+ScListItem *sc_list_add_text(ScList *l, const ScText *t);
+ScList     *sc_list_add_sub (ScListItem *parent, ScListOpts opts);
+void        sc_list_print   (const ScList *l);
+void        sc_list_free    (ScList *l);
+
 /* ── Tree ───────────────────────────────────────────────────────────────────── */
 
 typedef struct {
@@ -267,6 +300,7 @@ void sc_columns_add_text      (ScColumns *cl, const ScText    *t,       ScColIte
 void sc_columns_add_str       (ScColumns *cl, const char      *s,       ScColItem item);
 void sc_columns_add_columns   (ScColumns *cl, const ScColumns *nested,  ScColItem item);
 void sc_columns_add_tree      (ScColumns *cl, const ScTree    *tree,    ScColItem item);
+void sc_columns_add_list      (ScColumns *cl, const ScList    *list,    ScColItem item);
 void sc_columns_print(const ScColumns *cl);
 void sc_columns_free(ScColumns *cl);
 

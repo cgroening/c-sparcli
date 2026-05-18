@@ -155,6 +155,11 @@ static void _render_tree(void *p) {
     sc_tree_print(((CtxTree *)p)->t);
 }
 
+typedef struct { const ScList *l; } CtxList;
+static void _render_list(void *p) {
+    sc_list_print(((CtxList *)p)->l);
+}
+
 /* ── Internal entry helpers ─────────────────────────────────────────────── */
 
 typedef struct {
@@ -222,6 +227,11 @@ void sc_columns_add_columns(ScColumns *cl, const ScColumns *nested, ScColItem it
 void sc_columns_add_tree(ScColumns *cl, const ScTree *tree, ScColItem item) {
     CtxTree ctx = { tree };
     columns_push(cl, render_captured(_render_tree, &ctx), item);
+}
+
+void sc_columns_add_list(ScColumns *cl, const ScList *list, ScColItem item) {
+    CtxList ctx = { list };
+    columns_push(cl, render_captured(_render_list, &ctx), item);
 }
 
 void sc_columns_free(ScColumns *cl) {
