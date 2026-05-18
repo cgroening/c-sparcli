@@ -811,7 +811,7 @@ void test_tables(void) {
         }, 5);
         /* full-width spanning note */
         sc_table_add_row(tb, (ScCell[]){
-            SC_CELL_CS("* values in units sold", 5),
+           SC_CELL_CSA("* values in units sold", 5, SC_ALIGN_CENTER),
             SC_CELL_SKIP, SC_CELL_SKIP, SC_CELL_SKIP, SC_CELL_SKIP,
         }, 5);
         sc_table_print(tb);

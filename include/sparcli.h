@@ -127,6 +127,7 @@ typedef struct {
 #define SC_CELL_T(t)         ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, 0,     0 })
 #define SC_CELL_TA(t,ha,va)  ((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 1,(va), 0, 0 })
 #define SC_CELL_CS(s,cs)     ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, (cs),  0 })
+#define SC_CELL_CSA(s,cs,ha) ((ScCell){ SC_CELL_STR,  (s), NULL, 1,(ha), 0, 0, (cs),  0 })
 #define SC_CELL_TCS(t,cs)    ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, (cs),  0 })
 #define SC_CELL_SKIP         ((ScCell){ SC_CELL_STR,  "",  NULL, 0, 0, 0, 0, -1,    0 })
 #define SC_CELL_RS(s,rs)     ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, 0,  (rs) })
