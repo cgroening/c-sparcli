@@ -1154,4 +1154,68 @@ void test_columns(void) {
         sc_columns_print(cl);
         sc_columns_free(cl);
     }
+
+    printf("\n");
+
+    /* ── 7. Separator: double border, farbig ── */
+    {
+        ScTable *t1 = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1, .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title = " Revenue ", .title_opts = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(t1, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(t1, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q1"), SC_CELL("1 240 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q2"), SC_CELL("1 580 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q3"), SC_CELL("1 390 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q4"), SC_CELL("1 820 000") }, 2);
+
+        ScTable *t2 = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1, .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title = " Costs ", .title_opts = { SC_STYLE_BOLD, SC_COLOR_YELLOW, SC_COLOR_NONE },
+            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(t2, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(t2, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q1"), SC_CELL("980 000")   }, 2);
+        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q2"), SC_CELL("1 100 000") }, 2);
+        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q3"), SC_CELL("870 000")   }, 2);
+        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q4"), SC_CELL("1 250 000") }, 2);
+
+        ScTable *t3 = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1, .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title = " Profit ", .title_opts = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE },
+            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(t3, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(t3, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q1"), SC_CELL("260 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q2"), SC_CELL("480 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q3"), SC_CELL("520 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q4"), SC_CELL("570 000") }, 2);
+
+        ScColumns *cl = sc_columns_new((ScColumnsOpts){
+            .gap       = 3,
+            .sep_style = SC_BORDER_DOUBLE,
+            .sep_color = sc_rgb(80, 80, 140),
+        });
+        sc_columns_add_table(cl, t1, (ScColItem){0});
+        sc_columns_add_table(cl, t2, (ScColItem){0});
+        sc_columns_add_table(cl, t3, (ScColItem){0});
+        sc_columns_print(cl);
+        sc_columns_free(cl);
+        sc_table_free(t1);
+        sc_table_free(t2);
+        sc_table_free(t3);
+    }
 }
