@@ -20,9 +20,9 @@
 typedef unsigned int SpStyle;
 
 /* Print text with style to stdout */
-void sp_print(const char *text, SpStyle style);
+void sc_print(const char *text, SpStyle style);
 
 /* Print text with style followed by newline */
-void sp_println(const char *text, SpStyle style);
+void sc_println(const char *text, SpStyle style);
 
 #endif /* SPARCLI_H */
