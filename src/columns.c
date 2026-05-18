@@ -227,9 +227,9 @@ void sc_columns_free(ScColumns *cl) {
 void sc_columns_print(const ScColumns *cl) {
     if (!cl || !cl->count) return;
 
-    int gap = cl->opts.gap > 0 ? cl->opts.gap : 3;
     const char *sep = (cl->opts.sep_style > SC_BORDER_NONE)
                       ? sep_chars[cl->opts.sep_style] : NULL;
+    int gap = cl->opts.gap > 0 ? cl->opts.gap : (sep ? 2 : 3);
 
     /* ── column widths ── */
     int *cw = malloc(cl->count * sizeof(int));
@@ -251,8 +251,7 @@ void sc_columns_print(const ScColumns *cl) {
         for (size_t i = 0; i < cl->count; i++) used += cw[i];
         /* add separator and gap widths */
         for (size_t i = 0; i + 1 < cl->count; i++) {
-            used += gap;
-            if (sep) used += 1; /* separator is 1 visible char */
+            used += sep ? (gap * 2 + 1) : gap;
         }
         int delta = cl->opts.total_width - used;
         if (delta != 0) {
@@ -317,6 +316,7 @@ void sc_columns_print(const ScColumns *cl) {
 
             if (ci + 1 < cl->count) {
                 if (sep) {
+                    for (int k = 0; k < gap; k++) fputc(' ', stdout);
                     if (cl->opts.sep_color.index != -2) {
                         sc_apply_colors(cl->opts.sep_color,
                                         (ScColor){ -2, 0, 0, 0 });
@@ -325,8 +325,10 @@ void sc_columns_print(const ScColumns *cl) {
                     } else {
                         fputs(sep, stdout);
                     }
+                    for (int k = 0; k < gap; k++) fputc(' ', stdout);
+                } else {
+                    for (int k = 0; k < gap; k++) fputc(' ', stdout);
                 }
-                for (int k = 0; k < gap; k++) fputc(' ', stdout);
             }
         }
         fputc('\n', stdout);
