@@ -97,8 +97,10 @@ typedef struct {
     ScAlign       title_align;
     int           pad_x;
     int           pad_y;
-    int           width;       /* 0 = auto */
-    int           title_pad;   /* spaces on each side of title text, default 1 */
+    int           width;         /* 0 = auto */
+    int           title_pad;     /* spaces on each side of title text, default 1 */
+    ScAlign       content_align; /* horizontal alignment of content lines */
+    int           full_width;    /* 1 = stretch to terminal width */
 } ScPanelOpts;
 
 void sc_panel_str(const char *content, ScPanelOpts opts);
