@@ -150,6 +150,11 @@ static void _render_columns(void *p) {
     sc_columns_print(((CtxCols *)p)->cl);
 }
 
+typedef struct { const ScTree *t; } CtxTree;
+static void _render_tree(void *p) {
+    sc_tree_print(((CtxTree *)p)->t);
+}
+
 /* ── Internal entry helpers ─────────────────────────────────────────────── */
 
 typedef struct {
@@ -212,6 +217,11 @@ void sc_columns_add_str(ScColumns *cl, const char *s, ScColItem item) {
 void sc_columns_add_columns(ScColumns *cl, const ScColumns *nested, ScColItem item) {
     CtxCols ctx = { nested };
     columns_push(cl, render_captured(_render_columns, &ctx), item);
+}
+
+void sc_columns_add_tree(ScColumns *cl, const ScTree *tree, ScColItem item) {
+    CtxTree ctx = { tree };
+    columns_push(cl, render_captured(_render_tree, &ctx), item);
 }
 
 void sc_columns_free(ScColumns *cl) {

@@ -192,6 +192,28 @@ void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
 void     sc_table_print(const ScTable *t);
 void     sc_table_free(ScTable *t);
 
+/* ── Tree ───────────────────────────────────────────────────────────────────── */
+
+typedef struct {
+    ScBorderStyle style;           /* connector characters */
+    ScColor       connector_color; /* SC_COLOR_NONE = no color */
+    int           indent;          /* extra spaces after connector, default 1 (→ 4 chars/level) */
+    int           no_guide;        /* 1 = suppress vertical continuation lines */
+} ScTreeOpts;
+
+typedef struct ScTreeNode ScTreeNode;
+typedef struct ScTree     ScTree;
+
+ScTree     *sc_tree_new     (ScTreeOpts opts);
+ScTreeNode *sc_tree_add_str (ScTree *t, ScTreeNode *parent,
+                              const char   *str,    ScOptions opts,
+                              const char   *prefix, ScOptions prefix_opts);
+ScTreeNode *sc_tree_add_text(ScTree *t, ScTreeNode *parent,
+                              const ScText *text,
+                              const char   *prefix, ScOptions prefix_opts);
+void        sc_tree_print   (const ScTree *t);
+void        sc_tree_free    (ScTree *t);
+
 /* ── Rule ───────────────────────────────────────────────────────────────────── */
 
 typedef struct {
@@ -244,6 +266,7 @@ void sc_columns_add_panel_text(ScColumns *cl, const ScText    *content, ScPanelO
 void sc_columns_add_text      (ScColumns *cl, const ScText    *t,       ScColItem item);
 void sc_columns_add_str       (ScColumns *cl, const char      *s,       ScColItem item);
 void sc_columns_add_columns   (ScColumns *cl, const ScColumns *nested,  ScColItem item);
+void sc_columns_add_tree      (ScColumns *cl, const ScTree    *tree,    ScColItem item);
 void sc_columns_print(const ScColumns *cl);
 void sc_columns_free(ScColumns *cl);
 
