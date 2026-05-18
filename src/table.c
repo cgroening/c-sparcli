@@ -457,6 +457,114 @@ static void render_hline(const ScTable *t, int *col_widths,
     fputc('\n', stdout);
 }
 
+/* Inner row separator that can show spanning-cell content in spanned columns. */
+static void render_inner_sep(const ScTable *t, int *cw,
+                              ScColor ic, const int *is_rs, const RSCtx *rsc) {
+    ScBorderStyle bs    = t->opts.borders.style;
+    ScColor oc          = t->opts.borders.outer_color;
+    int no_outer        = t->opts.borders.no_outer;
+    int no_inner_v      = t->opts.borders.no_inner_v;
+    int rtl             = t->opts.rtl;
+    int cpx             = t->opts.cell_pad_x;
+    size_t hcol_phys    = rtl ? (t->ncols - 1) : 0;
+
+    const char *lc = tbc[bs].t_left;
+    const char *rc = tbc[bs].t_right;
+    if (is_rs && !no_outer) {
+        size_t fc  = rtl ? (t->ncols - 1) : 0;
+        size_t lcc = rtl ? 0 : (t->ncols - 1);
+        if (is_rs[fc])  lc = tbc[bs].v;
+        if (is_rs[lcc]) rc = tbc[bs].v;
+    }
+    if (!no_outer) print_ch(lc, oc);
+
+    for (size_t ci = 0; ci < t->ncols; ci++) {
+        size_t c = rtl ? (t->ncols - 1 - ci) : ci;
+
+        if (is_rs && is_rs[c]) {
+            /* Spanning column: try to render cell content at this line */
+            if (rsc && rsc[c].cell) {
+                int content_w = cw[c] - 2 * cpx;
+                if (content_w < 0) content_w = 0;
+                size_t ncl;
+                TLine *cl = (t->cols[c].opts.wrap && content_w > 0)
+                    ? wrap_cell_lines(rsc[c].cell, content_w, &ncl)
+                    : make_cell_lines(rsc[c].cell, &ncl);
+                int cn    = (int)ncl;
+                int extra = rsc[c].span_h - cn;
+                if (extra < 0) extra = 0;
+                int top   = 0;
+                if (rsc[c].valign == SC_VALIGN_MIDDLE) top = extra / 2;
+                else if (rsc[c].valign == SC_VALIGN_BOTTOM) top = extra;
+                int cli   = rsc[c].vis_offset - top;
+
+                print_spaces_bg(cpx, SC_COLOR_NONE);
+                if (cli >= 0 && cli < cn) {
+                    TLine *line = &cl[cli];
+                    int rw = content_w - (int)line->vis_w;
+                    ScAlign ha = t->cols[c].opts.align;
+                    if (rw >= 0) {
+                        int lp = 0, rp = rw;
+                        if (ha == SC_ALIGN_CENTER) { lp = rw/2; rp = rw-lp; }
+                        else if (ha == SC_ALIGN_RIGHT) { lp = rw; rp = 0; }
+                        print_spaces_bg(lp, SC_COLOR_NONE);
+                        for (size_t s = 0; s < line->count; s++)
+                            sc_print(line->spans[s].text, line->spans[s].opts);
+                        print_spaces_bg(rp, SC_COLOR_NONE);
+                    } else {
+                        int rem = content_w;
+                        for (size_t s = 0; s < line->count && rem > 0; s++) {
+                            const char *txt = line->spans[s].text;
+                            int sw = (int)sc_utf8_vis_w(txt, strlen(txt));
+                            if (sw <= rem) {
+                                sc_print(txt, line->spans[s].opts);
+                                rem -= sw;
+                            } else {
+                                size_t bytes = sc_utf8_trim_to_cols(txt, rem);
+                                char *part = strndup(txt, bytes);
+                                sc_print(part, line->spans[s].opts);
+                                free(part); rem = 0;
+                            }
+                        }
+                    }
+                } else {
+                    print_spaces_bg(content_w, SC_COLOR_NONE);
+                }
+                print_spaces_bg(cpx, SC_COLOR_NONE);
+                free_tlines(cl, ncl);
+            } else {
+                for (int i = 0; i < cw[c]; i++) fputc(' ', stdout);
+            }
+        } else {
+            sc_apply_colors(ic, SC_COLOR_NONE);
+            for (int i = 0; i < cw[c]; i++) fputs(tbc[bs].h, stdout);
+            fputs(SC_RESET, stdout);
+        }
+
+        /* Junction between columns */
+        if (ci < t->ncols - 1) {
+            int is_hcol = (t->opts.header_col && c == hcol_phys);
+            int has_vsep = !no_inner_v || is_hcol;
+            if (has_vsep) {
+                size_t nc = rtl ? (c - 1) : (c + 1);
+                int cur_rs  = is_rs ? is_rs[c]  : 0;
+                int next_rs = is_rs ? (int)is_rs[nc] : 0;
+                const char *jchar = tbc[bs].cross;
+                if      (cur_rs && next_rs) jchar = tbc[bs].v;
+                else if (cur_rs)            jchar = tbc[bs].t_left;
+                else if (next_rs)           jchar = tbc[bs].t_right;
+                ScColor jc = ic;
+                if (is_hcol && t->opts.borders.header_col_sep_color.index != -2)
+                    jc = t->opts.borders.header_col_sep_color;
+                print_ch(jchar, jc);
+            }
+        }
+    }
+
+    if (!no_outer) print_ch(rc, oc);
+    fputc('\n', stdout);
+}
+
 /* Title line (replaces top/bottom outer line when title is set) */
 static void render_title_line(const ScTable *t, int inner_w, int is_top) {
     ScBorderStyle bs = t->opts.borders.style;
@@ -836,9 +944,12 @@ void sc_table_print(const ScTable *t) {
         for (size_t c = 0; c < t->ncols; c++) {
             int rs = t->rows[r].cells[c].rowspan;
             if (rs > 1) {
+                int sep_h = (bs != SC_BORDER_NONE && !no_inner_h) ? 1 : 0;
                 int sh = 0;
-                for (int k = 0; k < rs && r + (size_t)k < t->nrows; k++)
+                for (int k = 0; k < rs && r + (size_t)k < t->nrows; k++) {
+                    if (k > 0) sh += sep_h;
                     sh += row_h_arr[r + k];
+                }
                 ScValign va = t->cols[c].opts.valign;
                 if (t->rows[r].cells[c].valign_set) va = t->rows[r].cells[c].valign;
                 rsc[c] = (RSCtx){ &t->rows[r].cells[c], sh, 0, va };
@@ -851,8 +962,10 @@ void sc_table_print(const ScTable *t) {
             /* Compute rowspan state: cols with SC_ROW_SKIP get blank separator */
             for (size_t c = 0; c < t->ncols; c++)
                 is_rs[c] = (t->rows[r].cells[c].rowspan == -1);
-            render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, is_rs);
+            render_inner_sep(t, cw, ic, is_rs, rsc);
+            /* Separator is 1 visual line within already-running spans only */
+            for (size_t c = 0; c < t->ncols; c++)
+                if (is_rs[c] && rsc[c].cell) rsc[c].vis_offset++;
         }
         ScColor row_bg = t->rows[r].bg;
         if (row_bg.index == -2) {
