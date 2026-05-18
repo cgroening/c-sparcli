@@ -192,4 +192,42 @@ void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
 void     sc_table_print(const ScTable *t);
 void     sc_table_free(ScTable *t);
 
+/* ── Columns ────────────────────────────────────────────────────────────────── */
+
+typedef struct {
+    char  **lines;      /* heap-alloc strings, ANSI codes included */
+    int    *vis_widths; /* visible character width per line */
+    size_t  count;
+    int     max_vis_w;  /* max vis_width across all lines */
+} ScRendered;
+
+void sc_rendered_free(ScRendered *r);
+
+typedef struct {
+    int     min_w;   /* 0 = none */
+    int     max_w;   /* 0 = none */
+    int     fixed_w; /* 0 = auto */
+    ScAlign align;   /* placement within col when col_w > content_w */
+} ScColItem;
+
+typedef struct {
+    int           gap;         /* spaces between columns, default 3 */
+    ScBorderStyle sep_style;   /* SC_BORDER_NONE = no separator line */
+    ScColor       sep_color;
+    ScValign      valign;      /* vertical alignment when heights differ */
+    int           total_width; /* 0 = auto; >0 = scale flex cols to fit */
+} ScColumnsOpts;
+
+typedef struct ScColumns ScColumns;
+
+ScColumns *sc_columns_new(ScColumnsOpts opts);
+void sc_columns_add_table     (ScColumns *cl, const ScTable   *t,       ScColItem item);
+void sc_columns_add_panel_str (ScColumns *cl, const char      *content, ScPanelOpts opts, ScColItem item);
+void sc_columns_add_panel_text(ScColumns *cl, const ScText    *content, ScPanelOpts opts, ScColItem item);
+void sc_columns_add_text      (ScColumns *cl, const ScText    *t,       ScColItem item);
+void sc_columns_add_str       (ScColumns *cl, const char      *s,       ScColItem item);
+void sc_columns_add_columns   (ScColumns *cl, const ScColumns *nested,  ScColItem item);
+void sc_columns_print(const ScColumns *cl);
+void sc_columns_free(ScColumns *cl);
+
 #endif /* SPARCLI_H */
