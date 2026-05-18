@@ -229,6 +229,15 @@ static const TBC tbc[] = {
     [SC_BORDER_THICK]   = { "┏","┓","┗","┛", "━","┃", "╋","┳","┻","┣","┫" },
 };
 
+/* ── Rowspan context (tracks active spans across rows) ───────────────────── */
+
+typedef struct {
+    const ScCell *cell;   /* NULL = no active span */
+    int           span_h;     /* total visual height of entire span */
+    int           vis_offset; /* visual lines already rendered */
+    ScValign      valign;
+} RSCtx;
+
 /* ── Internal table structures ───────────────────────────────────────────── */
 
 typedef struct {
@@ -285,6 +294,7 @@ static void compute_col_widths(ScTable *t) {
             if (c >= t->rows[r].ncols) continue;
             ScCell *cell = &t->rows[r].cells[c];
             if (cell->colspan != 0 && cell->colspan != 1) continue; /* skip/span */
+            if (cell->rowspan == -1) continue;
             size_t w = cell_vis_width(cell);
             if (w > max_w) max_w = w;
         }
@@ -292,6 +302,7 @@ static void compute_col_widths(ScTable *t) {
             if (c >= t->footer_rows[r].ncols) continue;
             ScCell *cell = &t->footer_rows[r].cells[c];
             if (cell->colspan != 0 && cell->colspan != 1) continue;
+            if (cell->rowspan == -1) continue;
             size_t w = cell_vis_width(cell);
             if (w > max_w) max_w = w;
         }
@@ -359,34 +370,85 @@ static int table_inner_w(const ScTable *t) {
     return w;
 }
 
+/* Pre-compute the visual height of each data row (spanning cells excluded). */
+static int *compute_row_heights(const ScTable *t, const int *cw) {
+    int cpy   = t->opts.cell_pad_y;
+    int cpx_v = t->opts.cell_pad_x;
+    int *rh   = malloc(t->nrows * sizeof(int));
+    for (size_t r = 0; r < t->nrows; r++) {
+        size_t max_c = 0;
+        for (size_t c = 0; c < t->ncols; c++) {
+            const ScCell *cell = &t->rows[r].cells[c];
+            if (cell->colspan < 0) continue;
+            if (cell->rowspan < 0 || cell->rowspan > 1) continue;
+            int cw_c = cw[c] - 2 * cpx_v;
+            if (cw_c < 0) cw_c = 0;
+            size_t nl;
+            TLine *lines = (t->cols[c].opts.wrap && cw_c > 0)
+                ? wrap_cell_lines(cell, cw_c, &nl)
+                : make_cell_lines(cell, &nl);
+            free_tlines(lines, nl);
+            if (nl > max_c) max_c = nl;
+        }
+        rh[r] = (int)max_c + 2 * cpy;
+        if (rh[r] < 1) rh[r] = 1;
+    }
+    return rh;
+}
+
 /* ── Horizontal rule rendering ───────────────────────────────────────────── */
 
 static void render_hline(const ScTable *t, int *col_widths,
                           const char *lc, const char *rc,
                           const char *fill, ScColor fill_color,
                           const char *mid,  ScColor mid_color,
-                          ScColor edge_color, int use_hcol) {
+                          ScColor edge_color, int use_hcol,
+                          const int *rs) {  /* rs[c]=1 → col c has active rowspan */
+    ScBorderStyle bs = t->opts.borders.style;
     int rtl = t->opts.rtl;
     int no_outer = t->opts.borders.no_outer;
+
+    /* Adjust outer corners when first/last rendered col has rowspan */
+    if (rs && !no_outer) {
+        size_t fc = rtl ? (t->ncols - 1) : 0;
+        size_t lcc = rtl ? 0 : (t->ncols - 1);
+        if (rs[fc])  lc = tbc[bs].v;
+        if (rs[lcc]) rc = tbc[bs].v;
+    }
+
     if (!no_outer) print_ch(lc, edge_color);
 
     for (size_t ci = 0; ci < t->ncols; ci++) {
         size_t c = rtl ? (t->ncols - 1 - ci) : ci;
-        sc_apply_colors(fill_color, SC_COLOR_NONE);
-        for (int i = 0; i < col_widths[c]; i++) fputs(fill, stdout);
-        fputs(SC_RESET, stdout);
+
+        if (rs && rs[c]) {
+            for (int i = 0; i < col_widths[c]; i++) fputc(' ', stdout);
+        } else {
+            sc_apply_colors(fill_color, SC_COLOR_NONE);
+            for (int i = 0; i < col_widths[c]; i++) fputs(fill, stdout);
+            fputs(SC_RESET, stdout);
+        }
 
         if (ci < t->ncols - 1 && mid) {
-            /* physical col for hcol check: col 0 in LTR, col ncols-1 in RTL */
             size_t hcol_phys = rtl ? (t->ncols - 1) : 0;
             int is_hcol = (t->opts.header_col && c == hcol_phys);
             int has_vsep = !t->opts.borders.no_inner_v || is_hcol;
             if (has_vsep) {
+                /* Determine junction char considering rowspan on either side */
+                const char *jchar = mid;
+                if (rs) {
+                    size_t nc = rtl ? (c - 1) : (c + 1);
+                    int cur_rs  = rs[c];
+                    int next_rs = rs[nc];
+                    if      (cur_rs && next_rs) jchar = tbc[bs].v;
+                    else if (cur_rs)            jchar = tbc[bs].t_left;
+                    else if (next_rs)           jchar = tbc[bs].t_right;
+                }
                 ScColor jc = mid_color;
                 if (use_hcol && is_hcol
                         && t->opts.borders.header_col_sep_color.index != -2)
                     jc = t->opts.borders.header_col_sep_color;
-                print_ch(mid, jc);
+                print_ch(jchar, jc);
             }
         }
     }
@@ -433,9 +495,12 @@ static void render_title_line(const ScTable *t, int inner_w, int is_top) {
 
 /* ── Row rendering ───────────────────────────────────────────────────────── */
 
-/* row_kind: 0=data, 1=header, 2=footer */
+/* row_kind: 0=data, 1=header, 2=footer
+   row_h_in: pre-computed height (>0 for data rows); 0 = compute from cells
+   rsc:      rowspan context array (NULL for header/footer rows) */
 static void render_row(const ScTable *t, const ScCell *cells,
-                        ScColor row_bg, int row_kind, int *col_widths) {
+                        ScColor row_bg, int row_kind, int *col_widths,
+                        int row_h_in, const RSCtx *rsc) {
     ScBorderStyle bs  = t->opts.borders.style;
     ScColor oc  = t->opts.borders.outer_color;
     ScColor ic  = t->opts.borders.inner_color;
@@ -459,9 +524,24 @@ static void render_row(const ScTable *t, const ScCell *cells,
     for (size_t ci = 0; ci < t->ncols; ci++) {
         size_t c = rtl ? (t->ncols - 1 - ci) : ci;
 
-        /* skip SKIP cells and continuation cells */
+        /* skip colspan-covered cells */
         int cs = cells[c].colspan;
         if (cs < 0) { cl[c] = NULL; cnl[c] = 0; continue; }
+
+        /* rowspan continuation: build lines from spanning cell via RSCtx */
+        if (cells[c].rowspan == -1) {
+            if (rsc && rsc[c].cell) {
+                int span_cw = col_widths[c] - 2 * cpx;
+                if (span_cw < 0) span_cw = 0;
+                if (t->cols[c].opts.wrap && span_cw > 0)
+                    cl[c] = wrap_cell_lines(rsc[c].cell, span_cw, &cnl[c]);
+                else
+                    cl[c] = make_cell_lines(rsc[c].cell, &cnl[c]);
+            } else {
+                cl[c] = NULL; cnl[c] = 0;
+            }
+            continue; /* don't count towards row height */
+        }
 
         /* effective colspan (clamped) */
         int ecs = (cs > 1) ? cs : 1;
@@ -485,10 +565,13 @@ static void render_row(const ScTable *t, const ScCell *cells,
         else
             cl[c] = make_cell_lines(&cells[c], &cnl[c]);
 
-        if (cnl[c] > max_content) max_content = cnl[c];
+        /* rowspan starting cells don't determine individual row height */
+        int rs_v = cells[c].rowspan;
+        if ((rs_v == 0 || rs_v == 1) && cnl[c] > max_content)
+            max_content = cnl[c];
     }
 
-    int row_h = (int)max_content + 2 * cpy;
+    int row_h = row_h_in > 0 ? row_h_in : (int)max_content + 2 * cpy;
     if (row_h < 1) row_h = 1;
 
     for (int li = 0; li < row_h; li++) {
@@ -535,13 +618,25 @@ static void render_row(const ScTable *t, const ScCell *cells,
             if (cw < 0) cw = 0;
 
             /* vertical alignment */
-            int cn     = cl[c] ? (int)cnl[c] : 0;
-            int extra  = row_h - cn - 2 * cpy;
-            if (extra < 0) extra = 0;
-            int top_pad = cpy;
-            if (va == SC_VALIGN_MIDDLE)      top_pad += extra / 2;
-            else if (va == SC_VALIGN_BOTTOM) top_pad += extra;
-            int cli = li - top_pad;
+            int cn = cl[c] ? (int)cnl[c] : 0;
+            int cli;
+            int rs_render = cells[c].rowspan;
+            if ((rs_render > 1 || rs_render == -1) && rsc && rsc[c].cell) {
+                /* span-aware: distribute content across full span height */
+                int extra = rsc[c].span_h - cn;
+                if (extra < 0) extra = 0;
+                int top = 0;
+                if (rsc[c].valign == SC_VALIGN_MIDDLE) top = extra / 2;
+                else if (rsc[c].valign == SC_VALIGN_BOTTOM) top = extra;
+                cli = rsc[c].vis_offset + li - top;
+            } else {
+                int extra = row_h - cn - 2 * cpy;
+                if (extra < 0) extra = 0;
+                int top_pad = cpy;
+                if (va == SC_VALIGN_MIDDLE)      top_pad += extra / 2;
+                else if (va == SC_VALIGN_BOTTOM) top_pad += extra;
+                cli = li - top_pad;
+            }
 
             print_spaces_bg(cpx, cell_bg);
 
@@ -692,6 +787,9 @@ void sc_table_print(const ScTable *t) {
     int *cw = malloc(t->ncols * sizeof(int));
     for (size_t c = 0; c < t->ncols; c++) cw[c] = t->cols[c].width;
 
+    int *row_h_arr = compute_row_heights(t, cw);
+    RSCtx *rsc = calloc(t->ncols, sizeof(RSCtx));
+
     ScBorderStyle bs    = t->opts.borders.style;
     ScColor oc    = t->opts.borders.outer_color;
     ScColor ic    = t->opts.borders.inner_color;
@@ -701,13 +799,15 @@ void sc_table_print(const ScTable *t) {
 
     int inner_w = table_inner_w(t);
 
+    int *is_rs = calloc(t->ncols, sizeof(int));
+
     /* ── top border ── */
     if (!no_outer) {
         if (t->opts.title && t->opts.title_pos == SC_TITLE_TOP) {
             render_title_line(t, inner_w, 1);
         } else if (bs != SC_BORDER_NONE) {
             render_hline(t, cw, tbc[bs].tl, tbc[bs].tr,
-                         tbc[bs].h, oc, tbc[bs].t_top, oc, oc, 0);
+                         tbc[bs].h, oc, tbc[bs].t_top, oc, oc, 0, NULL);
         }
     }
 
@@ -716,13 +816,13 @@ void sc_table_print(const ScTable *t) {
         ScCell *hcells = malloc(t->ncols * sizeof(ScCell));
         for (size_t c = 0; c < t->ncols; c++)
             hcells[c] = SC_CELL(t->cols[c].header ? t->cols[c].header : "");
-        render_row(t, hcells, t->opts.header_row_bg, 1, cw);
+        render_row(t, hcells, t->opts.header_row_bg, 1, cw, 0, NULL);
         free(hcells);
 
         if (bs != SC_BORDER_NONE) {
             ScColor hc = (hrsc.index != -2) ? hrsc : ic;
             render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1);
+                         tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
         }
     }
 
@@ -732,16 +832,38 @@ void sc_table_print(const ScTable *t) {
         max_r = (size_t)t->opts.max_rows;
 
     for (size_t r = 0; r < max_r; r++) {
+        /* Update RSCtx: initialize new spans, clear non-continuations */
+        for (size_t c = 0; c < t->ncols; c++) {
+            int rs = t->rows[r].cells[c].rowspan;
+            if (rs > 1) {
+                int sh = 0;
+                for (int k = 0; k < rs && r + (size_t)k < t->nrows; k++)
+                    sh += row_h_arr[r + k];
+                ScValign va = t->cols[c].opts.valign;
+                if (t->rows[r].cells[c].valign_set) va = t->rows[r].cells[c].valign;
+                rsc[c] = (RSCtx){ &t->rows[r].cells[c], sh, 0, va };
+            } else if (rs != -1) {
+                rsc[c] = (RSCtx){ NULL, 0, 0, 0 };
+            }
+        }
+
         if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
+            /* Compute rowspan state: cols with SC_ROW_SKIP get blank separator */
+            for (size_t c = 0; c < t->ncols; c++)
+                is_rs[c] = (t->rows[r].cells[c].rowspan == -1);
             render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1);
+                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, is_rs);
         }
         ScColor row_bg = t->rows[r].bg;
         if (row_bg.index == -2) {
             row_bg = SC_COLOR_NONE;
             if (t->opts.striped && (r % 2 == 1)) row_bg = t->opts.stripe_bg;
         }
-        render_row(t, t->rows[r].cells, row_bg, 0, cw);
+        render_row(t, t->rows[r].cells, row_bg, 0, cw, row_h_arr[r], rsc);
+
+        /* Advance vis_offset for all active spans */
+        for (size_t c = 0; c < t->ncols; c++)
+            if (rsc[c].cell) rsc[c].vis_offset += row_h_arr[r];
     }
 
     /* ── truncation indicator ── */
@@ -753,11 +875,10 @@ void sc_table_print(const ScTable *t) {
         ind[0] = SC_CELL_CS(msg, (int)t->ncols);
         for (size_t c = 1; c < t->ncols; c++) ind[c] = SC_CELL_SKIP;
 
-        /* temporarily set opts for the indicator: use dim style */
         ScTable *mt = (ScTable *)t;
         ScOptions saved_hopts = mt->opts.header_opts;
         mt->opts.header_opts = dim;
-        render_row(t, ind, SC_COLOR_NONE, 1, cw);
+        render_row(t, ind, SC_COLOR_NONE, 1, cw, 0, NULL);
         mt->opts.header_opts = saved_hopts;
         free(ind);
     }
@@ -766,14 +887,14 @@ void sc_table_print(const ScTable *t) {
     if (t->nfooter_rows > 0 && bs != SC_BORDER_NONE) {
         ScColor hc = (hrsc.index != -2) ? hrsc : ic;
         render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                     tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1);
+                     tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
     }
     for (size_t r = 0; r < t->nfooter_rows; r++) {
         if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
             render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1);
+                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
         }
-        render_row(t, t->footer_rows[r].cells, t->opts.footer_row_bg, 2, cw);
+        render_row(t, t->footer_rows[r].cells, t->opts.footer_row_bg, 2, cw, 0, NULL);
     }
 
     /* ── bottom border ── */
@@ -782,9 +903,12 @@ void sc_table_print(const ScTable *t) {
             render_title_line(t, inner_w, 0);
         } else if (bs != SC_BORDER_NONE) {
             render_hline(t, cw, tbc[bs].bl, tbc[bs].br,
-                         tbc[bs].h, oc, tbc[bs].t_bot, oc, oc, 0);
+                         tbc[bs].h, oc, tbc[bs].t_bot, oc, oc, 0, NULL);
         }
     }
 
+    free(is_rs);
+    free(rsc);
+    free(row_h_arr);
     free(cw);
 }

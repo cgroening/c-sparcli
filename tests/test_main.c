@@ -783,7 +783,45 @@ void test_tables(void) {
 
     printf("\n");
 
-    /* ── 22. RTL: Spalten von rechts nach links ── */
+    /* ── 22. Rowspan: Zellen über mehrere Zeilen spannen ── */
+    {
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                               SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
+            .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title         = " Rowspan ",
+            .title_opts    = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .title_pos     = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
+            .title_pad     = 1, .cell_pad_x = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Category", (ScColOpts){0,0,12, SC_ALIGN_LEFT,  SC_VALIGN_MIDDLE, 0});
+        sc_table_add_col(tb, "Item",     (ScColOpts){0,0,0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0});
+        sc_table_add_col(tb, "Price",    (ScColOpts){0,0,9,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0});
+        /* "Fruits" spans 3 rows */
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL_RS("Fruits", 3), SC_CELL("Apple"),  SC_CELL("$  0.50"),
+        }, 3);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_ROW_SKIP,             SC_CELL("Banana"), SC_CELL("$  0.30"),
+        }, 3);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_ROW_SKIP,             SC_CELL("Cherry"), SC_CELL("$  2.00"),
+        }, 3);
+        /* "Veggies" spans 2 rows */
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL_RS("Veggies", 2), SC_CELL("Carrot"), SC_CELL("$  0.80"),
+        }, 3);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_ROW_SKIP,              SC_CELL("Pepper"), SC_CELL("$  1.20"),
+        }, 3);
+        sc_table_print(tb);
+        sc_table_free(tb);
+    }
+
+    printf("\n");
+
+    /* ── 23. RTL: Spalten von rechts nach links ── */
     {
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
@@ -811,7 +849,7 @@ void test_tables(void) {
 
     printf("\n");
 
-    /* ── 23. Max Rows: Tabelle auf n Zeilen begrenzen + Indikator ── */
+    /* ── 24. Max Rows: Tabelle auf n Zeilen begrenzen + Indikator ── */
     {
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
