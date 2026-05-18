@@ -497,4 +497,111 @@ void test_tables(void) {
         sc_table_print(tb);
         sc_table_free(tb);
     }
+
+    printf("\n");
+
+    /* ── 16. ScText-Zellen mit Farbe und Hintergrundfarbe ── */
+    {
+        /* Styles */
+        ScOptions plain   = { SC_STYLE_NONE,                    SC_COLOR_NONE,    SC_COLOR_NONE };
+        ScOptions bold    = { SC_STYLE_BOLD,                    SC_COLOR_NONE,    SC_COLOR_NONE };
+        ScOptions dim     = { SC_STYLE_DIM,                     SC_COLOR_NONE,    SC_COLOR_NONE };
+        ScOptions b_green = { SC_STYLE_BOLD,                    SC_COLOR_GREEN,   SC_COLOR_NONE };
+        ScOptions b_red   = { SC_STYLE_BOLD,                    SC_COLOR_RED,     SC_COLOR_NONE };
+        ScOptions b_yel   = { SC_STYLE_BOLD,                    SC_COLOR_YELLOW,  SC_COLOR_NONE };
+        ScOptions cyan_bg = { SC_STYLE_BOLD,                    SC_COLOR_WHITE,   sc_rgb(0,80,120) };
+        ScOptions mag_bg  = { SC_STYLE_BOLD | SC_STYLE_ITALIC,  SC_COLOR_WHITE,   sc_rgb(100,0,80) };
+        ScOptions grn_bg  = { SC_STYLE_NONE,                    SC_COLOR_BLACK,   sc_rgb(60,160,60) };
+        ScOptions red_bg  = { SC_STYLE_NONE,                    SC_COLOR_WHITE,   sc_rgb(160,30,30) };
+        ScOptions gold    = { SC_STYLE_BOLD,                    sc_rgb(255,180,0),SC_COLOR_NONE };
+
+        /* Zelle: Produktname mit Hintergrundfarbe */
+        ScText *c_api = sc_text_new();
+        sc_text_append(c_api, "REST ", plain);
+        sc_text_append(c_api, "API", cyan_bg);
+
+        ScText *c_db = sc_text_new();
+        sc_text_append(c_db, "Data", plain);
+        sc_text_append(c_db, "base", mag_bg);
+
+        ScText *c_auth = sc_text_new();
+        sc_text_append(c_auth, "Auth", grn_bg);
+        sc_text_append(c_auth, " v2", bold);
+
+        /* Zelle: Status */
+        ScText *s_ok = sc_text_new();
+        sc_text_append(s_ok, "● ", b_green);
+        sc_text_append(s_ok, "OK", plain);
+
+        ScText *s_warn = sc_text_new();
+        sc_text_append(s_warn, "▲ ", b_yel);
+        sc_text_append(s_warn, "WARN", bold);
+
+        ScText *s_err = sc_text_new();
+        sc_text_append(s_err, "✗ ", b_red);
+        sc_text_append(s_err, "ERROR", bold);
+
+        /* Zelle: Latenz mit Farbkodierung */
+        ScText *l_fast = sc_text_new();
+        sc_text_append(l_fast, "12 ms", b_green);
+
+        ScText *l_mid = sc_text_new();
+        sc_text_append(l_mid, "340 ms", b_yel);
+
+        ScText *l_slow = sc_text_new();
+        sc_text_append(l_slow, "2.1 s", b_red);
+
+        /* Zelle: Requests */
+        ScText *r_high = sc_text_new();
+        sc_text_append(r_high, "18 432", gold);
+        sc_text_append(r_high, " req/s", dim);
+
+        ScText *r_mid = sc_text_new();
+        sc_text_append(r_mid, "4 201", plain);
+        sc_text_append(r_mid, " req/s", dim);
+
+        ScText *r_low = sc_text_new();
+        sc_text_append(r_low, "91", b_red);
+        sc_text_append(r_low, " req/s", dim);
+
+        /* Zelle: Error-Rate */
+        ScText *e_none = sc_text_new();
+        sc_text_append(e_none, "0.0 %", grn_bg);
+
+        ScText *e_some = sc_text_new();
+        sc_text_append(e_some, "1.3 %", b_yel);
+
+        ScText *e_high = sc_text_new();
+        sc_text_append(e_high, "18.7 %", red_bg);
+
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders     = { SC_BORDER_ROUNDED, sc_rgb(80,80,100), sc_rgb(80,80,100),
+                             sc_rgb(80,80,100), sc_rgb(80,80,100), 0, 0, 0 },
+            .header_row  = 1, .header_row_bg = sc_rgb(30,30,50),
+            .header_opts = { SC_STYLE_BOLD, sc_rgb(180,180,220), SC_COLOR_NONE },
+            .cell_pad_x  = 1, .cell_pad_y = 0,
+        });
+        sc_table_add_col(tb, "Service",   (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Status",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Latency",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Requests",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
+        sc_table_add_col(tb, "Err-Rate",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP});
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL_T(c_api),  SC_CELL_T(s_ok),   SC_CELL_T(l_fast), SC_CELL_T(r_high), SC_CELL_T(e_none),
+        }, 5);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL_T(c_db),   SC_CELL_T(s_warn),  SC_CELL_T(l_mid),  SC_CELL_T(r_mid),  SC_CELL_T(e_some),
+        }, 5);
+        sc_table_add_row(tb, (ScCell[]){
+            SC_CELL_T(c_auth), SC_CELL_T(s_err),  SC_CELL_T(l_slow), SC_CELL_T(r_low),  SC_CELL_T(e_high),
+        }, 5);
+        sc_table_print(tb);
+        sc_table_free(tb);
+
+        sc_text_free(c_api);  sc_text_free(c_db);   sc_text_free(c_auth);
+        sc_text_free(s_ok);   sc_text_free(s_warn); sc_text_free(s_err);
+        sc_text_free(l_fast); sc_text_free(l_mid);  sc_text_free(l_slow);
+        sc_text_free(r_high); sc_text_free(r_mid);  sc_text_free(r_low);
+        sc_text_free(e_none); sc_text_free(e_some); sc_text_free(e_high);
+    }
 }
