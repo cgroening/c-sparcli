@@ -1,0 +1,79 @@
+#include "sparcli.h"
+#include <stdio.h>
+#include <unistd.h>
+
+
+void test_spinner(void) {
+    printf("\n\n═══════════════════════════  SPINNER  ═══════════════════════════\n\n");
+
+    /* ── 1. Braille ── */
+    {
+        printf("--- 1. Braille ---\n");
+        ScSpinner *s = sc_spinner_new("Compiling...", (ScSpinnerOpts){
+            .style = SC_SPINNER_BRAILLE,
+            .color = SC_COLOR_CYAN,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 1, "Build complete");
+        sc_spinner_free(s);
+    }
+
+    /* ── 2. Pipe ── */
+    {
+        printf("--- 2. Pipe ---\n");
+        ScSpinner *s = sc_spinner_new("Connecting...", (ScSpinnerOpts){
+            .style = SC_SPINNER_PIPE,
+            .color = SC_COLOR_YELLOW,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 0, "Connection refused");
+        sc_spinner_free(s);
+    }
+
+    /* ── 3. Dots ── */
+    {
+        printf("--- 3. Dots ---\n");
+        ScSpinner *s = sc_spinner_new("Analyzing...", (ScSpinnerOpts){
+            .style = SC_SPINNER_DOTS,
+            .color = SC_COLOR_MAGENTA,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 1, "Analysis complete");
+        sc_spinner_free(s);
+    }
+
+    /* ── 4. Arrow ── */
+    {
+        printf("--- 4. Arrow ---\n");
+        ScSpinner *s = sc_spinner_new("Deploying...", (ScSpinnerOpts){
+            .style = SC_SPINNER_ARROW,
+            .color = SC_COLOR_BLUE,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 1, "Deployed successfully");
+        sc_spinner_free(s);
+    }
+}
+
+void test_spinner_animated(void) {
+    printf("\n--- Spinner animated (~2.5s) ---\n");
+    ScSpinner *s = sc_spinner_new("Loading...", (ScSpinnerOpts){
+        .style = SC_SPINNER_BRAILLE,
+        .color = SC_COLOR_CYAN,
+    });
+
+    for (int i = 0; i < 12; i++) { sc_spinner_tick(s); usleep(80000); }
+
+    sc_spinner_set_label(s, "Fetching data...");
+    for (int i = 0; i < 12; i++) { sc_spinner_tick(s); usleep(80000); }
+
+    sc_spinner_set_label(s, "Finalizing...");
+    for (int i = 0; i < 6; i++) { sc_spinner_tick(s); usleep(80000); }
+
+    sc_spinner_finish(s, 1, "Done");
+    sc_spinner_free(s);
+}
