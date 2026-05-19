@@ -418,4 +418,46 @@ char *sc_strip_ansi(const char *str);
 char *sc_truncate  (const char *str, int max_cols, const char *ellipsis);
 void  sc_clear_line(void);
 
+/* ── Capture API ────────────────────────────────────────────────────────────── */
+/* Renders any widget into a heap-allocated ScRendered. Caller must free with
+   sc_rendered_free(). Use the result with sc_pad_print, sc_align_print, or
+   sc_columns_add_rendered. */
+
+ScRendered *sc_capture_str        (const char *s);
+ScRendered *sc_capture_text       (const ScText *t);
+ScRendered *sc_capture_table      (const ScTable *t);
+ScRendered *sc_capture_list       (const ScList *l);
+ScRendered *sc_capture_tree       (const ScTree *t);
+ScRendered *sc_capture_kv         (const ScKV *kv);
+ScRendered *sc_capture_columns    (const ScColumns *cl);
+ScRendered *sc_capture_panel_str  (const char *content, ScPanelOpts opts);
+ScRendered *sc_capture_panel_text (const ScText *content, ScPanelOpts opts);
+ScRendered *sc_capture_rule_str   (const char *title, ScRuleOpts opts);
+ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
+
+/* ── Padding ────────────────────────────────────────────────────────────────── */
+
+typedef struct {
+    int top;
+    int right;   /* trailing spaces per line; mainly useful in composed contexts */
+    int bottom;
+    int left;
+} ScPadOpts;
+
+void sc_pad_print(const ScRendered *r, ScPadOpts opts);
+void sc_pad_str  (const char *s,       ScPadOpts opts);
+void sc_pad_text (const ScText *t,     ScPadOpts opts);
+
+/* ── Align ──────────────────────────────────────────────────────────────────── */
+/* SC_ALIGN_LEFT/CENTER/RIGHT — ScAlign already defined above.
+   width=0 uses sc_term_width(); width>0 uses that fixed width. */
+
+void sc_align_print(const ScRendered *r, ScAlign align, int width);
+void sc_align_str  (const char *s,       ScAlign align, int width);
+void sc_align_text (const ScText *t,     ScAlign align, int width);
+
+/* ── ScColumns extension ────────────────────────────────────────────────────── */
+
+void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item);
+
 #endif /* SPARCLI_H */

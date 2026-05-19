@@ -160,6 +160,21 @@ static void _render_list(void *p) {
     sc_list_print(((CtxList *)p)->l);
 }
 
+typedef struct { const ScKV *kv; } CtxKV;
+static void _render_kv(void *p) {
+    sc_kv_print(((CtxKV *)p)->kv);
+}
+
+typedef struct { const char *title; ScRuleOpts opts; } CtxRuleStr;
+static void _render_rule_str(void *p) {
+    CtxRuleStr *c = p; sc_rule_str(c->title, c->opts);
+}
+
+typedef struct { const ScText *title; ScRuleOpts opts; } CtxRuleText;
+static void _render_rule_text(void *p) {
+    CtxRuleText *c = p; sc_rule_text(c->title, c->opts);
+}
+
 /* ── Internal entry helpers ─────────────────────────────────────────────── */
 
 typedef struct {
@@ -232,6 +247,58 @@ void sc_columns_add_tree(ScColumns *cl, const ScTree *tree, ScColItem item) {
 void sc_columns_add_list(ScColumns *cl, const ScList *list, ScColItem item) {
     CtxList ctx = { list };
     columns_push(cl, render_captured(_render_list, &ctx), item);
+}
+
+/* ── Capture API (public) ────────────────────────────────────────────────── */
+
+ScRendered *sc_capture_str(const char *s) {
+    CtxStr ctx = { s }; return render_captured(_render_str, &ctx);
+}
+ScRendered *sc_capture_text(const ScText *t) {
+    CtxText ctx = { t }; return render_captured(_render_text, &ctx);
+}
+ScRendered *sc_capture_table(const ScTable *t) {
+    CtxTable ctx = { t }; return render_captured(_render_table, &ctx);
+}
+ScRendered *sc_capture_list(const ScList *l) {
+    CtxList ctx = { l }; return render_captured(_render_list, &ctx);
+}
+ScRendered *sc_capture_tree(const ScTree *t) {
+    CtxTree ctx = { t }; return render_captured(_render_tree, &ctx);
+}
+ScRendered *sc_capture_kv(const ScKV *kv) {
+    CtxKV ctx = { kv }; return render_captured(_render_kv, &ctx);
+}
+ScRendered *sc_capture_columns(const ScColumns *cl) {
+    CtxCols ctx = { cl }; return render_captured(_render_columns, &ctx);
+}
+ScRendered *sc_capture_panel_str(const char *content, ScPanelOpts opts) {
+    CtxPanelStr ctx = { content, opts }; return render_captured(_render_panel_str, &ctx);
+}
+ScRendered *sc_capture_panel_text(const ScText *content, ScPanelOpts opts) {
+    CtxPanelText ctx = { content, opts }; return render_captured(_render_panel_text, &ctx);
+}
+ScRendered *sc_capture_rule_str(const char *title, ScRuleOpts opts) {
+    CtxRuleStr ctx = { title, opts }; return render_captured(_render_rule_str, &ctx);
+}
+ScRendered *sc_capture_rule_text(const ScText *title, ScRuleOpts opts) {
+    CtxRuleText ctx = { title, opts }; return render_captured(_render_rule_text, &ctx);
+}
+
+/* ── sc_columns_add_rendered ─────────────────────────────────────────────── */
+
+void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item) {
+    if (!r) return;
+    ScRendered *copy    = malloc(sizeof(ScRendered));
+    copy->count         = r->count;
+    copy->max_vis_w     = r->max_vis_w;
+    copy->lines         = malloc(r->count * sizeof(char *));
+    copy->vis_widths    = malloc(r->count * sizeof(int));
+    for (size_t i = 0; i < r->count; i++) {
+        copy->lines[i]      = strdup(r->lines[i]);
+        copy->vis_widths[i] = r->vis_widths[i];
+    }
+    columns_push(cl, copy, item);
 }
 
 void sc_columns_free(ScColumns *cl) {

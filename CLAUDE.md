@@ -18,7 +18,7 @@ Source files in `SRC` (Makefile):
 src/style.c  src/panel.c  src/color.c  src/text.c
 src/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
 src/progressbar.c  src/spinner.c
-src/kv.c  src/alert.c  src/badge.c  src/util.c
+src/kv.c  src/alert.c  src/badge.c  src/util.c  src/pad.c
 ```
 
 When adding a new source file, append it to `SRC` in the Makefile.
@@ -574,3 +574,95 @@ void  sc_clear_line(void);
   fits, returns `strdup(str)`. Caller must `free()` the result.
 - `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to
   overwrite the current terminal line in place.
+
+---
+
+## Capture API
+
+Renders any widget into a heap-allocated `ScRendered`. Caller must free with
+`sc_rendered_free()`. Use the result with `sc_pad_print`, `sc_align_print`, or
+`sc_columns_add_rendered`.
+
+```c
+ScRendered *sc_capture_str        (const char *s);
+ScRendered *sc_capture_text       (const ScText *t);
+ScRendered *sc_capture_table      (const ScTable *t);
+ScRendered *sc_capture_list       (const ScList *l);
+ScRendered *sc_capture_tree       (const ScTree *t);
+ScRendered *sc_capture_kv         (const ScKV *kv);
+ScRendered *sc_capture_columns    (const ScColumns *cl);
+ScRendered *sc_capture_panel_str  (const char *content, ScPanelOpts opts);
+ScRendered *sc_capture_panel_text (const ScText *content, ScPanelOpts opts);
+ScRendered *sc_capture_rule_str   (const char *title, ScRuleOpts opts);
+ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
+```
+
+The same `ScRendered *` can be passed to multiple print functions (e.g. first
+`sc_pad_print`, then `sc_align_print`).
+
+---
+
+## Padding
+
+```c
+typedef struct { int top; int right; int bottom; int left; } ScPadOpts;
+
+void sc_pad_print(const ScRendered *r, ScPadOpts opts);
+void sc_pad_str  (const char *s,       ScPadOpts opts);   /* capture + print */
+void sc_pad_text (const ScText *t,     ScPadOpts opts);   /* capture + print */
+```
+
+`sc_pad_print` prints `top` blank lines, then each content line with `left` spaces
+prepended and `right` spaces appended, then `bottom` blank lines.
+
+`right` padding (trailing spaces per line) is mostly useful in composed contexts
+(e.g. coloured backgrounds); it has no visible effect on a plain terminal.
+
+**Usage:**
+```c
+ScRendered *r = sc_capture_table(t);
+sc_pad_print(r, (ScPadOpts){ .top = 1, .bottom = 1, .left = 4 });
+sc_rendered_free(r);
+
+/* convenience (one step): */
+sc_pad_str("Hello", (ScPadOpts){ .left = 8 });
+```
+
+---
+
+## Align
+
+```c
+/* width = 0 → sc_term_width(); width > 0 → fixed column count */
+void sc_align_print(const ScRendered *r, ScAlign align, int width);
+void sc_align_str  (const char *s,       ScAlign align, int width);
+void sc_align_text (const ScText *t,     ScAlign align, int width);
+```
+
+Aligns every line of the rendered output within `width` columns.
+`SC_ALIGN_LEFT` is a no-op (prints as-is).
+
+**Usage:**
+```c
+ScRendered *r = sc_capture_table(t);
+sc_align_print(r, SC_ALIGN_CENTER, 0);   /* center in terminal */
+sc_rendered_free(r);
+
+/* convenience (one step): */
+sc_align_str("Centered heading", SC_ALIGN_CENTER, 0);
+```
+
+### sc_columns_add_rendered
+
+```c
+void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item);
+```
+
+Inserts an already-captured `ScRendered` into a `ScColumns` layout.
+The columns layout makes a deep copy, so the caller may free `r` immediately after.
+
+```c
+ScRendered *r = sc_capture_table(t);
+sc_columns_add_rendered(cl, r, (ScColItem){ 0 });
+sc_rendered_free(r);   /* safe: columns owns its own copy */
+```

@@ -21,6 +21,8 @@ void test_kv(void);
 void test_alert(void);
 void test_badge(void);
 void test_util(void);
+void test_pad(void);
+void test_align(void);
 
 
 int main(void) {
@@ -40,6 +42,8 @@ int main(void) {
     test_alert();
     test_badge();
     test_util();
+    test_pad();
+    test_align();
     return 0;
 }
 
@@ -2306,5 +2310,194 @@ void test_util(void) {
         usleep(400000);
         sc_clear_line();
         printf("Line cleared and replaced!\n");
+    }
+}
+
+
+void test_pad(void) {
+    printf("\n");
+
+    /* ── 1. sc_pad_str convenience: left indent ── */
+    printf("--- Pad 1. sc_pad_str left=8 ---\n");
+    sc_pad_str("Hello, world!", (ScPadOpts){ .left = 8 });
+    sc_pad_str("Second line.",  (ScPadOpts){ .left = 8 });
+
+    printf("\n");
+
+    /* ── 2. Indent a table with top/bottom/left padding ── */
+    printf("--- Pad 2. Table with top=1, bottom=1, left=4 ---\n");
+    {
+        ScTable *t = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1,
+            .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(t, (ScCell[]){ SC_CELL("Alice"), SC_CELL("9800") }, 2);
+        sc_table_add_row(t, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("7650") }, 2);
+
+        ScRendered *r = sc_capture_table(t);
+        sc_pad_print(r, (ScPadOpts){ .top = 1, .bottom = 1, .left = 4 });
+        sc_rendered_free(r);
+        sc_table_free(t);
+    }
+
+    /* ── 3. Indent a KV list with left padding ── */
+    printf("--- Pad 3. KV list left=6 ---\n");
+    {
+        ScKV *kv = sc_kv_new((ScKVOpts){
+            .sep      = ": ",
+            .key_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+        });
+        sc_kv_add(kv, "Host", "localhost");
+        sc_kv_add(kv, "Port", "5432");
+        sc_kv_add(kv, "DB",   "myapp");
+
+        ScRendered *r = sc_capture_kv(kv);
+        sc_pad_print(r, (ScPadOpts){ .left = 6 });
+        sc_rendered_free(r);
+        sc_kv_free(kv);
+    }
+
+    printf("\n");
+
+    /* ── 4. Indent a panel (nested padding demo) ── */
+    printf("--- Pad 4. Panel indented by left=4 ---\n");
+    {
+        ScRendered *r = sc_capture_panel_str(
+            "This panel is indented\nwithout being inside Columns.",
+            (ScPanelOpts){
+                .border       = SC_BORDER_ROUNDED,
+                .border_color = SC_COLOR_CYAN,
+                .pad_x        = 1,
+                .width        = 40,
+            }
+        );
+        sc_pad_print(r, (ScPadOpts){ .left = 4 });
+        sc_rendered_free(r);
+    }
+}
+
+
+void test_align(void) {
+    printf("\n");
+
+    /* ── 1. Center a string ── */
+    printf("--- Align 1. Center string ---\n");
+    sc_align_str("──── Centered Title ────", SC_ALIGN_CENTER, 0);
+
+    printf("\n");
+
+    /* ── 2. Right-align a string ── */
+    printf("--- Align 2. Right-align string ---\n");
+    sc_align_str("Right-aligned text", SC_ALIGN_RIGHT, 0);
+    sc_align_str("Short",              SC_ALIGN_RIGHT, 0);
+
+    printf("\n");
+
+    /* ── 3. Center-align a table ── */
+    printf("--- Align 3. Center-aligned table ---\n");
+    {
+        ScTable *t = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_MAGENTA, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1,
+            .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title = " Summary ", .title_opts = { SC_STYLE_BOLD, SC_COLOR_MAGENTA, SC_COLOR_NONE },
+            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(t, "Item",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(t, "Total", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(t, (ScCell[]){ SC_CELL("Passed"),  SC_CELL("147") }, 2);
+        sc_table_add_row(t, (ScCell[]){ SC_CELL("Failed"),  SC_CELL("0")   }, 2);
+        sc_table_add_row(t, (ScCell[]){ SC_CELL("Skipped"), SC_CELL("3")   }, 2);
+
+        ScRendered *r = sc_capture_table(t);
+        sc_align_print(r, SC_ALIGN_CENTER, 0);
+        sc_rendered_free(r);
+        sc_table_free(t);
+    }
+
+    printf("\n");
+
+    /* ── 4. Center a fixed-width rule — shows reusability: same ScRendered
+           printed with sc_pad_print (left-aligned, blank lines) and then
+           with sc_align_print (centred) to compare both at once ── */
+    printf("--- Align 4. Same capture used twice: padded then centered ---\n");
+    {
+        ScRendered *r = sc_capture_rule_str(
+            "Section Header",
+            (ScRuleOpts){
+                .style       = SC_BORDER_SINGLE,
+                .color       = SC_COLOR_YELLOW,
+                .title_opts  = { SC_STYLE_BOLD, SC_COLOR_YELLOW, SC_COLOR_NONE },
+                .title_align = SC_ALIGN_CENTER,
+                .width       = 40,
+            }
+        );
+        printf("  padded (left-aligned):\n");
+        sc_pad_print(r, (ScPadOpts){ .left = 4 });
+        printf("  aligned (centered):\n");
+        sc_align_print(r, SC_ALIGN_CENTER, 0);
+        sc_rendered_free(r);
+    }
+
+    printf("\n");
+
+    /* ── 5. sc_columns_add_rendered: two tables side by side via capture ── */
+    printf("--- Align 5. columns_add_rendered: pad left + align center ---\n");
+    {
+        /* Build two small tables */
+        ScTable *ta = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_CYAN, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1,
+            .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title = " Left (padded) ", .title_opts = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(ta, "A", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(ta, "B", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(ta, (ScCell[]){ SC_CELL("Alpha"), SC_CELL("10") }, 2);
+        sc_table_add_row(ta, (ScCell[]){ SC_CELL("Beta"),  SC_CELL("20") }, 2);
+
+        ScTable *tb = sc_table_new((ScTableOpts){
+            .borders    = { SC_BORDER_SINGLE, SC_COLOR_GREEN, SC_COLOR_NONE,
+                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .header_row = 1,
+            .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .title = " Right (captured) ", .title_opts = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE },
+            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
+            .cell_pad_x = 1,
+        });
+        sc_table_add_col(tb, "X", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(tb, "Y", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Gamma"), SC_CELL("30") }, 2);
+        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Delta"), SC_CELL("40") }, 2);
+        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Eps"),   SC_CELL("50") }, 2);
+
+        /* Capture: left table gets extra left indent, right is plain */
+        ScRendered *ra = sc_capture_table(ta);
+        ScRendered *rb = sc_capture_table(tb);
+
+        ScColumns *cl = sc_columns_new((ScColumnsOpts){
+            .gap       = 4,
+            .sep_style = SC_BORDER_NONE,
+            .sep_color = SC_COLOR_NONE,
+        });
+        sc_columns_add_rendered(cl, ra, (ScColItem){ 0 });
+        sc_columns_add_rendered(cl, rb, (ScColItem){ 0 });
+        sc_columns_print(cl);
+        sc_columns_free(cl);
+
+        sc_rendered_free(ra);
+        sc_rendered_free(rb);
+        sc_table_free(ta);
+        sc_table_free(tb);
     }
 }
