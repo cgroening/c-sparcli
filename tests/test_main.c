@@ -1,5 +1,7 @@
 #include "sparcli.h"
 #include <stdio.h>
+#include <stdlib.h>   /* free */
+#include <string.h>   /* strlen */
 #include <unistd.h>   /* usleep */
 
 
@@ -15,6 +17,10 @@ void test_progressbar(void);
 void test_progressbar_animated(void);
 void test_spinner(void);
 void test_spinner_animated(void);
+void test_kv(void);
+void test_alert(void);
+void test_badge(void);
+void test_util(void);
 
 
 int main(void) {
@@ -30,6 +36,10 @@ int main(void) {
     test_progressbar_animated();
     test_spinner();
     test_spinner_animated();
+    test_kv();
+    test_alert();
+    test_badge();
+    test_util();
     return 0;
 }
 
@@ -2082,4 +2092,219 @@ void test_spinner_animated(void) {
 
     sc_spinner_finish(s, 1, "Done");
     sc_spinner_free(s);
+}
+
+
+void test_kv(void) {
+    printf("\n");
+
+    /* ── 1. Plain: default 2-space separator, auto key width ── */
+    printf("--- KV 1. Plain ---\n");
+    {
+        ScKV *kv = sc_kv_new((ScKVOpts){ 0 });
+        sc_kv_add(kv, "Host",     "localhost");
+        sc_kv_add(kv, "Port",     "8080");
+        sc_kv_add(kv, "Database", "myapp_db");
+        sc_kv_add(kv, "User",     "admin");
+        sc_kv_add(kv, "Status",   "running");
+        sc_kv_print(kv);
+        sc_kv_free(kv);
+    }
+
+    printf("\n");
+
+    /* ── 2. Custom separator, bold keys, green values ── */
+    printf("--- KV 2. Styled with ': ' separator ---\n");
+    {
+        ScKV *kv = sc_kv_new((ScKVOpts){
+            .sep      = ": ",
+            .key_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .val_opts = { SC_STYLE_NONE, SC_COLOR_GREEN, SC_COLOR_NONE },
+        });
+        sc_kv_add(kv, "Version",  "2.4.1");
+        sc_kv_add(kv, "License",  "MIT");
+        sc_kv_add(kv, "Author",   "sparcli contributors");
+        sc_kv_add(kv, "Language", "C11");
+        sc_kv_print(kv);
+        sc_kv_free(kv);
+    }
+
+    printf("\n");
+
+    /* ── 3. Fixed key_width + word-wrap ── */
+    printf("--- KV 3. Fixed key_width=18, word-wrap ---\n");
+    {
+        ScKV *kv = sc_kv_new((ScKVOpts){
+            .key_width = 18,
+            .sep       = ": ",
+            .wrap_val  = 1,
+            .key_opts  = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+        });
+        sc_kv_add(kv, "Name",        "sparcli");
+        sc_kv_add(kv, "Description", "A C11 terminal UI library for styled output "
+                                     "with colored text, panels, tables, lists, trees, "
+                                     "progress bars and spinners.");
+        sc_kv_add(kv, "Build",       "make && make test");
+        sc_kv_print(kv);
+        sc_kv_free(kv);
+    }
+
+    printf("\n");
+
+    /* ── 4. Margin + item_gap ── */
+    printf("--- KV 4. Margin=4, item_gap=1 ---\n");
+    {
+        ScKV *kv = sc_kv_new((ScKVOpts){
+            .margin   = 4,
+            .item_gap = 1,
+            .sep      = "  \xe2\x86\x92  ", /* →  */
+            .key_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+        });
+        sc_kv_add(kv, "Input",  "raw_data.csv");
+        sc_kv_add(kv, "Output", "processed.json");
+        sc_kv_add(kv, "Format", "JSON Lines");
+        sc_kv_print(kv);
+        sc_kv_free(kv);
+    }
+}
+
+
+void test_alert(void) {
+    printf("\n");
+
+    sc_alert_info   ("This is an informational message.");
+    sc_alert_warning("Disk usage is above 85%. Consider cleaning up old files.");
+    sc_alert_error  ("Failed to connect to database: connection timeout.");
+    sc_alert_success("Deployment completed successfully in 3.2 seconds.");
+
+    printf("\n");
+
+    /* Multi-line content via embedded \n */
+    sc_alert_success("Build passed: 147 tests, 0 failures\nCoverage: 94.2%");
+
+    /* sc_alert_text with rich ScText */
+    {
+        ScText *t = sc_text_new();
+        sc_text_append(t, "Loaded ",   (ScOptions){ SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE });
+        sc_text_append(t, "42",        (ScOptions){ SC_STYLE_BOLD, SC_COLOR_BLUE, SC_COLOR_NONE });
+        sc_text_append(t, " modules",  (ScOptions){ SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE });
+        sc_alert_text(SC_ALERT_INFO, t);
+        sc_text_free(t);
+    }
+}
+
+
+void test_badge(void) {
+    printf("\n");
+
+    /* ── 1. Default brackets ── */
+    printf("--- Badge 1. Default brackets ---\n");
+    sc_print_badge("INFO",  (ScBadgeOpts){ 0 });
+    fputc(' ', stdout);
+    sc_print_badge("WARN",  (ScBadgeOpts){ 0 });
+    fputc(' ', stdout);
+    sc_print_badge("ERROR", (ScBadgeOpts){ 0 });
+    fputc('\n', stdout);
+
+    printf("\n");
+
+    /* ── 2. Custom caps ── */
+    printf("--- Badge 2. Custom caps ---\n");
+    sc_print_badge("v1.2.3", (ScBadgeOpts){
+        .left_cap  = "\xe2\x9d\xae",  /* ❮ U+276E */
+        .right_cap = "\xe2\x9d\xaf",  /* ❯ U+276F */
+    });
+    fputc(' ', stdout);
+    sc_print_badge("main", (ScBadgeOpts){
+        .left_cap  = "(",
+        .right_cap = ")",
+    });
+    fputc('\n', stdout);
+
+    printf("\n");
+
+    /* ── 3. Colored badges with padding ── */
+    printf("--- Badge 3. Colored + padded ---\n");
+    sc_print_badge("BETA", (ScBadgeOpts){
+        .pad       = 1,
+        .text_opts = { SC_STYLE_BOLD, SC_COLOR_BLACK, SC_COLOR_YELLOW },
+    });
+    fputc(' ', stdout);
+    sc_print_badge("STABLE", (ScBadgeOpts){
+        .pad       = 1,
+        .text_opts = { SC_STYLE_BOLD, SC_COLOR_WHITE, SC_COLOR_GREEN },
+    });
+    fputc(' ', stdout);
+    sc_print_badge("DEPRECATED", (ScBadgeOpts){
+        .pad       = 1,
+        .text_opts = { SC_STYLE_BOLD, SC_COLOR_WHITE, SC_COLOR_RED },
+    });
+    fputc('\n', stdout);
+
+    printf("\n");
+
+    /* ── 4. sc_text_append_badge inside ScText ── */
+    printf("--- Badge 4. Inside ScText ---\n");
+    {
+        ScText *t = sc_text_new();
+        sc_text_append(t, "Status: ",
+                       (ScOptions){ SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE });
+        sc_text_append_badge(t, "OK", (ScBadgeOpts){
+            .pad       = 1,
+            .text_opts = { SC_STYLE_BOLD, SC_COLOR_WHITE, SC_COLOR_GREEN },
+        });
+        sc_text_append(t, "  Release: ",
+                       (ScOptions){ SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE });
+        sc_text_append_badge(t, "v2.0.0", (ScBadgeOpts){
+            .left_cap  = "(",
+            .right_cap = ")",
+            .text_opts = { SC_STYLE_NONE, SC_COLOR_CYAN, SC_COLOR_NONE },
+        });
+        sc_print_text(t);
+        fputc('\n', stdout);
+        sc_text_free(t);
+    }
+}
+
+
+void test_util(void) {
+    printf("\n");
+
+    /* ── 1. sc_strip_ansi ── */
+    printf("--- Util 1. sc_strip_ansi ---\n");
+    {
+        const char *colored = "\033[1;32mHello\033[0m, \033[31mworld\033[0m!";
+        char       *plain   = sc_strip_ansi(colored);
+        printf("Before: %s\n", colored);
+        printf("After:  %s\n", plain);
+        free(plain);
+    }
+
+    printf("\n");
+
+    /* ── 2. sc_truncate ── */
+    printf("--- Util 2. sc_truncate ---\n");
+    {
+        const char *long_str = "This is a very long string that needs truncation";
+        char *t1 = sc_truncate(long_str, 20, "...");
+        char *t2 = sc_truncate(long_str, 20, "\xe2\x80\xa6"); /* … U+2026 */
+        char *t3 = sc_truncate("Short", 20, "...");           /* fits: no change */
+        printf("Original (len=%d): %s\n", (int)strlen(long_str), long_str);
+        printf("20 cols + '...':   %s\n", t1);
+        printf("20 cols + '\xe2\x80\xa6':    %s\n", t2);
+        printf("Short unchanged:   %s\n", t3);
+        free(t1); free(t2); free(t3);
+    }
+
+    printf("\n");
+
+    /* ── 3. sc_clear_line ── */
+    printf("--- Util 3. sc_clear_line ---\n");
+    {
+        printf("This line will be cleared...");
+        fflush(stdout);
+        usleep(400000);
+        sc_clear_line();
+        printf("Line cleared and replaced!\n");
+    }
 }

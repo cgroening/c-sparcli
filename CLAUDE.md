@@ -18,6 +18,7 @@ Source files in `SRC` (Makefile):
 src/style.c  src/panel.c  src/color.c  src/text.c
 src/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
 src/progressbar.c  src/spinner.c
+src/kv.c  src/alert.c  src/badge.c  src/util.c
 ```
 
 When adding a new source file, append it to `SRC` in the Makefile.
@@ -476,3 +477,100 @@ Not part of the public API. Used by all source files that include `internal.h`:
   table after adding it to a columns layout has no effect.
 - Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no
   space fits in the column width, the line is truncated.
+- **Zero-init `ScOptions` sentinel** (used by `ScKVOpts.key_opts`, `ScKVOpts.val_opts`,
+  `ScListOpts.marker_opts`, `ScBadgeOpts.text_opts`): zero-init = no formatting.
+  Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
+
+---
+
+## Key-Value List
+
+```c
+ScKV *sc_kv_new  (ScKVOpts opts);
+void  sc_kv_add  (ScKV *kv, const char *key, const char *value);
+void  sc_kv_print(const ScKV *kv);
+void  sc_kv_free (ScKV *kv);
+```
+
+### ScKVOpts
+
+| Field | Description |
+|-------|-------------|
+| `sep` | Separator string after the padded key; `NULL` = `"  "` (2 spaces) |
+| `key_width` | `0` = auto (widest key); `>0` = fixed column width |
+| `width` | Total line width; `0` = terminal width |
+| `margin` | Symmetric left+right outer margin in characters |
+| `item_gap` | Blank lines between items; default 0 |
+| `wrap_val` | `1` = word-wrap long values with hanging indent; `0` = truncate |
+| `key_opts` | Style for key text; **zero-init = no formatting** |
+| `val_opts` | Style for value text; **zero-init = no formatting** |
+
+**Layout:** `margin + key (padded to key_w) + sep + value + margin`
+
+Continuation lines of a wrapped value are indented by `margin + key_w + sep_w` columns.
+
+---
+
+## Alert Presets
+
+Thin wrappers over `sc_panel_str`/`sc_panel_text` with preset icon, color, and border.
+
+```c
+void sc_alert_str    (ScAlertType type, const char *content);
+void sc_alert_text   (ScAlertType type, const ScText *content);
+void sc_alert_info   (const char *content);
+void sc_alert_warning(const char *content);
+void sc_alert_error  (const char *content);
+void sc_alert_success(const char *content);
+```
+
+| Type | Icon | Color |
+|------|------|-------|
+| `SC_ALERT_INFO` | ℹ | Blue |
+| `SC_ALERT_WARNING` | ⚠ | Yellow |
+| `SC_ALERT_ERROR` | ✖ | Red |
+| `SC_ALERT_SUCCESS` | ✔ | Green |
+
+All alerts render `full_width = 1` with `SC_BORDER_SINGLE` and a colored left-aligned title.
+Content may contain `\n` for multi-line bodies.
+
+---
+
+## Badge
+
+Inline styled text token. `sc_print_badge` writes to stdout (no trailing newline).
+`sc_text_append_badge` appends the composed badge string as a single span to an `ScText`.
+
+```c
+void sc_print_badge      (const char *text, ScBadgeOpts opts);
+void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts);
+```
+
+### ScBadgeOpts
+
+| Field | Description |
+|-------|-------------|
+| `left_cap` | `NULL` = `"["` |
+| `right_cap` | `NULL` = `"]"` |
+| `text_opts` | Style for the full badge (caps + padding + text); **zero-init = no formatting** |
+| `pad` | Spaces inside each cap; default 0 |
+
+Badge string: `left_cap + pad×' ' + text + pad×' ' + right_cap`
+
+---
+
+## Utilities
+
+```c
+char *sc_strip_ansi(const char *str);
+char *sc_truncate  (const char *str, int max_cols, const char *ellipsis);
+void  sc_clear_line(void);
+```
+
+- `sc_strip_ansi`: returns a heap-allocated copy of `str` with all ANSI CSI escape
+  sequences removed. Caller must `free()` the result.
+- `sc_truncate`: if the visible width of `str` exceeds `max_cols`, returns a
+  heap-allocated truncated copy with `ellipsis` appended (may be `NULL`). If it
+  fits, returns `strdup(str)`. Caller must `free()` the result.
+- `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to
+  overwrite the current terminal line in place.

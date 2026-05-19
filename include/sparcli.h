@@ -364,4 +364,58 @@ void       sc_spinner_tick     (ScSpinner *s);
 void       sc_spinner_finish   (ScSpinner *s, int success, const char *label);
 void       sc_spinner_free     (ScSpinner *s);
 
+/* ── Key-Value List ────────────────────────────────────────────────────────── */
+
+typedef struct {
+    const char *sep;       /* separator after padded key; NULL = "  " (2 spaces) */
+    int         key_width; /* 0 = auto (widest key); >0 = fixed column width     */
+    int         width;     /* total line width; 0 = terminal width                */
+    int         margin;    /* symmetric left+right outer margin                   */
+    int         item_gap;  /* blank lines between items; default 0                */
+    int         wrap_val;  /* 1 = word-wrap long values; 0 = truncate             */
+    ScOptions   key_opts;  /* zero-init = no formatting                           */
+    ScOptions   val_opts;  /* zero-init = no formatting                           */
+} ScKVOpts;
+
+typedef struct ScKV ScKV;
+
+ScKV *sc_kv_new  (ScKVOpts opts);
+void  sc_kv_add  (ScKV *kv, const char *key, const char *value);
+void  sc_kv_print(const ScKV *kv);
+void  sc_kv_free (ScKV *kv);
+
+/* ── Alert Presets ──────────────────────────────────────────────────────────── */
+
+typedef enum {
+    SC_ALERT_INFO,
+    SC_ALERT_WARNING,
+    SC_ALERT_ERROR,
+    SC_ALERT_SUCCESS,
+} ScAlertType;
+
+void sc_alert_str    (ScAlertType type, const char *content);
+void sc_alert_text   (ScAlertType type, const ScText *content);
+void sc_alert_info   (const char *content);
+void sc_alert_warning(const char *content);
+void sc_alert_error  (const char *content);
+void sc_alert_success(const char *content);
+
+/* ── Badge ──────────────────────────────────────────────────────────────────── */
+
+typedef struct {
+    const char *left_cap;  /* NULL = "["                */
+    const char *right_cap; /* NULL = "]"                */
+    ScOptions   text_opts; /* zero-init = no formatting */
+    int         pad;       /* spaces inside each cap; default 0 */
+} ScBadgeOpts;
+
+void sc_print_badge      (const char *text, ScBadgeOpts opts);
+void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts);
+
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
+
+char *sc_strip_ansi(const char *str);
+char *sc_truncate  (const char *str, int max_cols, const char *ellipsis);
+void  sc_clear_line(void);
+
 #endif /* SPARCLI_H */
