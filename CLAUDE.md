@@ -18,7 +18,7 @@ Source files in `SRC` (Makefile):
 src/style.c  src/panel.c  src/color.c  src/text.c
 src/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
 src/progressbar.c  src/spinner.c
-src/kv.c  src/alert.c  src/badge.c  src/util.c  src/pad.c
+src/kv.c  src/alert.c  src/badge.c  src/util.c  src/pad.c  src/markup.c
 ```
 
 When adding a new source file, append it to `SRC` in the Makefile.
@@ -666,3 +666,78 @@ ScRendered *r = sc_capture_table(t);
 sc_columns_add_rendered(cl, r, (ScColItem){ 0 });
 sc_rendered_free(r);   /* safe: columns owns its own copy */
 ```
+
+---
+
+## Markup
+
+Rich-compatible inline markup. Parse a string into an `ScText *` or print directly.
+
+### Syntax
+
+| Tag | Effect |
+|-----|--------|
+| `[bold]` | `SC_STYLE_BOLD` |
+| `[italic]` | `SC_STYLE_ITALIC` |
+| `[underline]` / `[u]` | `SC_STYLE_UNDER` |
+| `[dim]` | `SC_STYLE_DIM` |
+| `[red]` … `[white]` `[black]` | foreground named color |
+| `[on red]` … `[on white]` | background named color |
+| `[rgb(r,g,b)]` | foreground RGB |
+| `[on rgb(r,g,b)]` | background RGB |
+| `[bold red on white]` | combined (all in one tag) |
+| `[/]` | close most-recent style frame |
+| `[/bold]`, `[/red]`, … | named close (same effect as `[/]`) |
+| `[[` | literal `[` character |
+| `[blink]` (any unrecognized) | emitted verbatim including brackets |
+
+Tags stack: `[bold][red]text[/] still bold[/]` — closing pops the top frame.
+
+### Functions
+
+```c
+ScText *sc_markup_parse  (const char *s);                 /* caller owns result */
+void    sc_markup_append (ScText *t, const char *markup); /* append spans into existing ScText */
+void    sc_markup_print  (const char *markup);            /* parse + print + free */
+void    sc_markup_println(const char *markup);            /* parse + print + newline + free */
+```
+
+**Usage:**
+```c
+/* Print directly */
+sc_markup_println("[bold red]Error:[/] something went wrong");
+
+/* Use with any widget that accepts ScText */
+ScText *t = sc_markup_parse("[bold]sparcli[/] supports [italic]markup[/]");
+sc_panel_text(t, opts);
+sc_text_free(t);
+
+/* Append markup into an existing ScText */
+ScText *t = sc_text_new();
+sc_text_append(t, "prefix — ", (ScOptions){0});
+sc_markup_append(t, "[green]green suffix[/]");
+sc_print_text(t);
+sc_text_free(t);
+```
+
+### SC_CELL_M — markup in tables
+
+```c
+#define SC_CELL_M(s)  /* creates an SC_CELL_MARKUP cell */
+```
+
+The cell **owns** the parsed `ScText`; `sc_table_free` frees it automatically.
+No separate free needed.
+
+```c
+sc_table_add_row(t, (ScCell[]){
+    SC_CELL_M("[green]✔ OK[/]"),
+    SC_CELL_M("Build [bold]passed[/]"),
+}, 2);
+sc_table_free(t);  /* frees markup ScText automatically */
+```
+
+**Unknown tags:** Any tag with an unrecognized token is emitted verbatim (including
+brackets) as plain text. `[blink]hello[/blink]` → literal `[blink]hello[/blink]`.
+
+**`[[` escape:** Two consecutive opening brackets produce a single literal `[`.

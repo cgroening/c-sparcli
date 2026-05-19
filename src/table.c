@@ -38,7 +38,7 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
     size_t buf_cap = 4, buf_n = 0, buf_w = 0;
     TSpan *buf = malloc(buf_cap * sizeof(TSpan));
 
-    size_t nspans = (cell->kind == SC_CELL_TEXT && cell->text) ? cell->text->count : 1;
+    size_t nspans = ((cell->kind == SC_CELL_TEXT || cell->kind == SC_CELL_MARKUP) && cell->text) ? cell->text->count : 1;
 
     for (size_t si = 0; si < nspans; si++) {
         const char *s;
@@ -881,9 +881,19 @@ void sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n) {
 void sc_table_free(ScTable *t) {
     for (size_t i = 0; i < t->ncols; i++) free(t->cols[i].header);
     free(t->cols);
-    for (size_t i = 0; i < t->nrows; i++) free(t->rows[i].cells);
+    for (size_t i = 0; i < t->nrows; i++) {
+        for (size_t j = 0; j < t->rows[i].ncols; j++)
+            if (t->rows[i].cells[j].kind == SC_CELL_MARKUP && t->rows[i].cells[j].text)
+                sc_text_free(t->rows[i].cells[j].text);
+        free(t->rows[i].cells);
+    }
     free(t->rows);
-    for (size_t i = 0; i < t->nfooter_rows; i++) free(t->footer_rows[i].cells);
+    for (size_t i = 0; i < t->nfooter_rows; i++) {
+        for (size_t j = 0; j < t->footer_rows[i].ncols; j++)
+            if (t->footer_rows[i].cells[j].kind == SC_CELL_MARKUP && t->footer_rows[i].cells[j].text)
+                sc_text_free(t->footer_rows[i].cells[j].text);
+        free(t->footer_rows[i].cells);
+    }
     free(t->footer_rows);
     free(t);
 }

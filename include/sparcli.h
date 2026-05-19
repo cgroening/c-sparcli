@@ -110,12 +110,12 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
 typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScValign;
 
-typedef enum { SC_CELL_STR, SC_CELL_TEXT } ScCellKind;
+typedef enum { SC_CELL_STR, SC_CELL_TEXT, SC_CELL_MARKUP } ScCellKind;
 
 typedef struct {
     ScCellKind  kind;
     const char *str;         /* not owned; used when kind == SC_CELL_STR */
-    ScText     *text;        /* not owned; used when kind == SC_CELL_TEXT */
+    ScText     *text;        /* SC_CELL_TEXT: not owned.  SC_CELL_MARKUP: owned by table (freed at sc_table_free) */
     int         align_set;   /* 1 = overrides column alignment */
     ScAlign     align;
     int         valign_set;  /* 1 = overrides row valignment */
@@ -134,8 +134,10 @@ typedef struct {
 #define SC_CELL_TCSA(t,cs,ha)((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 0, 0, (cs),  0 })
 #define SC_CELL_SKIP         ((ScCell){ SC_CELL_STR,  "",  NULL, 0, 0, 0, 0, -1,    0 })
 #define SC_CELL_RS(s,rs)     ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, 0,  (rs) })
-#define SC_CELL_TRS(t,rs)    ((ScCell){ SC_CELL_TEXT, NULL,(t),  0, 0, 0, 0, 0,  (rs) })
-#define SC_ROW_SKIP          ((ScCell){ SC_CELL_STR,  "",  NULL, 0, 0, 0, 0, 0,    -1 })
+#define SC_CELL_TRS(t,rs)    ((ScCell){ SC_CELL_TEXT,   NULL,(t),  0, 0, 0, 0, 0,  (rs) })
+#define SC_ROW_SKIP          ((ScCell){ SC_CELL_STR,   "",  NULL, 0, 0, 0, 0, 0,    -1 })
+/* SC_CELL_M: parse markup string; cell owns the ScText (freed by sc_table_free) */
+#define SC_CELL_M(s)         ((ScCell){ SC_CELL_MARKUP, NULL, sc_markup_parse(s), 0, 0, 0, 0, 0, 0 })
 
 typedef struct {
     int      min_w;    /* minimum column width, 0 = none  */
@@ -459,5 +461,16 @@ void sc_align_text (const ScText *t,     ScAlign align, int width);
 /* ── ScColumns extension ────────────────────────────────────────────────────── */
 
 void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item);
+
+/* ── Markup ─────────────────────────────────────────────────────────────────── */
+/* Rich-compatible markup: [bold], [italic], [dim], [underline]/[u],
+   [red]/[green]/[yellow]/[blue]/[magenta]/[cyan]/[white]/[black],
+   [on <color>], [rgb(r,g,b)], [on rgb(r,g,b)], combinations like [bold red on white],
+   [/] or [/bold] to close, [[ for a literal '[', unknown tags passed through verbatim. */
+
+ScText *sc_markup_parse  (const char *s);
+void    sc_markup_append (ScText *t, const char *markup);
+void    sc_markup_print  (const char *markup);
+void    sc_markup_println(const char *markup);
 
 #endif /* SPARCLI_H */
