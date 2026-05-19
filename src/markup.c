@@ -108,9 +108,9 @@ static void append_chunk(ScText *t, const char *s, size_t len, ScOptions opts) {
     free(chunk);
 }
 
-/* ── sc_markup_parse ─────────────────────────────────────────────────────── */
+/* ── Core parser ─────────────────────────────────────────────────────────── */
 
-ScText *sc_markup_parse(const char *s) {
+static ScText *parse_internal(const char *s, int strip_unknown) {
     if (!s) return sc_text_new();
 
     ScText   *t     = sc_text_new();
@@ -148,7 +148,12 @@ ScText *sc_markup_parse(const char *s) {
                     p = end + 1;
                     seg_start = p;
                 } else {
-                    p = end + 1;  /* unknown close → literal, seg_start unchanged */
+                    /* unknown close */
+                    if (strip_unknown) {
+                        append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
+                        seg_start = end + 1;
+                    }
+                    p = end + 1;
                 }
             } else if (tag_len > 0) {
                 /* opening tag */
@@ -159,7 +164,12 @@ ScText *sc_markup_parse(const char *s) {
                     p = end + 1;
                     seg_start = p;
                 } else {
-                    p = end + 1;  /* unknown open → literal, seg_start unchanged */
+                    /* unknown open */
+                    if (strip_unknown) {
+                        append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
+                        seg_start = end + 1;
+                    }
+                    p = end + 1;
                 }
             } else {
                 p = end + 1;  /* empty [] → literal */
@@ -170,28 +180,54 @@ ScText *sc_markup_parse(const char *s) {
         p++;
     }
 
-    /* flush remaining literal segment */
+    /* flush remaining segment */
     append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
 
     return t;
 }
 
-/* ── Convenience functions ───────────────────────────────────────────────── */
+/* ── Public API ──────────────────────────────────────────────────────────── */
+
+ScText *sc_markup_parse(const char *s) {
+    return parse_internal(s, 0);
+}
+
+ScText *sc_markup_parse_opts(const char *s, ScMarkupOpts opts) {
+    return parse_internal(s, opts.strip_unknown);
+}
 
 void sc_markup_append(ScText *t, const char *markup) {
-    ScText *tmp = sc_markup_parse(markup);
+    ScText *tmp = parse_internal(markup, 0);
+    for (size_t i = 0; i < tmp->count; i++)
+        sc_text_append(t, tmp->spans[i].text, tmp->spans[i].opts);
+    sc_text_free(tmp);
+}
+
+void sc_markup_append_opts(ScText *t, const char *markup, ScMarkupOpts opts) {
+    ScText *tmp = parse_internal(markup, opts.strip_unknown);
     for (size_t i = 0; i < tmp->count; i++)
         sc_text_append(t, tmp->spans[i].text, tmp->spans[i].opts);
     sc_text_free(tmp);
 }
 
 void sc_markup_print(const char *markup) {
-    ScText *t = sc_markup_parse(markup);
+    ScText *t = parse_internal(markup, 0);
+    sc_print_text(t);
+    sc_text_free(t);
+}
+
+void sc_markup_print_opts(const char *markup, ScMarkupOpts opts) {
+    ScText *t = parse_internal(markup, opts.strip_unknown);
     sc_print_text(t);
     sc_text_free(t);
 }
 
 void sc_markup_println(const char *markup) {
     sc_markup_print(markup);
+    fputc('\n', stdout);
+}
+
+void sc_markup_println_opts(const char *markup, ScMarkupOpts opts) {
+    sc_markup_print_opts(markup, opts);
     fputc('\n', stdout);
 }

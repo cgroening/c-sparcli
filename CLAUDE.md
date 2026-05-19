@@ -696,10 +696,15 @@ Tags stack: `[bold][red]text[/] still bold[/]` — closing pops the top frame.
 ### Functions
 
 ```c
-ScText *sc_markup_parse  (const char *s);                 /* caller owns result */
-void    sc_markup_append (ScText *t, const char *markup); /* append spans into existing ScText */
-void    sc_markup_print  (const char *markup);            /* parse + print + free */
-void    sc_markup_println(const char *markup);            /* parse + print + newline + free */
+/* default: strip_unknown = 0 (verbatim) */
+ScText *sc_markup_parse       (const char *s);
+ScText *sc_markup_parse_opts  (const char *s,      ScMarkupOpts opts);
+void    sc_markup_append      (ScText *t, const char *markup);
+void    sc_markup_append_opts (ScText *t, const char *markup, ScMarkupOpts opts);
+void    sc_markup_print       (const char *markup);
+void    sc_markup_print_opts  (const char *markup,  ScMarkupOpts opts);
+void    sc_markup_println     (const char *markup);
+void    sc_markup_println_opts(const char *markup,  ScMarkupOpts opts);
 ```
 
 **Usage:**
@@ -720,6 +725,32 @@ sc_print_text(t);
 sc_text_free(t);
 ```
 
+### ScMarkupOpts — parser options
+
+```c
+typedef struct {
+    int strip_unknown; /* 1 = silently remove unrecognized tags; 0 = verbatim (default) */
+} ScMarkupOpts;
+```
+
+Controls what happens with unrecognized tags like `[blink]`, `[link=...]`, `[strike]`:
+
+| `strip_unknown` | `[blink]hello[/blink]` becomes |
+|-----------------|-------------------------------|
+| `0` (default)   | `[blink]hello[/blink]` — brackets printed as literal text |
+| `1`             | `hello` — tag brackets silently removed, content kept |
+
+```c
+/* strip unknown tags — only content is kept */
+sc_markup_println_opts("[blink]text[/blink]", (ScMarkupOpts){ .strip_unknown = 1 });
+
+/* mixed: known tags styled, unknown tags stripped */
+ScText *t = sc_markup_parse_opts(
+    "[bold]important[/] [blink]ignored-tag[/blink] suffix",
+    (ScMarkupOpts){ .strip_unknown = 1 }
+);
+```
+
 ### SC_CELL_M — markup in tables
 
 ```c
@@ -737,7 +768,7 @@ sc_table_add_row(t, (ScCell[]){
 sc_table_free(t);  /* frees markup ScText automatically */
 ```
 
-**Unknown tags:** Any tag with an unrecognized token is emitted verbatim (including
-brackets) as plain text. `[blink]hello[/blink]` → literal `[blink]hello[/blink]`.
+**Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default
+(including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
 
 **`[[` escape:** Two consecutive opening brackets produce a single literal `[`.

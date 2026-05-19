@@ -468,9 +468,17 @@ void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item)
    [on <color>], [rgb(r,g,b)], [on rgb(r,g,b)], combinations like [bold red on white],
    [/] or [/bold] to close, [[ for a literal '[', unknown tags passed through verbatim. */
 
-ScText *sc_markup_parse  (const char *s);
-void    sc_markup_append (ScText *t, const char *markup);
-void    sc_markup_print  (const char *markup);
-void    sc_markup_println(const char *markup);
+typedef struct {
+    int strip_unknown; /* 1 = silently remove unrecognized tags; 0 = pass through verbatim (default) */
+} ScMarkupOpts;
+
+ScText *sc_markup_parse       (const char *s);
+ScText *sc_markup_parse_opts  (const char *s,      ScMarkupOpts opts);
+void    sc_markup_append      (ScText *t, const char *markup);
+void    sc_markup_append_opts (ScText *t, const char *markup, ScMarkupOpts opts);
+void    sc_markup_print       (const char *markup);
+void    sc_markup_print_opts  (const char *markup,  ScMarkupOpts opts);
+void    sc_markup_println     (const char *markup);
+void    sc_markup_println_opts(const char *markup,  ScMarkupOpts opts);
 
 #endif /* SPARCLI_H */

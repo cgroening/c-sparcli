@@ -2539,10 +2539,33 @@ void test_markup(void) {
 
     printf("\n");
 
-    /* ── 6. Unknown tags → literal text ── */
-    printf("--- Markup 6. unknown tags → literal ---\n");
+    /* ── 6. Unknown tags: verbatim (default) vs. stripped ── */
+    printf("--- Markup 6a. unknown tags → verbatim (default) ---\n");
     sc_markup_println("[blink]text with unknown tag[/blink]");
     sc_markup_println("[bold]known [blink]unknown-mid[/blink] still known[/]");
+
+    printf("\n");
+
+    printf("--- Markup 6b. unknown tags → stripped (strip_unknown=1) ---\n");
+    sc_markup_println_opts("[blink]text with unknown tag[/blink]",
+                           (ScMarkupOpts){ .strip_unknown = 1 });
+    sc_markup_println_opts("[bold]known [blink]unknown-mid[/blink] still known[/]",
+                           (ScMarkupOpts){ .strip_unknown = 1 });
+
+    printf("\n");
+
+    printf("--- Markup 6c. sc_markup_parse_opts side-by-side ---\n");
+    {
+        const char *markup = "prefix [blink]unknown[/blink] [bold]bold[/] suffix";
+        printf("  verbatim: ");
+        ScText *a = sc_markup_parse(markup);
+        sc_print_text(a); printf("\n");
+        sc_text_free(a);
+        printf("  stripped: ");
+        ScText *b = sc_markup_parse_opts(markup, (ScMarkupOpts){ .strip_unknown = 1 });
+        sc_print_text(b); printf("\n");
+        sc_text_free(b);
+    }
 
     printf("\n");
 
