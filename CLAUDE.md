@@ -17,6 +17,7 @@ Source files in `SRC` (Makefile):
 ```
 src/style.c  src/panel.c  src/color.c  src/text.c
 src/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
+src/progressbar.c  src/spinner.c
 ```
 
 When adding a new source file, append it to `SRC` in the Makefile.
@@ -343,6 +344,107 @@ column as the start of the text (i.e., aligned under the first word, not the mar
 `indent` adds further indentation relative to that base.
 
 **Integration with ScColumns:** use `sc_columns_add_list(cl, list, item)`.
+
+---
+
+## Progress Bar
+
+Animated in-place progress bar using `\r` overwrite. Stateful: allocate once, call `_draw` in a loop, call `_finish` to end.
+
+```c
+ScProgressBar *sc_progressbar_new      (ScProgressBarOpts opts);
+void           sc_progressbar_set_label(ScProgressBar *b, const char *label);
+void           sc_progressbar_draw     (ScProgressBar *b, double value, double max);
+void           sc_progressbar_finish   (ScProgressBar *b, double value, double max);
+void           sc_progressbar_free     (ScProgressBar *b);
+```
+
+`value`/`max` convention: if `max > 0`, ratio = value/max; if `max == 0`, value is already a 0.0–1.0 ratio.
+`show_value` only takes effect when `max > 0`.
+
+### ScProgressStyle
+
+| Constant | Appearance |
+|----------|-----------|
+| `SC_PROGRESS_BLOCK` | `█` / `░` |
+| `SC_PROGRESS_ASCII` | `=` + `>` edge / ` ` |
+| `SC_PROGRESS_LINE` | `━` / `╌` |
+| `SC_PROGRESS_SHADED` | `▓` / `▒` edge / `░` |
+
+### ScProgressBarOpts
+
+| Field | Description |
+|-------|-------------|
+| `style` | Fill style (see above) |
+| `left_cap` / `right_cap` | Border strings; `NULL` = no bracket; pass `"["` / `"]"` for defaults |
+| `fill_color` / `empty_color` | Colors; zero-init = no color (same sentinel as `marker_opts`) |
+| `use_thresholds` | 1 = switch fill color based on ratio; 0 = use `fill_color` only |
+| `threshold_mid` / `threshold_high` | Ratio thresholds (default 0.5 / 0.75) |
+| `color_low` / `color_mid` / `color_high` | Fill color per range |
+| `show_percent` | 1 = append ` XX%` (default 1) |
+| `show_value` | 1 = append `(value/max)` after percent |
+| `bar_width` | Inner bar char count; 0 = auto from `width` |
+| `width` | Total line width; 0 = terminal width |
+| `label_width` | Fixed label column width; 0 = natural width |
+| `label_opts` | Style for label text |
+
+**Zero-init of `fill_color`/`empty_color`:** Same as other color fields — zero-initialized `ScColor` (index=0, rgb=0) is treated as "no color" by the renderer. Use `sc_rgb(0,0,0)` for explicit black.
+
+**Animation pattern:**
+```c
+ScProgressBar *b = sc_progressbar_new(opts);
+sc_progressbar_set_label(b, "Installing");
+for (int v = 0; v <= 100; v++) {
+    sc_progressbar_draw(b, (double)v, 100.0);
+    usleep(50000);
+}
+sc_progressbar_finish(b, 100.0, 100.0);
+sc_progressbar_free(b);
+```
+
+---
+
+## Spinner
+
+Animated in-place spinner using `\r` overwrite. Label is updateable mid-animation.
+
+```c
+ScSpinner *sc_spinner_new      (const char *label, ScSpinnerOpts opts);
+void       sc_spinner_set_label(ScSpinner *s, const char *label);
+void       sc_spinner_tick     (ScSpinner *s);
+void       sc_spinner_finish   (ScSpinner *s, int success, const char *label);
+void       sc_spinner_free     (ScSpinner *s);
+```
+
+`sc_spinner_tick` advances to the next frame, prints `frame label\r`, and calls `fflush`.
+`sc_spinner_finish` clears the line, then prints `✔ label\n` (success=1) or `✖ label\n` (success=0) in green/red.
+
+### ScSpinnerStyle
+
+| Constant | Frames |
+|----------|--------|
+| `SC_SPINNER_BRAILLE` | `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` (10 frames) |
+| `SC_SPINNER_PIPE` | `\|/-\` (4 frames) |
+| `SC_SPINNER_DOTS` | `⣾⣽⣻⢿⡿⣟⣯⣷` (8 frames) |
+| `SC_SPINNER_ARROW` | `←↖↑↗→↘↓↙` (8 frames) |
+
+### ScSpinnerOpts
+
+| Field | Description |
+|-------|-------------|
+| `style` | Frame style (see above) |
+| `color` | Spinner character color; zero-init = no color |
+| `label_opts` | Style for label text; zero-init = no formatting |
+
+**Animation pattern:**
+```c
+ScSpinner *s = sc_spinner_new("Loading...", opts);
+for (int i = 0; i < 30; i++) { sc_spinner_tick(s); usleep(80000); }
+sc_spinner_set_label(s, "Fetching...");
+for (int i = 0; i < 20; i++) { sc_spinner_tick(s); usleep(80000); }
+sc_spinner_finish(s, 1, "Done");
+sc_spinner_free(s);
+```
 
 ---
 

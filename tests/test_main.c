@@ -1,5 +1,6 @@
 #include "sparcli.h"
 #include <stdio.h>
+#include <unistd.h>   /* usleep */
 
 
 void test_styles(void);
@@ -10,6 +11,10 @@ void test_columns(void);
 void test_rules(void);
 void test_trees(void);
 void test_lists(void);
+void test_progressbar(void);
+void test_progressbar_animated(void);
+void test_spinner(void);
+void test_spinner_animated(void);
 
 
 int main(void) {
@@ -21,6 +26,10 @@ int main(void) {
     test_rules();
     test_trees();
     test_lists();
+    test_progressbar();
+    test_progressbar_animated();
+    test_spinner();
+    test_spinner_animated();
     return 0;
 }
 
@@ -1837,4 +1846,240 @@ void test_lists(void) {
         sc_text_free(th_pros);
         sc_text_free(th_cons);
     }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Progress Bar ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+void test_progressbar(void) {
+    printf("\n\n══════════════════════  PROGRESSBAR  ══════════════════════\n\n");
+
+    /* ── 1. Alle 4 Stile im Vergleich ── */
+    {
+        printf("--- 1. Alle 4 Stile (60%%) ---\n");
+        ScProgressStyle styles[] = {
+            SC_PROGRESS_BLOCK, SC_PROGRESS_ASCII,
+            SC_PROGRESS_LINE,  SC_PROGRESS_SHADED,
+        };
+        const char *names[] = { "Block ", "ASCII ", "Line  ", "Shaded" };
+        for (int i = 0; i < 4; i++) {
+            ScProgressBar *b = sc_progressbar_new((ScProgressBarOpts){
+                .style        = styles[i],
+                .left_cap     = "[",
+                .right_cap    = "]",
+                .show_percent = 1,
+                .bar_width    = 30,
+                .label_width  = 6,
+            });
+            sc_progressbar_set_label(b, names[i]);
+            sc_progressbar_finish(b, 0.6, 0.0);
+            sc_progressbar_free(b);
+        }
+    }
+
+    /* ── 2. Block-Stil, verschiedene Füllstände ── */
+    {
+        printf("\n--- 2. Block-Stil bei 0%%, 25%%, 50%%, 75%%, 100%% ---\n");
+        double vals[] = { 0.0, 0.25, 0.5, 0.75, 1.0 };
+        for (int i = 0; i < 5; i++) {
+            ScProgressBar *b = sc_progressbar_new((ScProgressBarOpts){
+                .style        = SC_PROGRESS_BLOCK,
+                .left_cap     = "[",
+                .right_cap    = "]",
+                .show_percent = 1,
+                .bar_width    = 30,
+            });
+            sc_progressbar_finish(b, vals[i], 0.0);
+            sc_progressbar_free(b);
+        }
+    }
+
+    /* ── 3. Schwellwert-Farben (grün → gelb → rot) ── */
+    {
+        printf("\n--- 3. Schwellwert-Farben (gruen->gelb->rot) bei 30%%, 60%%, 85%% ---\n");
+        double vals[] = { 0.3, 0.6, 0.85 };
+        for (int i = 0; i < 3; i++) {
+            ScProgressBar *b = sc_progressbar_new((ScProgressBarOpts){
+                .style          = SC_PROGRESS_BLOCK,
+                .left_cap       = "[",
+                .right_cap      = "]",
+                .show_percent   = 1,
+                .bar_width      = 30,
+                .use_thresholds = 1,
+                .threshold_mid  = 0.5,
+                .threshold_high = 0.75,
+                .color_low      = SC_COLOR_GREEN,
+                .color_mid      = SC_COLOR_YELLOW,
+                .color_high     = SC_COLOR_RED,
+            });
+            sc_progressbar_finish(b, vals[i], 0.0);
+            sc_progressbar_free(b);
+        }
+    }
+
+    /* ── 4. show_value: Wert/Max-Anzeige ── */
+    {
+        printf("\n--- 4. show_value (Wert/Max) mit max=250 ---\n");
+        double vals[] = { 0.0, 52.0, 105.0, 189.0, 250.0 };
+        for (int i = 0; i < 5; i++) {
+            ScProgressBar *b = sc_progressbar_new((ScProgressBarOpts){
+                .style        = SC_PROGRESS_BLOCK,
+                .left_cap     = "[",
+                .right_cap    = "]",
+                .show_percent = 1,
+                .show_value   = 1,
+                .bar_width    = 24,
+                .label_width  = 11,
+            });
+            sc_progressbar_set_label(b, "Processing");
+            sc_progressbar_finish(b, vals[i], 250.0);
+            sc_progressbar_free(b);
+        }
+    }
+
+    /* ── 5. Benutzerdefinierte Klammern: ❮❯ und kein Rahmen ── */
+    {
+        printf("\n--- 5. Benutzerdefinierte Klammern ---\n");
+        /* ❮ = U+276E = \xe2\x9d\xae, ❯ = U+276F = \xe2\x9d\xaf */
+        ScProgressBar *b1 = sc_progressbar_new((ScProgressBarOpts){
+            .style        = SC_PROGRESS_SHADED,
+            .left_cap     = "\xe2\x9d\xae",
+            .right_cap    = "\xe2\x9d\xaf",
+            .show_percent = 1,
+            .bar_width    = 28,
+            .label_width  = 7,
+        });
+        sc_progressbar_set_label(b1, "Upload ");
+        sc_progressbar_finish(b1, 0.72, 0.0);
+        sc_progressbar_free(b1);
+
+        ScProgressBar *b2 = sc_progressbar_new((ScProgressBarOpts){
+            .style        = SC_PROGRESS_LINE,
+            .left_cap     = NULL,
+            .right_cap    = NULL,
+            .show_percent = 1,
+            .bar_width    = 30,
+            .label_width  = 7,
+        });
+        sc_progressbar_set_label(b2, "Build  ");
+        sc_progressbar_finish(b2, 0.45, 0.0);
+        sc_progressbar_free(b2);
+
+        ScProgressBar *b3 = sc_progressbar_new((ScProgressBarOpts){
+            .style        = SC_PROGRESS_ASCII,
+            .left_cap     = "|",
+            .right_cap    = "|",
+            .show_percent = 1,
+            .bar_width    = 28,
+            .label_width  = 7,
+        });
+        sc_progressbar_set_label(b3, "Deploy ");
+        sc_progressbar_finish(b3, 0.91, 0.0);
+        sc_progressbar_free(b3);
+    }
+}
+
+void test_progressbar_animated(void) {
+    printf("\n--- Progressbar animated (~3s) ---\n");
+    ScProgressBar *b = sc_progressbar_new((ScProgressBarOpts){
+        .style          = SC_PROGRESS_BLOCK,
+        .left_cap       = "[",
+        .right_cap      = "]",
+        .show_percent   = 1,
+        .show_value     = 1,
+        .bar_width      = 40,
+        .label_width    = 10,
+        .use_thresholds = 1,
+        .threshold_mid  = 0.33,
+        .threshold_high = 0.66,
+        .color_low      = SC_COLOR_RED,
+        .color_mid      = SC_COLOR_YELLOW,
+        .color_high     = SC_COLOR_GREEN,
+    });
+    sc_progressbar_set_label(b, "Installing");
+    for (int v = 0; v <= 100; v += 2) {
+        sc_progressbar_draw(b, (double)v, 100.0);
+        usleep(60000);
+    }
+    sc_progressbar_finish(b, 100.0, 100.0);
+    sc_progressbar_free(b);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Spinner ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+void test_spinner(void) {
+    printf("\n\n═══════════════════════════  SPINNER  ═══════════════════════════\n\n");
+
+    /* ── 1. Braille ── */
+    {
+        printf("--- 1. Braille ---\n");
+        ScSpinner *s = sc_spinner_new("Compiling...", (ScSpinnerOpts){
+            .style = SC_SPINNER_BRAILLE,
+            .color = SC_COLOR_CYAN,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 1, "Build complete");
+        sc_spinner_free(s);
+    }
+
+    /* ── 2. Pipe ── */
+    {
+        printf("--- 2. Pipe ---\n");
+        ScSpinner *s = sc_spinner_new("Connecting...", (ScSpinnerOpts){
+            .style = SC_SPINNER_PIPE,
+            .color = SC_COLOR_YELLOW,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 0, "Connection refused");
+        sc_spinner_free(s);
+    }
+
+    /* ── 3. Dots ── */
+    {
+        printf("--- 3. Dots ---\n");
+        ScSpinner *s = sc_spinner_new("Analyzing...", (ScSpinnerOpts){
+            .style = SC_SPINNER_DOTS,
+            .color = SC_COLOR_MAGENTA,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 1, "Analysis complete");
+        sc_spinner_free(s);
+    }
+
+    /* ── 4. Arrow ── */
+    {
+        printf("--- 4. Arrow ---\n");
+        ScSpinner *s = sc_spinner_new("Deploying...", (ScSpinnerOpts){
+            .style = SC_SPINNER_ARROW,
+            .color = SC_COLOR_BLUE,
+        });
+        sc_spinner_tick(s);
+        sc_spinner_tick(s);
+        sc_spinner_finish(s, 1, "Deployed successfully");
+        sc_spinner_free(s);
+    }
+}
+
+void test_spinner_animated(void) {
+    printf("\n--- Spinner animated (~2.5s) ---\n");
+    ScSpinner *s = sc_spinner_new("Loading...", (ScSpinnerOpts){
+        .style = SC_SPINNER_BRAILLE,
+        .color = SC_COLOR_CYAN,
+    });
+
+    /* Phase 1: ~1s */
+    for (int i = 0; i < 12; i++) { sc_spinner_tick(s); usleep(80000); }
+
+    /* Phase 2: ~1s */
+    sc_spinner_set_label(s, "Fetching data...");
+    for (int i = 0; i < 12; i++) { sc_spinner_tick(s); usleep(80000); }
+
+    /* Phase 3: ~0.5s */
+    sc_spinner_set_label(s, "Finalizing...");
+    for (int i = 0; i < 6; i++) { sc_spinner_tick(s); usleep(80000); }
+
+    sc_spinner_finish(s, 1, "Done");
+    sc_spinner_free(s);
 }

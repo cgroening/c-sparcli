@@ -304,4 +304,64 @@ void sc_columns_add_list      (ScColumns *cl, const ScList    *list,    ScColIte
 void sc_columns_print(const ScColumns *cl);
 void sc_columns_free(ScColumns *cl);
 
+/* ── Progress Bar ───────────────────────────────────────────────────────────── */
+
+typedef enum {
+    SC_PROGRESS_BLOCK,   /* █ / ░                       */
+    SC_PROGRESS_ASCII,   /* = + > / (space)             */
+    SC_PROGRESS_LINE,    /* ━ / ╌                       */
+    SC_PROGRESS_SHADED,  /* ▓ / ▒ (transition) / ░     */
+} ScProgressStyle;
+
+typedef struct {
+    ScProgressStyle  style;
+    const char      *left_cap;       /* NULL = no bracket; "[" = default bracket  */
+    const char      *right_cap;      /* NULL = no bracket; "]" = default bracket  */
+    ScColor          fill_color;     /* color of filled portion                   */
+    ScColor          empty_color;    /* color of empty portion                    */
+    int              use_thresholds; /* 0 = use fill_color only; 1 = thresholds   */
+    double           threshold_mid;  /* ratio threshold; default 0.5              */
+    double           threshold_high; /* ratio threshold; default 0.75             */
+    ScColor          color_low;      /* 0 – threshold_mid                         */
+    ScColor          color_mid;      /* threshold_mid – threshold_high            */
+    ScColor          color_high;     /* threshold_high – 1.0                      */
+    int              show_percent;   /* 1 = show " XX%"; default 1                */
+    int              show_value;     /* 1 = show "(value/max)" after %; default 0 */
+    int              bar_width;      /* inner bar char count, 0 = auto            */
+    int              width;          /* total line width, 0 = terminal width      */
+    int              label_width;    /* fixed label column width, 0 = natural     */
+    ScOptions        label_opts;     /* style for label text                      */
+} ScProgressBarOpts;
+
+typedef struct ScProgressBar ScProgressBar;
+
+ScProgressBar *sc_progressbar_new      (ScProgressBarOpts opts);
+void           sc_progressbar_set_label(ScProgressBar *b, const char *label);
+void           sc_progressbar_draw     (ScProgressBar *b, double value, double max);
+void           sc_progressbar_finish   (ScProgressBar *b, double value, double max);
+void           sc_progressbar_free     (ScProgressBar *b);
+
+/* ── Spinner ────────────────────────────────────────────────────────────────── */
+
+typedef enum {
+    SC_SPINNER_BRAILLE,  /* ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏  (10 frames) */
+    SC_SPINNER_PIPE,     /* |/-\           ( 4 frames) */
+    SC_SPINNER_DOTS,     /* ⣾⣽⣻⢿⡿⣟⣯⣷    ( 8 frames) */
+    SC_SPINNER_ARROW,    /* ←↖↑↗→↘↓↙      ( 8 frames) */
+} ScSpinnerStyle;
+
+typedef struct {
+    ScSpinnerStyle style;
+    ScColor        color;       /* spinner character color      */
+    ScOptions      label_opts;  /* style for label text         */
+} ScSpinnerOpts;
+
+typedef struct ScSpinner ScSpinner;
+
+ScSpinner *sc_spinner_new      (const char *label, ScSpinnerOpts opts);
+void       sc_spinner_set_label(ScSpinner *s, const char *label);
+void       sc_spinner_tick     (ScSpinner *s);
+void       sc_spinner_finish   (ScSpinner *s, int success, const char *label);
+void       sc_spinner_free     (ScSpinner *s);
+
 #endif /* SPARCLI_H */
