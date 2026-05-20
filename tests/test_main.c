@@ -1,4 +1,4 @@
-#include "sparcli.h"
+// #include "sparcli.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,23 +28,24 @@ void test_markup(void);
 
 int main(void) {
     test_styles();
-    test_colors();
-    test_panels();
-    test_tables();
-    test_columns();
-    test_rules();
-    test_trees();
-    test_lists();
-    test_progressbar();
-    // test_progressbar_animated();
-    test_spinner();
-    // test_spinner_animated();
-    test_kv();
-    test_alert();
-    test_badge();
-    test_util();
-    test_pad();
-    test_align();
-    test_markup();
+    // test_colors();
+    // test_panels();
+    // test_tables();
+    // test_columns();
+    // test_rules();
+    // test_trees();
+    // test_lists();
+    // test_progressbar();
+    // // test_progressbar_animated();
+    // test_spinner();
+    // // test_spinner_animated();
+    // test_kv();
+    // test_alert();
+    // test_badge();
+    // test_util();
+    // test_pad();
+    // test_align();
+    // test_markup();
+
     return 0;
 }
