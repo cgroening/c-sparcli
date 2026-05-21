@@ -267,14 +267,14 @@ struct ScTable {
 static void print_ch(const char *s, ScColor fg) {
     sc_apply_colors(fg, SC_COLOR_NONE);
     fputs(s, stdout);
-    fputs(SC_RESET, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 static void print_spaces_bg(int n, ScColor bg) {
     if (n <= 0) return;
     if (bg.index != -2) sc_apply_colors(SC_COLOR_NONE, bg);
     for (int i = 0; i < n; i++) fputc(' ', stdout);
-    if (bg.index != -2) fputs(SC_RESET, stdout);
+    if (bg.index != -2) fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 static void print_span_bg(const char *text, ScOptions opts, ScColor cell_bg) {
@@ -426,7 +426,7 @@ static void render_hline(const ScTable *t, int *col_widths,
         } else {
             sc_apply_colors(fill_color, SC_COLOR_NONE);
             for (int i = 0; i < col_widths[c]; i++) fputs(fill, stdout);
-            fputs(SC_RESET, stdout);
+            fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         }
 
         if (ci < t->ncols - 1 && mid) {
@@ -539,7 +539,7 @@ static void render_inner_sep(const ScTable *t, int *cw,
         } else {
             sc_apply_colors(ic, SC_COLOR_NONE);
             for (int i = 0; i < cw[c]; i++) fputs(tbc[bs].h, stdout);
-            fputs(SC_RESET, stdout);
+            fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         }
 
         /* Junction between columns */
@@ -586,17 +586,17 @@ static void render_title_line(const ScTable *t, int inner_w, int is_top) {
         if (ld < 0) ld = 0; if (rd < 0) rd = 0;
         sc_apply_colors(oc, SC_COLOR_NONE);
         for (int i = 0; i < ld; i++) fputs(h, stdout);
-        fputs(SC_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
         sc_print(t->opts.title, t->opts.title_opts);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
         sc_apply_colors(oc, SC_COLOR_NONE);
         for (int i = 0; i < rd; i++) fputs(h, stdout);
-        fputs(SC_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     } else {
         sc_apply_colors(oc, SC_COLOR_NONE);
         for (int i = 0; i < inner_w; i++) fputs(h, stdout);
-        fputs(SC_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     }
     print_ch(rc, oc);
     fputc('\n', stdout);

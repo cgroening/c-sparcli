@@ -6,11 +6,11 @@
 #include <stdio.h>
 
 /* ── ANSI escape codes (internal use) ──────────────────────────────────── */
-#define SC_RESET   "\033[0m"
-#define SC_BOLD    "\033[1m"
-#define SC_DIM     "\033[2m"
-#define SC_ITALIC  "\033[3m"
-#define SC_UNDER   "\033[4m"
+#define SC_ANSI_ESCAPE_CODE_RESET     "\033[0m"
+#define SC_ANSI_ESCAPE_CODE_BOLD      "\033[1m"
+#define SC_ANSI_ESCAPE_CODE_DIM       "\033[2m"
+#define SC_ANSI_ESCAPE_CODE_ITALIC    "\033[3m"
+#define SC_ANSI_ESCAPE_CODE_UNDERLINE "\033[4m"
 
 /* ── ScStyle ────────────────────────────────────────────────────────────── */
 

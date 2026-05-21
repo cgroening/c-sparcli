@@ -9,10 +9,10 @@
  * Example: `SC_STYLE_BOLD` (`0b0001`) maps to "\033[1m".
  */
 static const struct { ScStyle flag; const char *code; } style_map[] = {
-    { SC_STYLE_BOLD,   SC_BOLD   },
-    { SC_STYLE_DIM,    SC_DIM    },
-    { SC_STYLE_ITALIC, SC_ITALIC },
-    { SC_STYLE_UNDER,  SC_UNDER  },
+    { SC_STYLE_BOLD,   SC_ANSI_ESCAPE_CODE_BOLD   },
+    { SC_STYLE_DIM,    SC_ANSI_ESCAPE_CODE_DIM    },
+    { SC_STYLE_ITALIC, SC_ANSI_ESCAPE_CODE_ITALIC },
+    { SC_STYLE_UNDER,  SC_ANSI_ESCAPE_CODE_UNDERLINE  },
 };
 
 /**
@@ -53,7 +53,7 @@ void sc_print(const char *text, ScOptions opts) {
     apply_style(opts.style);
     sc_apply_colors(opts.fg, opts.bg);
     fputs(text, stdout);
-    fputs(SC_RESET, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 /**

@@ -22,14 +22,14 @@ static const struct {
 static void print_colored(const char *s, ScColor color) {
     sc_apply_colors(color, SC_COLOR_NONE);
     fputs(s, stdout);
-    fputs(SC_RESET, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 static void print_repeat(const char *s, int n, ScColor color) {
     if (n <= 0) return;
     sc_apply_colors(color, SC_COLOR_NONE);
     for (int i = 0; i < n; i++) fputs(s, stdout);
-    fputs(SC_RESET, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 static void render_hline(int inner_w, ScBorderStyle border, ScColor color,
