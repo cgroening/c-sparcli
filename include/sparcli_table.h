@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sparcli_types.h"
+#include "sparcli_core.h"
 #include "sparcli_text.h"
 #include "sparcli_markup.h"
 #include <stddef.h>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "sparcli_rendered.h"
-#include "sparcli_types.h"
+#include "sparcli_core.h"
 #include "sparcli_text.h"
 
 /* width=0 uses sc_term_width(); width>0 uses that fixed width */

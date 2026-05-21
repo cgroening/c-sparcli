@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sparcli_types.h"
+#include "sparcli_core.h"
 #include <stddef.h>
 
 typedef struct {

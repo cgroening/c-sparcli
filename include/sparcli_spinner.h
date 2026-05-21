@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sparcli_types.h"
+#include "sparcli_core.h"
 
 typedef enum {
     SC_SPINNER_BRAILLE,
