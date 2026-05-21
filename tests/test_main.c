@@ -40,7 +40,6 @@ int main(void) {
     return 0;
 }
 
-
 static Test *get_tests(size_t *count) {
     static Test tests[] = {
         { "Basic Styles & Combinations", &test_styles },
@@ -68,7 +67,6 @@ static Test *get_tests(size_t *count) {
     return tests;
 }
 
-
 static void run_tests(const Test *tests, size_t count) {
     printf("\n");
     for(size_t i = 0; i < count; i++) {
@@ -78,7 +76,6 @@ static void run_tests(const Test *tests, size_t count) {
         printf("\n");
     }
 }
-
 
 static void print_rule(const char *title) {
     sc_rule_str(

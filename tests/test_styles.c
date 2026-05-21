@@ -28,7 +28,6 @@ void test_styles(void) {
     print_example_groups(examples, sizeof(examples) / sizeof(examples[0]));
 }
 
-
 static Example *get_basic_examples(size_t *count) {
     ScOptions plain       = { SC_STYLE_NONE,   SC_COLOR_NONE, SC_COLOR_NONE };
     ScOptions dim         = { SC_STYLE_DIM,    SC_COLOR_NONE, SC_COLOR_NONE };
@@ -46,7 +45,6 @@ static Example *get_basic_examples(size_t *count) {
     *count = sizeof(examples) / sizeof(examples[0]);
     return examples;
 }
-
 
 static Example *get_combination_examples(size_t *count) {
     ScOptions bold_italic = {
@@ -70,13 +68,11 @@ static Example *get_combination_examples(size_t *count) {
     return examples;
 }
 
-
 static void print_example_groups(const ExampleGroup *examples, size_t n) {
     for(size_t i = 0; i < n; i++) {
         print_example_row(examples[i]);
     }
 }
-
 
 static void print_example_row(ExampleGroup example) {
     int spaces_after = 0;
@@ -92,7 +88,6 @@ static void print_example_row(ExampleGroup example) {
 
     printf("\n");
 }
-
 
 static void print_example(const Example example, const int spaces_after) {
     sc_print(example.text, example.options);
