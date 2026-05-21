@@ -5,12 +5,13 @@
 #include <unistd.h>
 
 
-typedef struct { char name[30]; void (*function)(void); } Test;
+typedef struct { char name[50]; void (*function)(void); int animated; } Test;
 
 
-static Test *get_tests(size_t *count);
-static void run_tests(const Test *tests, size_t count);
-static void print_rule(const char *title);
+static Test *get_all_tests    (size_t *count);
+static Test *get_focused_tests(size_t *count);
+static void  run_tests        (const Test *tests, size_t count, int skip_animated);
+static void  print_rule       (const char *title);
 void test_styles(void);
 void test_colors(void);
 void test_panels(void);
@@ -32,50 +33,83 @@ void test_align(void);
 void test_markup(void);
 
 
-int main(void) {
-    size_t test_count;
-    Test *tests = get_tests(&test_count);
-    run_tests(tests, test_count);
+/**
+ * Entry point. Parses flags and runs the selected test suite.
+ *
+ * Supported flags (pass via `ARGS=` when using `make`):
+ * @code
+ * make test                               # Run all tests
+ * make test ARGS=--focus                  # Run only get_focused_tests
+ * make test ARGS=--no-animated            # Run all tests, skip animated
+ * make test ARGS="--focus --no-animated"  # Focused, skip animated
+ * @endcode
+ */
+int main(int argc, char *argv[]) {
+    int use_focus     = 0;
+    int skip_animated = 0;
+
+    for (int i = 1; i < argc; i++) {
+        if      (strcmp(argv[i], "--focus")       == 0) use_focus     = 1;
+        else if (strcmp(argv[i], "--no-animated") == 0) skip_animated = 1;
+    }
+
+    size_t count;
+    Test *tests = use_focus ? get_focused_tests(&count) : get_all_tests(&count);
+    run_tests(tests, count, skip_animated);
 
     return 0;
 }
 
-static Test *get_tests(size_t *count) {
+static Test *get_all_tests(size_t *count) {
     static Test tests[] = {
-        { "Basic Styles & Combinations", &test_styles },
-        { "Colors", &test_colors },
-        // { "Panels", &test_panels },
-        // { "Tables", &test_tables },
-        // { "Columns", &test_columns },
-        // { "Rules", &test_rules },
-        // { "Trees", &test_trees },
-        // { "Lists", &test_lists },
-        // { "Progress Bar", &test_progressbar },
-        // { "Animated Progress Bar", &test_progressbar_animated },
-        // { "Spinner", &test_spinner },
-        // { "Animated Spinner", &test_spinner_animated },
-        // { "Key-Value Pairs", &test_kv },
-        // { "Alerts", &test_alert },
-        // { "Badges", &test_badge },
-        // { "Utilities", &test_util },
-        // { "Padding", &test_pad },
-        // { "Alignment", &test_align },
-        // { "Markup", &test_markup },
+        { "Basic Styles & Combinations", &test_styles,               0 },
+        { "Colors",                      &test_colors,               0 },
+        { "Panels",                      &test_panels,               0 },
+        { "Tables",                      &test_tables,               0 },
+        { "Columns",                     &test_columns,              0 },
+        { "Rules",                       &test_rules,                0 },
+        { "Trees",                       &test_trees,                0 },
+        { "Lists",                       &test_lists,                0 },
+        { "Progress Bar",                &test_progressbar,          0 },
+        { "Animated Progress Bar",       &test_progressbar_animated, 1 },
+        { "Spinner",                     &test_spinner,              0 },
+        { "Animated Spinner",            &test_spinner_animated,     1 },
+        { "Key-Value Pairs",             &test_kv,                   0 },
+        { "Alerts",                      &test_alert,                0 },
+        { "Badges",                      &test_badge,                0 },
+        { "Utilities",                   &test_util,                 0 },
+        { "Padding",                     &test_pad,                  0 },
+        { "Alignment",                   &test_align,                0 },
+        { "Markup",                      &test_markup,               0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);
     return tests;
 }
 
-static void run_tests(const Test *tests, size_t count) {
+
+static Test *get_focused_tests(size_t *count) {
+    static Test tests[] = {
+        { "Basic Styles & Combinations", &test_styles, 0 },
+        { "Colors",                      &test_colors, 0 },
+    };
+
+    *count = sizeof(tests) / sizeof(tests[0]);
+    return tests;
+}
+
+
+static void run_tests(const Test *tests, size_t count, int skip_animated) {
     printf("\n");
-    for(size_t i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
+        if (skip_animated && tests[i].animated) continue;
         print_rule(tests[i].name);
         tests[i].function();
         print_rule(NULL);
         printf("\n");
     }
 }
+
 
 static void print_rule(const char *title) {
     sc_rule_str(

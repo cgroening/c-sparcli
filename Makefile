@@ -37,7 +37,7 @@ $(LIB): $(OBJ)
 
 test: $(LIB)
 	$(CC) $(CFLAGS) $(TEST_SRC) -L. -lsparcli -o $(TEST_BIN)
-	./$(TEST_BIN)
+	./$(TEST_BIN) $(ARGS)
 
 clean:
 	rm -f $(OBJ) $(LIB) $(TEST_BIN)
