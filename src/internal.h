@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 void sc_apply_colors(ScColor fg, ScColor bg);
+void sc_apply_style (ScStyle style);
 
 static inline int sc_term_width(void) {
     struct winsize ws;

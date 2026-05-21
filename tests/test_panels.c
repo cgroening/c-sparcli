@@ -44,7 +44,7 @@ void test_panels(void) {
 
     /* Rounded border, no title, RGB border color */
     sc_panel_str("Rounded, no title", (ScPanelOpts){
-        SC_BORDER_ROUNDED, sc_rgb(180, 100, 255), NULL, plain,
+        SC_BORDER_ROUNDED, sc_color_from_rgb(180, 100, 255), NULL, plain,
         SC_TITLE_TOP, SC_ALIGN_LEFT, 2, 0, 0, 1, SC_ALIGN_LEFT, 0
     });
 

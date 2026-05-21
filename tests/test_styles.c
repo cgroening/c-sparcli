@@ -3,7 +3,7 @@
 
 
 typedef struct { char text[30]; ScOptions options; } Example;
-typedef struct { Example *items; size_t n; } ExampleGroup ;
+typedef struct { Example *items; size_t n; } ExampleGroup;
 
 
 static Example *get_basic_examples(size_t *count);

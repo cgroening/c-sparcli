@@ -254,7 +254,7 @@ void test_columns(void) {
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 3,
             .sep_style = SC_BORDER_DOUBLE,
-            .sep_color = sc_rgb(80, 80, 140),
+            .sep_color = sc_color_from_rgb(80, 80, 140),
         });
         sc_columns_add_table(cl, t1, (ScColItem){0});
         sc_columns_add_table(cl, t2, (ScColItem){0});

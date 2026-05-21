@@ -17,7 +17,7 @@ void test_rules(void) {
     /* ── 2. Line styles with color ── */
     sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_SINGLE, .color = SC_COLOR_CYAN    });
     sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_DOUBLE, .color = SC_COLOR_YELLOW  });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_THICK,  .color = sc_rgb(180,60,60) });
+    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_THICK,  .color = sc_color_from_rgb(180,60,60) });
 
     printf("\n");
 
@@ -56,8 +56,8 @@ void test_rules(void) {
     });
     sc_rule_str("Error", (ScRuleOpts){
         .style       = SC_BORDER_THICK,
-        .color       = sc_rgb(200, 50, 50),
-        .title_opts  = { SC_STYLE_BOLD, sc_rgb(200, 50, 50), SC_COLOR_NONE },
+        .color       = sc_color_from_rgb(200, 50, 50),
+        .title_opts  = { SC_STYLE_BOLD, sc_color_from_rgb(200, 50, 50), SC_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .title_pad   = 2,
     });

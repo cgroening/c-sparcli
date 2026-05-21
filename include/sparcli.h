@@ -42,7 +42,7 @@ typedef struct {
 #define SC_COLOR_CYAN    ((ScColor){  6, 0, 0, 0 })
 #define SC_COLOR_WHITE   ((ScColor){  7, 0, 0, 0 })
 
-ScColor sc_rgb(uint8_t r, uint8_t g, uint8_t b);
+ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 
 /* ── ScOptions ──────────────────────────────────────────────────────────── */
 

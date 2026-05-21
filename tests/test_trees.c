@@ -45,7 +45,7 @@ void test_trees(void) {
     {
         ScTree *t = sc_tree_new((ScTreeOpts){
             .style           = SC_BORDER_ROUNDED,
-            .connector_color = sc_rgb(100, 100, 100),
+            .connector_color = sc_color_from_rgb(100, 100, 100),
         });
         ScOptions root_o = { SC_STYLE_BOLD,  SC_COLOR_WHITE,   SC_COLOR_NONE };
         ScOptions cat_o  = { SC_STYLE_NONE,  SC_COLOR_YELLOW,  SC_COLOR_NONE };
@@ -81,7 +81,7 @@ void test_trees(void) {
     {
         ScTree *t = sc_tree_new((ScTreeOpts){
             .style           = SC_BORDER_SINGLE,
-            .connector_color = sc_rgb(80, 80, 80),
+            .connector_color = sc_color_from_rgb(80, 80, 80),
         });
         ScOptions ok_ic  = { SC_STYLE_NONE, SC_COLOR_GREEN,  SC_COLOR_NONE };
         ScOptions err_ic = { SC_STYLE_NONE, SC_COLOR_RED,    SC_COLOR_NONE };
@@ -127,7 +127,7 @@ void test_trees(void) {
         sc_tree_free(td);
         printf("\n");
 
-        ScTree *tt = sc_tree_new((ScTreeOpts){ .style = SC_BORDER_THICK, .connector_color = sc_rgb(120, 80, 200) });
+        ScTree *tt = sc_tree_new((ScTreeOpts){ .style = SC_BORDER_THICK, .connector_color = sc_color_from_rgb(120, 80, 200) });
         ScTreeNode *t1 = sc_tree_add_str(tt, NULL, "root (THICK, colored)", BOLD, NULL, PLAIN);
         ScTreeNode *t2 = sc_tree_add_str(tt, t1, "child A", PLAIN, NULL, PLAIN);
                          sc_tree_add_str(tt, t1, "child B", PLAIN, NULL, PLAIN);
@@ -200,7 +200,7 @@ void test_trees(void) {
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
             .style           = SC_BORDER_SINGLE,
-            .connector_color = sc_rgb(80, 140, 80),
+            .connector_color = sc_color_from_rgb(80, 140, 80),
         });
         ScOptions dir_o  = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE };
         ScOptions file_o = { SC_STYLE_NONE, SC_COLOR_NONE,  SC_COLOR_NONE };

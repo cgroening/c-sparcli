@@ -71,7 +71,7 @@ static int parse_open_tag(const char *content, size_t len,
             int r, g, b;
             if (sscanf(p + 4, "%d,%d,%d", &r, &g, &b) != 3) return 0;
             if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return 0;
-            ScColor c = sc_rgb((uint8_t)r, (uint8_t)g, (uint8_t)b);
+            ScColor c = sc_color_from_rgb((uint8_t)r, (uint8_t)g, (uint8_t)b);
             if (is_bg) out->bg = c; else out->fg = c;
             p = paren_end + 1;
             continue;

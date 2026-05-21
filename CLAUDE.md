@@ -44,7 +44,7 @@ NOT "no color". Always set `.color = SC_COLOR_NONE` explicitly when you don't wa
 a color, especially in `ScColumnsOpts.sep_color`, `ScRuleOpts.color`, etc.
 
 ```c
-ScColor sc_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
+ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
 ```
 
 Named macros: `SC_COLOR_NONE`, `SC_COLOR_BLACK`, `SC_COLOR_RED`, `SC_COLOR_GREEN`,
@@ -389,7 +389,7 @@ void           sc_progressbar_free     (ScProgressBar *b);
 | `label_width` | Fixed label column width; 0 = natural width |
 | `label_opts` | Style for label text |
 
-**Zero-init of `fill_color`/`empty_color`:** Same as other color fields — zero-initialized `ScColor` (index=0, rgb=0) is treated as "no color" by the renderer. Use `sc_rgb(0,0,0)` for explicit black.
+**Zero-init of `fill_color`/`empty_color`:** Same as other color fields — zero-initialized `ScColor` (index=0, rgb=0) is treated as "no color" by the renderer. Use `sc_color_from_rgb(0,0,0)` for explicit black.
 
 **Animation pattern:**
 ```c

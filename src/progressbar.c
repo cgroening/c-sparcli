@@ -34,7 +34,7 @@ static int opts_no_fmt(ScOptions o) {
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 /* zero-initialised ScColor (index=0, rgb=0) = SC_COLOR_BLACK from struct init,
-   treated as "no color requested"; use sc_rgb(0,0,0) for explicit black */
+   treated as "no color requested"; use sc_color_from_rgb(0,0,0) for explicit black */
 static int color_is_set(ScColor c) {
     return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
 }

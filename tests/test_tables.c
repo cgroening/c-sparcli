@@ -56,7 +56,7 @@ void test_tables(void) {
                              SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
             .header_row  = 1, .header_row_bg = SC_COLOR_NONE,
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
-            .striped     = 1, .stripe_bg = sc_rgb(40, 40, 60),
+            .striped     = 1, .stripe_bg = sc_color_from_rgb(40, 40, 60),
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
         sc_table_add_col(tb, "Lang",   (ScColOpts){0,0,12, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_COLOR_NONE});
@@ -227,10 +227,10 @@ void test_tables(void) {
     /* ── 10. Thick border, golden color ── */
     {
         ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_THICK, sc_rgb(255,180,0), SC_COLOR_NONE,
+            .borders     = { SC_BORDER_THICK, sc_color_from_rgb(255,180,0), SC_COLOR_NONE,
                              SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
             .header_row  = 1, .header_row_bg = SC_COLOR_NONE,
-            .header_opts = { SC_STYLE_BOLD, sc_rgb(255,180,0), SC_COLOR_NONE },
+            .header_opts = { SC_STYLE_BOLD, sc_color_from_rgb(255,180,0), SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
         sc_table_add_col(tb, "OS",     (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_COLOR_NONE});
@@ -343,7 +343,7 @@ void test_tables(void) {
                              SC_COLOR_NONE, SC_COLOR_NONE, 1, 1, 1 },
             .header_row  = 1, .header_row_bg = SC_COLOR_NONE,
             .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
-            .striped     = 1, .stripe_bg = sc_rgb(40, 40, 60),
+            .striped     = 1, .stripe_bg = sc_color_from_rgb(40, 40, 60),
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
         sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_COLOR_NONE});
@@ -368,11 +368,11 @@ void test_tables(void) {
         ScOptions b_green = { SC_STYLE_BOLD,                    SC_COLOR_GREEN,   SC_COLOR_NONE };
         ScOptions b_red   = { SC_STYLE_BOLD,                    SC_COLOR_RED,     SC_COLOR_NONE };
         ScOptions b_yel   = { SC_STYLE_BOLD,                    SC_COLOR_YELLOW,  SC_COLOR_NONE };
-        ScOptions cyan_bg = { SC_STYLE_BOLD,                    SC_COLOR_WHITE,   sc_rgb(0,80,120) };
-        ScOptions mag_bg  = { SC_STYLE_BOLD | SC_STYLE_ITALIC,  SC_COLOR_WHITE,   sc_rgb(100,0,80) };
-        ScOptions grn_bg  = { SC_STYLE_NONE,                    SC_COLOR_BLACK,   sc_rgb(60,160,60) };
-        ScOptions red_bg  = { SC_STYLE_NONE,                    SC_COLOR_WHITE,   sc_rgb(160,30,30) };
-        ScOptions gold    = { SC_STYLE_BOLD,                    sc_rgb(255,180,0),SC_COLOR_NONE };
+        ScOptions cyan_bg = { SC_STYLE_BOLD,                    SC_COLOR_WHITE,   sc_color_from_rgb(0,80,120) };
+        ScOptions mag_bg  = { SC_STYLE_BOLD | SC_STYLE_ITALIC,  SC_COLOR_WHITE,   sc_color_from_rgb(100,0,80) };
+        ScOptions grn_bg  = { SC_STYLE_NONE,                    SC_COLOR_BLACK,   sc_color_from_rgb(60,160,60) };
+        ScOptions red_bg  = { SC_STYLE_NONE,                    SC_COLOR_WHITE,   sc_color_from_rgb(160,30,30) };
+        ScOptions gold    = { SC_STYLE_BOLD,                    sc_color_from_rgb(255,180,0),SC_COLOR_NONE };
 
         ScText *c_api = sc_text_new();
         sc_text_append(c_api, "REST ", plain);
@@ -429,10 +429,10 @@ void test_tables(void) {
         sc_text_append(e_high, "18.7 %", red_bg);
 
         ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_ROUNDED, sc_rgb(80,80,100), sc_rgb(80,80,100),
-                             sc_rgb(80,80,100), sc_rgb(80,80,100), 0, 0, 0 },
-            .header_row  = 1, .header_row_bg = sc_rgb(30,30,50),
-            .header_opts = { SC_STYLE_BOLD, sc_rgb(180,180,220), SC_COLOR_NONE },
+            .borders     = { SC_BORDER_ROUNDED, sc_color_from_rgb(80,80,100), sc_color_from_rgb(80,80,100),
+                             sc_color_from_rgb(80,80,100), sc_color_from_rgb(80,80,100), 0, 0, 0 },
+            .header_row  = 1, .header_row_bg = sc_color_from_rgb(30,30,50),
+            .header_opts = { SC_STYLE_BOLD, sc_color_from_rgb(180,180,220), SC_COLOR_NONE },
             .cell_pad_x  = 1, .cell_pad_y = 0,
         });
         sc_table_add_col(tb, "Service",   (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_COLOR_NONE});
@@ -505,7 +505,7 @@ void test_tables(void) {
             .header_row    = 1, .header_row_bg = SC_COLOR_NONE,
             .header_opts   = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
             .footer_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
-            .footer_row_bg = sc_rgb(30, 40, 30),
+            .footer_row_bg = sc_color_from_rgb(30, 40, 30),
             .title       = " Footer Row (Totals) ",
             .title_opts  = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
@@ -554,16 +554,16 @@ void test_tables(void) {
         }, 4);
         sc_table_add_row_bg(tb, (ScCell[]){
             SC_CELL("#102"), SC_CELL("feature/x"), SC_CELL("FAIL"), SC_CELL("0m 47s"),
-        }, 4, sc_rgb(60, 20, 20));
+        }, 4, sc_color_from_rgb(60, 20, 20));
         sc_table_add_row(tb, (ScCell[]){
             SC_CELL("#103"), SC_CELL("main"),      SC_CELL("PASS"), SC_CELL("1m 31s"),
         }, 4);
         sc_table_add_row_bg(tb, (ScCell[]){
             SC_CELL("#104"), SC_CELL("hotfix/y"),  SC_CELL("PASS"), SC_CELL("2m 05s"),
-        }, 4, sc_rgb(20, 50, 20));
+        }, 4, sc_color_from_rgb(20, 50, 20));
         sc_table_add_row_bg(tb, (ScCell[]){
             SC_CELL("#105"), SC_CELL("release/2"), SC_CELL("FAIL"), SC_CELL("3m 12s"),
-        }, 4, sc_rgb(60, 20, 20));
+        }, 4, sc_color_from_rgb(60, 20, 20));
         sc_table_print(tb);
         sc_table_free(tb);
     }
@@ -575,8 +575,8 @@ void test_tables(void) {
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders       = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
                                SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
-            .header_row    = 1, .header_row_bg = sc_rgb(30, 30, 50),
-            .header_opts   = { SC_STYLE_BOLD, sc_rgb(200, 200, 255), SC_COLOR_NONE },
+            .header_row    = 1, .header_row_bg = sc_color_from_rgb(30, 30, 50),
+            .header_opts   = { SC_STYLE_BOLD, sc_color_from_rgb(200, 200, 255), SC_COLOR_NONE },
             .title         = " Per-Column Background ",
             .title_opts    = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
             .title_pos     = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
@@ -584,8 +584,8 @@ void test_tables(void) {
         });
         sc_table_add_col(tb, "Feature",    (ScColOpts){0,0,18, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_COLOR_NONE});
         sc_table_add_col(tb, "Free",       (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
-        sc_table_add_col(tb, "Pro",        (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, sc_rgb(20, 45, 90)});
-        sc_table_add_col(tb, "Enterprise", (ScColOpts){0,0,12, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, sc_rgb(60, 40, 0)});
+        sc_table_add_col(tb, "Pro",        (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, sc_color_from_rgb(20, 45, 90)});
+        sc_table_add_col(tb, "Enterprise", (ScColOpts){0,0,12, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, sc_color_from_rgb(60, 40, 0)});
         sc_table_add_row(tb, (ScCell[]){
             SC_CELL("Storage"),       SC_CELL("5 GB"),      SC_CELL("50 GB"),      SC_CELL("Unlimited"),
         }, 4);
