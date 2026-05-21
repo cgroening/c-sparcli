@@ -12,7 +12,7 @@ void test_panels(void) {
 
     /* No border */
     sc_panel_str("No border panel", (ScPanelOpts){
-        SC_BORDER_NONE, SC_COLOR_NONE, NULL, plain,
+        SC_BORDER_NONE, SC_COLOR_NONE, "Title", plain,
         SC_TITLE_TOP, SC_ALIGN_LEFT, 1, 0, 0, 1, SC_ALIGN_LEFT, 0
     });
 

@@ -90,8 +90,9 @@ static Test *get_all_tests(size_t *count) {
 
 static Test *get_focused_tests(size_t *count) {
     static Test tests[] = {
-        { "Basic Styles & Combinations", &test_styles, 0 },
-        { "Colors",                      &test_colors, 0 },
+        { "Basic Styles & Combinations", &test_styles,               0 },
+        { "Colors",                      &test_colors,               0 },
+        { "Panels",                      &test_panels,               0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);
