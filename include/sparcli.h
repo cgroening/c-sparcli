@@ -278,10 +278,12 @@ typedef struct {
 void sc_rendered_free(ScRendered *r);
 
 typedef struct {
-    int     min_w;   /* 0 = none */
-    int     max_w;   /* 0 = none */
-    int     fixed_w; /* 0 = auto */
-    ScAlign align;   /* placement within col when col_w > content_w */
+    int      min_w;      /* 0 = none */
+    int      max_w;      /* 0 = none */
+    int      fixed_w;    /* 0 = auto */
+    ScAlign  align;      /* placement within col when col_w > content_w */
+    int      valign_set; /* 1 = override ScColumnsOpts.valign for this column */
+    ScValign valign;     /* per-column vertical alignment */
 } ScColItem;
 
 typedef struct {

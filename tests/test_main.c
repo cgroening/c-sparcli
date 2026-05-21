@@ -68,7 +68,7 @@ static Test *get_all_tests(size_t *count) {
         { "Columns (Basic)",             &test_columns_basic,        0 },
         { "Panels",                      &test_panels,               0 },
         { "Tables",                      &test_tables,               0 },
-        { "Columns",                     &test_columns,              0 },
+        { "Columns (Advanced)",          &test_columns,              0 },
         { "Rules",                       &test_rules,                0 },
         { "Trees",                       &test_trees,                0 },
         { "Lists",                       &test_lists,                0 },

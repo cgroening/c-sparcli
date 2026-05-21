@@ -277,15 +277,27 @@ Per-column options passed with each `sc_columns_add_*` call:
 
 ```c
 typedef struct {
-    int     min_w;   // 0 = none
-    int     max_w;   // 0 = none
-    int     fixed_w; // 0 = auto; fixed_w > 0 ignores min_w/max_w
-    ScAlign align;   // content placement when col_w > content_w
+    int      min_w;      // 0 = none
+    int      max_w;      // 0 = none
+    int      fixed_w;    // 0 = auto; fixed_w > 0 ignores min_w/max_w
+    ScAlign  align;      // content placement when col_w > content_w
+    int      valign_set; // 1 = override ScColumnsOpts.valign for this column
+    ScValign valign;     // per-column vertical alignment
 } ScColItem;
 ```
 
 Width priority: `fixed_w` > `min_w`/`max_w` clamping > natural content width.
 Flex columns (fixed_w == 0) participate in `total_width` distribution.
+
+**Per-column valign:** Set `valign_set = 1` and `valign` to override the global
+`ScColumnsOpts.valign` for a single column. Zero-initialized `ScColItem` inherits
+the global setting (no override).
+
+```c
+sc_columns_add_text(cols, t2, (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_TOP    });
+sc_columns_add_text(cols, t3, (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_MIDDLE });
+sc_columns_add_text(cols, t4, (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_BOTTOM });
+```
 
 ---
 
