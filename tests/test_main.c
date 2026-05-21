@@ -14,6 +14,7 @@ static void  run_tests        (const Test *tests, size_t count, int skip_animate
 static void  print_rule       (const char *title);
 void test_styles(void);
 void test_colors(void);
+void test_columns_basic(void);
 void test_panels(void);
 void test_tables(void);
 void test_columns(void);
@@ -64,6 +65,7 @@ static Test *get_all_tests(size_t *count) {
     static Test tests[] = {
         { "Basic Styles & Combinations", &test_styles,               0 },
         { "Colors",                      &test_colors,               0 },
+        { "Columns (Basic)",             &test_columns_basic,        0 },
         { "Panels",                      &test_panels,               0 },
         { "Tables",                      &test_tables,               0 },
         { "Columns",                     &test_columns,              0 },
@@ -92,7 +94,7 @@ static Test *get_focused_tests(size_t *count) {
     static Test tests[] = {
         { "Basic Styles & Combinations", &test_styles,               0 },
         { "Colors",                      &test_colors,               0 },
-        { "Panels",                      &test_panels,               0 },
+        { "Columns (Basic)",             &test_columns_basic,        0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);

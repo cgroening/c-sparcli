@@ -10,6 +10,23 @@ void test_panels(void) {
 
     printf("\n");
 
+    /* No border + ASCII border side by side */
+    ScColumns *cl = sc_columns_new((ScColumnsOpts){ .gap = 3, .sep_color = SC_COLOR_NONE });
+    sc_columns_add_panel_str(cl, "No border panel", (ScPanelOpts){
+        SC_BORDER_NONE, SC_COLOR_NONE, "Title", plain,
+        SC_TITLE_TOP, SC_ALIGN_LEFT, 1, 0, 0, 1, SC_ALIGN_LEFT, 0
+    }, (ScColItem){ 0 });
+    sc_columns_add_panel_str(cl, "ASCII border", (ScPanelOpts){
+        SC_BORDER_ASCII, SC_COLOR_NONE, "Title", bold_ttl,
+        SC_TITLE_TOP, SC_ALIGN_LEFT, 2, 0, 0, 1, SC_ALIGN_LEFT, 0
+    }, (ScColItem){ 0 });
+    sc_columns_print(cl);
+    sc_columns_free(cl);
+
+
+
+
+
     /* No border */
     sc_panel_str("No border panel", (ScPanelOpts){
         SC_BORDER_NONE, SC_COLOR_NONE, "Title", plain,

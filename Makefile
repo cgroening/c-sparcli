@@ -8,6 +8,7 @@ LIB     = libsparcli.a
 TEST_SRC = tests/test_main.c \
            tests/test_styles.c \
            tests/test_colors.c \
+           tests/test_columns_basic.c \
            tests/test_panels.c \
            tests/test_tables.c \
            tests/test_columns.c \
