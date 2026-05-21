@@ -82,7 +82,11 @@ static void print_example_row(ExampleGroup example) {
     int spaces_after = 0;
 
     for(size_t i = 0; i < example.n; i++) {
-        if(i+1 < example.n) { spaces_after = 4; } else { spaces_after = 0; }
+        if(i+1 < example.n) {
+            spaces_after = 4;
+        } else {
+            spaces_after = 0;
+        }
         print_example(example.items[i], spaces_after);
     }
 
@@ -92,5 +96,7 @@ static void print_example_row(ExampleGroup example) {
 
 static void print_example(const Example example, const int spaces_after) {
     sc_print(example.text, example.options);
-    for(int i = 0; i < spaces_after; i++) { printf(" "); }
+    for(int i = 0; i < spaces_after; i++) {
+        printf(" ");
+    }
 }
