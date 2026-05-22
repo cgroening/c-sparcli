@@ -17,6 +17,9 @@ static ScTextAttributeNs attr = ScTextAttributeNs_;
 static ScAnsiColorNs clr = ScAnsiColorNs_;
 
 
+/**
+ * Prints all text attribute examples: basic attributes and combinations.
+ */
 void test_text_attributes(void) {
     size_t basic_examples_count;
     Example *basic_examples = get_basic_examples(&basic_examples_count);
@@ -32,6 +35,10 @@ void test_text_attributes(void) {
     print_example_groups(examples, sizeof(examples) / sizeof(examples[0]));
 }
 
+/**
+ * Returns the five basic attribute examples: plain, dim, bold, italic
+ * and underline.
+ */
 static Example *get_basic_examples(size_t *count) {
     ScTextStyle plain     = { attr.BOLD,   clr.NONE, clr.NONE };
     ScTextStyle dim       = { attr.DIM,    clr.NONE, clr.NONE };
@@ -50,6 +57,10 @@ static Example *get_basic_examples(size_t *count) {
     return examples;
 }
 
+/**
+ * Returns examples combining multiple attributes: bold+italic, bold+underline,
+ * and bold+italic+underline.
+ */
 static Example *get_combination_examples(size_t *count) {
     ScTextStyle bold_italic = { attr.BOLD | attr.ITALIC, clr.NONE, clr.NONE };
     ScTextStyle bold_under = { attr.BOLD | attr.UNDER, clr.NONE, clr.NONE };
@@ -66,12 +77,18 @@ static Example *get_combination_examples(size_t *count) {
     return examples;
 }
 
+/**
+ * Prints each example group as a row.
+ */
 static void print_example_groups(const ExampleGroup *examples, size_t n) {
     for(size_t i = 0; i < n; i++) {
         print_example_row(examples[i]);
     }
 }
 
+/**
+ * Prints all examples in a group on one line, separated by 4 spaces.
+ */
 static void print_example_row(ExampleGroup example) {
     int spaces_after = 0;
 
@@ -87,6 +104,9 @@ static void print_example_row(ExampleGroup example) {
     printf("\n");
 }
 
+/**
+ * Prints a single styled example followed by spaces_after spaces.
+ */
 static void print_example(const Example example, const int spaces_after) {
     sc_print(example.text, example.options);
     for(int i = 0; i < spaces_after; i++) {

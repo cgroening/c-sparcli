@@ -17,6 +17,9 @@ static ScTextAttributeNs attr = ScTextAttributeNs_;
 static ScAnsiColorNs clr = ScAnsiColorNs_;
 
 
+/**
+ * Prints all color examples: named ANSI colors and RGB combinations.
+ */
 void test_colors(void) {
     size_t basic_examples_count;
     Example *basic_examples = get_basic_examples(&basic_examples_count);
@@ -32,6 +35,10 @@ void test_colors(void) {
     print_example_groups(examples, sizeof(examples) / sizeof(examples[0]));
 }
 
+/**
+ * Returns the nine named ANSI color examples, each with a contrasting
+ * background.
+ */
 static Example *get_basic_examples(size_t *count) {
     ScTextStyle none    = { attr.NONE, clr.NONE,    clr.NONE  };
     ScTextStyle black   = { attr.NONE, clr.BLACK,   clr.WHITE };
@@ -58,6 +65,9 @@ static Example *get_basic_examples(size_t *count) {
     return examples;
 }
 
+/**
+ * Returns examples mixing named colors, RGB foreground and RGB background.
+ */
 static Example *get_combination_examples(size_t *count) {
     ScTextStyle blk_on_ylw = { attr.BOLD, clr.BLACK, clr.YELLOW };
     ScTextStyle orange_rgb = {
@@ -76,12 +86,18 @@ static Example *get_combination_examples(size_t *count) {
     return examples;
 }
 
+/**
+ * Prints each example group as a row.
+ */
 static void print_example_groups(const ExampleGroup *examples, size_t n) {
     for(size_t i = 0; i < n; i++) {
         print_example_row(examples[i]);
     }
 }
 
+/**
+ * Prints all examples in a group on one line, separated by 2 spaces.
+ */
 static void print_example_row(ExampleGroup example) {
     int spaces_after = 0;
 
@@ -97,6 +113,9 @@ static void print_example_row(ExampleGroup example) {
     printf("\n");
 }
 
+/**
+ * Prints a single styled example followed by spaces_after spaces.
+ */
 static void print_example(const Example example, const int spaces_after) {
     sc_print(example.text, example.options);
     for(int i = 0; i < spaces_after; i++) {

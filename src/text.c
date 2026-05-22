@@ -11,60 +11,63 @@ ScText *sc_text_new(void) {
     return sc_text;
 }
 
-void sc_text_append(ScText *sc_text, const char *text, ScTextStyle style) {
+void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
     if (sc_text->count == sc_text->cap) {
         size_t new_cap = sc_text->cap ? sc_text->cap * 2 : 4;
-        ScSpan *s = realloc(sc_text->spans, new_cap * sizeof(ScSpan));
-        if (!s) return;
-        sc_text->spans = s;
+        ScSpan *span = realloc(sc_text->spans, new_cap * sizeof(ScSpan));
+        if (!span) return;
+        sc_text->spans = span;
         sc_text->cap   = new_cap;
     }
-    sc_text->spans[sc_text->count].raw_str = strdup(text);
+    sc_text->spans[sc_text->count].raw_str = strdup(raw_str);
     sc_text->spans[sc_text->count].style = style;
     sc_text->count++;
 }
 
-void sc_text_free(ScText *t) {
-    for (size_t i = 0; i < t->count; i++)
-        free(t->spans[i].raw_str);
-    free(t->spans);
-    free(t);
+void sc_text_free(ScText *sc_text) {
+    for (size_t i = 0; i < sc_text->count; i++)
+        free(sc_text->spans[i].raw_str);
+    free(sc_text->spans);
+    free(sc_text);
 }
 
-void sc_print_text(const ScText *text) {
-    for (size_t i = 0; i < text->count; i++) {
-        const char *s     = text->spans[i].raw_str;
-        ScTextStyle   style  = text->spans[i].style;
-        const char *start = s;
+void sc_print_text(const ScText *sc_text) {
+    for (size_t i = 0; i < sc_text->count; i++) {
+        const char *raw_str = sc_text->spans[i].raw_str;
+        ScTextStyle style = sc_text->spans[i].style;
+        const char *start = raw_str;
 
-        while (*s) {
-            if (*s == '\n') {
-                if (s > start) {
-                    char *seg = strndup(start, (size_t)(s - start));
+        while (*raw_str) {
+            if (*raw_str == '\n') {
+                if (raw_str > start) {
+                    char *seg = strndup(start, (size_t)(raw_str - start));
                     sc_print(seg, style);
                     free(seg);
                 }
                 fputc('\n', stdout);
-                start = s + 1;
+                start = raw_str + 1;
             }
-            s++;
+            raw_str++;
         }
         if (*start)
             sc_print(start, style);
     }
 }
 
-size_t sc_text_visible_width(const ScText *text) {
-    size_t max_w = 0, cur_w = 0;
-    for (size_t i = 0; i < text->count; i++) {
-        for (const unsigned char *s = (const unsigned char *)text->spans[i].raw_str; *s; s++) {
-            if (*s == '\n') {
-                if (cur_w > max_w) max_w = cur_w;
-                cur_w = 0;
-            } else if ((*s & 0xC0) != 0x80) {  /* skip UTF-8 continuation bytes */
-                cur_w++;
+size_t sc_text_visible_width(const ScText *sc_text) {
+    size_t max_width = 0, current_width = 0;
+    for (size_t i = 0; i < sc_text->count; i++) {
+        const unsigned char *current_byte =
+            (const unsigned char *)sc_text->spans[i].raw_str;
+        for (; *current_byte; current_byte++) {
+            if (*current_byte == '\n') {
+                if (current_width > max_width) max_width = current_width;
+                current_width = 0;
+            } else if ((*current_byte & 0xC0) != 0x80) {
+                // Skip UTF-8 continuation bytes
+                current_width++;
             }
         }
     }
-    return cur_w > max_w ? cur_w : max_w;
+    return current_width > max_width ? current_width : max_width;
 }

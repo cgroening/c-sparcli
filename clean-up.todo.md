@@ -2,32 +2,26 @@
 
 ## Core / General
 
-- [ ] tests/test_main.c
-- [ ] include/sparcli.h
-- [ ] include/sparcli_text.h
-- [ ] include/sparcli_capture.h
-- [ ] include/sparcli_rendered.h
-- [ ] src/internal.h
-- [ ] src/text.c
-- [ ] src/print.c
+- [x] tests/test_main.c
+- [x] include/sparcli.h
+- [x] include/sparcli_text.h
+- [x] include/sparcli_capture.h
+- [x] include/sparcli_rendered.h
+- [x] src/internal.h
+- [x] src/text.c
+- [x] src/print.c
 
 ## Text Attributes & Combinations
 
-- [ ] tests/test_text_attributes.c
-- [ ] include/sparcli_core.h
-- [ ] src/text_attributes.c
+- [x] tests/test_text_attributes.c
+- [x] include/sparcli_core.h
+- [x] src/text_attributes.c
 
 ## Colors
 
-- [ ] tests/test_colors.c
-- [ ] include/sparcli_core.h
-- [ ] src/color.c
-
-## Columns (Basic)
-
-- [ ] tests/test_columns_basic.c
-- [ ] include/sparcli_columns.h
-- [ ] src/columns.c
+- [x] tests/test_colors.c
+- [x] include/sparcli_core.h
+- [x] src/color.c
 
 ## Panels
 
@@ -35,15 +29,17 @@
 - [ ] include/sparcli_panel.h
 - [ ] src/panel.c
 
+## Alerts
+
+- [ ] tests/test_alert.c
+- [ ] include/sparcli_alert.h
+- [ ] src/alert.c
+
 ## Tables
 
 - [ ] tests/test_tables.c
 - [ ] include/sparcli_table.h
 - [ ] src/table.c
-
-## Columns (Advanced)
-
-- [ ] tests/test_columns.c
 
 ## Rules
 
@@ -81,12 +77,6 @@
 - [ ] include/sparcli_kv.h
 - [ ] src/kv.c
 
-## Alerts
-
-- [ ] tests/test_alert.c
-- [ ] include/sparcli_alert.h
-- [ ] src/alert.c
-
 ## Badges
 
 - [ ] tests/test_badge.c
@@ -115,3 +105,13 @@
 - [ ] tests/test_markup.c
 - [ ] include/sparcli_markup.h
 - [ ] src/markup.c
+
+## Columns (Basic)
+
+- [ ] tests/test_columns_basic.c
+- [ ] include/sparcli_columns.h
+- [ ] src/columns.c
+
+## Columns (Advanced)
+
+- [ ] tests/test_columns.c

@@ -1,5 +1,4 @@
-#ifndef SPARCLI_INTERNAL_H
-#define SPARCLI_INTERNAL_H
+#pragma once
 
 #include "sparcli.h"
 #include <stddef.h>
@@ -10,43 +9,77 @@
 void sc_apply_colors(ScColor fg, ScColor bg);
 void sc_apply_style (ScTextAttribute style);
 
-static inline int sc_term_width(void) {
-    struct winsize ws;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
-        return (int)ws.ws_col;
+
+/**
+ * Return the current terminal width in columns or 80 if it cannot
+ * be determined.
+ */
+static inline int sc_terminal_width(void) {
+    struct winsize window_size;
+    int ioctl_return_code = ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
+    if (ioctl_return_code == 0 && window_size.ws_col > 0) {
+        return (int)window_size.ws_col;
+    }
     return 80;
 }
 
-/* Count visible terminal columns in the first byte_len bytes of a UTF-8
-   string.  Assumes all code points occupy 1 column (correct for non-CJK). */
-static inline size_t sc_utf8_vis_w(const char *s, size_t byte_len) {
-    size_t cols = 0;
-    const unsigned char *p   = (const unsigned char *)s;
-    const unsigned char *end = p + byte_len;
-    while (p < end) {
-        unsigned char c = *p;
-        if      ((c & 0x80) == 0x00) p += 1;
-        else if ((c & 0xE0) == 0xC0) p += 2;
-        else if ((c & 0xF0) == 0xE0) p += 3;
-        else                          p += 4;
-        cols++;
+/**
+ * Counts visible terminal columns in the first `byte_len` bytes of a UTF-8
+ * string.
+ *
+ * This function must be used instead of `strlen()` whenever a display width for
+ * alignment or truncation is needed. `strlen()` returns the byte count, which
+ * is wrong for multi-byte UTF-8 sequences: a single character like '€' is
+ * 3 bytes but occupies only 1 terminal column. This function walks the byte
+ * sequence, skips continuation bytes and counts one column per codepoint.
+ *
+ * Assumes all code points occupy 1 column (correct for non-CJK).
+ */
+static inline size_t sc_utf8_string_length(
+    const char *string, size_t byte_length
+) {
+    size_t columns = 0;
+    const unsigned char *cursor = (const unsigned char *)string;
+    const unsigned char *end = cursor + byte_length;
+
+    // Walk the byte sequence, skipping continuation bytes and counting one
+    // column per code point
+    while (cursor < end) {
+        unsigned char current_byte = *cursor;
+        if      ((current_byte & 0x80) == 0x00) cursor += 1;
+        else if ((current_byte & 0xE0) == 0xC0) cursor += 2;
+        else if ((current_byte & 0xF0) == 0xE0) cursor += 3;
+        else                                    cursor += 4;
+        columns++;
     }
-    return cols;
+    return columns;
 }
 
-/* Return the number of bytes of s that fit within max_cols visible columns. */
-static inline size_t sc_utf8_trim_to_cols(const char *s, int max_cols) {
-    const unsigned char *p = (const unsigned char *)s;
-    int cols = 0;
-    while (*p && cols < max_cols) {
-        unsigned char c = *p;
-        if      ((c & 0x80) == 0x00) p += 1;
-        else if ((c & 0xE0) == 0xC0) p += 2;
-        else if ((c & 0xF0) == 0xE0) p += 3;
-        else                          p += 4;
-        cols++;
+/**
+ * Returns the number of bytes of `string` that fit within `max_columns`
+ * visible terminal columns.
+ *
+ * Use this instead of a byte-length limit when truncating UTF-8 text for
+ * display. Cutting at a raw byte offset can split a multi-byte sequence in the
+ * middle, producing garbage output. This function stops only at codepoint
+ * boundaries, so the returned byte count is always safe to pass to e.g.
+ * fwrite() or memcpy().
+ */
+static inline size_t sc_utf8_trim_to_cols(const char *string, int max_columns) {
+    const unsigned char *cursor = (const unsigned char *)string;
+    int columns = 0;
+    while (*cursor && columns < max_columns) {
+        unsigned char current_byte = *cursor;
+        if ((current_byte & 0x80) == 0x00) {
+            cursor += 1;
+        } else if ((current_byte & 0xE0) == 0xC0) {
+            cursor += 2;
+        } else if ((current_byte & 0xF0) == 0xE0) {
+            cursor += 3;
+        } else {
+            cursor += 4;
+        }
+        columns++;
     }
-    return (size_t)(p - (const unsigned char *)s);
+    return (size_t)(cursor - (const unsigned char *)string);
 }
-
-#endif /* SPARCLI_INTERNAL_H */

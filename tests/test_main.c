@@ -8,10 +8,10 @@
 typedef struct { char name[50]; void (*function)(void); int animated; } Test;
 
 
-static Test *get_all_tests    (size_t *count);
+static Test *get_all_tests(size_t *count);
 static Test *get_focused_tests(size_t *count);
-static void  run_tests        (const Test *tests, size_t count, int skip_animated);
-static void  print_rule       (const char *title);
+static void run_tests(const Test *tests, size_t count, int skip_animated);
+static void print_rule(const char *title);
 void test_text_attributes(void);
 void test_colors(void);
 void test_columns_basic(void);
@@ -65,10 +65,9 @@ static Test *get_all_tests(size_t *count) {
     static Test tests[] = {
         { "Text Attributes & Combinations", &test_text_attributes, 0 },
         { "Colors",                    &test_colors,               0 },
-        { "Columns (Basic)",           &test_columns_basic,        0 },
         { "Panels",                    &test_panels,               0 },
+        { "Alerts",                    &test_alert,                0 },
         { "Tables",                    &test_tables,               0 },
-        { "Columns (Advanced)",        &test_columns,              0 },
         { "Rules",                     &test_rules,                0 },
         { "Trees",                     &test_trees,                0 },
         { "Lists",                     &test_lists,                0 },
@@ -77,32 +76,36 @@ static Test *get_all_tests(size_t *count) {
         { "Spinner",                   &test_spinner,              0 },
         { "Animated Spinner",          &test_spinner_animated,     1 },
         { "Key-Value Pairs",           &test_kv,                   0 },
-        { "Alerts",                    &test_alert,                0 },
         { "Badges",                    &test_badge,                0 },
         { "Utilities",                 &test_util,                 0 },
         { "Padding",                   &test_pad,                  0 },
         { "Alignment",                 &test_align,                0 },
         { "Markup",                    &test_markup,               0 },
+        { "Columns (Basic)",           &test_columns_basic,        0 },
+        { "Columns (Advanced)",        &test_columns,              0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);
     return tests;
 }
-
 
 static Test *get_focused_tests(size_t *count) {
     static Test tests[] = {
         { "Text Attributes & Combinations", &test_text_attributes, 0 },
         { "Colors",                    &test_colors,               0 },
-        { "Columns (Basic)",           &test_columns_basic,        0 },
         { "Panels",                    &test_panels,               0 },
+        { "Alerts",                    &test_alert,                0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);
     return tests;
 }
 
-
+/**
+ * Runs the provided tests, optionally skipping animated ones.
+ *
+ * Prints a rule before and after each test for better visual separation.
+ */
 static void run_tests(const Test *tests, size_t count, int skip_animated) {
     printf("\n");
     for (size_t i = 0; i < count; i++) {
@@ -114,14 +117,19 @@ static void run_tests(const Test *tests, size_t count, int skip_animated) {
     }
 }
 
-
+/**
+ * Prints a styled rule with the given title. If title is `NULL`, prints a
+ * simple line.
+ */
 static void print_rule(const char *title) {
     sc_rule_str(
         title,
         (ScRuleOpts) {
             .style       = SC_BORDER_DOUBLE,
             .color       = SC_ANSI_COLOR_NONE,
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title_opts  = {
+                SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+            },
             .title_align = SC_ALIGN_CENTER,
         }
     );
