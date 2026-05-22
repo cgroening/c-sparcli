@@ -21,7 +21,7 @@ void test_panels(void) {
         .title_opts   = plain,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 1,
+        .padding = {0, 1, 0, 1},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     }, (ScColItem){ 0 });
@@ -34,7 +34,7 @@ void test_panels(void) {
         .title_opts   = bold_ttl,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 2,
+        .padding = {0, 2, 0, 2},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     }, (ScColItem){ 0 });
@@ -54,7 +54,7 @@ void test_panels(void) {
         .title_opts   = plain,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 1,
+        .padding = {0, 1, 0, 1},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -71,7 +71,7 @@ void test_panels(void) {
         .title_opts   = bold_ttl,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 2,
+        .padding = {0, 2, 0, 2},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -88,8 +88,7 @@ void test_panels(void) {
         .title_opts   = bold_ttl,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_CENTER,
-        .pad_x        = 2,
-        .pad_y        = 1,
+        .padding = {1, 2, 1, 2},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -106,7 +105,7 @@ void test_panels(void) {
         .title_opts   = bold_ttl,
         .title_pos    = SC_TITLE_BOTTOM,
         .title_align  = SC_ALIGN_RIGHT,
-        .pad_x        = 2,
+        .padding = {0, 2, 0, 2},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -121,7 +120,7 @@ void test_panels(void) {
         .bg           = SC_ANSI_COLOR_NONE,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 2,
+        .padding = {0, 2, 0, 2},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -138,7 +137,7 @@ void test_panels(void) {
         .title_opts   = bold_ttl,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 2,
+        .padding = {0, 2, 0, 2},
         .title_pad    = 1,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -162,8 +161,7 @@ void test_panels(void) {
         .title_opts   = on_blue,
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
-        .pad_x        = 2,
-        .pad_y        = 1,
+        .padding = {1, 2, 1, 2},
         .title_pad    = 0,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -182,8 +180,7 @@ void test_panels(void) {
         .title_pos     = SC_TITLE_TOP,
         .title_align   = SC_ALIGN_LEFT,
         .title_pad     = 1,
-        .pad_x         = 2,
-        .pad_y         = 1,
+        .padding = {1, 2, 1, 2},
         .content_align = SC_ALIGN_LEFT,
         .full_width    = 1,
     });
@@ -201,7 +198,7 @@ void test_panels(void) {
         .title_pos     = SC_TITLE_TOP,
         .title_align   = SC_ALIGN_CENTER,
         .title_pad     = 1,
-        .pad_x         = 2,
+        .padding = {0, 2, 0, 2},
         .content_align = SC_ALIGN_LEFT,
         .full_width    = 1,
     });
@@ -218,8 +215,7 @@ void test_panels(void) {
         .title_opts    = bold_ttl,
         .title_pos     = SC_TITLE_TOP,
         .title_align   = SC_ALIGN_CENTER,
-        .pad_x         = 2,
-        .pad_y         = 0,
+        .padding = {0, 2, 0, 2},
         .title_pad     = 1,
         .content_align = SC_ALIGN_CENTER,
         .full_width    = 1,
@@ -237,8 +233,7 @@ void test_panels(void) {
         .title_opts    = bold_ttl,
         .title_pos     = SC_TITLE_TOP,
         .title_align   = SC_ALIGN_RIGHT,
-        .pad_x         = 1,
-        .pad_y         = 0,
+        .padding = {0, 1, 0, 1},
         .title_pad     = 1,
         .content_align = SC_ALIGN_RIGHT,
         .full_width    = 1,

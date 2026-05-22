@@ -62,7 +62,7 @@ void test_kv(void) {
     printf("--- KV 4. Margin=4, item_gap=1 ---\n");
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
-            .margin   = 4,
+            .margin = {0, 4, 0, 4},
             .item_gap = 1,
             .sep      = "  \xe2\x86\x92  ", /* →  */
             .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },

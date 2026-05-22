@@ -32,8 +32,7 @@ void sc_alert_str(ScAlertType type, const char *content) {
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
         .title_pad    = 1,
-        .pad_x        = 1,
-        .pad_y        = 0,
+        .padding      = {0, 1, 0, 1},
         .full_width   = 1,
     };
     sc_panel_str(content, opts);
@@ -54,8 +53,7 @@ void sc_alert_text(ScAlertType type, const ScText *content) {
         .title_pos    = SC_TITLE_TOP,
         .title_align  = SC_ALIGN_LEFT,
         .title_pad    = 1,
-        .pad_x        = 1,
-        .pad_y        = 0,
+        .padding      = {0, 1, 0, 1},
         .full_width   = 1,
     };
     sc_panel_text(content, opts);

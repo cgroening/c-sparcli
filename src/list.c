@@ -197,7 +197,7 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
     int list_left  = base_indent + l->opts.indent;
     int text_start = list_left + mw;
 
-    int avail_w = term_w - 2 * l->opts.margin - text_start;
+    int avail_w = term_w - l->opts.margin.left - l->opts.margin.right - text_start;
     if (avail_w < 4) avail_w = 4;
 
     int is_bullet = (l->opts.marker == SC_LIST_BULLET);
@@ -220,7 +220,7 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
             snprintf(marker, sizeof(marker), "%s%*s%s%s ", pre, pad, "", val, suf);
 
         /* print left margin + list indent */
-        for (int k = 0; k < l->opts.margin + list_left; k++) fputc(' ', stdout);
+        for (int k = 0; k < l->opts.margin.left + list_left; k++) fputc(' ', stdout);
         if (opts_has_format(l->opts.marker_opts))
             sc_print(marker, l->opts.marker_opts);
         else
@@ -236,7 +236,7 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
             char **wrapped = word_wrap(txt, avail_w, &nlines);
             for (size_t li = 0; li < nlines; li++) {
                 if (li > 0)
-                    for (int k = 0; k < l->opts.margin + text_start; k++) fputc(' ', stdout);
+                    for (int k = 0; k < l->opts.margin.left + text_start; k++) fputc(' ', stdout);
                 sc_print(wrapped[li], it->opts);
                 fputc('\n', stdout);
                 free(wrapped[li]);
@@ -255,8 +255,10 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
 
 void sc_list_print(const ScList *l) {
     if (!l) return;
+    for (int i = 0; i < l->opts.margin.top; i++) fputc('\n', stdout);
     int term_w = l->opts.width > 0 ? l->opts.width : sc_term_width();
     print_list_r(l, 0, term_w);
+    for (int i = 0; i < l->opts.margin.bottom; i++) fputc('\n', stdout);
 }
 
 /* ── Memory management ───────────────────────────────────────────────────── */

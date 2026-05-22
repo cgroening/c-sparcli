@@ -92,8 +92,7 @@ void test_rules(void) {
         .color       = SC_ANSI_COLOR_GREEN,
         .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
-        .margin      = 8,
-        .pad_y       = 1,
+        .margin = {1, 8, 1, 8},
     });
 
     /* ── 7. ScText variant with multiple spans ── */

@@ -12,8 +12,8 @@ typedef struct {
     ScTextStyle     title_opts;
     ScTitlePosition    title_pos;
     ScHAlign       title_align;
-    int           pad_x;
-    int           pad_y;
+    ScEdges       padding;       /* inner content padding (top/right/bottom/left) */
+    ScEdges       margin;        /* outer margin (top/right/bottom/left) */
     int           width;         /* 0 = auto */
     int           title_pad;     /* spaces on each side of title text, default 1 */
     ScHAlign       content_align;

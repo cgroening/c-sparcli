@@ -6,7 +6,7 @@ typedef struct {
     const char *sep;
     int         key_width;
     int         width;
-    int         margin;
+    ScEdges     margin;          /* top/bottom = blank lines; left/right = outer indent */
     int         item_gap;
     int         wrap_val;
     ScTextStyle   key_opts;

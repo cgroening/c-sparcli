@@ -498,8 +498,12 @@ void sc_columns_print(const ScColumns *cl) {
         top_off[i] = off;
     }
 
+    int cml = cl->opts.margin.left > 0 ? cl->opts.margin.left : 0;
+
     /* ── render lines ── */
+    for (int i = 0; i < cl->opts.margin.top; i++) fputc('\n', stdout);
     for (size_t li = 0; li < total_h; li++) {
+        for (int i = 0; i < cml; i++) fputc(' ', stdout);
         for (size_t ci = 0; ci < cl->count; ci++) {
             ScColEntry *e   = &cl->entries[ci];
             ScRendered *r   = working[ci];
@@ -561,6 +565,7 @@ void sc_columns_print(const ScColumns *cl) {
         }
         fputc('\n', stdout);
     }
+    for (int i = 0; i < cl->opts.margin.bottom; i++) fputc('\n', stdout);
 
     for (size_t i = 0; i < cl->count; i++)
         if (working[i] != cl->entries[i].rendered)

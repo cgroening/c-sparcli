@@ -23,13 +23,14 @@ static void print_h_repeat(const char *h, int n, ScColor color) {
 
 void sc_rule_text(const ScText *title, ScRuleOpts opts) {
     int term_w = sc_term_width();
-    int margin  = opts.margin > 0 ? opts.margin : 0;
-    int eff_w   = opts.width > 0 ? opts.width : (term_w - 2 * margin);
+    int ml = opts.margin.left  > 0 ? opts.margin.left  : 0;
+    int mr = opts.margin.right > 0 ? opts.margin.right : 0;
+    int eff_w   = opts.width > 0 ? opts.width : (term_w - ml - mr);
     if (eff_w < 1) eff_w = 1;
 
-    int left_pad = margin;
+    int left_pad = ml;
     if (opts.width > 0) {
-        int avail = term_w - 2 * margin;
+        int avail = term_w - ml - mr;
         int spare = avail - eff_w;
         if (spare < 0) spare = 0;
         if (opts.align == SC_ALIGN_CENTER)     left_pad += spare / 2;
@@ -44,7 +45,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
     int title_w   = has_title ? (int)sc_text_visible_width(title) : 0;
     int tpad      = opts.title_pad > 0 ? opts.title_pad : (opts.title_pad == 0 ? 1 : 0);
 
-    for (int i = 0; i < opts.pad_y; i++) fputc('\n', stdout);
+    for (int i = 0; i < opts.margin.top; i++) fputc('\n', stdout);
 
     for (int i = 0; i < left_pad; i++) fputc(' ', stdout);
 
@@ -78,7 +79,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
 
     fputc('\n', stdout);
 
-    for (int i = 0; i < opts.pad_y; i++) fputc('\n', stdout);
+    for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
 }
 
 void sc_rule_str(const char *title, ScRuleOpts opts) {

@@ -21,7 +21,7 @@ typedef struct {
     int           indent;
     int           item_gap;
     int           width;
-    int           margin;
+    ScEdges       margin;        /* top/bottom = blank lines; left/right = outer indent */
 } ScListOpts;
 
 typedef struct ScListItem ScListItem;

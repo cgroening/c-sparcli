@@ -106,7 +106,7 @@ void test_columns_basic(void) {
                 .border_color  = sc_ansi_color_from_rgb(255, 100, 100),
                 .border_bg     = sc_ansi_color_from_rgb(100, 25, 25),
                 .bg            = sc_ansi_color_from_rgb(60, 15, 15),
-                .pad_x         = 2,
+                .padding = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(60, 15, 15) });
@@ -116,7 +116,7 @@ void test_columns_basic(void) {
                 .border_color  = sc_ansi_color_from_rgb(100, 255, 100),
                 .border_bg     = sc_ansi_color_from_rgb(25, 100, 25),
                 .bg            = sc_ansi_color_from_rgb(15, 60, 15),
-                .pad_x         = 2,
+                .padding = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(15, 60, 15) });
@@ -126,7 +126,7 @@ void test_columns_basic(void) {
                 .border_color  = sc_ansi_color_from_rgb(100, 100, 255),
                 .border_bg     = sc_ansi_color_from_rgb(25, 25, 100),
                 .bg            = sc_ansi_color_from_rgb(15, 15, 60),
-                .pad_x         = 2,
+                .padding = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(15, 15, 60) });

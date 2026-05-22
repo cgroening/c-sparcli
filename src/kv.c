@@ -92,8 +92,9 @@ static void kv_print_wrapped(const char *text, int avail, int indent,
 void sc_kv_print(const ScKV *kv) {
     if (!kv || kv->count == 0) return;
 
+    for (int i = 0; i < kv->opts.margin.top; i++) fputc('\n', stdout);
     int total_w = kv->opts.width > 0 ? kv->opts.width : sc_term_width();
-    int margin  = kv->opts.margin > 0 ? kv->opts.margin : 0;
+    int margin  = kv->opts.margin.left > 0 ? kv->opts.margin.left : 0;
 
     /* auto key-column width */
     int key_w = kv->opts.key_width;
@@ -170,6 +171,7 @@ void sc_kv_print(const ScKV *kv) {
         if (kv->opts.item_gap > 0 && i + 1 < kv->count)
             for (int g = 0; g < kv->opts.item_gap; g++) fputc('\n', stdout);
     }
+    for (int i = 0; i < kv->opts.margin.bottom; i++) fputc('\n', stdout);
 }
 
 /* ── Memory management ───────────────────────────────────────────────────── */

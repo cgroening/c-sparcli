@@ -72,8 +72,8 @@ typedef struct {
     ScTitlePosition     title_pos;
     ScHAlign        title_align;
     int            title_pad;
-    int            cell_pad_x;
-    int            cell_pad_y;
+    ScEdges        cell_pad;      /* inner cell padding (top/right/bottom/left) */
+    ScEdges        margin;        /* outer table margin (top/right/bottom/left) */
     int            total_width;
     int            max_rows;
     int            rtl;

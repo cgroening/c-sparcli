@@ -26,6 +26,7 @@ typedef struct {
     ScColor       sep_bg;      /* background for gap spaces + separator char; zero-init = none */
     ScVAlign      valign;
     int           total_width; /* 0 = auto; >0 = scale flex cols to fit */
+    ScEdges       margin;      /* outer margin (top/right/bottom/left) */
 } ScColumnsOpts;
 
 typedef struct ScColumns ScColumns;

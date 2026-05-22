@@ -105,7 +105,7 @@ void test_markup(void) {
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1,
             .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
         sc_table_add_col(t, "Message", (ScColOpts){ 0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
@@ -134,8 +134,7 @@ void test_markup(void) {
             .title_pos    = SC_TITLE_TOP,
             .title_align  = SC_ALIGN_CENTER,
             .title_pad    = 1,
-            .pad_x        = 2,
-            .pad_y        = 1,
+            .padding = {1, 2, 1, 2},
         });
         sc_text_free(content);
     }

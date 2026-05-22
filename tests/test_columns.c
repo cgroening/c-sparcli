@@ -13,7 +13,7 @@ void test_columns(void) {
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title = " Team A ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t1, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t1, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -27,7 +27,7 @@ void test_columns(void) {
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title = " Team B ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t2, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t2, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -52,7 +52,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Port",    (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Service", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -76,7 +76,7 @@ void test_columns(void) {
                 .title        = " System Info ",
                 .title_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
                 .title_pos    = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
-                .pad_x        = 2, .title_pad = 1,
+                .padding = {0, 2, 0, 2}, .title_pad = 1,
             },
             (ScColItem){0});
         sc_columns_add_table(cl, tb, (ScColItem){0});
@@ -93,7 +93,7 @@ void test_columns(void) {
             .border = SC_BORDER_SINGLE, .border_color = SC_ANSI_COLOR_NONE,
             .title = " Top ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
-            .pad_x = 1, .title_pad = 1,
+            .padding = {0, 1, 0, 1}, .title_pad = 1,
         };
         ScPanelOpts po_mid = po_top;
         po_mid.title = " Middle ";
@@ -155,7 +155,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Key",   (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Value", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -212,7 +212,7 @@ void test_columns(void) {
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title = " Revenue ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t1, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t1, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -227,7 +227,7 @@ void test_columns(void) {
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title = " Costs ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t2, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t2, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -242,7 +242,7 @@ void test_columns(void) {
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title = " Profit ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t3, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t3, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});

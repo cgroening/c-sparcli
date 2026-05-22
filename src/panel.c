@@ -171,10 +171,10 @@ static void free_plines(PLine *lines, size_t n) {
 
 /* ── Panel rendering ────────────────────────────────────────────────────── */
 
-static void render_content_line(PLine *line, int inner_w, int pad_x,
+static void render_content_line(PLine *line, int inner_w, int pad_l, int pad_r,
                                  ScBorderType border, ScColor border_fg, ScColor border_bg,
                                  ScHAlign align, ScColor content_bg) {
-    int spare = inner_w - 2 * pad_x - (int)line->vis_w;
+    int spare = inner_w - pad_l - pad_r - (int)line->vis_w;
     if (spare < 0) spare = 0;
     int lp = 0, rp = spare;
     if (align == SC_ALIGN_CENTER) { lp = spare / 2; rp = spare - lp; }
@@ -182,14 +182,14 @@ static void render_content_line(PLine *line, int inner_w, int pad_x,
 
     print_colored(border_table[border].v, border_fg, border_bg);
     if (color_active(content_bg)) sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
-    for (int i = 0; i < pad_x; i++) fputc(' ', stdout);
+    for (int i = 0; i < pad_l; i++) fputc(' ', stdout);
     for (int i = 0; i < lp; i++) fputc(' ', stdout);
     for (size_t i = 0; i < line->count; i++) {
         sc_print(line->spans[i].text, line->spans[i].opts);
         if (color_active(content_bg)) sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
     }
     for (int i = 0; i < rp; i++) fputc(' ', stdout);
-    for (int i = 0; i < pad_x; i++) fputc(' ', stdout);
+    for (int i = 0; i < pad_r; i++) fputc(' ', stdout);
     if (color_active(content_bg)) fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     print_colored(border_table[border].v, border_fg, border_bg);
     fputc('\n', stdout);
@@ -203,17 +203,24 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     for (size_t i = 0; i < nlines; i++)
         if (lines[i].vis_w > max_cw) max_cw = lines[i].vis_w;
 
-    int title_pad   = opts.title_pad;
-    int title_len   = opts.title ? (int)sc_utf8_vis_w(opts.title, strlen(opts.title)) : 0;
-    int min4title   = opts.title ? title_len + 2 * title_pad + 2 : 0;
+    int title_pad = opts.title_pad;
+    int title_len = opts.title ? (int)sc_utf8_vis_w(opts.title, strlen(opts.title)) : 0;
+    int min4title = opts.title ? title_len + 2 * title_pad + 2 : 0;
+    int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
+    int pad_r = opts.padding.right > 0 ? opts.padding.right : 0;
+    int pad_t = opts.padding.top   > 0 ? opts.padding.top   : 0;
+    int pad_b = opts.padding.bottom> 0 ? opts.padding.bottom: 0;
+    int ml    = opts.margin.left   > 0 ? opts.margin.left   : 0;
+    int mr    = opts.margin.right  > 0 ? opts.margin.right  : 0;
+
     int inner_w;
     if (opts.full_width) {
-        inner_w = sc_term_width() - 2;
+        inner_w = sc_term_width() - 2 - ml - mr;
         if (inner_w < 2) inner_w = 2;
     } else if (opts.width > 0) {
         inner_w = opts.width - 2;
     } else {
-        int from_content = (int)max_cw + 2 * opts.pad_x;
+        int from_content = (int)max_cw + pad_l + pad_r;
         inner_w = from_content > min4title ? from_content : min4title;
         if (inner_w < 2) inner_w = 2;
     }
@@ -223,26 +230,42 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     const char *bl = border_table[opts.border].bl;
     const char *br = border_table[opts.border].br;
 
+#define PMARG() do { for (int _i = 0; _i < ml; _i++) fputc(' ', stdout); } while(0)
+
+    for (int i = 0; i < opts.margin.top; i++) fputc('\n', stdout);
+
     /* top border */
+    PMARG();
     render_hline(inner_w, opts.border, opts.border_color, opts.border_bg, tl, tr,
                  opts.title_pos == SC_TITLE_TOP ? opts.title : NULL,
                  opts.title_opts, opts.title_align, title_pad);
 
-    for (int i = 0; i < opts.pad_y; i++)
+    for (int i = 0; i < pad_t; i++) {
+        PMARG();
         render_empty_line(inner_w, opts.border, opts.border_color, opts.border_bg, opts.bg);
+    }
 
-    for (size_t i = 0; i < nlines; i++)
-        render_content_line(&lines[i], inner_w, opts.pad_x,
+    for (size_t i = 0; i < nlines; i++) {
+        PMARG();
+        render_content_line(&lines[i], inner_w, pad_l, pad_r,
                             opts.border, opts.border_color, opts.border_bg,
                             opts.content_align, opts.bg);
+    }
 
-    for (int i = 0; i < opts.pad_y; i++)
+    for (int i = 0; i < pad_b; i++) {
+        PMARG();
         render_empty_line(inner_w, opts.border, opts.border_color, opts.border_bg, opts.bg);
+    }
 
     /* bottom border */
+    PMARG();
     render_hline(inner_w, opts.border, opts.border_color, opts.border_bg, bl, br,
                  opts.title_pos == SC_TITLE_BOTTOM ? opts.title : NULL,
                  opts.title_opts, opts.title_align, title_pad);
+
+    for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
+
+#undef PMARG
 
     free_plines(lines, nlines);
 }

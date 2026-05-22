@@ -20,7 +20,7 @@ void test_pad(void) {
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1,
             .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad_x = 1,
+            .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -60,7 +60,7 @@ void test_pad(void) {
             (ScPanelOpts){
                 .border       = SC_BORDER_ROUNDED,
                 .border_color = SC_ANSI_COLOR_CYAN,
-                .pad_x        = 1,
+                .padding = {0, 1, 0, 1},
                 .width        = 40,
             }
         );

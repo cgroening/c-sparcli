@@ -19,7 +19,8 @@
 /** @} */
 
 /**
- * ScTextAttribute Enum - Text style flags for terminal output (none, bold, etc.).
+ * ScTextAttribute Enum - Text attributes flags for terminal output (none,
+ * bold, etc.).
  *
  * Each flag occupies exactly one bit so styles can be combined with |.
  *
@@ -160,6 +161,12 @@ typedef enum { SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT } ScHAlign;
  * and components.
  */
 typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
+
+/**
+ * ScEdges Struct - Represents box-model insets (top, right, bottom, left) for
+ * layout purposes. Zero-initialization means no inset.
+ */
+typedef struct { int top; int right; int bottom; int left; } ScEdges;
 
 
 /**
