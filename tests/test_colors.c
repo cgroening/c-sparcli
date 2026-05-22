@@ -13,6 +13,10 @@ static void print_example_row(ExampleGroup example);
 static void print_example(const Example example, const int spaces_after);
 
 
+static ScTextAttributeNs attr = ScTextAttributeNs_;
+static ScAnsiColorNs clr = ScAnsiColorNs_;
+
+
 void test_colors(void) {
     size_t basic_examples_count;
     Example *basic_examples = get_basic_examples(&basic_examples_count);
@@ -29,15 +33,15 @@ void test_colors(void) {
 }
 
 static Example *get_basic_examples(size_t *count) {
-    ScTextStyle none    = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,    SC_ANSI_COLOR_NONE  };
-    ScTextStyle black   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,   SC_ANSI_COLOR_WHITE };
-    ScTextStyle red     = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,     SC_ANSI_COLOR_NONE  };
-    ScTextStyle green   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN,   SC_ANSI_COLOR_NONE  };
-    ScTextStyle yellow  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_YELLOW,  SC_ANSI_COLOR_NONE  };
-    ScTextStyle blue    = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLUE,    SC_ANSI_COLOR_NONE  };
-    ScTextStyle magenta = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE  };
-    ScTextStyle cyan    = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_CYAN,    SC_ANSI_COLOR_NONE  };
-    ScTextStyle white   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_WHITE,   SC_ANSI_COLOR_BLACK };
+    ScTextStyle none    = { attr.NONE, clr.NONE,    clr.NONE  };
+    ScTextStyle black   = { attr.NONE, clr.BLACK,   clr.WHITE };
+    ScTextStyle red     = { attr.NONE, clr.RED,     clr.NONE  };
+    ScTextStyle green   = { attr.NONE, clr.GREEN,   clr.NONE  };
+    ScTextStyle yellow  = { attr.NONE, clr.YELLOW,  clr.NONE  };
+    ScTextStyle blue    = { attr.NONE, clr.BLUE,    clr.NONE  };
+    ScTextStyle magenta = { attr.NONE, clr.MAGENTA, clr.NONE  };
+    ScTextStyle cyan    = { attr.NONE, clr.CYAN,    clr.NONE  };
+    ScTextStyle white   = { attr.NONE, clr.WHITE,   clr.BLACK };
 
     static Example examples[9];
     examples[0] = (Example){ "Default", none    };
@@ -55,12 +59,12 @@ static Example *get_basic_examples(size_t *count) {
 }
 
 static Example *get_combination_examples(size_t *count) {
-    ScTextStyle blk_on_ylw = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_YELLOW };
+    ScTextStyle blk_on_ylw = { attr.BOLD, clr.BLACK, clr.YELLOW };
     ScTextStyle orange_rgb = {
-        SC_TEXT_ATTR_NONE, sc_ansi_color_from_rgb(255, 192, 0), SC_ANSI_COLOR_NONE
+        attr.NONE, sc_ansi_color_from_rgb(255, 192, 0), clr.NONE
     };
     ScTextStyle rgb_bg = {
-        SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_WHITE, sc_ansi_color_from_rgb(80, 0, 120)
+        attr.ITALIC, clr.WHITE, sc_ansi_color_from_rgb(80, 0, 120)
     };
 
     static Example examples[3];

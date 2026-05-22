@@ -3,45 +3,45 @@
 #include <string.h>
 
 ScText *sc_text_new(void) {
-    ScText *t = malloc(sizeof(ScText));
-    if (!t) return NULL;
-    t->spans = NULL;
-    t->count = 0;
-    t->cap   = 0;
-    return t;
+    ScText *sc_text = malloc(sizeof(ScText));
+    if (!sc_text) return NULL;
+    sc_text->spans = NULL;
+    sc_text->count = 0;
+    sc_text->cap   = 0;
+    return sc_text;
 }
 
-void sc_text_append(ScText *t, const char *text, ScTextStyle opts) {
-    if (t->count == t->cap) {
-        size_t new_cap = t->cap ? t->cap * 2 : 4;
-        ScSpan *s = realloc(t->spans, new_cap * sizeof(ScSpan));
+void sc_text_append(ScText *sc_text, const char *text, ScTextStyle style) {
+    if (sc_text->count == sc_text->cap) {
+        size_t new_cap = sc_text->cap ? sc_text->cap * 2 : 4;
+        ScSpan *s = realloc(sc_text->spans, new_cap * sizeof(ScSpan));
         if (!s) return;
-        t->spans = s;
-        t->cap   = new_cap;
+        sc_text->spans = s;
+        sc_text->cap   = new_cap;
     }
-    t->spans[t->count].text = strdup(text);
-    t->spans[t->count].opts = opts;
-    t->count++;
+    sc_text->spans[sc_text->count].raw_str = strdup(text);
+    sc_text->spans[sc_text->count].style = style;
+    sc_text->count++;
 }
 
 void sc_text_free(ScText *t) {
     for (size_t i = 0; i < t->count; i++)
-        free(t->spans[i].text);
+        free(t->spans[i].raw_str);
     free(t->spans);
     free(t);
 }
 
-void sc_print_text(const ScText *t) {
-    for (size_t i = 0; i < t->count; i++) {
-        const char *s     = t->spans[i].text;
-        ScTextStyle   opts  = t->spans[i].opts;
+void sc_print_text(const ScText *text) {
+    for (size_t i = 0; i < text->count; i++) {
+        const char *s     = text->spans[i].raw_str;
+        ScTextStyle   style  = text->spans[i].style;
         const char *start = s;
 
         while (*s) {
             if (*s == '\n') {
                 if (s > start) {
                     char *seg = strndup(start, (size_t)(s - start));
-                    sc_print(seg, opts);
+                    sc_print(seg, style);
                     free(seg);
                 }
                 fputc('\n', stdout);
@@ -50,14 +50,14 @@ void sc_print_text(const ScText *t) {
             s++;
         }
         if (*start)
-            sc_print(start, opts);
+            sc_print(start, style);
     }
 }
 
-size_t sc_text_visible_width(const ScText *t) {
+size_t sc_text_visible_width(const ScText *text) {
     size_t max_w = 0, cur_w = 0;
-    for (size_t i = 0; i < t->count; i++) {
-        for (const unsigned char *s = (const unsigned char *)t->spans[i].text; *s; s++) {
+    for (size_t i = 0; i < text->count; i++) {
+        for (const unsigned char *s = (const unsigned char *)text->spans[i].raw_str; *s; s++) {
             if (*s == '\n') {
                 if (cur_w > max_w) max_w = cur_w;
                 cur_w = 0;

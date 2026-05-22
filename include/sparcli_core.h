@@ -37,11 +37,40 @@ typedef enum {
 } ScTextAttribute;
 
 /**
+ * Namespace type for `ScTextAttribute` - groups all flags under dot notation.
+ *
+ * Copy `ScTextAttributeNs_` locally to get a short alias:
+ *
+ * @code
+ * ScTextAttributeNs attr = ScTextAttributeNs_;
+ * sc_print("hi", (ScTextStyle){ attr.BOLD | attr.ITALIC, ... });
+ * // vs.
+ * sc_print("hi", (ScTextStyle){ SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, ... });
+ * @endcode
+ */
+typedef struct {
+    ScTextAttribute NONE, BOLD, DIM, ITALIC, UNDER;
+} ScTextAttributeNs;
+
+/**
+ * Pre-initialized instance of `ScTextAttributeNs`.
+ *
+ * The trailing `_` distinguishes the instance from its type `ScTextAttributeNs`.
+ */
+static const ScTextAttributeNs ScTextAttributeNs_ = {
+    .NONE   = SC_TEXT_ATTR_NONE,
+    .BOLD   = SC_TEXT_ATTR_BOLD,
+    .DIM    = SC_TEXT_ATTR_DIM,
+    .ITALIC = SC_TEXT_ATTR_ITALIC,
+    .UNDER  = SC_TEXT_ATTR_UNDER
+};
+
+/**
  * ScColor Struct - Represents a terminal color, either as a named ANSI color
  * or RGB.
  */
 typedef struct {
-    int     index;  /**< -2 = not set; -1 = RGB mode; 0-7 = ANSI color index */
+    int index;  /**< -2 = not set; -1 = RGB mode; 0-7 = ANSI color index */
     uint8_t r, g, b;  /**< RGB values (0-255) used if index == -1 */
 } ScColor;
 
@@ -61,6 +90,37 @@ typedef struct {
 #define SC_ANSI_COLOR_CYAN    ((ScColor){  6, 0, 0, 0 })
 #define SC_ANSI_COLOR_WHITE   ((ScColor){  7, 0, 0, 0 })
 /** @} */
+
+/**
+ * Namespace type for `SC_ANSI_COLOR_...` — groups all predefined ANSI colors
+ * under dot notation.
+ *
+ * Copy `ScAnsiColorNs_` locally to get a short alias:
+ * @code
+ * ScAnsiColorNs clr = ScAnsiColorNs_;
+ * sc_print("hi", (ScTextStyle){ ..., clr.RED, clr.NONE });
+ * @endcode
+ */
+typedef struct {
+    ScColor NONE, BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE;
+} ScAnsiColorNs;
+
+/**
+ * Pre-initialized instance of `ScAnsiColorNs`.
+ *
+ * The trailing `_` distinguishes the instance from its type `ScAnsiColorNs`.
+ */
+static const ScAnsiColorNs ScAnsiColorNs_ = {
+    .NONE    = SC_ANSI_COLOR_NONE,
+    .BLACK   = SC_ANSI_COLOR_BLACK,
+    .RED     = SC_ANSI_COLOR_RED,
+    .GREEN   = SC_ANSI_COLOR_GREEN,
+    .YELLOW  = SC_ANSI_COLOR_YELLOW,
+    .BLUE    = SC_ANSI_COLOR_BLUE,
+    .MAGENTA = SC_ANSI_COLOR_MAGENTA,
+    .CYAN    = SC_ANSI_COLOR_CYAN,
+    .WHITE   = SC_ANSI_COLOR_WHITE,
+};
 
 /**
  * ScTextStyle Struct - Combines text attributes and colors for terminal output.
@@ -136,7 +196,7 @@ ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
  * });
  * @endcode
  */
-void sc_print(const char *text, ScTextStyle style);
+void sc_print(const char *raw_str, ScTextStyle style);
 
 /**
  * Prints text to stdout with ANSI styling applied, followed by a newline.
@@ -146,4 +206,4 @@ void sc_print(const char *text, ScTextStyle style);
  * @param text  Null-terminated string to print. Must not be `NULL`.
  * @param opts  Style and color options. See @ref sc_print for details.
  */
-void sc_println(const char *text, ScTextStyle style);
+void sc_println(const char *raw_str, ScTextStyle style);

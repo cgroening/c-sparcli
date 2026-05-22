@@ -13,6 +13,10 @@ static void print_example_row(ExampleGroup example);
 static void print_example(const Example example, const int spaces_after);
 
 
+static ScTextAttributeNs attr = ScTextAttributeNs_;
+static ScAnsiColorNs clr = ScAnsiColorNs_;
+
+
 void test_text_attributes(void) {
     size_t basic_examples_count;
     Example *basic_examples = get_basic_examples(&basic_examples_count);
@@ -29,11 +33,11 @@ void test_text_attributes(void) {
 }
 
 static Example *get_basic_examples(size_t *count) {
-    ScTextStyle plain       = { SC_TEXT_ATTR_NONE,   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    ScTextStyle dim         = { SC_TEXT_ATTR_DIM,    SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    ScTextStyle bold        = { SC_TEXT_ATTR_BOLD,   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    ScTextStyle italic      = { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    ScTextStyle underline   = { SC_TEXT_ATTR_UNDER,  SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle plain     = { attr.BOLD,   clr.NONE, clr.NONE };
+    ScTextStyle dim       = { attr.DIM,    clr.NONE, clr.NONE };
+    ScTextStyle bold      = { attr.BOLD,   clr.NONE, clr.NONE };
+    ScTextStyle italic    = { attr.ITALIC, clr.NONE, clr.NONE };
+    ScTextStyle underline = { attr.UNDER,  clr.NONE, clr.NONE };
 
     static Example examples[5];
     examples[0] = (Example){ "Plain text", plain };
@@ -47,16 +51,10 @@ static Example *get_basic_examples(size_t *count) {
 }
 
 static Example *get_combination_examples(size_t *count) {
-    ScTextStyle bold_italic = {
-        SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
-    ScTextStyle bold_under = {
-        SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
+    ScTextStyle bold_italic = { attr.BOLD | attr.ITALIC, clr.NONE, clr.NONE };
+    ScTextStyle bold_under = { attr.BOLD | attr.UNDER, clr.NONE, clr.NONE };
     ScTextStyle bold_italic_under = {
-        SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC | SC_TEXT_ATTR_UNDER,
-        SC_ANSI_COLOR_NONE,
-        SC_ANSI_COLOR_NONE
+        attr.BOLD | attr.ITALIC | attr.UNDER, clr.NONE, clr.NONE
     };
 
     static Example examples[3];
