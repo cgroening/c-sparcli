@@ -104,7 +104,9 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | Field | Type | Description |
 |-------|------|-------------|
 | `border` | `ScBorderType` | Frame style |
-| `border_color` | `ScColor` | Frame color |
+| `border_color` | `ScColor` | Frame foreground color |
+| `border_bg` | `ScColor` | Frame background color; zero-init `{0}` = no color (see sentinel note below) |
+| `bg` | `ScColor` | Content area background color; zero-init `{0}` = no color |
 | `title` | `const char *` | NULL = no title |
 | `title_opts` | `ScTextStyle` | Style for title text |
 | `title_pos` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` | |
@@ -117,6 +119,8 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | `full_width` | `int` | 1 = stretch to terminal width (overrides `width`) |
 
 `full_width` takes precedence over `width`. Width is calculated as `terminal_width - 2`.
+
+**Background color sentinel:** `border_bg` and `bg` use `{0,0,0,0}` (zero-init) as "not set" — the same sentinel as `ScProgressBarOpts.fill_color`. A zero-initialized `ScPanelOpts` field means no background. Use `SC_ANSI_COLOR_NONE` or leave unset for no color; use `sc_ansi_color_from_rgb(...)` for a specific color.
 
 ---
 
@@ -264,7 +268,8 @@ Nested columns are captured eagerly at `sc_columns_add_columns` call time.
 |-------|-------------|
 | `gap` | Space between columns. **Without separator:** gap spaces total. **With separator:** gap spaces on each side of the separator (total: 2×gap+1). Default: 3 (no sep) or 2 (with sep). |
 | `sep_style` | `ScBorderType` for the vertical separator; `SC_BORDER_NONE` = no separator |
-| `sep_color` | Separator color; **must be set to `SC_ANSI_COLOR_NONE`** if no color desired |
+| `sep_color` | Separator foreground color; **must be set to `SC_ANSI_COLOR_NONE`** if no color desired |
+| `sep_bg` | Background color applied to gap spaces and the separator char; zero-init = none |
 | `valign` | `SC_VALIGN_TOP` / `SC_VALIGN_MIDDLE` / `SC_VALIGN_BOTTOM` |
 | `total_width` | 0 = auto; >0 = distribute across flex columns |
 
@@ -283,6 +288,7 @@ typedef struct {
     ScHAlign  align;      // content placement when col_w > content_w
     int      valign_set; // 1 = override ScColumnsOpts.valign for this column
     ScVAlign valign;     // per-column vertical alignment
+    ScColor  bg;         // background for padding spaces and empty slots; zero-init = no color
 } ScColItem;
 ```
 
@@ -292,6 +298,12 @@ Flex columns (fixed_w == 0) participate in `total_width` distribution.
 **Per-column valign:** Set `valign_set = 1` and `valign` to override the global
 `ScColumnsOpts.valign` for a single column. Zero-initialized `ScColItem` inherits
 the global setting (no override).
+
+**Per-column background (`bg`):** Applied to padding spaces (lp/rp alignment padding)
+and empty slots when the column has fewer lines than the tallest column. Uses the
+zero-init sentinel (`{0,0,0,0}` = not set), so `(ScColItem){ 0 }` works naturally
+with no background. Does not affect the captured widget content itself (which already
+has its own embedded ANSI codes).
 
 ```c
 sc_columns_add_text(cols, t2, (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_TOP    });

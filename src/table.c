@@ -48,8 +48,8 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
             s    = cell->str ? cell->str : "";
             opts = PLAIN;
         } else {
-            s    = cell->text->spans[si].text;
-            opts = cell->text->spans[si].opts;
+            s    = cell->text->spans[si].raw_str;
+            opts = cell->text->spans[si].style;
         }
 
         const char *start = s;

@@ -15,12 +15,15 @@ typedef struct {
     ScHAlign  align;      /* content placement when col_w > content_w */
     int      valign_set; /* 1 = override ScColumnsOpts.valign for this column */
     ScVAlign valign;
+    ScColor  bg;          /* background color for padding and empty slots; SC_ANSI_COLOR_NONE = none */
+    int      stretch;     /* 1 = expand panel border to fill full column height */
 } ScColItem;
 
 typedef struct {
     int           gap;         /* spaces between columns, default 3 */
     ScBorderType sep_style;
     ScColor       sep_color;
+    ScColor       sep_bg;      /* background for gap spaces + separator char; zero-init = none */
     ScVAlign      valign;
     int           total_width; /* 0 = auto; >0 = scale flex cols to fit */
 } ScColumnsOpts;

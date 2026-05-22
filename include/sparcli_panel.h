@@ -6,6 +6,8 @@
 typedef struct {
     ScBorderType border;
     ScColor       border_color;
+    ScColor       border_bg;     /* background color for border characters; SC_ANSI_COLOR_NONE = none */
+    ScColor       bg;            /* background color for content area; SC_ANSI_COLOR_NONE = none */
     const char   *title;         /* NULL = no title */
     ScTextStyle     title_opts;
     ScTitlePosition    title_pos;

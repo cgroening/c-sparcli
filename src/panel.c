@@ -19,26 +19,32 @@ static const struct {
 
 /* ── Internal rendering helpers ─────────────────────────────────────────── */
 
-static void print_colored(const char *s, ScColor color) {
-    sc_apply_colors(color, SC_ANSI_COLOR_NONE);
+/* zero-init ScColor {0,0,0,0} treated as "not set" for bg/border_bg fields */
+static int color_active(ScColor c) {
+    return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
+}
+
+static void print_colored(const char *s, ScColor fg, ScColor bg) {
+    sc_apply_colors(fg, bg);
     fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
-static void print_repeat(const char *s, int n, ScColor color) {
+static void print_repeat(const char *s, int n, ScColor fg, ScColor bg) {
     if (n <= 0) return;
-    sc_apply_colors(color, SC_ANSI_COLOR_NONE);
+    sc_apply_colors(fg, bg);
     for (int i = 0; i < n; i++) fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
-static void render_hline(int inner_w, ScBorderType border, ScColor color,
+static void render_hline(int inner_w, ScBorderType border,
+                          ScColor border_fg, ScColor border_bg,
                           const char *lcorner, const char *rcorner,
                           const char *title, ScTextStyle title_opts, ScHAlign align,
                           int title_pad) {
     const char *h = border_table[border].h;
     if (title_pad < 0) title_pad = 0;
-    print_colored(lcorner, color);
+    print_colored(lcorner, border_fg, border_bg);
 
     if (title && *title) {
         int tlen   = (int)strlen(title);
@@ -56,23 +62,30 @@ static void render_hline(int inner_w, ScBorderType border, ScColor color,
         if (ld < 0) ld = 0;
         if (rd < 0) rd = 0;
 
-        print_repeat(h, ld, color);
-        for (int i = 0; i < title_pad; i++) print_colored(" ", color);
+        print_repeat(h, ld, border_fg, border_bg);
+        for (int i = 0; i < title_pad; i++) print_colored(" ", border_fg, border_bg);
         sc_print(title, title_opts);
-        for (int i = 0; i < title_pad; i++) print_colored(" ", color);
-        print_repeat(h, rd, color);
+        for (int i = 0; i < title_pad; i++) print_colored(" ", border_fg, border_bg);
+        print_repeat(h, rd, border_fg, border_bg);
     } else {
-        print_repeat(h, inner_w, color);
+        print_repeat(h, inner_w, border_fg, border_bg);
     }
 
-    print_colored(rcorner, color);
+    print_colored(rcorner, border_fg, border_bg);
     fputc('\n', stdout);
 }
 
-static void render_empty_line(int inner_w, ScBorderType border, ScColor color) {
-    print_colored(border_table[border].v, color);
-    for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
-    print_colored(border_table[border].v, color);
+static void render_empty_line(int inner_w, ScBorderType border,
+                               ScColor border_fg, ScColor border_bg, ScColor content_bg) {
+    print_colored(border_table[border].v, border_fg, border_bg);
+    if (color_active(content_bg)) {
+        sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
+        for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    } else {
+        for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
+    }
+    print_colored(border_table[border].v, border_fg, border_bg);
     fputc('\n', stdout);
 }
 
@@ -89,8 +102,8 @@ static PLine *make_plines(const ScText *t, size_t *out_n) {
     PSpan *buf = malloc(buf_cap * sizeof(PSpan));
 
     for (size_t si = 0; si < t->count; si++) {
-        const char *s     = t->spans[si].text;
-        ScTextStyle   opts  = t->spans[si].opts;
+        const char *s     = t->spans[si].raw_str;
+        ScTextStyle   opts  = t->spans[si].style;
         const char *start = s;
 
         while (*s) {
@@ -155,22 +168,26 @@ static void free_plines(PLine *lines, size_t n) {
 /* ── Panel rendering ────────────────────────────────────────────────────── */
 
 static void render_content_line(PLine *line, int inner_w, int pad_x,
-                                 ScBorderType border, ScColor bc,
-                                 ScHAlign align) {
+                                 ScBorderType border, ScColor border_fg, ScColor border_bg,
+                                 ScHAlign align, ScColor content_bg) {
     int spare = inner_w - 2 * pad_x - (int)line->vis_w;
     if (spare < 0) spare = 0;
     int lp = 0, rp = spare;
     if (align == SC_ALIGN_CENTER) { lp = spare / 2; rp = spare - lp; }
     else if (align == SC_ALIGN_RIGHT) { lp = spare; rp = 0; }
 
-    print_colored(border_table[border].v, bc);
+    print_colored(border_table[border].v, border_fg, border_bg);
+    if (color_active(content_bg)) sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
     for (int i = 0; i < pad_x; i++) fputc(' ', stdout);
     for (int i = 0; i < lp; i++) fputc(' ', stdout);
-    for (size_t i = 0; i < line->count; i++)
+    for (size_t i = 0; i < line->count; i++) {
         sc_print(line->spans[i].text, line->spans[i].opts);
+        if (color_active(content_bg)) sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
+    }
     for (int i = 0; i < rp; i++) fputc(' ', stdout);
     for (int i = 0; i < pad_x; i++) fputc(' ', stdout);
-    print_colored(border_table[border].v, bc);
+    if (color_active(content_bg)) fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    print_colored(border_table[border].v, border_fg, border_bg);
     fputc('\n', stdout);
 }
 
@@ -203,23 +220,23 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     const char *br = border_table[opts.border].br;
 
     /* top border */
-    render_hline(inner_w, opts.border, opts.border_color, tl, tr,
+    render_hline(inner_w, opts.border, opts.border_color, opts.border_bg, tl, tr,
                  opts.title_pos == SC_TITLE_TOP ? opts.title : NULL,
                  opts.title_opts, opts.title_align, title_pad);
 
     for (int i = 0; i < opts.pad_y; i++)
-        render_empty_line(inner_w, opts.border, opts.border_color);
+        render_empty_line(inner_w, opts.border, opts.border_color, opts.border_bg, opts.bg);
 
     for (size_t i = 0; i < nlines; i++)
         render_content_line(&lines[i], inner_w, opts.pad_x,
-                            opts.border, opts.border_color,
-                            opts.content_align);
+                            opts.border, opts.border_color, opts.border_bg,
+                            opts.content_align, opts.bg);
 
     for (int i = 0; i < opts.pad_y; i++)
-        render_empty_line(inner_w, opts.border, opts.border_color);
+        render_empty_line(inner_w, opts.border, opts.border_color, opts.border_bg, opts.bg);
 
     /* bottom border */
-    render_hline(inner_w, opts.border, opts.border_color, bl, br,
+    render_hline(inner_w, opts.border, opts.border_color, opts.border_bg, bl, br,
                  opts.title_pos == SC_TITLE_BOTTOM ? opts.title : NULL,
                  opts.title_opts, opts.title_align, title_pad);
 

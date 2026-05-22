@@ -199,14 +199,14 @@ ScText *sc_markup_parse_opts(const char *s, ScMarkupOpts opts) {
 void sc_markup_append(ScText *t, const char *markup) {
     ScText *tmp = parse_internal(markup, 0);
     for (size_t i = 0; i < tmp->count; i++)
-        sc_text_append(t, tmp->spans[i].text, tmp->spans[i].opts);
+        sc_text_append(t, tmp->spans[i].raw_str, tmp->spans[i].style);
     sc_text_free(tmp);
 }
 
 void sc_markup_append_opts(ScText *t, const char *markup, ScMarkupOpts opts) {
     ScText *tmp = parse_internal(markup, opts.strip_unknown);
     for (size_t i = 0; i < tmp->count; i++)
-        sc_text_append(t, tmp->spans[i].text, tmp->spans[i].opts);
+        sc_text_append(t, tmp->spans[i].raw_str, tmp->spans[i].style);
     sc_text_free(tmp);
 }
 

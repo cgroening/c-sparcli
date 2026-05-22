@@ -6,6 +6,27 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+/* zero-init ScColor {0,0,0,0} treated as "not set" for bg fields */
+static int color_active(ScColor c) {
+    return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
+}
+
+/* Output a line, re-applying bg after every \033[0m reset so the column
+   background is not cancelled by resets in the captured content.
+   Caller must apply bg before calling and reset after. */
+static void fputs_with_bg(const char *line, ScColor bg) {
+    const char *p = line;
+    while (*p) {
+        if (p[0] == '\033' && p[1] == '[' && p[2] == '0' && p[3] == 'm') {
+            fputs("\033[0m", stdout);
+            p += 4;
+            if (*p) sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
+        } else {
+            fputc(*p++, stdout);
+        }
+    }
+}
+
 /* ── Separator characters per border style ──────────────────────────────── */
 
 static const char *sep_chars[] = {
@@ -178,8 +199,10 @@ static void _render_rule_text(void *p) {
 /* ── Internal entry helpers ─────────────────────────────────────────────── */
 
 typedef struct {
-    ScRendered *rendered;
-    ScColItem   item;
+    ScRendered  *rendered;
+    ScColItem    item;
+    int          stretch;     /* 1 = expand to full column height at print time */
+    ScPanelOpts  panel_opts;  /* used when stretch=1 to generate filler lines */
 } ScColEntry;
 
 struct ScColumns {
@@ -193,7 +216,16 @@ static void columns_push(ScColumns *cl, ScRendered *r, ScColItem item) {
         cl->cap = cl->cap ? cl->cap * 2 : 4;
         cl->entries = realloc(cl->entries, cl->cap * sizeof(ScColEntry));
     }
-    cl->entries[cl->count++] = (ScColEntry){ r, item };
+    cl->entries[cl->count++] = (ScColEntry){ r, item, 0, {0} };
+}
+
+static void columns_push_panel(ScColumns *cl, ScRendered *r,
+                                ScColItem item, ScPanelOpts opts) {
+    if (cl->count == cl->cap) {
+        cl->cap = cl->cap ? cl->cap * 2 : 4;
+        cl->entries = realloc(cl->entries, cl->cap * sizeof(ScColEntry));
+    }
+    cl->entries[cl->count++] = (ScColEntry){ r, item, item.stretch, opts };
 }
 
 /* ── Public API ─────────────────────────────────────────────────────────── */
@@ -215,13 +247,13 @@ void sc_columns_add_table(ScColumns *cl, const ScTable *t, ScColItem item) {
 void sc_columns_add_panel_str(ScColumns *cl, const char *content,
                                ScPanelOpts opts, ScColItem item) {
     CtxPanelStr ctx = { content, opts };
-    columns_push(cl, render_captured(_render_panel_str, &ctx), item);
+    columns_push_panel(cl, render_captured(_render_panel_str, &ctx), item, opts);
 }
 
 void sc_columns_add_panel_text(ScColumns *cl, const ScText *content,
                                 ScPanelOpts opts, ScColItem item) {
     CtxPanelText ctx = { content, opts };
-    columns_push(cl, render_captured(_render_panel_text, &ctx), item);
+    columns_push_panel(cl, render_captured(_render_panel_text, &ctx), item, opts);
 }
 
 void sc_columns_add_text(ScColumns *cl, const ScText *t, ScColItem item) {
@@ -311,6 +343,75 @@ void sc_columns_free(ScColumns *cl) {
 
 /* ── Printing ────────────────────────────────────────────────────────────── */
 
+/* Generate one empty content line matching the panel's border and bg colors.
+   inner_w = panel's inner width (max_vis_w - 2). Returns a heap-allocated string. */
+static char *make_empty_content_line(const ScPanelOpts *opts, int inner_w) {
+    const char *v = (opts->border != SC_BORDER_NONE && sep_chars[opts->border])
+                    ? sep_chars[opts->border] : " ";
+    fflush(stdout);
+    FILE *tmp = tmpfile();
+    int   saved = dup(STDOUT_FILENO);
+    dup2(fileno(tmp), STDOUT_FILENO);
+
+    sc_apply_colors(opts->border_color, opts->border_bg);
+    fputs(v, stdout);
+    fputs("\033[0m", stdout);
+    if (color_active(opts->bg)) {
+        sc_apply_colors(SC_ANSI_COLOR_NONE, opts->bg);
+        for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
+        fputs("\033[0m", stdout);
+    } else {
+        for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
+    }
+    sc_apply_colors(opts->border_color, opts->border_bg);
+    fputs(v, stdout);
+    fputs("\033[0m", stdout);
+
+    fflush(stdout);
+    dup2(saved, STDOUT_FILENO);
+    close(saved);
+
+    fseek(tmp, 0, SEEK_END);
+    long len = ftell(tmp);
+    rewind(tmp);
+    char *line = malloc((size_t)len + 1);
+    fread(line, 1, (size_t)len, tmp);
+    line[len] = '\0';
+    fclose(tmp);
+    return line;
+}
+
+/* Build an expanded copy of r with `extra` empty filler lines inserted before
+   the last line (bottom border). Caller owns the returned ScRendered. */
+static ScRendered *stretch_rendered(const ScRendered *orig, int extra,
+                                    const ScPanelOpts *opts) {
+    int inner_w = orig->max_vis_w - 2;
+    if (inner_w < 0) inner_w = 0;
+    char *empty = make_empty_content_line(opts, inner_w);
+    int   evw   = ansi_vis_w(empty);
+
+    size_t new_count = orig->count + (size_t)extra;
+    ScRendered *exp  = malloc(sizeof(ScRendered));
+    exp->lines      = malloc(new_count * sizeof(char *));
+    exp->vis_widths = malloc(new_count * sizeof(int));
+    exp->count      = new_count;
+    exp->max_vis_w  = orig->max_vis_w;
+
+    for (size_t i = 0; i < orig->count - 1; i++) {
+        exp->lines[i]      = strdup(orig->lines[i]);
+        exp->vis_widths[i] = orig->vis_widths[i];
+    }
+    for (int i = 0; i < extra; i++) {
+        exp->lines[orig->count - 1 + (size_t)i]      = strdup(empty);
+        exp->vis_widths[orig->count - 1 + (size_t)i] = evw;
+    }
+    exp->lines[new_count - 1]      = strdup(orig->lines[orig->count - 1]);
+    exp->vis_widths[new_count - 1] = orig->vis_widths[orig->count - 1];
+
+    free(empty);
+    return exp;
+}
+
 void sc_columns_print(const ScColumns *cl) {
     if (!cl || !cl->count) return;
 
@@ -318,11 +419,28 @@ void sc_columns_print(const ScColumns *cl) {
                       ? sep_chars[cl->opts.sep_style] : NULL;
     int gap = cl->opts.gap > 0 ? cl->opts.gap : (sep ? 2 : 3);
 
+    /* ── stretch: build working array with expanded copies for stretch panels ── */
+    size_t max_h_all = 0;
+    for (size_t i = 0; i < cl->count; i++)
+        if (cl->entries[i].rendered->count > max_h_all)
+            max_h_all = cl->entries[i].rendered->count;
+
+    ScRendered **working = malloc(cl->count * sizeof(ScRendered *));
+    for (size_t i = 0; i < cl->count; i++)
+        working[i] = cl->entries[i].rendered;
+
+    for (size_t ci = 0; ci < cl->count; ci++) {
+        const ScColEntry *e = &cl->entries[ci];
+        if (!e->stretch || e->rendered->count >= max_h_all) continue;
+        int extra = (int)max_h_all - (int)e->rendered->count;
+        working[ci] = stretch_rendered(e->rendered, extra, &e->panel_opts);
+    }
+
     /* ── column widths ── */
     int *cw = malloc(cl->count * sizeof(int));
     for (size_t i = 0; i < cl->count; i++) {
         ScColItem *item = &cl->entries[i].item;
-        int w = cl->entries[i].rendered->max_vis_w;
+        int w = working[i]->max_vis_w;
         if (item->fixed_w > 0) {
             w = item->fixed_w;
         } else {
@@ -365,14 +483,14 @@ void sc_columns_print(const ScColumns *cl) {
     /* ── vertical alignment offsets ── */
     size_t total_h = 0;
     for (size_t i = 0; i < cl->count; i++)
-        if (cl->entries[i].rendered->count > total_h)
-            total_h = cl->entries[i].rendered->count;
+        if (working[i]->count > total_h)
+            total_h = working[i]->count;
 
     int *top_off = malloc(cl->count * sizeof(int));
     for (size_t i = 0; i < cl->count; i++) {
         ScColItem *item = &cl->entries[i].item;
         ScVAlign   va   = item->valign_set ? item->valign : cl->opts.valign;
-        int h     = (int)cl->entries[i].rendered->count;
+        int h     = (int)working[i]->count;
         int extra = (int)total_h - h;
         int off   = 0;
         if (va == SC_VALIGN_MIDDLE) off = extra / 2;
@@ -384,7 +502,7 @@ void sc_columns_print(const ScColumns *cl) {
     for (size_t li = 0; li < total_h; li++) {
         for (size_t ci = 0; ci < cl->count; ci++) {
             ScColEntry *e   = &cl->entries[ci];
-            ScRendered *r   = e->rendered;
+            ScRendered *r   = working[ci];
             int         col = cw[ci];
             int         ri  = (int)li - top_off[ci];
 
@@ -396,33 +514,58 @@ void sc_columns_print(const ScColumns *cl) {
                 int lp = 0, rp = spare;
                 if (e->item.align == SC_ALIGN_CENTER) { lp = spare / 2; rp = spare - lp; }
                 else if (e->item.align == SC_ALIGN_RIGHT) { lp = spare; rp = 0; }
-                for (int k = 0; k < lp; k++) fputc(' ', stdout);
-                fputs(line, stdout);
-                for (int k = 0; k < rp; k++) fputc(' ', stdout);
+                int has_bg = color_active(e->item.bg);
+                if (has_bg) {
+                    sc_apply_colors(SC_ANSI_COLOR_NONE, e->item.bg);
+                    for (int k = 0; k < lp; k++) fputc(' ', stdout);
+                    fputs_with_bg(line, e->item.bg);
+                    for (int k = 0; k < rp; k++) fputc(' ', stdout);
+                    fputs("\033[0m", stdout);
+                } else {
+                    for (int k = 0; k < lp; k++) fputc(' ', stdout);
+                    fputs(line, stdout);
+                    for (int k = 0; k < rp; k++) fputc(' ', stdout);
+                }
             } else {
-                for (int k = 0; k < col; k++) fputc(' ', stdout);
+                if (color_active(e->item.bg)) {
+                    sc_apply_colors(SC_ANSI_COLOR_NONE, e->item.bg);
+                    for (int k = 0; k < col; k++) fputc(' ', stdout);
+                    fputs("\033[0m", stdout);
+                } else {
+                    for (int k = 0; k < col; k++) fputc(' ', stdout);
+                }
             }
 
             if (ci + 1 < cl->count) {
                 if (sep) {
+                    int has_sep_bg = color_active(cl->opts.sep_bg);
+                    if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep_bg);
                     for (int k = 0; k < gap; k++) fputc(' ', stdout);
-                    if (cl->opts.sep_color.index != -2) {
-                        sc_apply_colors(cl->opts.sep_color,
-                                        (ScColor){ -2, 0, 0, 0 });
+                    if (color_active(cl->opts.sep_color)) {
+                        sc_apply_colors(cl->opts.sep_color, cl->opts.sep_bg);
                         fputs(sep, stdout);
-                        fputs("\033[0m", stdout);
+                        if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep_bg);
+                        else fputs("\033[0m", stdout);
                     } else {
                         fputs(sep, stdout);
                     }
                     for (int k = 0; k < gap; k++) fputc(' ', stdout);
+                    if (has_sep_bg) fputs("\033[0m", stdout);
                 } else {
+                    int has_sep_bg = color_active(cl->opts.sep_bg);
+                    if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep_bg);
                     for (int k = 0; k < gap; k++) fputc(' ', stdout);
+                    if (has_sep_bg) fputs("\033[0m", stdout);
                 }
             }
         }
         fputc('\n', stdout);
     }
 
+    for (size_t i = 0; i < cl->count; i++)
+        if (working[i] != cl->entries[i].rendered)
+            sc_rendered_free(working[i]);
+    free(working);
     free(cw);
     free(top_off);
 }

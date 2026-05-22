@@ -265,4 +265,8 @@ void test_columns(void) {
         sc_table_free(t2);
         sc_table_free(t3);
     }
+
+    printf("\n");
+
+
 }
