@@ -9,8 +9,8 @@ typedef struct {
     int         margin;
     int         item_gap;
     int         wrap_val;
-    ScOptions   key_opts;
-    ScOptions   val_opts;
+    ScTextStyle   key_opts;
+    ScTextStyle   val_opts;
 } ScKVOpts;
 
 typedef struct ScKV ScKV;

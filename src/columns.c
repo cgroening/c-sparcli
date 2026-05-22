@@ -371,7 +371,7 @@ void sc_columns_print(const ScColumns *cl) {
     int *top_off = malloc(cl->count * sizeof(int));
     for (size_t i = 0; i < cl->count; i++) {
         ScColItem *item = &cl->entries[i].item;
-        ScValign   va   = item->valign_set ? item->valign : cl->opts.valign;
+        ScVAlign   va   = item->valign_set ? item->valign : cl->opts.valign;
         int h     = (int)cl->entries[i].rendered->count;
         int extra = (int)total_h - h;
         int off   = 0;

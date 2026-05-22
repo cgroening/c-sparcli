@@ -35,17 +35,17 @@ void test_badge(void) {
     printf("--- Badge 3. Colored + padded ---\n");
     sc_print_badge("BETA", (ScBadgeOpts){
         .pad       = 1,
-        .text_opts = { SC_STYLE_BOLD, SC_COLOR_BLACK, SC_COLOR_YELLOW },
+        .text_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_YELLOW },
     });
     fputc(' ', stdout);
     sc_print_badge("STABLE", (ScBadgeOpts){
         .pad       = 1,
-        .text_opts = { SC_STYLE_BOLD, SC_COLOR_WHITE, SC_COLOR_GREEN },
+        .text_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_GREEN },
     });
     fputc(' ', stdout);
     sc_print_badge("DEPRECATED", (ScBadgeOpts){
         .pad       = 1,
-        .text_opts = { SC_STYLE_BOLD, SC_COLOR_WHITE, SC_COLOR_RED },
+        .text_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_RED },
     });
     fputc('\n', stdout);
 
@@ -56,17 +56,17 @@ void test_badge(void) {
     {
         ScText *t = sc_text_new();
         sc_text_append(t, "Status: ",
-                       (ScOptions){ SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE });
+                       (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
         sc_text_append_badge(t, "OK", (ScBadgeOpts){
             .pad       = 1,
-            .text_opts = { SC_STYLE_BOLD, SC_COLOR_WHITE, SC_COLOR_GREEN },
+            .text_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_GREEN },
         });
         sc_text_append(t, "  Release: ",
-                       (ScOptions){ SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE });
+                       (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
         sc_text_append_badge(t, "v2.0.0", (ScBadgeOpts){
             .left_cap  = "(",
             .right_cap = ")",
-            .text_opts = { SC_STYLE_NONE, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .text_opts = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
         });
         sc_print_text(t);
         fputc('\n', stdout);

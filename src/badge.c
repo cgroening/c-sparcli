@@ -6,9 +6,9 @@
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-/* zero-initialised ScOptions = "no formatting" sentinel (same as list.c / kv.c) */
-static int opts_has_format(ScOptions o) {
-    return o.style != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
+/* zero-initialised ScTextStyle = "no formatting" sentinel (same as list.c / kv.c) */
+static int opts_has_format(ScTextStyle o) {
+    return o.attr != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
                         || o.bg.index != 0 || o.bg.r || o.bg.g || o.bg.b;
 }
 

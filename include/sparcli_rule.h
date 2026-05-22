@@ -4,13 +4,13 @@
 #include "sparcli_text.h"
 
 typedef struct {
-    ScBorderStyle style;
+    ScBorderType style;
     ScColor       color;
-    ScOptions     title_opts;
-    ScAlign       title_align;
+    ScTextStyle     title_opts;
+    ScHAlign       title_align;
     int           title_pad;
     int           width;    /* 0 = full terminal width */
-    ScAlign       align;    /* placement of rule when width > 0 */
+    ScHAlign       align;    /* placement of rule when width > 0 */
     int           margin;
     int           pad_y;
 } ScRuleOpts;

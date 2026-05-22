@@ -11,7 +11,7 @@ void test_spinner(void) {
         printf("--- 1. Braille ---\n");
         ScSpinner *s = sc_spinner_new("Compiling...", (ScSpinnerOpts){
             .style = SC_SPINNER_BRAILLE,
-            .color = SC_COLOR_CYAN,
+            .color = SC_ANSI_COLOR_CYAN,
         });
         sc_spinner_tick(s);
         sc_spinner_tick(s);
@@ -24,7 +24,7 @@ void test_spinner(void) {
         printf("--- 2. Pipe ---\n");
         ScSpinner *s = sc_spinner_new("Connecting...", (ScSpinnerOpts){
             .style = SC_SPINNER_PIPE,
-            .color = SC_COLOR_YELLOW,
+            .color = SC_ANSI_COLOR_YELLOW,
         });
         sc_spinner_tick(s);
         sc_spinner_tick(s);
@@ -37,7 +37,7 @@ void test_spinner(void) {
         printf("--- 3. Dots ---\n");
         ScSpinner *s = sc_spinner_new("Analyzing...", (ScSpinnerOpts){
             .style = SC_SPINNER_DOTS,
-            .color = SC_COLOR_MAGENTA,
+            .color = SC_ANSI_COLOR_MAGENTA,
         });
         sc_spinner_tick(s);
         sc_spinner_tick(s);
@@ -50,7 +50,7 @@ void test_spinner(void) {
         printf("--- 4. Arrow ---\n");
         ScSpinner *s = sc_spinner_new("Deploying...", (ScSpinnerOpts){
             .style = SC_SPINNER_ARROW,
-            .color = SC_COLOR_BLUE,
+            .color = SC_ANSI_COLOR_BLUE,
         });
         sc_spinner_tick(s);
         sc_spinner_tick(s);
@@ -63,7 +63,7 @@ void test_spinner_animated(void) {
     printf("\n--- Spinner animated (~2.5s) ---\n");
     ScSpinner *s = sc_spinner_new("Loading...", (ScSpinnerOpts){
         .style = SC_SPINNER_BRAILLE,
-        .color = SC_COLOR_CYAN,
+        .color = SC_ANSI_COLOR_CYAN,
     });
 
     for (int i = 0; i < 12; i++) { sc_spinner_tick(s); usleep(80000); }

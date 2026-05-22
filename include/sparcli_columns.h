@@ -12,16 +12,16 @@ typedef struct {
     int      min_w;
     int      max_w;
     int      fixed_w;
-    ScAlign  align;      /* content placement when col_w > content_w */
+    ScHAlign  align;      /* content placement when col_w > content_w */
     int      valign_set; /* 1 = override ScColumnsOpts.valign for this column */
-    ScValign valign;
+    ScVAlign valign;
 } ScColItem;
 
 typedef struct {
     int           gap;         /* spaces between columns, default 3 */
-    ScBorderStyle sep_style;
+    ScBorderType sep_style;
     ScColor       sep_color;
-    ScValign      valign;
+    ScVAlign      valign;
     int           total_width; /* 0 = auto; >0 = scale flex cols to fit */
 } ScColumnsOpts;
 

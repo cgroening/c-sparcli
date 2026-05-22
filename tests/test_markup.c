@@ -87,7 +87,7 @@ void test_markup(void) {
     printf("--- Markup 9. sc_markup_append ---\n");
     {
         ScText *t = sc_text_new();
-        sc_text_append(t, "Plain prefix — ", (ScOptions){ SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE });
+        sc_text_append(t, "Plain prefix — ", (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
         sc_markup_append(t, "[bold red]appended markup[/] — ");
         sc_markup_append(t, "[italic cyan]second append[/]");
         sc_print_text(t);
@@ -101,14 +101,14 @@ void test_markup(void) {
     printf("--- Markup 10. SC_CELL_M in table ---\n");
     {
         ScTable *t = sc_table_new((ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
-                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+                            SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1,
-            .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad_x = 1,
         });
-        sc_table_add_col(t, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_COLOR_NONE });
-        sc_table_add_col(t, "Message", (ScColOpts){ 0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_COLOR_NONE });
+        sc_table_add_col(t, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
+        sc_table_add_col(t, "Message", (ScColOpts){ 0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
         sc_table_add_row(t, (ScCell[]){ SC_CELL_M("[green]✔ OK[/]"),      SC_CELL_M("Build [bold]passed[/]")          }, 2);
         sc_table_add_row(t, (ScCell[]){ SC_CELL_M("[yellow]⚠ Warn[/]"),   SC_CELL_M("[italic]Deprecation detected[/]") }, 2);
         sc_table_add_row(t, (ScCell[]){ SC_CELL_M("[red]✖ Error[/]"),     SC_CELL_M("[bold red]Compilation failed[/]") }, 2);
@@ -128,9 +128,9 @@ void test_markup(void) {
         );
         sc_panel_text(content, (ScPanelOpts){
             .border       = SC_BORDER_ROUNDED,
-            .border_color = SC_COLOR_CYAN,
+            .border_color = SC_ANSI_COLOR_CYAN,
             .title        = " Markup Demo ",
-            .title_opts   = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .title_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos    = SC_TITLE_TOP,
             .title_align  = SC_ALIGN_CENTER,
             .title_pad    = 1,

@@ -16,14 +16,14 @@ void test_pad(void) {
     printf("--- Pad 2. Table with top=1, bottom=1, left=4 ---\n");
     {
         ScTable *t = sc_table_new((ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_COLOR_NONE, SC_COLOR_NONE,
-                            SC_COLOR_NONE, SC_COLOR_NONE, 0, 0, 0 },
+            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+                            SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1,
-            .header_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad_x = 1,
         });
-        sc_table_add_col(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_COLOR_NONE});
-        sc_table_add_col(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_COLOR_NONE});
+        sc_table_add_col(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_col(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_row(t, (ScCell[]){ SC_CELL("Alice"), SC_CELL("9800") }, 2);
         sc_table_add_row(t, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("7650") }, 2);
 
@@ -38,7 +38,7 @@ void test_pad(void) {
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
             .sep      = ": ",
-            .key_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         });
         sc_kv_add(kv, "Host", "localhost");
         sc_kv_add(kv, "Port", "5432");
@@ -59,7 +59,7 @@ void test_pad(void) {
             "This panel is indented\nwithout being inside Columns.",
             (ScPanelOpts){
                 .border       = SC_BORDER_ROUNDED,
-                .border_color = SC_COLOR_CYAN,
+                .border_color = SC_ANSI_COLOR_CYAN,
                 .pad_x        = 1,
                 .width        = 40,
             }

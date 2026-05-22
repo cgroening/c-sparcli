@@ -2,7 +2,7 @@
 #include "sparcli.h"
 
 
-typedef struct { char text[30]; ScOptions options; } Example;
+typedef struct { char text[30]; ScTextStyle options; } Example;
 typedef struct { Example *items; size_t n; } ExampleGroup;
 
 
@@ -13,7 +13,7 @@ static void print_example_row(ExampleGroup example);
 static void print_example(const Example example, const int spaces_after);
 
 
-void test_styles(void) {
+void test_text_attributes(void) {
     size_t basic_examples_count;
     Example *basic_examples = get_basic_examples(&basic_examples_count);
 
@@ -29,11 +29,11 @@ void test_styles(void) {
 }
 
 static Example *get_basic_examples(size_t *count) {
-    ScOptions plain       = { SC_STYLE_NONE,   SC_COLOR_NONE, SC_COLOR_NONE };
-    ScOptions dim         = { SC_STYLE_DIM,    SC_COLOR_NONE, SC_COLOR_NONE };
-    ScOptions bold        = { SC_STYLE_BOLD,   SC_COLOR_NONE, SC_COLOR_NONE };
-    ScOptions italic      = { SC_STYLE_ITALIC, SC_COLOR_NONE, SC_COLOR_NONE };
-    ScOptions underline   = { SC_STYLE_UNDER,  SC_COLOR_NONE, SC_COLOR_NONE };
+    ScTextStyle plain       = { SC_TEXT_ATTR_NONE,   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle dim         = { SC_TEXT_ATTR_DIM,    SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle bold        = { SC_TEXT_ATTR_BOLD,   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle italic      = { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle underline   = { SC_TEXT_ATTR_UNDER,  SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
 
     static Example examples[5];
     examples[0] = (Example){ "Plain text", plain };
@@ -47,16 +47,16 @@ static Example *get_basic_examples(size_t *count) {
 }
 
 static Example *get_combination_examples(size_t *count) {
-    ScOptions bold_italic = {
-        SC_STYLE_BOLD | SC_STYLE_ITALIC, SC_COLOR_NONE, SC_COLOR_NONE
+    ScTextStyle bold_italic = {
+        SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
     };
-    ScOptions bold_under = {
-        SC_STYLE_BOLD | SC_STYLE_UNDER, SC_COLOR_NONE, SC_COLOR_NONE
+    ScTextStyle bold_under = {
+        SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
     };
-    ScOptions bold_italic_under = {
-        SC_STYLE_BOLD | SC_STYLE_ITALIC | SC_STYLE_UNDER,
-        SC_COLOR_NONE,
-        SC_COLOR_NONE
+    ScTextStyle bold_italic_under = {
+        SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC | SC_TEXT_ATTR_UNDER,
+        SC_ANSI_COLOR_NONE,
+        SC_ANSI_COLOR_NONE
     };
 
     static Example examples[3];

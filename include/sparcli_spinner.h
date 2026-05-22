@@ -12,7 +12,7 @@ typedef enum {
 typedef struct {
     ScSpinnerStyle style;
     ScColor        color;
-    ScOptions      label_opts;
+    ScTextStyle      label_opts;
 } ScSpinnerOpts;
 
 typedef struct ScSpinner ScSpinner;

@@ -11,7 +11,7 @@ ScText *sc_text_new(void) {
     return t;
 }
 
-void sc_text_append(ScText *t, const char *text, ScOptions opts) {
+void sc_text_append(ScText *t, const char *text, ScTextStyle opts) {
     if (t->count == t->cap) {
         size_t new_cap = t->cap ? t->cap * 2 : 4;
         ScSpan *s = realloc(t->spans, new_cap * sizeof(ScSpan));
@@ -34,7 +34,7 @@ void sc_text_free(ScText *t) {
 void sc_print_text(const ScText *t) {
     for (size_t i = 0; i < t->count; i++) {
         const char *s     = t->spans[i].text;
-        ScOptions   opts  = t->spans[i].opts;
+        ScTextStyle   opts  = t->spans[i].opts;
         const char *start = s;
 
         while (*s) {

@@ -26,7 +26,7 @@ typedef struct {
     int              bar_width;
     int              width;
     int              label_width;
-    ScOptions        label_opts;
+    ScTextStyle        label_opts;
 } ScProgressBarOpts;
 
 typedef struct ScProgressBar ScProgressBar;

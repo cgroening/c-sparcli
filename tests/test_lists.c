@@ -13,7 +13,7 @@ void test_lists(void) {
             .indent   = 2,
             .item_gap = 0,
         });
-        ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+        ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         sc_list_add_str(l, "Install dependencies", none);
         sc_list_add_str(l, "Configure the environment", none);
         sc_list_add_str(l, "Run the build pipeline", none);
@@ -25,8 +25,8 @@ void test_lists(void) {
     /* ── 2. Custom bullet (→) with colored marker ── */
     {
         printf("\n--- 2. Custom bullet (→) with colored marker ---\n");
-        ScOptions bold_green = { SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE };
-        ScOptions none       = { SC_STYLE_NONE, SC_COLOR_NONE,  SC_COLOR_NONE };
+        ScTextStyle bold_green = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE };
+        ScTextStyle none       = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,  SC_ANSI_COLOR_NONE };
         ScList *l = sc_list_new((ScListOpts){
             .marker      = SC_LIST_BULLET,
             .bullet      = "\xe2\x86\x92",   /* → */
@@ -43,7 +43,7 @@ void test_lists(void) {
     /* ── 3. Numbered list with word-wrap ── */
     {
         printf("\n--- 3. Numbered list with word-wrap ---\n");
-        ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+        ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         ScList *l = sc_list_new((ScListOpts){
             .marker        = SC_LIST_NUMBER,
             .marker_suffix = ".",
@@ -65,7 +65,7 @@ void test_lists(void) {
     /* ── 4. Alpha lowercase with prefix/suffix ── */
     {
         printf("\n--- 4. Alpha lowercase (a) b) c)) ---\n");
-        ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+        ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         ScList *l = sc_list_new((ScListOpts){
             .marker        = SC_LIST_ALPHA_LC,
             .marker_prefix = "",
@@ -84,8 +84,8 @@ void test_lists(void) {
     /* ── 5. Roman numeral uppercase ── */
     {
         printf("\n--- 5. Roman numerals uppercase (I. II. III.) ---\n");
-        ScOptions bold = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE };
-        ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+        ScTextStyle bold = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         ScList *l = sc_list_new((ScListOpts){
             .marker        = SC_LIST_ROMAN_UC,
             .marker_suffix = ".",
@@ -108,8 +108,8 @@ void test_lists(void) {
     /* ── 6. Nested lists ── */
     {
         printf("\n--- 6. Nested lists ---\n");
-        ScOptions none  = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
-        ScOptions bold  = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE };
+        ScTextStyle none  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        ScTextStyle bold  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         ScList *l = sc_list_new((ScListOpts){
             .marker   = SC_LIST_NUMBER,
             .marker_suffix = ".",
@@ -162,10 +162,10 @@ void test_lists(void) {
     /* ── 7. ScText items ── */
     {
         printf("\n--- 7. ScText items (mixed styles per item) ---\n");
-        ScOptions none    = { SC_STYLE_NONE,   SC_COLOR_NONE,  SC_COLOR_NONE };
-        ScOptions bold    = { SC_STYLE_BOLD,   SC_COLOR_NONE,  SC_COLOR_NONE };
-        ScOptions dim     = { SC_STYLE_DIM,    SC_COLOR_NONE,  SC_COLOR_NONE };
-        ScOptions keyword = { SC_STYLE_BOLD,   SC_COLOR_CYAN,  SC_COLOR_NONE };
+        ScTextStyle none    = { SC_TEXT_ATTR_NONE,   SC_ANSI_COLOR_NONE,  SC_ANSI_COLOR_NONE };
+        ScTextStyle bold    = { SC_TEXT_ATTR_BOLD,   SC_ANSI_COLOR_NONE,  SC_ANSI_COLOR_NONE };
+        ScTextStyle dim     = { SC_TEXT_ATTR_DIM,    SC_ANSI_COLOR_NONE,  SC_ANSI_COLOR_NONE };
+        ScTextStyle keyword = { SC_TEXT_ATTR_BOLD,   SC_ANSI_COLOR_CYAN,  SC_ANSI_COLOR_NONE };
 
         ScList *l = sc_list_new((ScListOpts){
             .marker   = SC_LIST_BULLET,
@@ -202,13 +202,13 @@ void test_lists(void) {
     /* ── 8. Two lists in columns ── */
     {
         printf("\n--- 8. Two lists in columns ---\n");
-        ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
-        ScOptions bold = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE };
+        ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        ScTextStyle bold = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
 
         ScList *pros = sc_list_new((ScListOpts){
             .marker      = SC_LIST_BULLET,
             .bullet      = "+",
-            .marker_opts = (ScOptions){ SC_STYLE_BOLD, SC_COLOR_GREEN, SC_COLOR_NONE },
+            .marker_opts = (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
             .indent      = 0,
         });
         sc_list_add_str(pros, "Fast compilation",          none);
@@ -219,7 +219,7 @@ void test_lists(void) {
         ScList *cons = sc_list_new((ScListOpts){
             .marker      = SC_LIST_BULLET,
             .bullet      = "\xe2\x80\x93",
-            .marker_opts = (ScOptions){ SC_STYLE_BOLD, SC_COLOR_RED, SC_COLOR_NONE },
+            .marker_opts = (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE },
             .indent      = 0,
         });
         sc_list_add_str(cons, "Steep learning curve",      none);
@@ -234,7 +234,7 @@ void test_lists(void) {
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 4,
             .sep_style = SC_BORDER_SINGLE,
-            .sep_color = SC_COLOR_NONE,
+            .sep_color = SC_ANSI_COLOR_NONE,
             .valign    = SC_VALIGN_TOP,
         });
         sc_columns_add_list(cl, pros, (ScColItem){ .min_w = 24 });

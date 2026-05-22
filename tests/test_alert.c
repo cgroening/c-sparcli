@@ -16,9 +16,9 @@ void test_alert(void) {
 
     {
         ScText *t = sc_text_new();
-        sc_text_append(t, "Loaded ",   (ScOptions){ SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE });
-        sc_text_append(t, "42",        (ScOptions){ SC_STYLE_BOLD, SC_COLOR_BLUE, SC_COLOR_NONE });
-        sc_text_append(t, " modules",  (ScOptions){ SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE });
+        sc_text_append(t, "Loaded ",   (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+        sc_text_append(t, "42",        (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLUE, SC_ANSI_COLOR_NONE });
+        sc_text_append(t, " modules",  (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
         sc_alert_text(SC_ALERT_INFO, t);
         sc_text_free(t);
     }

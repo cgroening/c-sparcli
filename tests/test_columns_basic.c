@@ -5,9 +5,9 @@
 
 typedef struct {
     ScText *text;
-    ScOptions opts;
-    ScAlign h_align;
-    ScValign v_align;
+    ScTextStyle opts;
+    ScHAlign h_align;
+    ScVAlign v_align;
 } ExampleColumn;
 
 typedef struct {
@@ -17,13 +17,13 @@ typedef struct {
 } ExampleColumnGroup;
 
 
-ScOptions plain   = { SC_STYLE_NONE, SC_COLOR_NONE,    SC_COLOR_NONE };
-ScOptions green   = { SC_STYLE_NONE, SC_COLOR_GREEN,   SC_COLOR_NONE };
-ScOptions red     = { SC_STYLE_NONE, SC_COLOR_RED,     SC_COLOR_NONE };
-ScOptions magenta = { SC_STYLE_NONE, SC_COLOR_MAGENTA, SC_COLOR_NONE };
+ScTextStyle plain   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,    SC_ANSI_COLOR_NONE };
+ScTextStyle green   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN,   SC_ANSI_COLOR_NONE };
+ScTextStyle red     = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,     SC_ANSI_COLOR_NONE };
+ScTextStyle magenta = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE };
 
 
-ScText *get_sample_text(const char *prefix, ScOptions opts, size_t lines);
+ScText *get_sample_text(const char *prefix, ScTextStyle opts, size_t lines);
 void print_example_group(const ExampleColumnGroup *group, size_t column_count);
 
 
@@ -60,7 +60,7 @@ void test_columns_basic(void) {
     ExampleColumnGroup group = {
         .opts = {
         .sep_style = SC_BORDER_SINGLE,
-        .sep_color = SC_COLOR_MAGENTA,
+        .sep_color = SC_ANSI_COLOR_MAGENTA,
         },
         .columns = (ExampleColumn[]){ col1, col2, col3, col4 },
     };
@@ -87,7 +87,7 @@ void print_example_group(const ExampleColumnGroup *group, size_t column_count) {
 }
 
 
-ScText *get_sample_text(const char *prefix, ScOptions opts, size_t lines) {
+ScText *get_sample_text(const char *prefix, ScTextStyle opts, size_t lines) {
     ScText *t = sc_text_new();
 
     char buf[128];

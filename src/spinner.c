@@ -36,9 +36,9 @@ struct ScSpinner {
     int            frame;
 };
 
-/* zero-initialised ScOptions = "no formatting" sentinel */
-static int opts_no_fmt(ScOptions o) {
-    return o.style == 0 &&
+/* zero-initialised ScTextStyle = "no formatting" sentinel */
+static int opts_no_fmt(ScTextStyle o) {
+    return o.attr == 0 &&
            o.fg.index == 0 && !o.fg.r && !o.fg.g && !o.fg.b &&
            o.bg.index == 0 && !o.bg.r && !o.bg.g && !o.bg.b;
 }
@@ -71,7 +71,7 @@ void sc_spinner_tick(ScSpinner *s) {
 
     /* spinner character */
     int colored = color_is_set(s->opts.color);
-    if (colored) sc_apply_colors(s->opts.color, SC_COLOR_NONE);
+    if (colored) sc_apply_colors(s->opts.color, SC_ANSI_COLOR_NONE);
     fputs(frame, stdout);
     if (colored) fputs("\033[0m", stdout);
 
@@ -104,8 +104,8 @@ void sc_spinner_finish(ScSpinner *s, int success, const char *label) {
     fputc('\r', stdout);
 
     /* ✔ (green) or ✖ (red) */
-    ScColor sym_col = success ? SC_COLOR_GREEN : SC_COLOR_RED;
-    sc_apply_colors(sym_col, SC_COLOR_NONE);
+    ScColor sym_col = success ? SC_ANSI_COLOR_GREEN : SC_ANSI_COLOR_RED;
+    sc_apply_colors(sym_col, SC_ANSI_COLOR_NONE);
     fputs(success ? "\xe2\x9c\x94" : "\xe2\x9c\x96", stdout);  /* ✔ / ✖ */
     fputs("\033[0m", stdout);
 

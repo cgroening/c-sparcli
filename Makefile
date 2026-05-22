@@ -1,12 +1,12 @@
 CC      = cc
 CFLAGS  = -std=c11 -Wall -Wextra -Iinclude
 
-SRC     = src/style.c src/print.c src/panel.c src/color.c src/text.c src/table.c src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
+SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c src/table.c src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
 OBJ     = $(SRC:.c=.o)
 LIB     = libsparcli.a
 
 TEST_SRC = tests/test_main.c \
-           tests/test_styles.c \
+           tests/test_text_attributes.c \
            tests/test_colors.c \
            tests/test_columns_basic.c \
            tests/test_panels.c \

@@ -10,7 +10,7 @@ struct ScListItem {
     int           is_text;
     char         *str;       /* owned */
     const ScText *text;      /* not owned */
-    ScOptions     opts;
+    ScTextStyle     opts;
     ScList       *sublist;   /* owned, may be NULL */
 };
 
@@ -82,9 +82,9 @@ static int total_marker_w(const ScList *l) {
     return pw + max_marker_val_w(l) + sw + 1;
 }
 
-/* zero-init ScOptions means "no formatting" (index==0 is SC_COLOR_BLACK, -2 is SC_COLOR_NONE) */
-static int opts_has_format(ScOptions o) {
-    return o.style != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
+/* zero-init ScTextStyle means "no formatting" (index==0 is SC_ANSI_COLOR_BLACK, -2 is SC_ANSI_COLOR_NONE) */
+static int opts_has_format(ScTextStyle o) {
+    return o.attr != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
                         || o.bg.index != 0 || o.bg.r || o.bg.g || o.bg.b;
 }
 
@@ -148,7 +148,7 @@ ScList *sc_list_new(ScListOpts opts) {
     return l;
 }
 
-static ScListItem *item_alloc(int is_text, const char *str, ScOptions opts,
+static ScListItem *item_alloc(int is_text, const char *str, ScTextStyle opts,
                                const ScText *text) {
     ScListItem *it = calloc(1, sizeof(ScListItem));
     it->is_text = is_text;
@@ -166,14 +166,14 @@ static void list_push(ScList *l, ScListItem *it) {
     l->items[l->count++] = it;
 }
 
-ScListItem *sc_list_add_str(ScList *l, const char *str, ScOptions opts) {
+ScListItem *sc_list_add_str(ScList *l, const char *str, ScTextStyle opts) {
     ScListItem *it = item_alloc(0, str, opts, NULL);
     list_push(l, it);
     return it;
 }
 
 ScListItem *sc_list_add_text(ScList *l, const ScText *t) {
-    ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+    ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     ScListItem *it = item_alloc(1, NULL, none, t);
     list_push(l, it);
     return it;

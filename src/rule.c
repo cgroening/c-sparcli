@@ -16,7 +16,7 @@ static const char *rule_h[] = {
 static void print_h_repeat(const char *h, int n, ScColor color) {
     if (n <= 0) return;
     int colored = (color.index != -2);
-    if (colored) sc_apply_colors(color, SC_COLOR_NONE);
+    if (colored) sc_apply_colors(color, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < n; i++) fputs(h, stdout);
     if (colored) fputs("\033[0m", stdout);
 }
@@ -64,11 +64,11 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
 
         int colored = (opts.color.index != -2);
         print_h_repeat(h, ld, opts.color);
-        if (colored) sc_apply_colors(opts.color, SC_COLOR_NONE);
+        if (colored) sc_apply_colors(opts.color, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < tpad; i++) fputc(' ', stdout);
         if (colored) fputs("\033[0m", stdout);
         sc_print_text(title);
-        if (colored) sc_apply_colors(opts.color, SC_COLOR_NONE);
+        if (colored) sc_apply_colors(opts.color, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < tpad; i++) fputc(' ', stdout);
         if (colored) fputs("\033[0m", stdout);
         print_h_repeat(h, rd, opts.color);

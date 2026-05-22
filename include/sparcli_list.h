@@ -17,7 +17,7 @@ typedef struct {
     const char   *bullet;
     const char   *marker_prefix;
     const char   *marker_suffix;
-    ScOptions     marker_opts;
+    ScTextStyle     marker_opts;
     int           indent;
     int           item_gap;
     int           width;
@@ -28,7 +28,7 @@ typedef struct ScListItem ScListItem;
 typedef struct ScList     ScList;
 
 ScList     *sc_list_new     (ScListOpts opts);
-ScListItem *sc_list_add_str (ScList *l, const char *str, ScOptions opts);
+ScListItem *sc_list_add_str (ScList *l, const char *str, ScTextStyle opts);
 ScListItem *sc_list_add_text(ScList *l, const ScText *t);
 ScList     *sc_list_add_sub (ScListItem *parent, ScListOpts opts);
 void        sc_list_print   (const ScList *l);

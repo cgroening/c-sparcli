@@ -25,8 +25,8 @@ void test_kv(void) {
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
             .sep      = ": ",
-            .key_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
-            .val_opts = { SC_STYLE_NONE, SC_COLOR_GREEN, SC_COLOR_NONE },
+            .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .val_opts = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
         });
         sc_kv_add(kv, "Version",  "2.4.1");
         sc_kv_add(kv, "License",  "MIT");
@@ -45,7 +45,7 @@ void test_kv(void) {
             .key_width = 18,
             .sep       = ": ",
             .wrap_val  = 1,
-            .key_opts  = { SC_STYLE_BOLD, SC_COLOR_CYAN, SC_COLOR_NONE },
+            .key_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
         });
         sc_kv_add(kv, "Name",        "sparcli");
         sc_kv_add(kv, "Description", "A C11 terminal UI library for styled output "
@@ -65,7 +65,7 @@ void test_kv(void) {
             .margin   = 4,
             .item_gap = 1,
             .sep      = "  \xe2\x86\x92  ", /* →  */
-            .key_opts = { SC_STYLE_BOLD, SC_COLOR_NONE, SC_COLOR_NONE },
+            .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         });
         sc_kv_add(kv, "Input",  "raw_data.csv");
         sc_kv_add(kv, "Output", "processed.json");

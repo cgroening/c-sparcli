@@ -6,7 +6,7 @@
 typedef struct {
     const char *left_cap;
     const char *right_cap;
-    ScOptions   text_opts; /* zero-init = no formatting */
+    ScTextStyle   text_opts; /* zero-init = no formatting */
     int         pad;       /* spaces inside each cap, default 0 */
 } ScBadgeOpts;
 

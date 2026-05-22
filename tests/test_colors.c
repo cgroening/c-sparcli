@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 
-typedef struct { char text[30]; ScOptions options; } Example;
+typedef struct { char text[30]; ScTextStyle options; } Example;
 typedef struct { Example *items; size_t n; } ExampleGroup ;
 
 
@@ -29,15 +29,15 @@ void test_colors(void) {
 }
 
 static Example *get_basic_examples(size_t *count) {
-    ScOptions none    = { SC_STYLE_NONE, SC_COLOR_NONE,    SC_COLOR_NONE  };
-    ScOptions black   = { SC_STYLE_NONE, SC_COLOR_BLACK,   SC_COLOR_WHITE };
-    ScOptions red     = { SC_STYLE_NONE, SC_COLOR_RED,     SC_COLOR_NONE  };
-    ScOptions green   = { SC_STYLE_NONE, SC_COLOR_GREEN,   SC_COLOR_NONE  };
-    ScOptions yellow  = { SC_STYLE_NONE, SC_COLOR_YELLOW,  SC_COLOR_NONE  };
-    ScOptions blue    = { SC_STYLE_NONE, SC_COLOR_BLUE,    SC_COLOR_NONE  };
-    ScOptions magenta = { SC_STYLE_NONE, SC_COLOR_MAGENTA, SC_COLOR_NONE  };
-    ScOptions cyan    = { SC_STYLE_NONE, SC_COLOR_CYAN,    SC_COLOR_NONE  };
-    ScOptions white   = { SC_STYLE_NONE, SC_COLOR_WHITE,   SC_COLOR_BLACK };
+    ScTextStyle none    = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,    SC_ANSI_COLOR_NONE  };
+    ScTextStyle black   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,   SC_ANSI_COLOR_WHITE };
+    ScTextStyle red     = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,     SC_ANSI_COLOR_NONE  };
+    ScTextStyle green   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN,   SC_ANSI_COLOR_NONE  };
+    ScTextStyle yellow  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_YELLOW,  SC_ANSI_COLOR_NONE  };
+    ScTextStyle blue    = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLUE,    SC_ANSI_COLOR_NONE  };
+    ScTextStyle magenta = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE  };
+    ScTextStyle cyan    = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_CYAN,    SC_ANSI_COLOR_NONE  };
+    ScTextStyle white   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_WHITE,   SC_ANSI_COLOR_BLACK };
 
     static Example examples[9];
     examples[0] = (Example){ "Default", none    };
@@ -55,12 +55,12 @@ static Example *get_basic_examples(size_t *count) {
 }
 
 static Example *get_combination_examples(size_t *count) {
-    ScOptions blk_on_ylw = { SC_STYLE_BOLD, SC_COLOR_BLACK, SC_COLOR_YELLOW };
-    ScOptions orange_rgb = {
-        SC_STYLE_NONE, sc_color_from_rgb(255, 192, 0), SC_COLOR_NONE
+    ScTextStyle blk_on_ylw = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_YELLOW };
+    ScTextStyle orange_rgb = {
+        SC_TEXT_ATTR_NONE, sc_ansi_color_from_rgb(255, 192, 0), SC_ANSI_COLOR_NONE
     };
-    ScOptions rgb_bg = {
-        SC_STYLE_ITALIC, SC_COLOR_WHITE, sc_color_from_rgb(80, 0, 120)
+    ScTextStyle rgb_bg = {
+        SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_WHITE, sc_ansi_color_from_rgb(80, 0, 120)
     };
 
     static Example examples[3];

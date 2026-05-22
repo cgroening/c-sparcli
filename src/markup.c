@@ -47,7 +47,7 @@ static int is_recognized_name(const char *s, size_t len) {
  * Inherits *base; accumulates results into *out.
  * Returns 1 if ALL tokens recognized, 0 if any token is unknown. */
 static int parse_open_tag(const char *content, size_t len,
-                          const ScOptions *base, ScOptions *out) {
+                          const ScTextStyle *base, ScTextStyle *out) {
     *out = *base;
     const char *p   = content;
     const char *end = content + len;
@@ -71,7 +71,7 @@ static int parse_open_tag(const char *content, size_t len,
             int r, g, b;
             if (sscanf(p + 4, "%d,%d,%d", &r, &g, &b) != 3) return 0;
             if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return 0;
-            ScColor c = sc_color_from_rgb((uint8_t)r, (uint8_t)g, (uint8_t)b);
+            ScColor c = sc_ansi_color_from_rgb((uint8_t)r, (uint8_t)g, (uint8_t)b);
             if (is_bg) out->bg = c; else out->fg = c;
             p = paren_end + 1;
             continue;
@@ -83,11 +83,11 @@ static int parse_open_tag(const char *content, size_t len,
         size_t tok_len = (size_t)(p - tok);
 
         if (!is_bg) {
-            if (tok_len == 4 && memcmp(tok, "bold",      4) == 0) { out->style |= SC_STYLE_BOLD;   continue; }
-            if (tok_len == 6 && memcmp(tok, "italic",    6) == 0) { out->style |= SC_STYLE_ITALIC; continue; }
-            if (tok_len == 9 && memcmp(tok, "underline", 9) == 0) { out->style |= SC_STYLE_UNDER;  continue; }
-            if (tok_len == 1 && memcmp(tok, "u",         1) == 0) { out->style |= SC_STYLE_UNDER;  continue; }
-            if (tok_len == 3 && memcmp(tok, "dim",       3) == 0) { out->style |= SC_STYLE_DIM;    continue; }
+            if (tok_len == 4 && memcmp(tok, "bold",      4) == 0) { out->attr |= SC_TEXT_ATTR_BOLD;   continue; }
+            if (tok_len == 6 && memcmp(tok, "italic",    6) == 0) { out->attr |= SC_TEXT_ATTR_ITALIC; continue; }
+            if (tok_len == 9 && memcmp(tok, "underline", 9) == 0) { out->attr |= SC_TEXT_ATTR_UNDER;  continue; }
+            if (tok_len == 1 && memcmp(tok, "u",         1) == 0) { out->attr |= SC_TEXT_ATTR_UNDER;  continue; }
+            if (tok_len == 3 && memcmp(tok, "dim",       3) == 0) { out->attr |= SC_TEXT_ATTR_DIM;    continue; }
             ScColor c;
             if (lookup_color(tok, tok_len, &c)) { out->fg = c; continue; }
         } else {
@@ -101,7 +101,7 @@ static int parse_open_tag(const char *content, size_t len,
     return 1;
 }
 
-static void append_chunk(ScText *t, const char *s, size_t len, ScOptions opts) {
+static void append_chunk(ScText *t, const char *s, size_t len, ScTextStyle opts) {
     if (len == 0) return;
     char *chunk = strndup(s, len);
     sc_text_append(t, chunk, opts);
@@ -114,9 +114,9 @@ static ScText *parse_internal(const char *s, int strip_unknown) {
     if (!s) return sc_text_new();
 
     ScText   *t     = sc_text_new();
-    ScOptions stack[32];
+    ScTextStyle stack[32];
     int       depth = 0;
-    stack[0] = (ScOptions){ SC_STYLE_NONE, { -2, 0, 0, 0 }, { -2, 0, 0, 0 } };
+    stack[0] = (ScTextStyle){ SC_TEXT_ATTR_NONE, { -2, 0, 0, 0 }, { -2, 0, 0, 0 } };
 
     const char *p         = s;
     const char *seg_start = s;
@@ -157,7 +157,7 @@ static ScText *parse_internal(const char *s, int strip_unknown) {
                 }
             } else if (tag_len > 0) {
                 /* opening tag */
-                ScOptions new_opts;
+                ScTextStyle new_opts;
                 if (parse_open_tag(tag_content, tag_len, &stack[depth], &new_opts)) {
                     append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
                     if (depth + 1 < 32) stack[++depth] = new_opts;

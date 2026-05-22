@@ -24,17 +24,17 @@ struct ScProgressBar {
     char              *label;  /* owned */
 };
 
-/* zero-initialised ScOptions = "no formatting" sentinel (same as list.c) */
-static int opts_no_fmt(ScOptions o) {
-    return o.style == 0 &&
+/* zero-initialised ScTextStyle = "no formatting" sentinel (same as list.c) */
+static int opts_no_fmt(ScTextStyle o) {
+    return o.attr == 0 &&
            o.fg.index == 0 && !o.fg.r && !o.fg.g && !o.fg.b &&
            o.bg.index == 0 && !o.bg.r && !o.bg.g && !o.bg.b;
 }
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-/* zero-initialised ScColor (index=0, rgb=0) = SC_COLOR_BLACK from struct init,
-   treated as "no color requested"; use sc_color_from_rgb(0,0,0) for explicit black */
+/* zero-initialised ScColor (index=0, rgb=0) = SC_ANSI_COLOR_BLACK from struct init,
+   treated as "no color requested"; use sc_ansi_color_from_rgb(0,0,0) for explicit black */
 static int color_is_set(ScColor c) {
     return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
 }
@@ -42,7 +42,7 @@ static int color_is_set(ScColor c) {
 static void print_n(const char *ch, int n, ScColor col) {
     if (n <= 0) return;
     int colored = color_is_set(col);
-    if (colored) sc_apply_colors(col, SC_COLOR_NONE);
+    if (colored) sc_apply_colors(col, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < n; i++) fputs(ch, stdout);
     if (colored) fputs("\033[0m", stdout);
 }
@@ -162,7 +162,7 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
         print_n(fill_ch, solid, fill_col);
         if (has_head) {
             int colored = color_is_set(fill_col);
-            if (colored) sc_apply_colors(fill_col, SC_COLOR_NONE);
+            if (colored) sc_apply_colors(fill_col, SC_ANSI_COLOR_NONE);
             fputs(head_ch, stdout);
             if (colored) fputs("\033[0m", stdout);
         }

@@ -12,9 +12,9 @@ typedef struct {
     const char *str;        /* not owned; used when kind == SC_CELL_STR */
     ScText     *text;       /* SC_CELL_TEXT: not owned. SC_CELL_MARKUP: owned by table */
     int         align_set;  /* 1 = overrides column alignment */
-    ScAlign     align;
+    ScHAlign     align;
     int         valign_set; /* 1 = overrides row valignment */
-    ScValign    valign;
+    ScVAlign    valign;
     int         colspan;    /* 0/1=normal, >1=spans N cols, -1=skip */
     int         rowspan;    /* 0/1=normal, >1=spans N rows, -1=skip */
 } ScCell;
@@ -38,14 +38,14 @@ typedef struct {
     int      min_w;
     int      max_w;
     int      fixed_w;
-    ScAlign  align;
-    ScValign valign;
+    ScHAlign  align;
+    ScVAlign valign;
     int      wrap;   /* 1 = word-wrap instead of truncate */
-    ScColor  bg;     /* SC_COLOR_NONE = not set */
+    ScColor  bg;     /* SC_ANSI_COLOR_NONE = not set */
 } ScColOpts;
 
 typedef struct {
-    ScBorderStyle style;
+    ScBorderType style;
     ScColor       outer_color;
     ScColor       inner_color;
     ScColor       header_row_sep_color;
@@ -61,16 +61,16 @@ typedef struct {
     int            header_col;
     ScColor        header_row_bg;
     ScColor        header_col_bg;
-    ScOptions      header_opts;
+    ScTextStyle      header_opts;
     int            striped;
     ScColor        stripe_bg;
     ScColor        footer_row_bg;
     ScColor        footer_col_bg;
-    ScOptions      footer_opts;
+    ScTextStyle      footer_opts;
     const char    *title;
-    ScOptions      title_opts;
-    ScTitlePos     title_pos;
-    ScAlign        title_align;
+    ScTextStyle      title_opts;
+    ScTitlePosition     title_pos;
+    ScHAlign        title_align;
     int            title_pad;
     int            cell_pad_x;
     int            cell_pad_y;

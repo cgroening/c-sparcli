@@ -20,21 +20,21 @@ static const struct {
 /* ── Internal rendering helpers ─────────────────────────────────────────── */
 
 static void print_colored(const char *s, ScColor color) {
-    sc_apply_colors(color, SC_COLOR_NONE);
+    sc_apply_colors(color, SC_ANSI_COLOR_NONE);
     fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 static void print_repeat(const char *s, int n, ScColor color) {
     if (n <= 0) return;
-    sc_apply_colors(color, SC_COLOR_NONE);
+    sc_apply_colors(color, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < n; i++) fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
-static void render_hline(int inner_w, ScBorderStyle border, ScColor color,
+static void render_hline(int inner_w, ScBorderType border, ScColor color,
                           const char *lcorner, const char *rcorner,
-                          const char *title, ScOptions title_opts, ScAlign align,
+                          const char *title, ScTextStyle title_opts, ScHAlign align,
                           int title_pad) {
     const char *h = border_table[border].h;
     if (title_pad < 0) title_pad = 0;
@@ -69,7 +69,7 @@ static void render_hline(int inner_w, ScBorderStyle border, ScColor color,
     fputc('\n', stdout);
 }
 
-static void render_empty_line(int inner_w, ScBorderStyle border, ScColor color) {
+static void render_empty_line(int inner_w, ScBorderType border, ScColor color) {
     print_colored(border_table[border].v, color);
     for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
     print_colored(border_table[border].v, color);
@@ -78,7 +78,7 @@ static void render_empty_line(int inner_w, ScBorderStyle border, ScColor color) 
 
 /* ── Line extraction from ScText ────────────────────────────────────────── */
 
-typedef struct { const char *text; ScOptions opts; } PSpan;
+typedef struct { const char *text; ScTextStyle opts; } PSpan;
 typedef struct { PSpan *spans; size_t count; size_t vis_w; } PLine;
 
 static PLine *make_plines(const ScText *t, size_t *out_n) {
@@ -90,7 +90,7 @@ static PLine *make_plines(const ScText *t, size_t *out_n) {
 
     for (size_t si = 0; si < t->count; si++) {
         const char *s     = t->spans[si].text;
-        ScOptions   opts  = t->spans[si].opts;
+        ScTextStyle   opts  = t->spans[si].opts;
         const char *start = s;
 
         while (*s) {
@@ -155,8 +155,8 @@ static void free_plines(PLine *lines, size_t n) {
 /* ── Panel rendering ────────────────────────────────────────────────────── */
 
 static void render_content_line(PLine *line, int inner_w, int pad_x,
-                                 ScBorderStyle border, ScColor bc,
-                                 ScAlign align) {
+                                 ScBorderType border, ScColor bc,
+                                 ScHAlign align) {
     int spare = inner_w - 2 * pad_x - (int)line->vis_w;
     if (spare < 0) spare = 0;
     int lp = 0, rp = spare;
@@ -227,7 +227,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
 }
 
 void sc_panel_str(const char *content, ScPanelOpts opts) {
-    ScOptions plain = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+    ScTextStyle plain = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     ScText *t = sc_text_new();
     sc_text_append(t, content, plain);
     sc_panel_text(t, opts);

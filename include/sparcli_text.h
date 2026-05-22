@@ -5,7 +5,7 @@
 
 typedef struct {
     char     *text;
-    ScOptions opts;
+    ScTextStyle opts;
 } ScSpan;
 
 typedef struct {
@@ -15,7 +15,7 @@ typedef struct {
 } ScText;
 
 ScText *sc_text_new(void);
-void    sc_text_append(ScText *t, const char *text, ScOptions opts);
+void    sc_text_append(ScText *t, const char *text, ScTextStyle opts);
 void    sc_text_free(ScText *t);
 void    sc_print_text(const ScText *t);
 size_t  sc_text_visible_width(const ScText *t);

@@ -18,7 +18,7 @@ void sc_pad_print(const ScRendered *r, ScPadOpts opts) {
 
 /* ── sc_align_print ──────────────────────────────────────────────────────── */
 
-void sc_align_print(const ScRendered *r, ScAlign align, int width) {
+void sc_align_print(const ScRendered *r, ScHAlign align, int width) {
     if (!r) return;
     if (width <= 0) width = sc_term_width();
     for (size_t i = 0; i < r->count; i++) {
@@ -48,13 +48,13 @@ void sc_pad_text(const ScText *t, ScPadOpts opts) {
     sc_rendered_free(r);
 }
 
-void sc_align_str(const char *s, ScAlign align, int width) {
+void sc_align_str(const char *s, ScHAlign align, int width) {
     ScRendered *r = sc_capture_str(s);
     sc_align_print(r, align, width);
     sc_rendered_free(r);
 }
 
-void sc_align_text(const ScText *t, ScAlign align, int width) {
+void sc_align_text(const ScText *t, ScHAlign align, int width) {
     ScRendered *r = sc_capture_text(t);
     sc_align_print(r, align, width);
     sc_rendered_free(r);

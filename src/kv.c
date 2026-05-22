@@ -15,9 +15,9 @@ struct ScKV {
     size_t     cap;
 };
 
-/* zero-initialised ScOptions = "no formatting" sentinel (same as list.c) */
-static int opts_has_format(ScOptions o) {
-    return o.style != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
+/* zero-initialised ScTextStyle = "no formatting" sentinel (same as list.c) */
+static int opts_has_format(ScTextStyle o) {
+    return o.attr != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
                         || o.bg.index != 0 || o.bg.r || o.bg.g || o.bg.b;
 }
 
@@ -44,7 +44,7 @@ void sc_kv_add(ScKV *kv, const char *key, const char *value) {
 /* Word-wrap text into lines of at most avail visible columns; continuation
    lines are indented by `indent` spaces. */
 static void kv_print_wrapped(const char *text, int avail, int indent,
-                              ScOptions opts, int fmt) {
+                              ScTextStyle opts, int fmt) {
     if (!text || !*text) { fputc('\n', stdout); return; }
     if (avail < 1) avail = 1;
 

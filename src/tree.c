@@ -26,9 +26,9 @@ struct ScTreeNode {
     int           is_text;
     char         *str;          /* owned copy */
     const ScText *text;         /* not owned */
-    ScOptions     opts;
+    ScTextStyle     opts;
     char         *prefix;       /* owned, may be NULL */
-    ScOptions     prefix_opts;
+    ScTextStyle     prefix_opts;
     ScTreeNode  **children;
     size_t        child_count;
     size_t        child_cap;
@@ -43,9 +43,9 @@ struct ScTree {
 
 /* ── Node helpers ────────────────────────────────────────────────────────── */
 
-static ScTreeNode *node_alloc(int is_text, const char *str, ScOptions opts,
+static ScTreeNode *node_alloc(int is_text, const char *str, ScTextStyle opts,
                                const ScText *text,
-                               const char *prefix, ScOptions prefix_opts) {
+                               const char *prefix, ScTextStyle prefix_opts) {
     ScTreeNode *n  = calloc(1, sizeof(ScTreeNode));
     n->is_text     = is_text;
     n->str         = str    ? strdup(str)    : NULL;
@@ -87,15 +87,15 @@ ScTree *sc_tree_new(ScTreeOpts opts) {
 }
 
 ScTreeNode *sc_tree_add_str(ScTree *t, ScTreeNode *parent,
-                             const char *str, ScOptions opts,
-                             const char *prefix, ScOptions prefix_opts) {
+                             const char *str, ScTextStyle opts,
+                             const char *prefix, ScTextStyle prefix_opts) {
     return tree_attach(t, parent, node_alloc(0, str, opts, NULL, prefix, prefix_opts));
 }
 
 ScTreeNode *sc_tree_add_text(ScTree *t, ScTreeNode *parent,
                               const ScText *text,
-                              const char *prefix, ScOptions prefix_opts) {
-    ScOptions none = { SC_STYLE_NONE, SC_COLOR_NONE, SC_COLOR_NONE };
+                              const char *prefix, ScTextStyle prefix_opts) {
+    ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     return tree_attach(t, parent, node_alloc(1, NULL, none, text, prefix, prefix_opts));
 }
 
@@ -103,7 +103,7 @@ ScTreeNode *sc_tree_add_text(ScTree *t, ScTreeNode *parent,
 
 static void print_conn(const char *s, ScColor color) {
     if (color.index != -2) {
-        sc_apply_colors(color, SC_COLOR_NONE);
+        sc_apply_colors(color, SC_ANSI_COLOR_NONE);
         fputs(s, stdout);
         fputs("\033[0m", stdout);
     } else {
@@ -179,7 +179,7 @@ static void render_node(const ScTree *t, const ScTreeNode *node,
     } else {
         int use_cont  = !is_last && !t->opts.no_guide;
         const char *cs = use_cont ? tc[style].cont : tc[style].empty;
-        ScColor     cc = use_cont ? t->opts.connector_color : SC_COLOR_NONE;
+        ScColor     cc = use_cont ? t->opts.connector_color : SC_ANSI_COLOR_NONE;
         child_prefix   = make_child_prefix(prefix, cs, cc, indent);
     }
 
