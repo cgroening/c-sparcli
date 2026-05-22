@@ -24,15 +24,19 @@ static int color_active(ScColor c) {
     return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
 }
 
+static ScColor norm_bg(ScColor c) {
+    return color_active(c) ? c : SC_ANSI_COLOR_NONE;
+}
+
 static void print_colored(const char *s, ScColor fg, ScColor bg) {
-    sc_apply_colors(fg, bg);
+    sc_apply_colors(fg, norm_bg(bg));
     fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 static void print_repeat(const char *s, int n, ScColor fg, ScColor bg) {
     if (n <= 0) return;
-    sc_apply_colors(fg, bg);
+    sc_apply_colors(fg, norm_bg(bg));
     for (int i = 0; i < n; i++) fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
@@ -47,7 +51,7 @@ static void render_hline(int inner_w, ScBorderType border,
     print_colored(lcorner, border_fg, border_bg);
 
     if (title && *title) {
-        int tlen   = (int)strlen(title);
+        int tlen   = (int)sc_utf8_vis_w(title, strlen(title));
         int dashes = inner_w - tlen - 2 * title_pad;
         if (dashes < 0) dashes = 0;
 
@@ -200,7 +204,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
         if (lines[i].vis_w > max_cw) max_cw = lines[i].vis_w;
 
     int title_pad   = opts.title_pad;
-    int title_len   = opts.title ? (int)strlen(opts.title) : 0;
+    int title_len   = opts.title ? (int)sc_utf8_vis_w(opts.title, strlen(opts.title)) : 0;
     int min4title   = opts.title ? title_len + 2 * title_pad + 2 : 0;
     int inner_w;
     if (opts.full_width) {
