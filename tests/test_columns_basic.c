@@ -59,8 +59,7 @@ void test_columns_basic(void) {
 
     ExampleColumnGroup group = {
         .opts = {
-        .sep_style = SC_BORDER_SINGLE,
-        .sep_color = SC_ANSI_COLOR_MAGENTA,
+        .sep = { .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_MAGENTA },
         },
         .columns = (ExampleColumn[]){ col1, col2, col3, col4 },
     };
@@ -135,9 +134,7 @@ void test_columns_basic(void) {
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 2,
             .valign    = SC_VALIGN_TOP,
-            .sep_style = SC_BORDER_SINGLE,
-            .sep_color = sc_ansi_color_from_rgb(200, 180, 100),
-            .sep_bg    = sc_ansi_color_from_rgb(60, 50, 10),
+            .sep = { .style = SC_BORDER_SINGLE, .color = sc_ansi_color_from_rgb(200, 180, 100), .bg = sc_ansi_color_from_rgb(60, 50, 10) },
         });
         sc_columns_add_str(cl, "Column A\nLine 2\nLine 3\nLine 4\nLine 5",
                            (ScColItem){ .fixed_w = 22, .align = SC_ALIGN_CENTER,

@@ -21,9 +21,7 @@ typedef struct {
 
 typedef struct {
     int           gap;         /* spaces between columns, default 3 */
-    ScBorderType sep_style;
-    ScColor       sep_color;
-    ScColor       sep_bg;      /* background for gap spaces + separator char; zero-init = none */
+    ScBorderStyle  sep;         /* separator style, color, and bg; zero-init = none */
     ScVAlign      valign;
     int           total_width; /* 0 = auto; >0 = scale flex cols to fit */
     ScEdges       margin;      /* outer margin (top/right/bottom/left) */

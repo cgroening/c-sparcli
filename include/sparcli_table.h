@@ -67,11 +67,7 @@ typedef struct {
     ScColor        footer_row_bg;
     ScColor        footer_col_bg;
     ScTextStyle      footer_opts;
-    const char    *title;
-    ScTextStyle     title_style;
-    ScTitlePosition     title_pos;
-    ScHAlign        title_align;
-    int            title_pad;
+    ScTitle        title;
     ScEdges        cell_pad;      /* inner cell padding (top/right/bottom/left) */
     ScEdges        margin;        /* outer table margin (top/right/bottom/left) */
     int            total_width;

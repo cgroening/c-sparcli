@@ -415,8 +415,8 @@ static ScRendered *stretch_rendered(const ScRendered *orig, int extra,
 void sc_columns_print(const ScColumns *cl) {
     if (!cl || !cl->count) return;
 
-    const char *sep = (cl->opts.sep_style > SC_BORDER_NONE)
-                      ? sep_chars[cl->opts.sep_style] : NULL;
+    const char *sep = (cl->opts.sep.style > SC_BORDER_NONE)
+                      ? sep_chars[cl->opts.sep.style] : NULL;
     int gap = cl->opts.gap > 0 ? cl->opts.gap : (sep ? 2 : 3);
 
     /* ── stretch: build working array with expanded copies for stretch panels ── */
@@ -542,13 +542,13 @@ void sc_columns_print(const ScColumns *cl) {
 
             if (ci + 1 < cl->count) {
                 if (sep) {
-                    int has_sep_bg = color_active(cl->opts.sep_bg);
-                    if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep_bg);
+                    int has_sep_bg = color_active(cl->opts.sep.bg);
+                    if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep.bg);
                     for (int k = 0; k < gap; k++) fputc(' ', stdout);
-                    if (color_active(cl->opts.sep_color)) {
-                        sc_apply_colors(cl->opts.sep_color, cl->opts.sep_bg);
+                    if (color_active(cl->opts.sep.color)) {
+                        sc_apply_colors(cl->opts.sep.color, cl->opts.sep.bg);
                         fputs(sep, stdout);
-                        if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep_bg);
+                        if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep.bg);
                         else fputs("\033[0m", stdout);
                     } else {
                         fputs(sep, stdout);
@@ -556,8 +556,8 @@ void sc_columns_print(const ScColumns *cl) {
                     for (int k = 0; k < gap; k++) fputc(' ', stdout);
                     if (has_sep_bg) fputs("\033[0m", stdout);
                 } else {
-                    int has_sep_bg = color_active(cl->opts.sep_bg);
-                    if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep_bg);
+                    int has_sep_bg = color_active(cl->opts.sep.bg);
+                    if (has_sep_bg) sc_apply_colors(SC_ANSI_COLOR_NONE, cl->opts.sep.bg);
                     for (int k = 0; k < gap; k++) fputc(' ', stdout);
                     if (has_sep_bg) fputs("\033[0m", stdout);
                 }
