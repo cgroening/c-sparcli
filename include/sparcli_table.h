@@ -56,17 +56,25 @@ typedef struct {
 } ScTableBorders;
 
 typedef struct {
+    bool        row;
+    bool        col;
+    ScColor     row_bg;
+    ScColor     col_bg;
+    ScTextStyle opts;
+} ScTableHeader;
+
+typedef struct {
+    ScColor     row_bg;
+    ScColor     col_bg;
+    ScTextStyle opts;
+} ScTableFooter;
+
+typedef struct {
     ScTableBorders borders;
-    bool           header_row;
-    bool           header_col;
-    ScColor        header_row_bg;
-    ScColor        header_col_bg;
-    ScTextStyle      header_opts;
+    ScTableHeader  header;
     bool           striped;
     ScColor        stripe_bg;
-    ScColor        footer_row_bg;
-    ScColor        footer_col_bg;
-    ScTextStyle      footer_opts;
+    ScTableFooter  footer;
     ScTitle        title;
     ScEdges        cell_pad;      /* inner cell padding (top/right/bottom/left) */
     ScEdges        margin;        /* outer table margin (top/right/bottom/left) */

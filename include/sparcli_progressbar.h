@@ -10,18 +10,22 @@ typedef enum {
 } ScProgressStyle;
 
 typedef struct {
-    ScProgressStyle  style;
-    const char      *left_cap;
-    const char      *right_cap;
-    ScColor          fill_color;
-    ScColor          empty_color;
-    bool             use_thresholds;
-    double           threshold_mid;
-    double           threshold_high;
-    ScColor          color_low;
-    ScColor          color_mid;
-    ScColor          color_high;
-    bool             show_percent;
+    bool    enabled;
+    double  mid;    /* ratio threshold for mid color (default 0.5) */
+    double  high;   /* ratio threshold for high color (default 0.75) */
+    ScColor color_low;
+    ScColor color_mid;
+    ScColor color_high;
+} ScProgressThresholds;
+
+typedef struct {
+    ScProgressStyle      style;
+    const char          *left_cap;
+    const char          *right_cap;
+    ScColor              fill_color;
+    ScColor              empty_color;
+    ScProgressThresholds thresholds;
+    bool                 show_percent;
     bool             show_value;
     int              bar_width;
     int              width;

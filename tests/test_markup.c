@@ -103,8 +103,8 @@ void test_markup(void) {
         ScTable *t = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1,
-            .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .header.row = 1,
+            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
@@ -128,8 +128,7 @@ void test_markup(void) {
         );
         sc_panel_text(content, (ScPanelOpts){
             .border  = { .style = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
-            .title   = { .text = " Markup Demo ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
-                         .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .title   = { .text = " Markup Demo ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .padding = {1, 2, 1, 2},
         });
         sc_text_free(content);

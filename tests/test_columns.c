@@ -10,8 +10,8 @@ void test_columns(void) {
         ScTable *t1 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .text = " Team A ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = { .text = " Team A ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t1, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -23,8 +23,8 @@ void test_columns(void) {
         ScTable *t2 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .text = " Team B ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE }, .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = { .text = " Team B ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t2, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -49,7 +49,7 @@ void test_columns(void) {
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Port",    (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -69,8 +69,7 @@ void test_columns(void) {
             "Host: 192.168.1.1\nOS: Linux 6.8\nUptime: 42 days\nCPU: 4 cores\nRAM: 16 GB",
             (ScPanelOpts){
                 .border  = { .style = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN },
-                .title   = { .text = " System Info ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
-                             .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+                .title   = { .text = " System Info ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
                 .padding = {0, 2, 0, 2},
             },
             (ScColItem){0});
@@ -86,8 +85,7 @@ void test_columns(void) {
     {
         ScPanelOpts po_top = {
             .border  = { .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
-            .title   = { .text = " Top ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-                         .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .title   = { .text = " Top ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .padding = {0, 1, 0, 1},
         };
         ScPanelOpts po_mid = po_top;
@@ -147,7 +145,7 @@ void test_columns(void) {
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Key",   (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -200,8 +198,8 @@ void test_columns(void) {
         ScTable *t1 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .text = " Revenue ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = { .text = " Revenue ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t1, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -214,8 +212,8 @@ void test_columns(void) {
         ScTable *t2 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .text = " Costs ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE }, .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = { .text = " Costs ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t2, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -228,8 +226,8 @@ void test_columns(void) {
         ScTable *t3 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .text = " Profit ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE }, .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .header.row = 1, .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = { .text = " Profit ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(t3, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});

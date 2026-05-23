@@ -57,12 +57,12 @@ void test_progressbar(void) {
                 .right_cap      = "]",
                 .show_percent   = 1,
                 .bar_width      = 30,
-                .use_thresholds = 1,
-                .threshold_mid  = 0.5,
-                .threshold_high = 0.75,
-                .color_low      = SC_ANSI_COLOR_GREEN,
-                .color_mid      = SC_ANSI_COLOR_YELLOW,
-                .color_high     = SC_ANSI_COLOR_RED,
+                .thresholds.enabled = 1,
+                .thresholds.mid  = 0.5,
+                .thresholds.high = 0.75,
+                .thresholds.color_low      = SC_ANSI_COLOR_GREEN,
+                .thresholds.color_mid      = SC_ANSI_COLOR_YELLOW,
+                .thresholds.color_high     = SC_ANSI_COLOR_RED,
             });
             sc_progressbar_finish(b, vals[i], 0.0);
             sc_progressbar_free(b);
@@ -141,12 +141,12 @@ void test_progressbar_animated(void) {
         .show_value     = 1,
         .bar_width      = 40,
         .label_width    = 10,
-        .use_thresholds = 1,
-        .threshold_mid  = 0.33,
-        .threshold_high = 0.66,
-        .color_low      = SC_ANSI_COLOR_RED,
-        .color_mid      = SC_ANSI_COLOR_YELLOW,
-        .color_high     = SC_ANSI_COLOR_GREEN,
+        .thresholds.enabled = 1,
+        .thresholds.mid  = 0.33,
+        .thresholds.high = 0.66,
+        .thresholds.color_low      = SC_ANSI_COLOR_RED,
+        .thresholds.color_mid      = SC_ANSI_COLOR_YELLOW,
+        .thresholds.color_high     = SC_ANSI_COLOR_GREEN,
     });
     sc_progressbar_set_label(b, "Installing");
     for (int v = 0; v <= 100; v += 2) {

@@ -97,7 +97,7 @@ void sc_spinner_tick(ScSpinner *s) {
     s->frame = (s->frame + 1) % spinner_frame_count[style];
 }
 
-void sc_spinner_finish(ScSpinner *s, int success, const char *label) {
+void sc_spinner_finish(ScSpinner *s, bool success, const char *label) {
     /* clear the current line */
     int tw = sc_terminal_width();
     for (int i = 0; i < tw; i++) fputc(' ', stdout);

@@ -43,7 +43,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
 
     int has_title = title && title->count > 0;
     int title_w   = has_title ? (int)sc_text_visible_width(title) : 0;
-    int tpad      = opts.title_pad > 0 ? opts.title_pad : (opts.title_pad == 0 ? 1 : 0);
+    int tpad      = opts.title.pad > 0 ? opts.title.pad : (opts.title.pad == 0 ? 1 : 0);
 
     for (int i = 0; i < opts.margin.top; i++) fputc('\n', stdout);
 
@@ -53,9 +53,9 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
         int dashes = eff_w - title_w - 2 * tpad;
         if (dashes < 0) dashes = 0;
         int ld, rd;
-        if (opts.title_align == SC_ALIGN_LEFT) {
+        if (opts.title.align == SC_ALIGN_LEFT) {
             ld = 1; rd = dashes - 1;
-        } else if (opts.title_align == SC_ALIGN_RIGHT) {
+        } else if (opts.title.align == SC_ALIGN_RIGHT) {
             ld = dashes - 1; rd = 1;
         } else {
             ld = dashes / 2; rd = dashes - ld;
@@ -88,7 +88,7 @@ void sc_rule_str(const char *title, ScRuleOpts opts) {
         return;
     }
     ScText *t = sc_text_new();
-    sc_text_append(t, title, opts.title_style);
+    sc_text_append(t, title, opts.title.opts);
     sc_rule_text(t, opts);
     sc_text_free(t);
 }

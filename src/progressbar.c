@@ -112,12 +112,12 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
 
     /* ── fill color (with optional thresholds) ── */
     ScColor fill_col  = b->opts.fill_color;
-    if (b->opts.use_thresholds) {
-        double tmid  = b->opts.threshold_mid  > 0.0 ? b->opts.threshold_mid  : 0.5;
-        double thigh = b->opts.threshold_high > 0.0 ? b->opts.threshold_high : 0.75;
-        fill_col = b->opts.color_low;
-        if (ratio >= tmid)  fill_col = b->opts.color_mid;
-        if (ratio >= thigh) fill_col = b->opts.color_high;
+    if (b->opts.thresholds.enabled) {
+        double tmid  = b->opts.thresholds.mid  > 0.0 ? b->opts.thresholds.mid  : 0.5;
+        double thigh = b->opts.thresholds.high > 0.0 ? b->opts.thresholds.high : 0.75;
+        fill_col = b->opts.thresholds.color_low;
+        if (ratio >= tmid)  fill_col = b->opts.thresholds.color_mid;
+        if (ratio >= thigh) fill_col = b->opts.thresholds.color_high;
     }
     ScColor empty_col = b->opts.empty_color;
 

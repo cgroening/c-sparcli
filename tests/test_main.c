@@ -127,10 +127,10 @@ static void print_rule(const char *title) {
         (ScRuleOpts) {
             .style       = SC_BORDER_DOUBLE,
             .color       = SC_ANSI_COLOR_NONE,
-            .title_style  = {
+            .title.opts  = {
                 SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
             },
-            .title_align = SC_ALIGN_CENTER,
+            .title.align = SC_ALIGN_CENTER,
         }
     );
 }

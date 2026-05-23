@@ -203,7 +203,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     for (size_t i = 0; i < nlines; i++)
         if (lines[i].vis_w > max_cw) max_cw = lines[i].vis_w;
 
-    int title_pad = opts.title.pad;
+    int title_pad = opts.title.style.pad;
     int title_len = opts.title.text ? (int)sc_utf8_string_length(opts.title.text, strlen(opts.title.text)) : 0;
     int min4title = opts.title.text ? title_len + 2 * title_pad + 2 : 0;
     int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
@@ -238,7 +238,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     PMARG();
     render_hline(inner_w, opts.border.style, opts.border.color, opts.border.bg, tl, tr,
                  opts.title.pos == SC_TITLE_TOP ? opts.title.text : NULL,
-                 opts.title.style, opts.title.align, title_pad);
+                 opts.title.style.opts, opts.title.style.align, title_pad);
 
     for (int i = 0; i < pad_t; i++) {
         PMARG();
@@ -261,7 +261,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     PMARG();
     render_hline(inner_w, opts.border.style, opts.border.color, opts.border.bg, bl, br,
                  opts.title.pos == SC_TITLE_BOTTOM ? opts.title.text : NULL,
-                 opts.title.style, opts.title.align, title_pad);
+                 opts.title.style.opts, opts.title.style.align, title_pad);
 
     for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
 

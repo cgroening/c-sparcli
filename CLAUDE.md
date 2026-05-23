@@ -90,6 +90,28 @@ SC_BORDER_DOUBLE | SC_BORDER_ROUNDED | SC_BORDER_THICK
 
 Used by panels, tables, rules, and column separators.
 
+### ScTitleStyle / ScTitle
+
+```c
+typedef struct {
+    ScTextStyle opts;   /* text rendering (bold, color, …) */
+    ScHAlign    align;  /* LEFT / CENTER / RIGHT */
+    int         pad;    /* spaces on each side of the title text */
+} ScTitleStyle;
+
+typedef struct {
+    const char      *text;   /* NULL = no title */
+    ScTitleStyle     style;  /* style, alignment, and padding */
+    ScTitlePosition  pos;    /* SC_TITLE_TOP / SC_TITLE_BOTTOM */
+} ScTitle;
+```
+
+`ScTitleStyle` is embedded directly in `ScRuleOpts.title` (as the only title field) and
+nested inside `ScTitle.style` (used by panels and tables). Access paths:
+- `rule_opts.title.opts` / `.align` / `.pad`
+- `panel_opts.title.style.opts` / `.style.align` / `.style.pad`
+- `panel_opts.title.text` / `.pos`
+
 ---
 
 ## Panels
@@ -103,20 +125,17 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `border` | `ScBorderType` | Frame style |
-| `border_color` | `ScColor` | Frame foreground color |
-| `border_bg` | `ScColor` | Frame background color; zero-init `{0}` = no color (see sentinel note below) |
+| `border` | `ScBorderStyle` | Frame style, color, bg |
 | `bg` | `ScColor` | Content area background color; zero-init `{0}` = no color |
-| `title` | `const char *` | NULL = no title |
-| .title_style` | `ScTextStyle` | Style for title text |
-| `title_pos` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` | |
-| `title_align` | `ScHAlign` | LEFT / CENTER / RIGHT |
-| `title_pad` | `int` | Spaces on each side of title text, default 1 |
-| `pad_x` | `int` | Horizontal content padding |
-| `pad_y` | `int` | Vertical content padding (empty lines) |
+| `title` | `ScTitle` | Title text, style, position |
+| `title.text` | `const char *` | NULL = no title |
+| `title.style` | `ScTitleStyle` | Nested style: `.opts` (ScTextStyle), `.align`, `.pad` |
+| `title.pos` | `ScTitlePosition` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` |
+| `padding` | `ScEdges` | Inner content padding (top/right/bottom/left) |
+| `margin` | `ScEdges` | Outer margin |
 | `width` | `int` | 0 = auto-fit content |
 | `content_align` | `ScHAlign` | Horizontal alignment of content lines |
-| `full_width` | `int` | 1 = stretch to terminal width (overrides `width`) |
+| `full_width` | `bool` | Stretch to terminal width (overrides `width`) |
 
 `full_width` takes precedence over `width`. Width is calculated as `terminal_width - 2`.
 
@@ -141,20 +160,29 @@ void     sc_table_free(ScTable *t);
 | Field | Description |
 |-------|-------------|
 | `borders` | `ScTableBorders` — style + color per border segment |
-| `header_row` | 1 = first added row is the header |
-| `header_col` | 1 = first column is a header column |
-| `header_row_bg` / `header_col_bg` | Background for header areas |
-| `header_opts` | `ScTextStyle` applied to all header cells |
-| `striped` | 1 = alternating row backgrounds |
+| `header` | `ScTableHeader` — grouped header settings (see below) |
+| `header.row` | `bool` — first added row is the header |
+| `header.col` | `bool` — first column is a header column |
+| `header.row_bg` / `header.col_bg` | Background for header areas |
+| `header.opts` | `ScTextStyle` applied to all header cells |
+| `striped` | `bool` — alternating row backgrounds |
 | `stripe_bg` | Background for odd data rows (0-indexed) |
-| `footer_row_bg` / `footer_col_bg` | Background for footer rows/column |
-| `footer_opts` | `ScTextStyle` for footer cells |
-| `title` | Table title string |
-| .title_style` / `title_pos` / `title_align` / `title_pad` | Title appearance |
-| `cell_pad_x` / `cell_pad_y` | Cell padding |
+| `footer` | `ScTableFooter` — grouped footer settings (see below) |
+| `footer.row_bg` / `footer.col_bg` | Background for footer rows/column |
+| `footer.opts` | `ScTextStyle` for footer cells |
+| `title` | `ScTitle` — table title (text, style, position) |
+| `title.style.opts` / `title.style.align` / `title.style.pad` | Title text appearance |
+| `cell_pad` | `ScEdges` — inner cell padding |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
-| `rtl` | 1 = right-to-left column order |
+| `rtl` | `bool` — right-to-left column order |
+
+### ScTableHeader / ScTableFooter
+
+```c
+typedef struct { bool row; bool col; ScColor row_bg; ScColor col_bg; ScTextStyle opts; } ScTableHeader;
+typedef struct { ScColor row_bg; ScColor col_bg; ScTextStyle opts; } ScTableFooter;
+```
 
 ### ScTableBorders
 
@@ -165,9 +193,9 @@ typedef struct {
     ScColor       inner_color;
     ScColor       header_row_sep_color;
     ScColor       header_col_sep_color;
-    int           no_outer;      // suppress outer frame
-    int           no_inner_h;    // suppress inner row separators
-    int           no_inner_v;    // suppress inner col separators (except header col)
+    bool          no_outer;    /* suppress outer frame */
+    bool          no_inner_h;  /* suppress inner row separators */
+    bool          no_inner_v;  /* suppress inner col separators (except header col) */
 } ScTableBorders;
 ```
 
@@ -227,13 +255,13 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 |-------|-------------|
 | `style` | `ScBorderType` — which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
-| .title_style` | `ScTextStyle` for the title text |
-| `title_align` | LEFT / CENTER / RIGHT (default CENTER) |
-| `title_pad` | Spaces on each side of title, default 1 |
+| `title` | `ScTitleStyle` — title label styling (`opts`, `align`, `pad`) |
+| `title.opts` | `ScTextStyle` for the title text |
+| `title.align` | LEFT / CENTER / RIGHT (default CENTER) |
+| `title.pad` | Spaces on each side of title, default 1 |
 | `width` | 0 = full terminal width; >0 = fixed width |
 | `align` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
-| `margin` | Symmetric left+right indent in chars |
-| `pad_y` | Blank lines printed above and below the rule |
+| `margin` | `ScEdges` — top/bottom = blank lines; left/right = indent |
 
 **Zero-init pitfall:** `color` defaults to `SC_ANSI_COLOR_BLACK` if not set. Always
 specify `.color = SC_ANSI_COLOR_NONE` for an uncolored rule.
@@ -403,11 +431,12 @@ void           sc_progressbar_free     (ScProgressBar *b);
 | `style` | Fill style (see above) |
 | `left_cap` / `right_cap` | Border strings; `NULL` = no bracket; pass `"["` / `"]"` for defaults |
 | `fill_color` / `empty_color` | Colors; zero-init = no color (same sentinel as `marker_opts`) |
-| `use_thresholds` | 1 = switch fill color based on ratio; 0 = use `fill_color` only |
-| `threshold_mid` / `threshold_high` | Ratio thresholds (default 0.5 / 0.75) |
-| `color_low` / `color_mid` / `color_high` | Fill color per range |
-| `show_percent` | 1 = append ` XX%` (default 1) |
-| `show_value` | 1 = append `(value/max)` after percent |
+| `thresholds` | `ScProgressThresholds` — grouped threshold settings (see below) |
+| `thresholds.enabled` | `bool` — switch fill color based on ratio |
+| `thresholds.mid` / `thresholds.high` | Ratio thresholds (default 0.5 / 0.75) |
+| `thresholds.color_low` / `.color_mid` / `.color_high` | Fill color per range |
+| `show_percent` | `bool` — append ` XX%` (default true) |
+| `show_value` | `bool` — append `(value/max)` after percent |
 | `bar_width` | Inner bar char count; 0 = auto from `width` |
 | `width` | Total line width; 0 = terminal width |
 | `label_width` | Fixed label column width; 0 = natural width |
@@ -437,12 +466,12 @@ Animated in-place spinner using `\r` overwrite. Label is updateable mid-animatio
 ScSpinner *sc_spinner_new      (const char *label, ScSpinnerOpts opts);
 void       sc_spinner_set_label(ScSpinner *s, const char *label);
 void       sc_spinner_tick     (ScSpinner *s);
-void       sc_spinner_finish   (ScSpinner *s, int success, const char *label);
+void       sc_spinner_finish   (ScSpinner *s, bool success, const char *label);
 void       sc_spinner_free     (ScSpinner *s);
 ```
 
 `sc_spinner_tick` advances to the next frame, prints `frame label\r`, and calls `fflush`.
-`sc_spinner_finish` clears the line, then prints `✔ label\n` (success=1) or `✖ label\n` (success=0) in green/red.
+`sc_spinner_finish` clears the line, then prints `✔ label\n` (success=true) or `✖ label\n` (success=false) in green/red.
 
 ### ScSpinnerStyle
 
