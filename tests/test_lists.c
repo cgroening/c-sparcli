@@ -233,7 +233,7 @@ void test_lists(void) {
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 4,
-            .sep = { .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
+            .sep = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
             .valign    = SC_VALIGN_TOP,
         });
         sc_columns_add_list(cl, pros, (ScColItem){ .min_w = 24 });

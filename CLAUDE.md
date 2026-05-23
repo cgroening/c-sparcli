@@ -94,14 +94,14 @@ Used by panels, tables, rules, and column separators.
 
 ```c
 typedef struct {
-    ScTextStyle opts;   /* text rendering (bold, color, …) */
-    ScHAlign    align;  /* LEFT / CENTER / RIGHT */
-    int         pad;    /* spaces on each side of the title text */
+    const char  *text;  /* NULL = no title */
+    ScTextStyle  opts;  /* text rendering (bold, color, …) */
+    ScHAlign     align; /* LEFT / CENTER / RIGHT */
+    int          pad;   /* spaces on each side of the title text */
 } ScTitleStyle;
 
 typedef struct {
-    const char      *text;   /* NULL = no title */
-    ScTitleStyle     style;  /* style, alignment, and padding */
+    ScTitleStyle     style;  /* style, text, alignment, and padding */
     ScTitlePosition  pos;    /* SC_TITLE_TOP / SC_TITLE_BOTTOM */
 } ScTitle;
 ```
@@ -109,8 +109,8 @@ typedef struct {
 `ScTitleStyle` is embedded directly in `ScRuleOpts.title` (as the only title field) and
 nested inside `ScTitle.style` (used by panels and tables). Access paths:
 - `rule_opts.title.opts` / `.align` / `.pad`
-- `panel_opts.title.style.opts` / `.style.align` / `.style.pad`
-- `panel_opts.title.text` / `.pos`
+- `panel_opts.title.style.text` / `.style.opts` / `.style.align` / `.style.pad`
+- `panel_opts.title.pos`
 
 ---
 
@@ -127,9 +127,9 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 |-------|------|-------------|
 | `border` | `ScBorderStyle` | Frame style, color, bg |
 | `bg` | `ScColor` | Content area background color; zero-init `{0}` = no color |
-| `title` | `ScTitle` | Title text, style, position |
-| `title.text` | `const char *` | NULL = no title |
-| `title.style` | `ScTitleStyle` | Nested style: `.opts` (ScTextStyle), `.align`, `.pad` |
+| `title` | `ScTitle` | Title style and position |
+| `title.style.text` | `const char *` | NULL = no title |
+| `title.style` | `ScTitleStyle` | Nested style: `.text`, `.opts` (ScTextStyle), `.align`, `.pad` |
 | `title.pos` | `ScTitlePosition` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` |
 | `padding` | `ScEdges` | Inner content padding (top/right/bottom/left) |
 | `margin` | `ScEdges` | Outer margin |
@@ -170,7 +170,8 @@ void     sc_table_free(ScTable *t);
 | `footer` | `ScTableFooter` — grouped footer settings (see below) |
 | `footer.row_bg` / `footer.col_bg` | Background for footer rows/column |
 | `footer.opts` | `ScTextStyle` for footer cells |
-| `title` | `ScTitle` — table title (text, style, position) |
+| `title` | `ScTitle` — table title (style and position) |
+| `title.style.text` | Title string; `NULL` = no title |
 | `title.style.opts` / `title.style.align` / `title.style.pad` | Title text appearance |
 | `cell_pad` | `ScEdges` — inner cell padding |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |

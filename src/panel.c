@@ -204,8 +204,8 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
         if (lines[i].vis_w > max_cw) max_cw = lines[i].vis_w;
 
     int title_pad = opts.title.style.pad;
-    int title_len = opts.title.text ? (int)sc_utf8_string_length(opts.title.text, strlen(opts.title.text)) : 0;
-    int min4title = opts.title.text ? title_len + 2 * title_pad + 2 : 0;
+    int title_len = opts.title.style.text ? (int)sc_utf8_string_length(opts.title.style.text, strlen(opts.title.style.text)) : 0;
+    int min4title = opts.title.style.text ? title_len + 2 * title_pad + 2 : 0;
     int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
     int pad_r = opts.padding.right > 0 ? opts.padding.right : 0;
     int pad_t = opts.padding.top   > 0 ? opts.padding.top   : 0;
@@ -225,10 +225,10 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
         if (inner_w < 2) inner_w = 2;
     }
 
-    const char *tl = border_table[opts.border.style].tl;
-    const char *tr = border_table[opts.border.style].tr;
-    const char *bl = border_table[opts.border.style].bl;
-    const char *br = border_table[opts.border.style].br;
+    const char *tl = border_table[opts.border.type].tl;
+    const char *tr = border_table[opts.border.type].tr;
+    const char *bl = border_table[opts.border.type].bl;
+    const char *br = border_table[opts.border.type].br;
 
 #define PMARG() do { for (int _i = 0; _i < ml; _i++) fputc(' ', stdout); } while(0)
 
@@ -236,31 +236,31 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
 
     /* top border */
     PMARG();
-    render_hline(inner_w, opts.border.style, opts.border.color, opts.border.bg, tl, tr,
-                 opts.title.pos == SC_TITLE_TOP ? opts.title.text : NULL,
+    render_hline(inner_w, opts.border.type, opts.border.color, opts.border.bg, tl, tr,
+                 opts.title.pos == SC_TITLE_TOP ? opts.title.style.text : NULL,
                  opts.title.style.opts, opts.title.style.align, title_pad);
 
     for (int i = 0; i < pad_t; i++) {
         PMARG();
-        render_empty_line(inner_w, opts.border.style, opts.border.color, opts.border.bg, opts.bg);
+        render_empty_line(inner_w, opts.border.type, opts.border.color, opts.border.bg, opts.bg);
     }
 
     for (size_t i = 0; i < nlines; i++) {
         PMARG();
         render_content_line(&lines[i], inner_w, pad_l, pad_r,
-                            opts.border.style, opts.border.color, opts.border.bg,
+                            opts.border.type, opts.border.color, opts.border.bg,
                             opts.content_align, opts.bg);
     }
 
     for (int i = 0; i < pad_b; i++) {
         PMARG();
-        render_empty_line(inner_w, opts.border.style, opts.border.color, opts.border.bg, opts.bg);
+        render_empty_line(inner_w, opts.border.type, opts.border.color, opts.border.bg, opts.bg);
     }
 
     /* bottom border */
     PMARG();
-    render_hline(inner_w, opts.border.style, opts.border.color, opts.border.bg, bl, br,
-                 opts.title.pos == SC_TITLE_BOTTOM ? opts.title.text : NULL,
+    render_hline(inner_w, opts.border.type, opts.border.color, opts.border.bg, bl, br,
+                 opts.title.pos == SC_TITLE_BOTTOM ? opts.title.style.text : NULL,
                  opts.title.style.opts, opts.title.style.align, title_pad);
 
     for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);

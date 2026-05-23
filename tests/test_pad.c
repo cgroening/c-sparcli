@@ -58,7 +58,7 @@ void test_pad(void) {
         ScRendered *r = sc_capture_panel_str(
             "This panel is indented\nwithout being inside Columns.",
             (ScPanelOpts){
-                .border  = { .style = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
+                .border  = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
                 .padding = {0, 1, 0, 1},
                 .width   = 40,
             }

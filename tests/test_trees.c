@@ -221,7 +221,7 @@ void test_trees(void) {
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .text = " File Stats ", .style = { .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
+            .title = { .style = { .text = " File Stats ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -235,7 +235,7 @@ void test_trees(void) {
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 3,
-            .sep = { .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
+            .sep = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
             .valign    = SC_VALIGN_TOP,
         });
         sc_columns_add_tree(cl, tree, (ScColItem){0});

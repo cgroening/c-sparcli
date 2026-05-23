@@ -346,8 +346,8 @@ void sc_columns_free(ScColumns *cl) {
 /* Generate one empty content line matching the panel's border and bg colors.
    inner_w = panel's inner width (max_vis_w - 2). Returns a heap-allocated string. */
 static char *make_empty_content_line(const ScPanelOpts *opts, int inner_w) {
-    const char *v = (opts->border.style != SC_BORDER_NONE && sep_chars[opts->border.style])
-                    ? sep_chars[opts->border.style] : " ";
+    const char *v = (opts->border.type != SC_BORDER_NONE && sep_chars[opts->border.type])
+                    ? sep_chars[opts->border.type] : " ";
     fflush(stdout);
     FILE *tmp = tmpfile();
     int   saved = dup(STDOUT_FILENO);
@@ -415,8 +415,8 @@ static ScRendered *stretch_rendered(const ScRendered *orig, int extra,
 void sc_columns_print(const ScColumns *cl) {
     if (!cl || !cl->count) return;
 
-    const char *sep = (cl->opts.sep.style > SC_BORDER_NONE)
-                      ? sep_chars[cl->opts.sep.style] : NULL;
+    const char *sep = (cl->opts.sep.type > SC_BORDER_NONE)
+                      ? sep_chars[cl->opts.sep.type] : NULL;
     int gap = cl->opts.gap > 0 ? cl->opts.gap : (sep ? 2 : 3);
 
     /* ── stretch: build working array with expanded copies for stretch panels ── */

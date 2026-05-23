@@ -174,29 +174,29 @@ typedef struct { int top; int right; int bottom; int left; } ScEdges;
  * character style, foreground color, and background color.
  */
 typedef struct {
-    ScBorderType style;  /**< Border character set (none, ASCII, single, …) */
+    ScBorderType type;   /**< Border character set (none, ASCII, single, …) */
     ScColor      color;  /**< Foreground color of border characters */
     ScColor      bg;     /**< Background color of border characters;
                               zero-init = none */
 } ScBorderStyle;
 
 /**
- * ScTitleStyle Struct - Visual style for a component title: text rendering,
+ * ScTitleStyle Struct - Visual style for a component title: text, rendering,
  * alignment, and padding. Used by ScTitle and ScRuleOpts.
  */
 typedef struct {
-    ScTextStyle opts;   /**< Text style (bold, color, …) applied to the title */
-    ScHAlign    align;  /**< Horizontal placement of the title */
-    int         pad;    /**< Spaces on each side of the title text */
+    const char  *text;  /**< Title string; NULL = no title */
+    ScTextStyle  opts;  /**< Text style (bold, color, …) applied to the title */
+    ScHAlign     align; /**< Horizontal placement of the title */
+    int          pad;   /**< Spaces on each side of the title text */
 } ScTitleStyle;
 
 /**
- * ScTitle Struct - Groups all visual properties of a component title: text,
- * style, and position.
+ * ScTitle Struct - Groups all visual properties of a component title: style
+ * (including text) and position.
  */
 typedef struct {
-    const char      *text;   /**< Title string; NULL = no title */
-    ScTitleStyle     style;  /**< Visual style of the title */
+    ScTitleStyle     style;  /**< Visual style of the title (includes text) */
     ScTitlePosition  pos;    /**< Whether the title appears on top or bottom */
 } ScTitle;
 

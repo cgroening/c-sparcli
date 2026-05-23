@@ -59,7 +59,7 @@ void test_columns_basic(void) {
 
     ExampleColumnGroup group = {
         .opts = {
-        .sep = { .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_MAGENTA },
+        .sep = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_MAGENTA },
         },
         .columns = (ExampleColumn[]){ col1, col2, col3, col4 },
     };
@@ -101,7 +101,7 @@ void test_columns_basic(void) {
         });
         sc_columns_add_panel_str(cl, "Column A\nLine 2\nLine 3\nLine 4\nLine 5",
             (ScPanelOpts){
-                .border        = { .style = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(255, 100, 100), .bg = sc_ansi_color_from_rgb(100, 25, 25) },
+                .border        = { .type = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(255, 100, 100), .bg = sc_ansi_color_from_rgb(100, 25, 25) },
                 .bg            = sc_ansi_color_from_rgb(60, 15, 15),
                 .padding       = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
@@ -109,7 +109,7 @@ void test_columns_basic(void) {
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(60, 15, 15) });
         sc_columns_add_panel_str(cl, "Column B\nLine 2\nLine 3",
             (ScPanelOpts){
-                .border        = { .style = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(100, 255, 100), .bg = sc_ansi_color_from_rgb(25, 100, 25) },
+                .border        = { .type = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(100, 255, 100), .bg = sc_ansi_color_from_rgb(25, 100, 25) },
                 .bg            = sc_ansi_color_from_rgb(15, 60, 15),
                 .padding       = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
@@ -117,7 +117,7 @@ void test_columns_basic(void) {
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(15, 60, 15) });
         sc_columns_add_panel_str(cl, "Column C\nLine 2",
             (ScPanelOpts){
-                .border        = { .style = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(100, 100, 255), .bg = sc_ansi_color_from_rgb(25, 25, 100) },
+                .border        = { .type = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(100, 100, 255), .bg = sc_ansi_color_from_rgb(25, 25, 100) },
                 .bg            = sc_ansi_color_from_rgb(15, 15, 60),
                 .padding       = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
@@ -134,7 +134,7 @@ void test_columns_basic(void) {
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 2,
             .valign    = SC_VALIGN_TOP,
-            .sep = { .style = SC_BORDER_SINGLE, .color = sc_ansi_color_from_rgb(200, 180, 100), .bg = sc_ansi_color_from_rgb(60, 50, 10) },
+            .sep = { .type = SC_BORDER_SINGLE, .color = sc_ansi_color_from_rgb(200, 180, 100), .bg = sc_ansi_color_from_rgb(60, 50, 10) },
         });
         sc_columns_add_str(cl, "Column A\nLine 2\nLine 3\nLine 4\nLine 5",
                            (ScColItem){ .fixed_w = 22, .align = SC_ALIGN_CENTER,
