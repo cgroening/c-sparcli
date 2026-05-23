@@ -71,12 +71,10 @@ void test_columns(void) {
         sc_columns_add_panel_str(cl,
             "Host: 192.168.1.1\nOS: Linux 6.8\nUptime: 42 days\nCPU: 4 cores\nRAM: 16 GB",
             (ScPanelOpts){
-                .border       = SC_BORDER_ROUNDED,
-                .border_color = SC_ANSI_COLOR_GREEN,
-                .title        = " System Info ",
-                .title_style   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
-                .title_pos    = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
-                .padding = {0, 2, 0, 2}, .title_pad = 1,
+                .border  = { .style = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN },
+                .title   = { .text = " System Info ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+                             .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+                .padding = {0, 2, 0, 2},
             },
             (ScColItem){0});
         sc_columns_add_table(cl, tb, (ScColItem){0});
@@ -90,16 +88,15 @@ void test_columns(void) {
     /* ── 3. valign: three panels of different heights ── */
     {
         ScPanelOpts po_top = {
-            .border = SC_BORDER_SINGLE, .border_color = SC_ANSI_COLOR_NONE,
-            .title = " Top ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
-            .padding = {0, 1, 0, 1}, .title_pad = 1,
+            .border  = { .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
+            .title   = { .text = " Top ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+                         .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
+            .padding = {0, 1, 0, 1},
         };
         ScPanelOpts po_mid = po_top;
-        po_mid.title = " Middle ";
-        po_mid.border_color = SC_ANSI_COLOR_NONE;
+        po_mid.title.text = " Middle ";
         ScPanelOpts po_bot = po_top;
-        po_bot.title = " Bottom ";
+        po_bot.title.text = " Bottom ";
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap    = 4,

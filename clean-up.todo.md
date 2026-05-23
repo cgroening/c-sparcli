@@ -25,7 +25,7 @@
 
 ## Panels
 
-- [ ] tests/test_panels.c
+- [x] tests/test_panels.c
 - [ ] include/sparcli_panel.h
 - [ ] src/panel.c
 

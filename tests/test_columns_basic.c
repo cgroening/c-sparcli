@@ -102,31 +102,25 @@ void test_columns_basic(void) {
         });
         sc_columns_add_panel_str(cl, "Column A\nLine 2\nLine 3\nLine 4\nLine 5",
             (ScPanelOpts){
-                .border        = SC_BORDER_ROUNDED,
-                .border_color  = sc_ansi_color_from_rgb(255, 100, 100),
-                .border_bg     = sc_ansi_color_from_rgb(100, 25, 25),
+                .border        = { .style = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(255, 100, 100), .bg = sc_ansi_color_from_rgb(100, 25, 25) },
                 .bg            = sc_ansi_color_from_rgb(60, 15, 15),
-                .padding = {0, 2, 0, 2},
+                .padding       = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(60, 15, 15) });
         sc_columns_add_panel_str(cl, "Column B\nLine 2\nLine 3",
             (ScPanelOpts){
-                .border        = SC_BORDER_ROUNDED,
-                .border_color  = sc_ansi_color_from_rgb(100, 255, 100),
-                .border_bg     = sc_ansi_color_from_rgb(25, 100, 25),
+                .border        = { .style = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(100, 255, 100), .bg = sc_ansi_color_from_rgb(25, 100, 25) },
                 .bg            = sc_ansi_color_from_rgb(15, 60, 15),
-                .padding = {0, 2, 0, 2},
+                .padding       = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(15, 60, 15) });
         sc_columns_add_panel_str(cl, "Column C\nLine 2",
             (ScPanelOpts){
-                .border        = SC_BORDER_ROUNDED,
-                .border_color  = sc_ansi_color_from_rgb(100, 100, 255),
-                .border_bg     = sc_ansi_color_from_rgb(25, 25, 100),
+                .border        = { .style = SC_BORDER_ROUNDED, .color = sc_ansi_color_from_rgb(100, 100, 255), .bg = sc_ansi_color_from_rgb(25, 25, 100) },
                 .bg            = sc_ansi_color_from_rgb(15, 15, 60),
-                .padding = {0, 2, 0, 2},
+                .padding       = {0, 2, 0, 2},
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){ .stretch = 1, .bg = sc_ansi_color_from_rgb(15, 15, 60) });

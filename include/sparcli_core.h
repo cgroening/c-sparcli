@@ -168,6 +168,20 @@ typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
  */
 typedef struct { int top; int right; int bottom; int left; } ScEdges;
 
+typedef struct {
+    ScBorderType style;
+    ScColor      color;
+    ScColor      bg;
+} ScBorderStyle;
+
+typedef struct {
+    const char      *text;
+    ScTextStyle      style;
+    ScTitlePosition  pos;
+    ScHAlign         align;
+    int              pad;
+} ScTitle;
+
 
 /**
  * Creates an `ScColor` from 24-bit RGB values.

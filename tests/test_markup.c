@@ -127,13 +127,9 @@ void test_markup(void) {
             "Combine: [bold yellow on blue] bold yellow on blue [/]"
         );
         sc_panel_text(content, (ScPanelOpts){
-            .border       = SC_BORDER_ROUNDED,
-            .border_color = SC_ANSI_COLOR_CYAN,
-            .title        = " Markup Demo ",
-            .title_style   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
-            .title_pos    = SC_TITLE_TOP,
-            .title_align  = SC_ALIGN_CENTER,
-            .title_pad    = 1,
+            .border  = { .style = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
+            .title   = { .text = " Markup Demo ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+                         .pos = SC_TITLE_TOP, .align = SC_ALIGN_CENTER, .pad = 1 },
             .padding = {1, 2, 1, 2},
         });
         sc_text_free(content);

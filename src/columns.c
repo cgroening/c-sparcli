@@ -60,22 +60,22 @@ static int ansi_vis_w(const char *s) {
 
 void sc_rendered_free(ScRendered *r) {
     if (!r) return;
-    for (size_t i = 0; i < r->count; i++) free(r->lines[i]);
+    for (size_t i = 0; i < r->line_count; i++) free(r->lines[i]);
     free(r->lines);
-    free(r->vis_widths);
+    free(r->column_widths);
     free(r);
 }
 
 static ScRendered *buf_to_rendered(char *buf, size_t sz) {
     ScRendered *r = malloc(sizeof(ScRendered));
     r->lines      = NULL;
-    r->vis_widths = NULL;
-    r->count      = 0;
-    r->max_vis_w  = 0;
+    r->column_widths = NULL;
+    r->line_count      = 0;
+    r->max_column_width  = 0;
 
     size_t cap = 16;
     r->lines      = malloc(cap * sizeof(char *));
-    r->vis_widths = malloc(cap * sizeof(int));
+    r->column_widths = malloc(cap * sizeof(int));
 
     char *p = buf;
     char *end = buf + sz;
@@ -86,17 +86,17 @@ static ScRendered *buf_to_rendered(char *buf, size_t sz) {
         /* skip trailing empty line after final newline */
         if (!nl && len == 0) break;
 
-        if (r->count == cap) {
+        if (r->line_count == cap) {
             cap *= 2;
             r->lines      = realloc(r->lines,      cap * sizeof(char *));
-            r->vis_widths = realloc(r->vis_widths, cap * sizeof(int));
+            r->column_widths = realloc(r->column_widths, cap * sizeof(int));
         }
         char *line = strndup(p, len);
         int   vw   = ansi_vis_w(line);
-        r->lines[r->count]      = line;
-        r->vis_widths[r->count] = vw;
-        if (vw > r->max_vis_w) r->max_vis_w = vw;
-        r->count++;
+        r->lines[r->line_count]      = line;
+        r->column_widths[r->line_count] = vw;
+        if (vw > r->max_column_width) r->max_column_width = vw;
+        r->line_count++;
         p = nl ? nl + 1 : end + 1;
     }
     return r;
@@ -322,13 +322,13 @@ ScRendered *sc_capture_rule_text(const ScText *title, ScRuleOpts opts) {
 void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item) {
     if (!r) return;
     ScRendered *copy    = malloc(sizeof(ScRendered));
-    copy->count         = r->count;
-    copy->max_vis_w     = r->max_vis_w;
-    copy->lines         = malloc(r->count * sizeof(char *));
-    copy->vis_widths    = malloc(r->count * sizeof(int));
-    for (size_t i = 0; i < r->count; i++) {
+    copy->line_count         = r->line_count;
+    copy->max_column_width     = r->max_column_width;
+    copy->lines         = malloc(r->line_count * sizeof(char *));
+    copy->column_widths    = malloc(r->line_count * sizeof(int));
+    for (size_t i = 0; i < r->line_count; i++) {
         copy->lines[i]      = strdup(r->lines[i]);
-        copy->vis_widths[i] = r->vis_widths[i];
+        copy->column_widths[i] = r->column_widths[i];
     }
     columns_push(cl, copy, item);
 }
@@ -346,14 +346,14 @@ void sc_columns_free(ScColumns *cl) {
 /* Generate one empty content line matching the panel's border and bg colors.
    inner_w = panel's inner width (max_vis_w - 2). Returns a heap-allocated string. */
 static char *make_empty_content_line(const ScPanelOpts *opts, int inner_w) {
-    const char *v = (opts->border != SC_BORDER_NONE && sep_chars[opts->border])
-                    ? sep_chars[opts->border] : " ";
+    const char *v = (opts->border.style != SC_BORDER_NONE && sep_chars[opts->border.style])
+                    ? sep_chars[opts->border.style] : " ";
     fflush(stdout);
     FILE *tmp = tmpfile();
     int   saved = dup(STDOUT_FILENO);
     dup2(fileno(tmp), STDOUT_FILENO);
 
-    sc_apply_colors(opts->border_color, opts->border_bg);
+    sc_apply_colors(opts->border.color, opts->border.bg);
     fputs(v, stdout);
     fputs("\033[0m", stdout);
     if (color_active(opts->bg)) {
@@ -363,7 +363,7 @@ static char *make_empty_content_line(const ScPanelOpts *opts, int inner_w) {
     } else {
         for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
     }
-    sc_apply_colors(opts->border_color, opts->border_bg);
+    sc_apply_colors(opts->border.color, opts->border.bg);
     fputs(v, stdout);
     fputs("\033[0m", stdout);
 
@@ -385,28 +385,28 @@ static char *make_empty_content_line(const ScPanelOpts *opts, int inner_w) {
    the last line (bottom border). Caller owns the returned ScRendered. */
 static ScRendered *stretch_rendered(const ScRendered *orig, int extra,
                                     const ScPanelOpts *opts) {
-    int inner_w = orig->max_vis_w - 2;
+    int inner_w = orig->max_column_width - 2;
     if (inner_w < 0) inner_w = 0;
     char *empty = make_empty_content_line(opts, inner_w);
     int   evw   = ansi_vis_w(empty);
 
-    size_t new_count = orig->count + (size_t)extra;
+    size_t new_count = orig->line_count + (size_t)extra;
     ScRendered *exp  = malloc(sizeof(ScRendered));
     exp->lines      = malloc(new_count * sizeof(char *));
-    exp->vis_widths = malloc(new_count * sizeof(int));
-    exp->count      = new_count;
-    exp->max_vis_w  = orig->max_vis_w;
+    exp->column_widths = malloc(new_count * sizeof(int));
+    exp->line_count      = new_count;
+    exp->max_column_width  = orig->max_column_width;
 
-    for (size_t i = 0; i < orig->count - 1; i++) {
+    for (size_t i = 0; i < orig->line_count - 1; i++) {
         exp->lines[i]      = strdup(orig->lines[i]);
-        exp->vis_widths[i] = orig->vis_widths[i];
+        exp->column_widths[i] = orig->column_widths[i];
     }
     for (int i = 0; i < extra; i++) {
-        exp->lines[orig->count - 1 + (size_t)i]      = strdup(empty);
-        exp->vis_widths[orig->count - 1 + (size_t)i] = evw;
+        exp->lines[orig->line_count - 1 + (size_t)i]      = strdup(empty);
+        exp->column_widths[orig->line_count - 1 + (size_t)i] = evw;
     }
-    exp->lines[new_count - 1]      = strdup(orig->lines[orig->count - 1]);
-    exp->vis_widths[new_count - 1] = orig->vis_widths[orig->count - 1];
+    exp->lines[new_count - 1]      = strdup(orig->lines[orig->line_count - 1]);
+    exp->column_widths[new_count - 1] = orig->column_widths[orig->line_count - 1];
 
     free(empty);
     return exp;
@@ -422,8 +422,8 @@ void sc_columns_print(const ScColumns *cl) {
     /* ── stretch: build working array with expanded copies for stretch panels ── */
     size_t max_h_all = 0;
     for (size_t i = 0; i < cl->count; i++)
-        if (cl->entries[i].rendered->count > max_h_all)
-            max_h_all = cl->entries[i].rendered->count;
+        if (cl->entries[i].rendered->line_count > max_h_all)
+            max_h_all = cl->entries[i].rendered->line_count;
 
     ScRendered **working = malloc(cl->count * sizeof(ScRendered *));
     for (size_t i = 0; i < cl->count; i++)
@@ -431,8 +431,8 @@ void sc_columns_print(const ScColumns *cl) {
 
     for (size_t ci = 0; ci < cl->count; ci++) {
         const ScColEntry *e = &cl->entries[ci];
-        if (!e->stretch || e->rendered->count >= max_h_all) continue;
-        int extra = (int)max_h_all - (int)e->rendered->count;
+        if (!e->stretch || e->rendered->line_count >= max_h_all) continue;
+        int extra = (int)max_h_all - (int)e->rendered->line_count;
         working[ci] = stretch_rendered(e->rendered, extra, &e->panel_opts);
     }
 
@@ -440,7 +440,7 @@ void sc_columns_print(const ScColumns *cl) {
     int *cw = malloc(cl->count * sizeof(int));
     for (size_t i = 0; i < cl->count; i++) {
         ScColItem *item = &cl->entries[i].item;
-        int w = working[i]->max_vis_w;
+        int w = working[i]->max_column_width;
         if (item->fixed_w > 0) {
             w = item->fixed_w;
         } else {
@@ -483,14 +483,14 @@ void sc_columns_print(const ScColumns *cl) {
     /* ── vertical alignment offsets ── */
     size_t total_h = 0;
     for (size_t i = 0; i < cl->count; i++)
-        if (working[i]->count > total_h)
-            total_h = working[i]->count;
+        if (working[i]->line_count > total_h)
+            total_h = working[i]->line_count;
 
     int *top_off = malloc(cl->count * sizeof(int));
     for (size_t i = 0; i < cl->count; i++) {
         ScColItem *item = &cl->entries[i].item;
         ScVAlign   va   = item->valign_set ? item->valign : cl->opts.valign;
-        int h     = (int)working[i]->count;
+        int h     = (int)working[i]->line_count;
         int extra = (int)total_h - h;
         int off   = 0;
         if (va == SC_VALIGN_MIDDLE) off = extra / 2;
@@ -510,9 +510,9 @@ void sc_columns_print(const ScColumns *cl) {
             int         col = cw[ci];
             int         ri  = (int)li - top_off[ci];
 
-            if (ri >= 0 && ri < (int)r->count) {
+            if (ri >= 0 && ri < (int)r->line_count) {
                 const char *line = r->lines[ri];
-                int vw    = r->vis_widths[ri];
+                int vw    = r->column_widths[ri];
                 int spare = col - vw;
                 if (spare < 0) spare = 0;
                 int lp = 0, rp = spare;

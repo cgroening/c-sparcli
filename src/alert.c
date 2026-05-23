@@ -25,15 +25,11 @@ void sc_alert_str(ScAlertType type, const char *content) {
              alert_presets[type].icon, alert_presets[type].label);
 
     ScPanelOpts opts = {
-        .border       = SC_BORDER_SINGLE,
-        .border_color = col,
-        .title        = title,
-        .title_style   = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
-        .title_pos    = SC_TITLE_TOP,
-        .title_align  = SC_ALIGN_LEFT,
-        .title_pad    = 1,
-        .padding      = {0, 1, 0, 1},
-        .full_width   = 1,
+        .border     = { .style = SC_BORDER_SINGLE, .color = col },
+        .title      = { .text = title, .style = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
+                        .pos = SC_TITLE_TOP, .align = SC_ALIGN_LEFT, .pad = 1 },
+        .padding    = {0, 1, 0, 1},
+        .full_width = 1,
     };
     sc_panel_str(content, opts);
 }
@@ -46,15 +42,11 @@ void sc_alert_text(ScAlertType type, const ScText *content) {
              alert_presets[type].icon, alert_presets[type].label);
 
     ScPanelOpts opts = {
-        .border       = SC_BORDER_SINGLE,
-        .border_color = col,
-        .title        = title,
-        .title_style   = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
-        .title_pos    = SC_TITLE_TOP,
-        .title_align  = SC_ALIGN_LEFT,
-        .title_pad    = 1,
-        .padding      = {0, 1, 0, 1},
-        .full_width   = 1,
+        .border     = { .style = SC_BORDER_SINGLE, .color = col },
+        .title      = { .text = title, .style = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
+                        .pos = SC_TITLE_TOP, .align = SC_ALIGN_LEFT, .pad = 1 },
+        .padding    = {0, 1, 0, 1},
+        .full_width = 1,
     };
     sc_panel_text(content, opts);
 }
