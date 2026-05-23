@@ -44,7 +44,7 @@ static void print_repeat(const char *s, int n, ScColor fg, ScColor bg) {
 static void render_hline(int inner_w, ScBorderType border,
                           ScColor border_fg, ScColor border_bg,
                           const char *lcorner, const char *rcorner,
-                          const char *title, ScTextStyle title_opts, ScHAlign align,
+                          const char *title, ScTextStyle title_style, ScHAlign align,
                           int title_pad) {
     const char *h = border_table[border].h;
     if (title_pad < 0) title_pad = 0;
@@ -67,9 +67,9 @@ static void render_hline(int inner_w, ScBorderType border,
         if (rd < 0) rd = 0;
 
         print_repeat(h, ld, border_fg, border_bg);
-        for (int i = 0; i < title_pad; i++) print_colored(" ", SC_ANSI_COLOR_NONE, title_opts.bg);
-        sc_print(title, title_opts);
-        for (int i = 0; i < title_pad; i++) print_colored(" ", SC_ANSI_COLOR_NONE, title_opts.bg);
+        for (int i = 0; i < title_pad; i++) print_colored(" ", SC_ANSI_COLOR_NONE, title_style.bg);
+        sc_print(title, title_style);
+        for (int i = 0; i < title_pad; i++) print_colored(" ", SC_ANSI_COLOR_NONE, title_style.bg);
         print_repeat(h, rd, border_fg, border_bg);
     } else {
         print_repeat(h, inner_w, border_fg, border_bg);
@@ -238,7 +238,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     PMARG();
     render_hline(inner_w, opts.border, opts.border_color, opts.border_bg, tl, tr,
                  opts.title_pos == SC_TITLE_TOP ? opts.title : NULL,
-                 opts.title_opts, opts.title_align, title_pad);
+                 opts.title_style, opts.title_align, title_pad);
 
     for (int i = 0; i < pad_t; i++) {
         PMARG();
@@ -261,7 +261,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     PMARG();
     render_hline(inner_w, opts.border, opts.border_color, opts.border_bg, bl, br,
                  opts.title_pos == SC_TITLE_BOTTOM ? opts.title : NULL,
-                 opts.title_opts, opts.title_align, title_pad);
+                 opts.title_style, opts.title_align, title_pad);
 
     for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
 

@@ -11,7 +11,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = " Team A ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .title = " Team A ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
             .cell_pad = {0, 1, 0, 1},
         });
@@ -25,7 +25,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = " Team B ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE },
+            .title = " Team B ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
             .cell_pad = {0, 1, 0, 1},
         });
@@ -74,7 +74,7 @@ void test_columns(void) {
                 .border       = SC_BORDER_ROUNDED,
                 .border_color = SC_ANSI_COLOR_GREEN,
                 .title        = " System Info ",
-                .title_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+                .title_style   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
                 .title_pos    = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
                 .padding = {0, 2, 0, 2}, .title_pad = 1,
             },
@@ -91,7 +91,7 @@ void test_columns(void) {
     {
         ScPanelOpts po_top = {
             .border = SC_BORDER_SINGLE, .border_color = SC_ANSI_COLOR_NONE,
-            .title = " Top ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = " Top ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .padding = {0, 1, 0, 1}, .title_pad = 1,
         };
@@ -210,7 +210,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = " Revenue ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .title = " Revenue ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
             .cell_pad = {0, 1, 0, 1},
         });
@@ -225,7 +225,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = " Costs ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
+            .title = " Costs ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
             .cell_pad = {0, 1, 0, 1},
         });
@@ -240,7 +240,7 @@ void test_columns(void) {
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row = 1, .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = " Profit ", .title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+            .title = " Profit ", .title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
             .title_pos = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER, .title_pad = 1,
             .cell_pad = {0, 1, 0, 1},
         });

@@ -108,7 +108,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | `border_bg` | `ScColor` | Frame background color; zero-init `{0}` = no color (see sentinel note below) |
 | `bg` | `ScColor` | Content area background color; zero-init `{0}` = no color |
 | `title` | `const char *` | NULL = no title |
-| `title_opts` | `ScTextStyle` | Style for title text |
+| .title_style` | `ScTextStyle` | Style for title text |
 | `title_pos` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` | |
 | `title_align` | `ScHAlign` | LEFT / CENTER / RIGHT |
 | `title_pad` | `int` | Spaces on each side of title text, default 1 |
@@ -150,7 +150,7 @@ void     sc_table_free(ScTable *t);
 | `footer_row_bg` / `footer_col_bg` | Background for footer rows/column |
 | `footer_opts` | `ScTextStyle` for footer cells |
 | `title` | Table title string |
-| `title_opts` / `title_pos` / `title_align` / `title_pad` | Title appearance |
+| .title_style` / `title_pos` / `title_align` / `title_pad` | Title appearance |
 | `cell_pad_x` / `cell_pad_y` | Cell padding |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
@@ -227,7 +227,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 |-------|-------------|
 | `style` | `ScBorderType` — which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
-| `title_opts` | `ScTextStyle` for the title text |
+| .title_style` | `ScTextStyle` for the title text |
 | `title_align` | LEFT / CENTER / RIGHT (default CENTER) |
 | `title_pad` | Spaces on each side of title, default 1 |
 | `width` | 0 = full terminal width; >0 = fixed width |

@@ -7,7 +7,7 @@
 void sc_pad_print(const ScRendered *r, ScPadOpts opts) {
     if (!r) return;
     for (int i = 0; i < opts.top; i++) fputc('\n', stdout);
-    for (size_t i = 0; i < r->count; i++) {
+    for (size_t i = 0; i < r->line_count; i++) {
         for (int k = 0; k < opts.left;  k++) fputc(' ', stdout);
         fputs(r->lines[i], stdout);
         for (int k = 0; k < opts.right; k++) fputc(' ', stdout);
@@ -20,9 +20,9 @@ void sc_pad_print(const ScRendered *r, ScPadOpts opts) {
 
 void sc_align_print(const ScRendered *r, ScHAlign align, int width) {
     if (!r) return;
-    if (width <= 0) width = sc_term_width();
-    for (size_t i = 0; i < r->count; i++) {
-        int vw    = r->vis_widths[i];
+    if (width <= 0) width = sc_terminal_width();
+    for (size_t i = 0; i < r->line_count; i++) {
+        int vw    = r->column_widths[i];
         int spare = width - vw;
         if (spare < 0) spare = 0;
         int lp = 0;

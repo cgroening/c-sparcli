@@ -247,14 +247,14 @@ void test_tables(void) {
 
     /* ── 11. Double border, title top, cyan ── */
     {
-        ScTextStyle title_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE };
+        ScTextStyle title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE };
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders     = { SC_BORDER_DOUBLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header_row  = 1, .header_row_bg = SC_ANSI_COLOR_NONE,
             .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title       = " Leaderboard ",
-            .title_opts  = title_opts,
+            .title_style  = title_style,
             .title_pos   = SC_TITLE_TOP,
             .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1,
@@ -469,7 +469,7 @@ void test_tables(void) {
             .header_row    = 1, .header_row_bg = SC_ANSI_COLOR_NONE,
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title       = " Word Wrap ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -507,7 +507,7 @@ void test_tables(void) {
             .footer_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .footer_row_bg = sc_ansi_color_from_rgb(30, 40, 30),
             .title       = " Footer Row (Totals) ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -541,7 +541,7 @@ void test_tables(void) {
             .header_row    = 1, .header_row_bg = SC_ANSI_COLOR_NONE,
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title       = " Per-Row Background ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -578,7 +578,7 @@ void test_tables(void) {
             .header_row    = 1, .header_row_bg = sc_ansi_color_from_rgb(30, 30, 50),
             .header_opts   = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(200, 200, 255), SC_ANSI_COLOR_NONE },
             .title         = " Per-Column Background ",
-            .title_opts    = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .title_style    = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos     = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad     = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -616,7 +616,7 @@ void test_tables(void) {
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .total_width = 60,
             .title       = " Total Width = 60 cols ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -640,7 +640,7 @@ void test_tables(void) {
             .header_row    = 1, .header_row_bg = SC_ANSI_COLOR_NONE,
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title       = " Colspan ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -680,7 +680,7 @@ void test_tables(void) {
             .header_row    = 1, .header_row_bg = SC_ANSI_COLOR_NONE,
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title         = " Rowspan ",
-            .title_opts    = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .title_style    = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos     = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad     = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -717,7 +717,7 @@ void test_tables(void) {
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .rtl         = 1,
             .title       = " RTL Column Order ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });
@@ -745,7 +745,7 @@ void test_tables(void) {
             .header_opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .max_rows    = 4,
             .title       = " Max Rows = 4 (10 total) ",
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_align = SC_ALIGN_CENTER,
             .title_pad   = 1, .cell_pad = {0, 1, 0, 1},
         });

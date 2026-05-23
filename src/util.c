@@ -34,10 +34,10 @@ char *sc_strip_ansi(const char *str) {
 char *sc_truncate(const char *str, int max_cols, const char *ellipsis) {
     if (!str) return strdup("");
 
-    int vis_w = (int)sc_utf8_vis_w(str, strlen(str));
+    int vis_w = (int)sc_utf8_string_length(str, strlen(str));
     if (vis_w <= max_cols) return strdup(str);
 
-    int ell_w = ellipsis ? (int)sc_utf8_vis_w(ellipsis, strlen(ellipsis)) : 0;
+    int ell_w = ellipsis ? (int)sc_utf8_string_length(ellipsis, strlen(ellipsis)) : 0;
     int fit   = max_cols - ell_w;
     if (fit < 0) fit = 0;
 
@@ -55,7 +55,7 @@ char *sc_truncate(const char *str, int max_cols, const char *ellipsis) {
 /* ── sc_clear_line ───────────────────────────────────────────────────────── */
 
 void sc_clear_line(void) {
-    int tw = sc_term_width();
+    int tw = sc_terminal_width();
     fputc('\r', stdout);
     for (int i = 0; i < tw; i++) fputc(' ', stdout);
     fputc('\r', stdout);

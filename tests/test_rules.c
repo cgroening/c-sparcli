@@ -24,17 +24,17 @@ void test_rules(void) {
     /* ── 3. Title: left / center / right alignment ── */
     sc_rule_str("Links",  (ScRuleOpts){
         .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
-        .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_LEFT,
     });
     sc_rule_str("Mitte",  (ScRuleOpts){
         .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
-        .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
     });
     sc_rule_str("Rechts", (ScRuleOpts){
         .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
-        .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_RIGHT,
     });
 
@@ -44,20 +44,20 @@ void test_rules(void) {
     sc_rule_str("Section A", (ScRuleOpts){
         .style       = SC_BORDER_SINGLE,
         .color       = SC_ANSI_COLOR_CYAN,
-        .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .title_pad   = 2,
     });
     sc_rule_str("Warning", (ScRuleOpts){
         .style       = SC_BORDER_DOUBLE,
         .color       = SC_ANSI_COLOR_YELLOW,
-        .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
     });
     sc_rule_str("Error", (ScRuleOpts){
         .style       = SC_BORDER_THICK,
         .color       = sc_ansi_color_from_rgb(200, 50, 50),
-        .title_opts  = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(200, 50, 50), SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(200, 50, 50), SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .title_pad   = 2,
     });
@@ -67,19 +67,19 @@ void test_rules(void) {
     /* ── 5. Fixed width with terminal placement ── */
     sc_rule_str("left-aligned rule", (ScRuleOpts){
         .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
-        .title_opts  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .width = 40, .align = SC_ALIGN_LEFT,
     });
     sc_rule_str("centered rule", (ScRuleOpts){
         .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
-        .title_opts  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .width = 40, .align = SC_ALIGN_CENTER,
     });
     sc_rule_str("right-aligned rule", (ScRuleOpts){
         .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
-        .title_opts  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .width = 40, .align = SC_ALIGN_RIGHT,
     });
@@ -90,7 +90,7 @@ void test_rules(void) {
     sc_rule_str("mit Margin und pad_y", (ScRuleOpts){
         .style       = SC_BORDER_ROUNDED,
         .color       = SC_ANSI_COLOR_GREEN,
-        .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+        .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
         .title_align = SC_ALIGN_CENTER,
         .margin = {1, 8, 1, 8},
     });

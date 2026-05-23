@@ -222,7 +222,7 @@ void test_trees(void) {
             .header_row  = 1,
             .header_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title = " File Stats ", .title_align = SC_ALIGN_CENTER,
-            .title_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title_style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .title_pos   = SC_TITLE_TOP, .title_pad = 1,
             .cell_pad = {0, 1, 0, 1},
         });

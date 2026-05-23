@@ -22,7 +22,7 @@ static void print_h_repeat(const char *h, int n, ScColor color) {
 }
 
 void sc_rule_text(const ScText *title, ScRuleOpts opts) {
-    int term_w = sc_term_width();
+    int term_w = sc_terminal_width();
     int ml = opts.margin.left  > 0 ? opts.margin.left  : 0;
     int mr = opts.margin.right > 0 ? opts.margin.right : 0;
     int eff_w   = opts.width > 0 ? opts.width : (term_w - ml - mr);
@@ -88,7 +88,7 @@ void sc_rule_str(const char *title, ScRuleOpts opts) {
         return;
     }
     ScText *t = sc_text_new();
-    sc_text_append(t, title, opts.title_opts);
+    sc_text_append(t, title, opts.title_style);
     sc_rule_text(t, opts);
     sc_text_free(t);
 }

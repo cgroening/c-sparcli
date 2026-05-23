@@ -64,7 +64,7 @@ static void kv_print_wrapped(const char *text, int avail, int indent,
             const char *w = p;
             while (*w && *w != ' ') w++;
             int wbytes = (int)(w - p);
-            int wvis   = (int)sc_utf8_vis_w(p, (size_t)wbytes);
+            int wvis   = (int)sc_utf8_string_length(p, (size_t)wbytes);
             int gap    = (bvis > 0) ? 1 : 0;
 
             /* flush line if next word won't fit (keep at least one word per line) */
@@ -93,7 +93,7 @@ void sc_kv_print(const ScKV *kv) {
     if (!kv || kv->count == 0) return;
 
     for (int i = 0; i < kv->opts.margin.top; i++) fputc('\n', stdout);
-    int total_w = kv->opts.width > 0 ? kv->opts.width : sc_term_width();
+    int total_w = kv->opts.width > 0 ? kv->opts.width : sc_terminal_width();
     int margin  = kv->opts.margin.left > 0 ? kv->opts.margin.left : 0;
 
     /* auto key-column width */
@@ -101,14 +101,14 @@ void sc_kv_print(const ScKV *kv) {
     if (key_w <= 0) {
         key_w = 0;
         for (size_t i = 0; i < kv->count; i++) {
-            int w = (int)sc_utf8_vis_w(kv->entries[i].key,
+            int w = (int)sc_utf8_string_length(kv->entries[i].key,
                                         strlen(kv->entries[i].key));
             if (w > key_w) key_w = w;
         }
     }
 
     const char *sep   = kv->opts.sep ? kv->opts.sep : "  ";
-    int         sep_w = (int)sc_utf8_vis_w(sep, strlen(sep));
+    int         sep_w = (int)sc_utf8_string_length(sep, strlen(sep));
 
     int avail = total_w - margin - key_w - sep_w - margin;
     if (avail < 1) avail = 1;
@@ -129,7 +129,7 @@ void sc_kv_print(const ScKV *kv) {
         fputs(margin_buf, stdout);
 
         /* print key, padded to key_w */
-        int natural_kw = (int)sc_utf8_vis_w(key, strlen(key));
+        int natural_kw = (int)sc_utf8_string_length(key, strlen(key));
         int kbytes = (natural_kw > key_w)
                      ? (int)sc_utf8_trim_to_cols(key, key_w)
                      : (int)strlen(key);

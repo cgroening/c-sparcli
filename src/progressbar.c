@@ -70,14 +70,14 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
     /* ── caps ── */
     const char *lcap  = b->opts.left_cap;
     const char *rcap  = b->opts.right_cap;
-    int         lcap_w = lcap ? (int)sc_utf8_vis_w(lcap, strlen(lcap)) : 0;
-    int         rcap_w = rcap ? (int)sc_utf8_vis_w(rcap, strlen(rcap)) : 0;
+    int         lcap_w = lcap ? (int)sc_utf8_string_length(lcap, strlen(lcap)) : 0;
+    int         rcap_w = rcap ? (int)sc_utf8_string_length(rcap, strlen(rcap)) : 0;
 
     /* ── percent string ── */
     char pct_buf[16] = "";
     if (b->opts.show_percent)
         snprintf(pct_buf, sizeof(pct_buf), " %3.0f%%", ratio * 100.0);
-    int pct_w = (int)sc_utf8_vis_w(pct_buf, strlen(pct_buf));
+    int pct_w = (int)sc_utf8_string_length(pct_buf, strlen(pct_buf));
 
     /* ── value string ── */
     char val_buf[64]  = "";
@@ -93,18 +93,18 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
             snprintf(val_buf,  sizeof(val_buf),  " (%.1f/%.1f)", value, max);
             snprintf(max_buf,  sizeof(max_buf),  " (%.1f/%.1f)", max,   max);
         }
-        val_reserve = (int)sc_utf8_vis_w(max_buf, strlen(max_buf));
+        val_reserve = (int)sc_utf8_string_length(max_buf, strlen(max_buf));
     }
 
     /* ── label field ── */
     int label_field_w = 0;
     if (b->label) {
-        int lw = (int)sc_utf8_vis_w(b->label, strlen(b->label));
+        int lw = (int)sc_utf8_string_length(b->label, strlen(b->label));
         label_field_w = (b->opts.label_width > 0 ? b->opts.label_width : lw) + 2;
     }
 
     /* ── bar width ── */
-    int total_w = b->opts.width > 0 ? b->opts.width : sc_term_width();
+    int total_w = b->opts.width > 0 ? b->opts.width : sc_terminal_width();
     int bw = b->opts.bar_width > 0
         ? b->opts.bar_width
         : total_w - label_field_w - lcap_w - rcap_w - pct_w - val_reserve;
@@ -127,7 +127,7 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
 
     /* ── print label ── */
     if (b->label) {
-        int natural_w = (int)sc_utf8_vis_w(b->label, strlen(b->label));
+        int natural_w = (int)sc_utf8_string_length(b->label, strlen(b->label));
         int field_w   = b->opts.label_width > 0 ? b->opts.label_width : natural_w;
         int bytes     = (natural_w > field_w)
                         ? (int)sc_utf8_trim_to_cols(b->label, field_w) : (int)strlen(b->label);
@@ -181,7 +181,7 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
     /* ── value ── */
     if (b->opts.show_value && max > 0.0) {
         fputs(val_buf, stdout);
-        int actual_w = (int)sc_utf8_vis_w(val_buf, strlen(val_buf));
+        int actual_w = (int)sc_utf8_string_length(val_buf, strlen(val_buf));
         for (int i = actual_w; i < val_reserve; i++) fputc(' ', stdout);
     }
 

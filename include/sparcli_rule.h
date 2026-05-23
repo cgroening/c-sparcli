@@ -6,7 +6,7 @@
 typedef struct {
     ScBorderType style;
     ScColor       color;
-    ScTextStyle     title_opts;
+    ScTextStyle    title_style;
     ScHAlign       title_align;
     int           title_pad;
     int           width;    /* 0 = full terminal width */

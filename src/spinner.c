@@ -67,7 +67,7 @@ void sc_spinner_set_label(ScSpinner *s, const char *label) {
 void sc_spinner_tick(ScSpinner *s) {
     int         style = (int)s->opts.style;
     const char *frame = spinner_frames[style][s->frame];
-    int         tw    = sc_term_width();
+    int         tw    = sc_terminal_width();
 
     /* spinner character */
     int colored = color_is_set(s->opts.color);
@@ -80,7 +80,7 @@ void sc_spinner_tick(ScSpinner *s) {
     /* label */
     if (s->label) {
         fputc(' ', stdout); vis++;
-        int lw = (int)sc_utf8_vis_w(s->label, strlen(s->label));
+        int lw = (int)sc_utf8_string_length(s->label, strlen(s->label));
         if (!opts_no_fmt(s->opts.label_opts))
             sc_print(s->label, s->opts.label_opts);
         else
@@ -99,7 +99,7 @@ void sc_spinner_tick(ScSpinner *s) {
 
 void sc_spinner_finish(ScSpinner *s, int success, const char *label) {
     /* clear the current line */
-    int tw = sc_term_width();
+    int tw = sc_terminal_width();
     for (int i = 0; i < tw; i++) fputc(' ', stdout);
     fputc('\r', stdout);
 

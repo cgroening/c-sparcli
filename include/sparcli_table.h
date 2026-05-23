@@ -68,7 +68,7 @@ typedef struct {
     ScColor        footer_col_bg;
     ScTextStyle      footer_opts;
     const char    *title;
-    ScTextStyle      title_opts;
+    ScTextStyle     title_style;
     ScTitlePosition     title_pos;
     ScHAlign        title_align;
     int            title_pad;

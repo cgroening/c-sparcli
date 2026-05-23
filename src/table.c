@@ -59,7 +59,7 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
                 if (len > 0) {
                     if (buf_n == buf_cap) { buf_cap *= 2; buf = realloc(buf, buf_cap * sizeof(TSpan)); }
                     buf[buf_n++] = (TSpan){ strndup(start, len), opts };
-                    buf_w += sc_utf8_vis_w(start, len);
+                    buf_w += sc_utf8_string_length(start, len);
                 }
                 flush_tline(&lines, &lines_cap, &nlines, buf, buf_n, buf_w);
                 buf_n = 0; buf_w = 0;
@@ -71,7 +71,7 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
         if (len > 0) {
             if (buf_n == buf_cap) { buf_cap *= 2; buf = realloc(buf, buf_cap * sizeof(TSpan)); }
             buf[buf_n++] = (TSpan){ strndup(start, len), opts };
-            buf_w += sc_utf8_vis_w(start, len);
+            buf_w += sc_utf8_string_length(start, len);
         }
     }
 
@@ -108,7 +108,7 @@ static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
             int is_sp = (*p == ' ');
             while (*p && ((*p == ' ') == is_sp)) p++;
             size_t len = (size_t)(p - seg);
-            size_t vw  = is_sp ? len : sc_utf8_vis_w(seg, len);
+            size_t vw  = is_sp ? len : sc_utf8_string_length(seg, len);
             if (ntok == tcap) { tcap = tcap ? tcap * 2 : 16; toks = realloc(toks, tcap * sizeof(Tok)); }
             toks[ntok++] = (Tok){ strndup(seg, len), vw, opts, is_sp };
         }
@@ -156,7 +156,7 @@ static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
                     size_t cb = sc_utf8_trim_to_cols(p, avail);
                     if (cb == 0) break;
                     char *chunk = strndup(p, cb);
-                    size_t cw2  = sc_utf8_vis_w(p, cb);
+                    size_t cw2  = sc_utf8_string_length(p, cb);
                     if (sn == sc2) { sc2 = sc2?sc2*2:8; sbuf = realloc(sbuf, sc2*sizeof(TSpan)); }
                     sbuf[sn++] = (TSpan){ chunk, tok->opts };
                     sw += cw2; p += cb; rem -= cb;
@@ -287,7 +287,7 @@ static void print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg) {
 static void compute_col_widths(ScTable *t) {
     for (size_t c = 0; c < t->ncols; c++) {
         const char *hdr = t->cols[c].header;
-        size_t max_w = hdr ? sc_utf8_vis_w(hdr, strlen(hdr)) : 0;
+        size_t max_w = hdr ? sc_utf8_string_length(hdr, strlen(hdr)) : 0;
 
         /* only consider cells with colspan <= 1 (not spanning cells) */
         for (size_t r = 0; r < t->nrows; r++) {
@@ -524,7 +524,7 @@ static void render_inner_sep(const ScTable *t, int *cw,
                         int rem = content_w;
                         for (size_t s = 0; s < line->count && rem > 0; s++) {
                             const char *txt = line->spans[s].text;
-                            int sw = (int)sc_utf8_vis_w(txt, strlen(txt));
+                            int sw = (int)sc_utf8_string_length(txt, strlen(txt));
                             if (sw <= rem) {
                                 print_span_bg(txt, line->spans[s].opts, col_bg);
                                 rem -= sw;
@@ -597,7 +597,7 @@ static void render_title_line(const ScTable *t, int inner_w, int is_top) {
         for (int i = 0; i < ld; i++) fputs(h, stdout);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
-        sc_print(t->opts.title, t->opts.title_opts);
+        sc_print(t->opts.title, t->opts.title_style);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
         sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < rd; i++) fputs(h, stdout);
@@ -797,7 +797,7 @@ static void render_row(const ScTable *t, const ScCell *cells,
                             if (so.fg.index == -2) so.fg = t->opts.footer_opts.fg;
                         }
                         const char *txt = line->spans[s].text;
-                        int sw = (int)sc_utf8_vis_w(txt, strlen(txt));
+                        int sw = (int)sc_utf8_string_length(txt, strlen(txt));
                         if (sw <= remaining) {
                             print_span_bg(txt, so, cell_bg);
                             remaining -= sw;

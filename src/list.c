@@ -53,13 +53,13 @@ static void format_marker_val(const ScList *l, int idx, char *buf64) {
 
 static int marker_val_vis_w(const ScList *l, int idx) {
     char buf[64]; format_marker_val(l, idx, buf);
-    return (int)sc_utf8_vis_w(buf, strlen(buf));
+    return (int)sc_utf8_string_length(buf, strlen(buf));
 }
 
 static int max_marker_val_w(const ScList *l) {
     if (l->opts.marker == SC_LIST_BULLET) {
         const char *b = l->opts.bullet ? l->opts.bullet : "\xe2\x80\xa2";
-        return (int)sc_utf8_vis_w(b, strlen(b));
+        return (int)sc_utf8_string_length(b, strlen(b));
     }
     int mw = 0;
     for (size_t i = 0; i < l->count; i++) {
@@ -73,12 +73,12 @@ static int max_marker_val_w(const ScList *l) {
 static int total_marker_w(const ScList *l) {
     if (l->opts.marker == SC_LIST_BULLET) {
         const char *b = l->opts.bullet ? l->opts.bullet : "\xe2\x80\xa2";
-        return (int)sc_utf8_vis_w(b, strlen(b)) + 1;
+        return (int)sc_utf8_string_length(b, strlen(b)) + 1;
     }
     const char *pre = l->opts.marker_prefix ? l->opts.marker_prefix : "";
     const char *suf = l->opts.marker_suffix ? l->opts.marker_suffix : ".";
-    int pw = (int)sc_utf8_vis_w(pre, strlen(pre));
-    int sw = (int)sc_utf8_vis_w(suf, strlen(suf));
+    int pw = (int)sc_utf8_string_length(pre, strlen(pre));
+    int sw = (int)sc_utf8_string_length(suf, strlen(suf));
     return pw + max_marker_val_w(l) + sw + 1;
 }
 
@@ -210,7 +210,7 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
         /* ── marker ── */
         char val[64];
         format_marker_val(l, (int)i, val);
-        int vw  = (int)sc_utf8_vis_w(val, strlen(val));
+        int vw  = (int)sc_utf8_string_length(val, strlen(val));
         int pad = max_vw - vw;  /* right-align value within field */
 
         char marker[256];
@@ -256,7 +256,7 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
 void sc_list_print(const ScList *l) {
     if (!l) return;
     for (int i = 0; i < l->opts.margin.top; i++) fputc('\n', stdout);
-    int term_w = l->opts.width > 0 ? l->opts.width : sc_term_width();
+    int term_w = l->opts.width > 0 ? l->opts.width : sc_terminal_width();
     print_list_r(l, 0, term_w);
     for (int i = 0; i < l->opts.margin.bottom; i++) fputc('\n', stdout);
 }
