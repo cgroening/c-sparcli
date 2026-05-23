@@ -247,224 +247,12 @@ void test_tables(void) {
 
     /* ── 11. Double border, title top, cyan ── */
     {
-        ScTextStyle title_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE };
         ScTable *tb = sc_table_new((ScTableOpts){
             .borders     = { SC_BORDER_DOUBLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .style = { .text = " Leaderboard ", .opts = title_style, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP },
-            .cell_pad = {0, 1, 0, 1},
-        });
-        sc_table_add_col(tb, "Rank",   (ScColOpts){0,0,6,  SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Player", (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Score",  (ScColOpts){0,0,8,  SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("1"), SC_CELL("Alice"),   SC_CELL("9800") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("2"), SC_CELL("Bob"),     SC_CELL("7650") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("3"), SC_CELL("Charlie"), SC_CELL("6100") }, 3);
-        sc_table_print(tb);
-        sc_table_free(tb);
-    }
-
-    printf("\n");
-
-    /* ── 12. Single border, cell_pad_x = 0 ── */
-    {
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
-            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad = {0, 0, 0, 0},
-        });
-        sc_table_add_col(tb, "A", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "B", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "C", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("1"), SC_CELL("2"), SC_CELL("3") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("4"), SC_CELL("5"), SC_CELL("6") }, 3);
-        sc_table_print(tb);
-        sc_table_free(tb);
-    }
-
-    printf("\n");
-
-    /* ── 13. No outer frame ── */
-    {
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 1, 0, 0 },
-            .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
-            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad = {0, 1, 0, 1},
-        });
-        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Age",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "City",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"),   SC_CELL("30"), SC_CELL("Berlin")  }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),     SC_CELL("24"), SC_CELL("Hamburg") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"),   SC_CELL("35"), SC_CELL("München") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Diana"),   SC_CELL("29"), SC_CELL("Köln")    }, 3);
-        sc_table_print(tb);
-        sc_table_free(tb);
-    }
-
-    printf("\n");
-
-    /* ── 14. Header row + header col only (no outer, no inner rows/cols) ── */
-    {
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 1, 1, 1 },
-            .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
-            .header.col  = 1, .header.col_bg = SC_ANSI_COLOR_NONE,
-            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .cell_pad = {0, 1, 0, 1},
-        });
-        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Role",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Team",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"), SC_CELL("Engineer"),  SC_CELL("Backend")  }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("Designer"),  SC_CELL("Frontend") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"), SC_CELL("Manager"),   SC_CELL("Platform") }, 3);
-        sc_table_print(tb);
-        sc_table_free(tb);
-    }
-
-    printf("\n");
-
-    /* ── 15. Header separator + stripes, no other borders ── */
-    {
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 1, 1, 1 },
-            .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
-            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .striped     = 1, .stripe_bg = sc_ansi_color_from_rgb(40, 40, 60),
-            .cell_pad = {0, 1, 0, 1},
-        });
-        sc_table_add_col(tb, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Level", (ScColOpts){0,0,0, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Alice"),   SC_CELL("9800"), SC_CELL("Expert") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Bob"),     SC_CELL("7650"), SC_CELL("Master") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Carol"),   SC_CELL("6100"), SC_CELL("Expert") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Diana"),   SC_CELL("5300"), SC_CELL("Adept")  }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Ethan"),   SC_CELL("4200"), SC_CELL("Novice") }, 3);
-        sc_table_print(tb);
-        sc_table_free(tb);
-    }
-
-    printf("\n");
-
-    /* ── 16. ScText cells with colors and backgrounds ── */
-    {
-        ScTextStyle plain   = { SC_TEXT_ATTR_NONE,                    SC_ANSI_COLOR_NONE,    SC_ANSI_COLOR_NONE };
-        ScTextStyle bold    = { SC_TEXT_ATTR_BOLD,                    SC_ANSI_COLOR_NONE,    SC_ANSI_COLOR_NONE };
-        ScTextStyle dim     = { SC_TEXT_ATTR_DIM,                     SC_ANSI_COLOR_NONE,    SC_ANSI_COLOR_NONE };
-        ScTextStyle b_green = { SC_TEXT_ATTR_BOLD,                    SC_ANSI_COLOR_GREEN,   SC_ANSI_COLOR_NONE };
-        ScTextStyle b_red   = { SC_TEXT_ATTR_BOLD,                    SC_ANSI_COLOR_RED,     SC_ANSI_COLOR_NONE };
-        ScTextStyle b_yel   = { SC_TEXT_ATTR_BOLD,                    SC_ANSI_COLOR_YELLOW,  SC_ANSI_COLOR_NONE };
-        ScTextStyle cyan_bg = { SC_TEXT_ATTR_BOLD,                    SC_ANSI_COLOR_WHITE,   sc_ansi_color_from_rgb(0,80,120) };
-        ScTextStyle mag_bg  = { SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC,  SC_ANSI_COLOR_WHITE,   sc_ansi_color_from_rgb(100,0,80) };
-        ScTextStyle grn_bg  = { SC_TEXT_ATTR_NONE,                    SC_ANSI_COLOR_BLACK,   sc_ansi_color_from_rgb(60,160,60) };
-        ScTextStyle red_bg  = { SC_TEXT_ATTR_NONE,                    SC_ANSI_COLOR_WHITE,   sc_ansi_color_from_rgb(160,30,30) };
-        ScTextStyle gold    = { SC_TEXT_ATTR_BOLD,                    sc_ansi_color_from_rgb(255,180,0),SC_ANSI_COLOR_NONE };
-
-        ScText *c_api = sc_text_new();
-        sc_text_append(c_api, "REST ", plain);
-        sc_text_append(c_api, "API", cyan_bg);
-
-        ScText *c_db = sc_text_new();
-        sc_text_append(c_db, "Data", plain);
-        sc_text_append(c_db, "base", mag_bg);
-
-        ScText *c_auth = sc_text_new();
-        sc_text_append(c_auth, "Auth", grn_bg);
-        sc_text_append(c_auth, " v2", bold);
-
-        ScText *s_ok = sc_text_new();
-        sc_text_append(s_ok, "● ", b_green);
-        sc_text_append(s_ok, "OK", plain);
-
-        ScText *s_warn = sc_text_new();
-        sc_text_append(s_warn, "▲ ", b_yel);
-        sc_text_append(s_warn, "WARN", bold);
-
-        ScText *s_err = sc_text_new();
-        sc_text_append(s_err, "✗ ", b_red);
-        sc_text_append(s_err, "ERROR", bold);
-
-        ScText *l_fast = sc_text_new();
-        sc_text_append(l_fast, "12 ms", b_green);
-
-        ScText *l_mid = sc_text_new();
-        sc_text_append(l_mid, "340 ms", b_yel);
-
-        ScText *l_slow = sc_text_new();
-        sc_text_append(l_slow, "2.1 s", b_red);
-
-        ScText *r_high = sc_text_new();
-        sc_text_append(r_high, "18 432", gold);
-        sc_text_append(r_high, " req/s", dim);
-
-        ScText *r_mid = sc_text_new();
-        sc_text_append(r_mid, "4 201", plain);
-        sc_text_append(r_mid, " req/s", dim);
-
-        ScText *r_low = sc_text_new();
-        sc_text_append(r_low, "91", b_red);
-        sc_text_append(r_low, " req/s", dim);
-
-        ScText *e_none = sc_text_new();
-        sc_text_append(e_none, "0.0 %", grn_bg);
-
-        ScText *e_some = sc_text_new();
-        sc_text_append(e_some, "1.3 %", b_yel);
-
-        ScText *e_high = sc_text_new();
-        sc_text_append(e_high, "18.7 %", red_bg);
-
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_ROUNDED, sc_ansi_color_from_rgb(80,80,100), sc_ansi_color_from_rgb(80,80,100),
-                             sc_ansi_color_from_rgb(80,80,100), sc_ansi_color_from_rgb(80,80,100), 0, 0, 0 },
-            .header.row  = 1, .header.row_bg = sc_ansi_color_from_rgb(30,30,50),
-            .header.opts = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(180,180,220), SC_ANSI_COLOR_NONE },
-            .cell_pad = {0, 1, 0, 1},
-        });
-        sc_table_add_col(tb, "Service",   (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Status",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Latency",   (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Requests",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Err-Rate",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){
-            SC_CELL_T(c_api),  SC_CELL_T(s_ok),   SC_CELL_T(l_fast), SC_CELL_T(r_high), SC_CELL_T(e_none),
-        }, 5);
-        sc_table_add_row(tb, (ScCell[]){
-            SC_CELL_T(c_db),   SC_CELL_T(s_warn),  SC_CELL_T(l_mid),  SC_CELL_T(r_mid),  SC_CELL_T(e_some),
-        }, 5);
-        sc_table_add_row(tb, (ScCell[]){
-            SC_CELL_T(c_auth), SC_CELL_T(s_err),  SC_CELL_T(l_slow), SC_CELL_T(r_low),  SC_CELL_T(e_high),
-        }, 5);
-        sc_table_print(tb);
-        sc_table_free(tb);
-
-        sc_text_free(c_api);  sc_text_free(c_db);   sc_text_free(c_auth);
-        sc_text_free(s_ok);   sc_text_free(s_warn); sc_text_free(s_err);
-        sc_text_free(l_fast); sc_text_free(l_mid);  sc_text_free(l_slow);
-        sc_text_free(r_high); sc_text_free(r_mid);  sc_text_free(r_low);
-        sc_text_free(e_none); sc_text_free(e_some); sc_text_free(e_high);
-    }
-
-    printf("\n");
-
-    /* ── 17. Word wrap ── */
-    {
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders       = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                               SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
-            .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .style = { .text = " Word Wrap ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Word Wrap ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Component",   (ScColOpts){0,0,14, SC_ALIGN_LEFT,   SC_VALIGN_TOP,    0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Description", (ScColOpts){0,0,24, SC_ALIGN_LEFT,   SC_VALIGN_TOP,    1, SC_ANSI_COLOR_NONE});
@@ -499,7 +287,7 @@ void test_tables(void) {
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .footer.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .footer.row_bg = sc_ansi_color_from_rgb(30, 40, 30),
-            .title = { .style = { .text = " Footer Row (Totals) ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Footer Row (Totals) ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Item",  (ScColOpts){0,0,0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Qty",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -530,7 +318,7 @@ void test_tables(void) {
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .style = { .text = " Per-Row Background ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Per-Row Background ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Build",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Branch", (ScColOpts){0,0,0, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -564,7 +352,7 @@ void test_tables(void) {
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = sc_ansi_color_from_rgb(30, 30, 50),
             .header.opts   = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(200, 200, 255), SC_ANSI_COLOR_NONE },
-            .title = { .style = { .text = " Per-Column Background ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Per-Column Background ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Feature",    (ScColOpts){0,0,18, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Free",       (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -599,7 +387,7 @@ void test_tables(void) {
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .total_width = 60,
-            .title = { .style = { .text = " Total Width = 60 cols ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Total Width = 60 cols ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Country",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Capital",    (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -620,7 +408,7 @@ void test_tables(void) {
                                SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .style = { .text = " Colspan ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Colspan ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Name", (ScColOpts){0,0,12, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Q1",   (ScColOpts){0,0,6,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -657,7 +445,7 @@ void test_tables(void) {
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = { .style = { .text = " Rowspan ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Rowspan ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Category", (ScColOpts){0,0,12, SC_ALIGN_LEFT,  SC_VALIGN_MIDDLE, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Item",     (ScColOpts){0,0,0,  SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -691,7 +479,7 @@ void test_tables(void) {
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .rtl         = 1,
-            .title = { .style = { .text = " RTL Column Order ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " RTL Column Order ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "Col A", (ScColOpts){0,0,10, SC_ALIGN_LEFT,   SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Col B", (ScColOpts){0,0,10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -716,7 +504,7 @@ void test_tables(void) {
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .max_rows    = 4,
-            .title = { .style = { .text = " Max Rows = 4 (10 total) ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1 }, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
+            .title = {.text = " Max Rows = 4 (10 total) ", .opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_TITLE_TOP }, .cell_pad = {0, 1, 0, 1},
         });
         sc_table_add_col(tb, "#",     (ScColOpts){0,0,4,  SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Name",  (ScColOpts){0,0,12, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});

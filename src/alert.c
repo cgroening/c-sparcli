@@ -26,9 +26,9 @@ void sc_alert_str(ScAlertType type, const char *content) {
 
     ScPanelOpts opts = {
         .border     = { .type = SC_BORDER_SINGLE, .color = col },
-        .title      = { .style = { .text = title,
-                                   .opts = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
-                                   .align = SC_ALIGN_LEFT, .pad = 1 },
+        .title      = { .text = title,
+                        .opts = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
+                        .align = SC_ALIGN_LEFT, .pad = 1,
                         .pos = SC_TITLE_TOP },
         .padding    = {0, 1, 0, 1},
         .full_width = 1,
@@ -45,9 +45,9 @@ void sc_alert_text(ScAlertType type, const ScText *content) {
 
     ScPanelOpts opts = {
         .border     = { .type = SC_BORDER_SINGLE, .color = col },
-        .title      = { .style = { .text = title,
-                                   .opts = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
-                                   .align = SC_ALIGN_LEFT, .pad = 1 },
+        .title      = { .text = title,
+                        .opts = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
+                        .align = SC_ALIGN_LEFT, .pad = 1,
                         .pos = SC_TITLE_TOP },
         .padding    = {0, 1, 0, 1},
         .full_width = 1,

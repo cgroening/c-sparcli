@@ -581,23 +581,23 @@ static void render_title_line(const ScTable *t, int inner_w, int is_top) {
     const char *lc = is_top ? tbc[bs].tl : tbc[bs].bl;
     const char *rc = is_top ? tbc[bs].tr : tbc[bs].br;
     const char *h  = tbc[bs].h;
-    int tpad = t->opts.title.style.pad > 0 ? t->opts.title.style.pad : 1;
+    int tpad = t->opts.title.pad > 0 ? t->opts.title.pad : 1;
 
     tpre(t);
     print_ch(lc, oc);
-    if (t->opts.title.style.text && *t->opts.title.style.text) {
-        int tlen   = (int)strlen(t->opts.title.style.text);
+    if (t->opts.title.text && *t->opts.title.text) {
+        int tlen   = (int)strlen(t->opts.title.text);
         int dashes = inner_w - tlen - 2 * tpad;
         if (dashes < 0) dashes = 0;
         int ld = 1, rd = dashes - 1;
-        if (t->opts.title.style.align == SC_ALIGN_CENTER) { ld = dashes/2; rd = dashes - ld; }
-        else if (t->opts.title.style.align == SC_ALIGN_RIGHT) { ld = dashes - 1; rd = 1; }
+        if (t->opts.title.align == SC_ALIGN_CENTER) { ld = dashes/2; rd = dashes - ld; }
+        else if (t->opts.title.align == SC_ALIGN_RIGHT) { ld = dashes - 1; rd = 1; }
         if (ld < 0) ld = 0; if (rd < 0) rd = 0;
         sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < ld; i++) fputs(h, stdout);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
-        sc_print(t->opts.title.style.text, t->opts.title.style.opts);
+        sc_print(t->opts.title.text, t->opts.title.opts);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
         sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < rd; i++) fputs(h, stdout);
@@ -937,7 +937,7 @@ void sc_table_print(const ScTable *t) {
 
     /* ── top border ── */
     if (!no_outer) {
-        if (t->opts.title.style.text && t->opts.title.pos == SC_TITLE_TOP) {
+        if (t->opts.title.text && t->opts.title.pos == SC_TITLE_TOP) {
             render_title_line(t, inner_w, 1);
         } else if (bs != SC_BORDER_NONE) {
             render_hline(t, cw, tbc[bs].tl, tbc[bs].tr,
@@ -1038,7 +1038,7 @@ void sc_table_print(const ScTable *t) {
 
     /* ── bottom border ── */
     if (!no_outer) {
-        if (t->opts.title.style.text && t->opts.title.pos == SC_TITLE_BOTTOM) {
+        if (t->opts.title.text && t->opts.title.pos == SC_TITLE_BOTTOM) {
             render_title_line(t, inner_w, 0);
         } else if (bs != SC_BORDER_NONE) {
             render_hline(t, cw, tbc[bs].bl, tbc[bs].br,

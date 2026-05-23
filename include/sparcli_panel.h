@@ -7,7 +7,7 @@
 typedef struct {
     ScBorderStyle    border;
     ScColor          bg;            /* content area background; zero-init = none */
-    ScTitle          title;
+    ScTitleStyle     title;
     ScEdges          padding;       /* inner content padding (top/right/bottom/left) */
     ScEdges          margin;        /* outer margin (top/right/bottom/left) */
     int              width;         /* 0 = auto */
