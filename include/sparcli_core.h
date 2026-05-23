@@ -182,7 +182,7 @@ typedef struct {
 
 /**
  * ScTitle Struct - All visual properties of a component title: text,
- * rendering, alignment, padding, and position.
+ * rendering, alignment, padding and position.
  * Used directly by ScRuleOpts (pos is ignored for rules) and by panels/tables.
  */
 typedef struct {

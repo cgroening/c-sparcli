@@ -5,14 +5,14 @@
 
 
 typedef struct {
-    ScBorderStyle    border;
-    ScColor          bg;            /* content area background; zero-init = none */
-    ScTitle     title;
-    ScEdges          padding;       /* inner content padding (top/right/bottom/left) */
-    ScEdges          margin;        /* outer margin (top/right/bottom/left) */
-    int              width;         /* 0 = auto */
-    ScHAlign         content_align;
-    bool             full_width;    /* stretch to terminal width */
+    ScBorderStyle border;
+    ScColor  bg;            /* content area background; zero-init = none */
+    ScTitle  title;
+    bool     full_width;    /* stretch to terminal width */
+    int      width;         /* 0 = auto */
+    ScHAlign content_align;
+    ScEdges  padding;       /* inner content padding (top/right/bottom/left) */
+    ScEdges  margin;        /* outer margin (top/right/bottom/left) */
 } ScPanelOpts;
 
 
