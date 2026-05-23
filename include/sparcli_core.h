@@ -168,8 +168,6 @@ typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
  */
 typedef struct { int top; int right; int bottom; int left; } ScEdges;
 
-// TODO: Shorten the following comments to fit whithin 80 columns
-
 /**
  * ScBorderStyle Struct - Groups the three visual properties of a border:
  * character style, foreground color, and background color.
@@ -185,11 +183,11 @@ typedef struct {
  * style, position, alignment, and padding.
  */
 typedef struct {
-    const char      *text;   /**< Title string; NULL = no title */
-    ScTextStyle      style;  /**< Text style (bold, color, …) applied to the title */
-    ScTitlePosition  pos;    /**< Whether the title appears on the top or bottom border */
-    ScHAlign         align;  /**< Horizontal placement of the title within the border */
-    int              pad;    /**< Spaces inserted on each side of the title text */
+    const char  *text;  /**< Title string; NULL = no title */
+    ScTextStyle style;  /**< Text style applied to the title */
+    ScTitlePosition  pos;  /**< Whether the title appears on top or bottom */
+    ScHAlign    align;  /**< Horizontal placement of the title */
+    int         pad;    /**< Spaces inserted on each side of the title text */
 } ScTitle;
 
 
