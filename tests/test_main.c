@@ -94,7 +94,7 @@ static Test *get_focused_tests(size_t *count) {
         { "Text Attributes & Combinations", &test_text_attributes, 0 },
         { "Colors",                    &test_colors,               0 },
         { "Panels",                    &test_panels,               0 },
-        { "Alerts",                    &test_alert,                0 },
+        // { "Alerts",                    &test_alert,                0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);

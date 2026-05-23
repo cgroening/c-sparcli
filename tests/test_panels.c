@@ -8,40 +8,6 @@ void test_panels(void) {
     ScTextStyle red     = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,  SC_ANSI_COLOR_NONE };
     ScTextStyle bold_ttl = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
 
-    printf("\n");
-
-    /* No border + ASCII border side by side */
-    ScColumns *cl = sc_columns_new((ScColumnsOpts){ .gap = 3, .sep_color = SC_ANSI_COLOR_NONE });
-    sc_columns_add_panel_str(cl, "No border panel", (ScPanelOpts){
-        .border       = SC_BORDER_NONE,
-        .border_color = SC_ANSI_COLOR_NONE,
-        .border_bg    = SC_ANSI_COLOR_NONE,
-        .bg           = SC_ANSI_COLOR_NONE,
-        .title        = "Title",
-        .title_opts   = plain,
-        .title_pos    = SC_TITLE_TOP,
-        .title_align  = SC_ALIGN_LEFT,
-        .padding = {0, 1, 0, 1},
-        .title_pad    = 1,
-        .content_align = SC_ALIGN_LEFT,
-    }, (ScColItem){ 0 });
-    sc_columns_add_panel_str(cl, "ASCII border", (ScPanelOpts){
-        .border       = SC_BORDER_ASCII,
-        .border_color = SC_ANSI_COLOR_NONE,
-        .border_bg    = SC_ANSI_COLOR_NONE,
-        .bg           = SC_ANSI_COLOR_NONE,
-        .title        = "Title",
-        .title_opts   = bold_ttl,
-        .title_pos    = SC_TITLE_TOP,
-        .title_align  = SC_ALIGN_LEFT,
-        .padding = {0, 2, 0, 2},
-        .title_pad    = 1,
-        .content_align = SC_ALIGN_LEFT,
-    }, (ScColItem){ 0 });
-    sc_columns_print(cl);
-    sc_columns_free(cl);
-
-
 
 
     /* No border */

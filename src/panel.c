@@ -51,7 +51,7 @@ static void render_hline(int inner_w, ScBorderType border,
     print_colored(lcorner, border_fg, border_bg);
 
     if (title && *title) {
-        int tlen   = (int)sc_utf8_vis_w(title, strlen(title));
+        int tlen   = (int)sc_utf8_string_length(title, strlen(title));
         int dashes = inner_w - tlen - 2 * title_pad;
         if (dashes < 0) dashes = 0;
 
@@ -67,9 +67,9 @@ static void render_hline(int inner_w, ScBorderType border,
         if (rd < 0) rd = 0;
 
         print_repeat(h, ld, border_fg, border_bg);
-        for (int i = 0; i < title_pad; i++) print_colored(" ", border_fg, border_bg);
+        for (int i = 0; i < title_pad; i++) print_colored(" ", SC_ANSI_COLOR_NONE, title_opts.bg);
         sc_print(title, title_opts);
-        for (int i = 0; i < title_pad; i++) print_colored(" ", border_fg, border_bg);
+        for (int i = 0; i < title_pad; i++) print_colored(" ", SC_ANSI_COLOR_NONE, title_opts.bg);
         print_repeat(h, rd, border_fg, border_bg);
     } else {
         print_repeat(h, inner_w, border_fg, border_bg);
@@ -119,7 +119,7 @@ static PLine *make_plines(const ScText *t, size_t *out_n) {
                         buf = realloc(buf, buf_cap * sizeof(PSpan));
                     }
                     buf[buf_n++] = (PSpan){ strndup(start, seglen), opts };
-                    buf_w += sc_utf8_vis_w(start, seglen);
+                    buf_w += sc_utf8_string_length(start, seglen);
                 }
                 /* flush line */
                 if (nlines == lines_cap) {
@@ -142,7 +142,7 @@ static PLine *make_plines(const ScText *t, size_t *out_n) {
                 buf = realloc(buf, buf_cap * sizeof(PSpan));
             }
             buf[buf_n++] = (PSpan){ strndup(start, seglen), opts };
-            buf_w += sc_utf8_vis_w(start, seglen);
+            buf_w += sc_utf8_string_length(start, seglen);
         }
     }
 
@@ -204,7 +204,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
         if (lines[i].vis_w > max_cw) max_cw = lines[i].vis_w;
 
     int title_pad = opts.title_pad;
-    int title_len = opts.title ? (int)sc_utf8_vis_w(opts.title, strlen(opts.title)) : 0;
+    int title_len = opts.title ? (int)sc_utf8_string_length(opts.title, strlen(opts.title)) : 0;
     int min4title = opts.title ? title_len + 2 * title_pad + 2 : 0;
     int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
     int pad_r = opts.padding.right > 0 ? opts.padding.right : 0;
@@ -215,7 +215,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
 
     int inner_w;
     if (opts.full_width) {
-        inner_w = sc_term_width() - 2 - ml - mr;
+        inner_w = sc_terminal_width() - 2 - ml - mr;
         if (inner_w < 2) inner_w = 2;
     } else if (opts.width > 0) {
         inner_w = opts.width - 2;
