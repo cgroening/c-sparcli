@@ -597,7 +597,7 @@ static void render_title_line(const ScTable *t, int inner_w, int is_top) {
         for (int i = 0; i < ld; i++) fputs(h, stdout);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
-        sc_print(t->opts.title.text, t->opts.title.opts);
+        sc_print(t->opts.title.text, t->opts.title.style);
         for (int i = 0; i < tpad; i++) print_ch(" ", oc);
         sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < rd; i++) fputs(h, stdout);

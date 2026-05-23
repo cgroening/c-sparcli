@@ -90,22 +90,22 @@ SC_BORDER_DOUBLE | SC_BORDER_ROUNDED | SC_BORDER_THICK
 
 Used by panels, tables, rules, and column separators.
 
-### ScTitleStyle
+### ScTitle
 
 ```c
 typedef struct {
     const char      *text;  /* NULL = no title */
-    ScTextStyle      opts;  /* text rendering (bold, color, …) */
+    ScTextStyle      style; /* text rendering (bold, color, …) */
     ScHAlign         align; /* LEFT / CENTER / RIGHT */
     int              pad;   /* spaces on each side of the title text */
     ScTitlePosition  pos;   /* SC_TITLE_TOP / SC_TITLE_BOTTOM; unused for rules */
-} ScTitleStyle;
+} ScTitle;
 ```
 
 Used directly everywhere a title is needed. `pos` is ignored by rules (no top/bottom distinction).
 Access paths:
-- `rule_opts.title.text` / `.opts` / `.align` / `.pad`
-- `panel_opts.title.text` / `.opts` / `.align` / `.pad` / `.pos`
+- `rule_opts.title.text` / `.style` / `.align` / `.pad`
+- `panel_opts.title.text` / `.style` / `.align` / `.pad` / `.pos`
 
 ---
 
@@ -122,9 +122,9 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 |-------|------|-------------|
 | `border` | `ScBorderStyle` | Frame style, color, bg |
 | `bg` | `ScColor` | Content area background color; zero-init `{0}` = no color |
-| `title` | `ScTitleStyle` | Title text, style, and position |
+| `title` | `ScTitle` | Title text, style, and position |
 | `title.text` | `const char *` | NULL = no title |
-| `title.opts` | `ScTextStyle` | Text style (bold, color, …) |
+| `title.style` | `ScTextStyle` | Text style (bold, color, …) |
 | `title.align` | `ScHAlign` | LEFT / CENTER / RIGHT |
 | `title.pad` | `int` | Spaces on each side of the title text |
 | `title.pos` | `ScTitlePosition` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` |
@@ -167,9 +167,9 @@ void     sc_table_free(ScTable *t);
 | `footer` | `ScTableFooter` — grouped footer settings (see below) |
 | `footer.row_bg` / `footer.col_bg` | Background for footer rows/column |
 | `footer.opts` | `ScTextStyle` for footer cells |
-| `title` | `ScTitleStyle` — table title |
+| `title` | `ScTitle` — table title |
 | `title.text` | Title string; `NULL` = no title |
-| `title.opts` / `title.align` / `title.pad` / `title.pos` | Title text appearance and position |
+| `title.style` / `title.align` / `title.pad` / `title.pos` | Title text appearance and position |
 | `cell_pad` | `ScEdges` — inner cell padding |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
@@ -253,8 +253,9 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 |-------|-------------|
 | `style` | `ScBorderType` — which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
-| `title` | `ScTitleStyle` — title label styling (`opts`, `align`, `pad`) |
-| `title.opts` | `ScTextStyle` for the title text |
+| `title` | `ScTitle` — title label (text, style, align, pad; pos ignored) |
+| `title.text` | Title string; `NULL` = no title |
+| `title.style` | `ScTextStyle` for the title text |
 | `title.align` | LEFT / CENTER / RIGHT (default CENTER) |
 | `title.pad` | Spaces on each side of title, default 1 |
 | `width` | 0 = full terminal width; >0 = fixed width |

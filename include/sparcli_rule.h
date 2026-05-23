@@ -6,7 +6,7 @@
 typedef struct {
     ScBorderType  style;
     ScColor        color;
-    ScTitleStyle   title;   /* styling for the title label (opts, align, pad) */
+    ScTitle   title;   /* title label (text, style, align, pad; pos ignored) */
     int            width;   /* 0 = full terminal width */
     ScHAlign        align;   /* placement of rule when width > 0 */
     ScEdges        margin;  /* top/bottom = blank lines; left/right = indent */

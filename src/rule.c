@@ -88,7 +88,7 @@ void sc_rule_str(const char *title, ScRuleOpts opts) {
         return;
     }
     ScText *t = sc_text_new();
-    sc_text_append(t, title, opts.title.opts);
+    sc_text_append(t, title, opts.title.style);
     sc_rule_text(t, opts);
     sc_text_free(t);
 }

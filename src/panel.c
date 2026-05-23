@@ -238,7 +238,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     PMARG();
     render_hline(inner_w, opts.border.type, opts.border.color, opts.border.bg, tl, tr,
                  opts.title.pos == SC_TITLE_TOP ? opts.title.text : NULL,
-                 opts.title.opts, opts.title.align, title_pad);
+                 opts.title.style, opts.title.align, title_pad);
 
     for (int i = 0; i < pad_t; i++) {
         PMARG();
@@ -261,7 +261,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     PMARG();
     render_hline(inner_w, opts.border.type, opts.border.color, opts.border.bg, bl, br,
                  opts.title.pos == SC_TITLE_BOTTOM ? opts.title.text : NULL,
-                 opts.title.opts, opts.title.align, title_pad);
+                 opts.title.style, opts.title.align, title_pad);
 
     for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
 

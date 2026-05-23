@@ -75,7 +75,7 @@ typedef struct {
     bool           striped;
     ScColor        stripe_bg;
     ScTableFooter  footer;
-    ScTitleStyle   title;
+    ScTitle   title;
     ScEdges        cell_pad;      /* inner cell padding (top/right/bottom/left) */
     ScEdges        margin;        /* outer table margin (top/right/bottom/left) */
     int            total_width;
