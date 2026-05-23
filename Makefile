@@ -2,7 +2,8 @@ CC      = cc
 CFLAGS  = -std=c11 -Wall -Wextra -Iinclude
 
 SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c src/table.c src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
-OBJ     = $(SRC:.c=.o)
+BUILDDIR = build.nosync
+OBJ     = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 LIB     = libsparcli.a
 
 TEST_SRC = tests/test_main.c \
@@ -33,12 +34,15 @@ all: $(LIB)
 $(LIB): $(OBJ)
 	ar rcs $@ $^
 
-%.o: %.c
+$(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
 test: $(LIB)
 	$(CC) $(CFLAGS) $(TEST_SRC) -L. -lsparcli -o $(TEST_BIN)
 	./$(TEST_BIN) $(ARGS)
 
 clean:
-	rm -f $(OBJ) $(LIB) $(TEST_BIN)
+	rm -rf $(BUILDDIR) $(LIB) $(TEST_BIN)

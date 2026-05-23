@@ -2,13 +2,13 @@
 #include <stdio.h>
 
 
-static ScTextStyle plain   = {
+static ScTextStyle plain = {
     SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
 };
-static ScTextStyle bold    = {
+static ScTextStyle bold = {
     SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
 };
-static ScTextStyle red     = {
+static ScTextStyle red = {
     SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,  SC_ANSI_COLOR_NONE
 };
 static ScTextStyle bold_ttl = {
