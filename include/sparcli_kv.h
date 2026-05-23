@@ -8,7 +8,7 @@ typedef struct {
     int         width;
     ScEdges     margin;          /* top/bottom = blank lines; left/right = outer indent */
     int         item_gap;
-    int         wrap_val;
+    bool        wrap_val;
     ScTextStyle   key_opts;
     ScTextStyle   val_opts;
 } ScKVOpts;

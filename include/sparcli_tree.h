@@ -7,7 +7,7 @@ typedef struct {
     ScBorderType style;
     ScColor       connector_color;
     int           indent;    /* extra spaces after connector, default 1 */
-    int           no_guide;  /* 1 = suppress vertical continuation lines */
+    bool          no_guide;  /* suppress vertical continuation lines */
 } ScTreeOpts;
 
 typedef struct ScTreeNode ScTreeNode;

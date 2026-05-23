@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /**
@@ -175,7 +176,8 @@ typedef struct { int top; int right; int bottom; int left; } ScEdges;
 typedef struct {
     ScBorderType style;  /**< Border character set (none, ASCII, single, …) */
     ScColor      color;  /**< Foreground color of border characters */
-    ScColor      bg;     /**< Background color of border characters; zero-init = none */
+    ScColor      bg;     /**< Background color of border characters;
+                              zero-init = none */
 } ScBorderStyle;
 
 /**

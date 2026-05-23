@@ -13,10 +13,10 @@ typedef struct {
     int      max_w;
     int      fixed_w;
     ScHAlign  align;      /* content placement when col_w > content_w */
-    int      valign_set; /* 1 = override ScColumnsOpts.valign for this column */
+    bool     valign_set; /* override ScColumnsOpts.valign for this column */
     ScVAlign valign;
     ScColor  bg;          /* background color for padding and empty slots; SC_ANSI_COLOR_NONE = none */
-    int      stretch;     /* 1 = expand panel border to fill full column height */
+    bool     stretch;     /* expand panel border to fill full column height */
 } ScColItem;
 
 typedef struct {

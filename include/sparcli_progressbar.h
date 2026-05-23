@@ -15,14 +15,14 @@ typedef struct {
     const char      *right_cap;
     ScColor          fill_color;
     ScColor          empty_color;
-    int              use_thresholds;
+    bool             use_thresholds;
     double           threshold_mid;
     double           threshold_high;
     ScColor          color_low;
     ScColor          color_mid;
     ScColor          color_high;
-    int              show_percent;
-    int              show_value;
+    bool             show_percent;
+    bool             show_value;
     int              bar_width;
     int              width;
     int              label_width;

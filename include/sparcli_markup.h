@@ -3,7 +3,7 @@
 #include "sparcli_text.h"
 
 typedef struct {
-    int strip_unknown; /* 1 = silently remove unrecognized tags; 0 = pass through verbatim (default) */
+    bool strip_unknown; /* silently remove unrecognized tags (default: false = verbatim) */
 } ScMarkupOpts;
 
 ScText *sc_markup_parse       (const char *s);

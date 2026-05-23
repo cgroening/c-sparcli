@@ -201,8 +201,8 @@ static void _render_rule_text(void *p) {
 typedef struct {
     ScRendered  *rendered;
     ScColItem    item;
-    int          stretch;     /* 1 = expand to full column height at print time */
-    ScPanelOpts  panel_opts;  /* used when stretch=1 to generate filler lines */
+    bool         stretch;     /* expand to full column height at print time */
+    ScPanelOpts  panel_opts;  /* used when stretch to generate filler lines */
 } ScColEntry;
 
 struct ScColumns {

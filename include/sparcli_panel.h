@@ -12,7 +12,7 @@ typedef struct {
     ScEdges          margin;        /* outer margin (top/right/bottom/left) */
     int              width;         /* 0 = auto */
     ScHAlign         content_align;
-    int              full_width;    /* 1 = stretch to terminal width */
+    bool             full_width;    /* stretch to terminal width */
 } ScPanelOpts;
 
 

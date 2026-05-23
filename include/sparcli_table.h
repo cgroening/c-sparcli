@@ -11,9 +11,9 @@ typedef struct {
     ScCellKind  kind;
     const char *str;        /* not owned; used when kind == SC_CELL_STR */
     ScText     *text;       /* SC_CELL_TEXT: not owned. SC_CELL_MARKUP: owned by table */
-    int         align_set;  /* 1 = overrides column alignment */
+    bool        align_set;  /* overrides column alignment */
     ScHAlign     align;
-    int         valign_set; /* 1 = overrides row valignment */
+    bool        valign_set; /* overrides row valignment */
     ScVAlign    valign;
     int         colspan;    /* 0/1=normal, >1=spans N cols, -1=skip */
     int         rowspan;    /* 0/1=normal, >1=spans N rows, -1=skip */
@@ -40,7 +40,7 @@ typedef struct {
     int      fixed_w;
     ScHAlign  align;
     ScVAlign valign;
-    int      wrap;   /* 1 = word-wrap instead of truncate */
+    bool     wrap;   /* word-wrap instead of truncate */
     ScColor  bg;     /* SC_ANSI_COLOR_NONE = not set */
 } ScColOpts;
 
@@ -50,19 +50,19 @@ typedef struct {
     ScColor       inner_color;
     ScColor       header_row_sep_color;
     ScColor       header_col_sep_color;
-    int           no_outer;    /* 1 = suppress outer frame */
-    int           no_inner_h;  /* 1 = suppress inner row separators */
-    int           no_inner_v;  /* 1 = suppress inner col separators (except header col) */
+    bool          no_outer;    /* suppress outer frame */
+    bool          no_inner_h;  /* suppress inner row separators */
+    bool          no_inner_v;  /* suppress inner col separators (except header col) */
 } ScTableBorders;
 
 typedef struct {
     ScTableBorders borders;
-    int            header_row;
-    int            header_col;
+    bool           header_row;
+    bool           header_col;
     ScColor        header_row_bg;
     ScColor        header_col_bg;
     ScTextStyle      header_opts;
-    int            striped;
+    bool           striped;
     ScColor        stripe_bg;
     ScColor        footer_row_bg;
     ScColor        footer_col_bg;
@@ -72,7 +72,7 @@ typedef struct {
     ScEdges        margin;        /* outer table margin (top/right/bottom/left) */
     int            total_width;
     int            max_rows;
-    int            rtl;
+    bool           rtl;
 } ScTableOpts;
 
 typedef struct ScTable ScTable;
