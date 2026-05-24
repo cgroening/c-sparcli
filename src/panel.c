@@ -3,31 +3,49 @@
 #include <string.h>
 #include <stdlib.h>
 
-typedef struct { const char *text; ScTextStyle opts; } PSpan;
-typedef struct { PSpan *spans; size_t count; size_t vis_w; } PLine;
+
+/**
+ * PSpan Struct – One styled text segment within a content line of a panel.
+ * */
+typedef struct {
+    const char *text;  /**< Heap-allocated UTF-8 string (owned) */
+    ScTextStyle opts;  /**< Style to apply when rendering `text` */
+} PSpan;
+
+/**
+ *
+ * PLine Struct – Rendered line of panel content.
+ *
+ * Each line is made up of one or more `PSpan` segments, which are the
+ * result of splitting the original `ScText` on newline characters.
+ * */
+typedef struct {
+    PSpan  *spans;       /**< Array of styled segments that make up this line */
+    size_t  count;       /**< Number of spans in `spans` */
+    size_t  line_width;  /**< Visible width of the line in columns */
+} PLine;
+
+/**
+ * HBorder Struct – Bundles the arguments passed to `render_horizontal_border`.
+ *
+ * Groups the border style, the inner width of the panel, and the two
+ * corner characters for the line being rendered (top or bottom).
+ */
+typedef struct {
+    ScBorderStyle border_style;  /**< Border style (type, color and bg) */
+    int           inner_width;   /**< Number of chars between the edge chars. */
+    char         *left_edge_character;   /**< Left corner character */
+    char         *right_edge_character;  /**< Right corner character */
+} HBorder;
 
 
 static int color_active(ScColor c);
 static ScColor norm_bg(ScColor c);
 static void print_colored(const char *s, ScColor fg, ScColor bg);
 static void print_repeat(const char *s, int n, ScColor fg, ScColor bg);
-static void render_hline(
-    int inner_w,
-    ScBorderType border,
-    ScColor border_fg,
-    ScColor border_bg,
-    const char *lcorner,
-    const char *rcorner,
-    const char *title,
-    ScTextStyle title_style,
-    ScHAlign align, int title_pad
-);
+static void render_horizontal_border(HBorder hborder, ScTitle title);
 static void render_empty_line(
-    int inner_w,
-    ScBorderType border,
-    ScColor border_fg,
-    ScColor border_bg,
-    ScColor content_bg
+    int inner_width, ScBorderStyle border, ScColor content_bg
 );
 static PLine *make_plines(const ScText *t, size_t *out_n);
 static void free_plines(PLine *lines, size_t n);
@@ -36,9 +54,7 @@ static void render_content_line(
     int inner_w,
     int pad_l,
     int pad_r,
-    ScBorderType border,
-    ScColor border_fg,
-    ScColor border_bg,
+    ScBorderStyle border,
     ScHAlign align,
     ScColor content_bg
 );
@@ -47,7 +63,7 @@ static void render_content_line(
 /**
  * Maps each `ScBorderType` to its six box-drawing characters.
  *
- * `tl`/`tr`/`bl`/`br` = corners; `h` = horizontal char `v` = vertical char.
+ * `tl`/`tr`/`bl`/`br` = corners; `h` = horizontal char; `v` = vertical char.
  */
 static const struct {
     const char *tl, *tr, *bl, *br, *h, *v;
@@ -94,28 +110,25 @@ static void print_repeat(const char *s, int n, ScColor fg, ScColor bg) {
 /**
  * Renders a horizontal border line with an optional inline title.
  *
- * Distributes remaining dashes around the title per `align`, guaranteeing
- * at least one dash on each side. Title pad spaces are printed using the
- * title style's own background color.
+ * Distributes remaining dashes around the title per `title.align`,
+ * guaranteeing at least one dash on each side. Pad spaces are printed
+ * using the title style's own background color.
  */
-static void render_hline(int inner_w, ScBorderType border,
-                         ScColor border_fg, ScColor border_bg,
-                         const char *lcorner, const char *rcorner,
-                         const char *title, ScTextStyle title_style,
-                         ScHAlign align, int title_pad) {
-    const char *h = border_table[border].h;
-    if (title_pad < 0) title_pad = 0;
-    print_colored(lcorner, border_fg, border_bg);
+static void render_horizontal_border(HBorder hborder, ScTitle title) {
+    const char *h = border_table[hborder.border_style.type].h;
+    if (title.pad < 0) title.pad = 0;
+    print_colored(hborder.left_edge_character, hborder.border_style.color, hborder.border_style.bg);
 
-    if (title && *title) {
-        int tlen   = (int)sc_utf8_string_length(title, strlen(title));
-        int dashes = inner_w - tlen - 2 * title_pad;
+    if (title.text && *title.text) {
+        int tlen   = (int)sc_utf8_string_length(title.text,
+                                                strlen(title.text));
+        int dashes = hborder.inner_width - tlen - 2 * title.pad;
         if (dashes < 0) dashes = 0;
 
         int ld, rd;
-        if (align == SC_ALIGN_LEFT) {
+        if (title.align == SC_ALIGN_LEFT) {
             ld = 1; rd = dashes - 1;
-        } else if (align == SC_ALIGN_RIGHT) {
+        } else if (title.align == SC_ALIGN_RIGHT) {
             ld = dashes - 1; rd = 1;
         } else { /* CENTER */
             ld = dashes / 2; rd = dashes - ld;
@@ -123,18 +136,18 @@ static void render_hline(int inner_w, ScBorderType border,
         if (ld < 0) ld = 0;
         if (rd < 0) rd = 0;
 
-        print_repeat(h, ld, border_fg, border_bg);
-        for (int i = 0; i < title_pad; i++)
-            print_colored(" ", SC_ANSI_COLOR_NONE, title_style.bg);
-        sc_print(title, title_style);
-        for (int i = 0; i < title_pad; i++)
-            print_colored(" ", SC_ANSI_COLOR_NONE, title_style.bg);
-        print_repeat(h, rd, border_fg, border_bg);
+        print_repeat(h, ld, hborder.border_style.color, hborder.border_style.bg);
+        for (int i = 0; i < title.pad; i++)
+            print_colored(" ", SC_ANSI_COLOR_NONE, title.style.bg);
+        sc_print(title.text, title.style);
+        for (int i = 0; i < title.pad; i++)
+            print_colored(" ", SC_ANSI_COLOR_NONE, title.style.bg);
+        print_repeat(h, rd, hborder.border_style.color, hborder.border_style.bg);
     } else {
-        print_repeat(h, inner_w, border_fg, border_bg);
+        print_repeat(h, hborder.inner_width, hborder.border_style.color, hborder.border_style.bg);
     }
 
-    print_colored(rcorner, border_fg, border_bg);
+    print_colored(hborder.right_edge_character, hborder.border_style.color, hborder.border_style.bg);
     fputc('\n', stdout);
 }
 
@@ -142,18 +155,17 @@ static void render_hline(int inner_w, ScBorderType border,
  * Renders one border-enclosed blank row, filling the interior with
  * `content_bg` if that color is active.
  */
-static void render_empty_line(int inner_w, ScBorderType border,
-                              ScColor border_fg, ScColor border_bg,
+static void render_empty_line(int inner_width, ScBorderStyle border,
                               ScColor content_bg) {
-    print_colored(border_table[border].v, border_fg, border_bg);
+    print_colored(border_table[border.type].v, border.color, border.bg);
     if (color_active(content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
-        for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
+        for (int i = 0; i < inner_width; i++) fputc(' ', stdout);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     } else {
-        for (int i = 0; i < inner_w; i++) fputc(' ', stdout);
+        for (int i = 0; i < inner_width; i++) fputc(' ', stdout);
     }
-    print_colored(border_table[border].v, border_fg, border_bg);
+    print_colored(border_table[border.type].v, border.color, border.bg);
     fputc('\n', stdout);
 }
 
@@ -242,16 +254,15 @@ static void free_plines(PLine *lines, size_t n) {
  */
 static void render_content_line(PLine *line, int inner_w,
                                 int pad_l, int pad_r,
-                                ScBorderType border,
-                                ScColor border_fg, ScColor border_bg,
+                                ScBorderStyle border,
                                 ScHAlign align, ScColor content_bg) {
-    int spare = inner_w - pad_l - pad_r - (int)line->vis_w;
+    int spare = inner_w - pad_l - pad_r - (int)line->line_width;
     if (spare < 0) spare = 0;
     int lp = 0, rp = spare;
     if (align == SC_ALIGN_CENTER) { lp = spare / 2; rp = spare - lp; }
     else if (align == SC_ALIGN_RIGHT) { lp = spare; rp = 0; }
 
-    print_colored(border_table[border].v, border_fg, border_bg);
+    print_colored(border_table[border.type].v, border.color, border.bg);
     if (color_active(content_bg))
         sc_apply_colors(SC_ANSI_COLOR_NONE, content_bg);
     for (int i = 0; i < pad_l; i++) fputc(' ', stdout);
@@ -265,7 +276,7 @@ static void render_content_line(PLine *line, int inner_w,
     for (int i = 0; i < pad_r; i++) fputc(' ', stdout);
     if (color_active(content_bg))
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-    print_colored(border_table[border].v, border_fg, border_bg);
+    print_colored(border_table[border.type].v, border.color, border.bg);
     fputc('\n', stdout);
 }
 
@@ -275,14 +286,14 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
 
     size_t max_cw = 0;
     for (size_t i = 0; i < nlines; i++)
-        if (lines[i].vis_w > max_cw) max_cw = lines[i].vis_w;
+        if (lines[i].line_width > max_cw) max_cw = lines[i].line_width;
 
-    int title_pad = opts.title.pad;
     int title_len = opts.title.text
         ? (int)sc_utf8_string_length(opts.title.text,
                                      strlen(opts.title.text))
         : 0;
-    int min4title = opts.title.text ? title_len + 2 * title_pad + 2 : 0;
+    int min4title = opts.title.text
+        ? title_len + 2 * opts.title.pad + 2 : 0;
     int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
     int pad_r = opts.padding.right > 0 ? opts.padding.right : 0;
     int pad_t = opts.padding.top   > 0 ? opts.padding.top   : 0;
@@ -302,10 +313,19 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
         if (inner_w < 2) inner_w = 2;
     }
 
-    const char *tl = border_table[opts.border.type].tl;
-    const char *tr = border_table[opts.border.type].tr;
-    const char *bl = border_table[opts.border.type].bl;
-    const char *br = border_table[opts.border.type].br;
+    int bt = opts.border.type;
+    HBorder top = {
+        .border_style         = opts.border,
+        .inner_width          = inner_w,
+        .left_edge_character  = (char *)border_table[bt].tl,
+        .right_edge_character = (char *)border_table[bt].tr,
+    };
+    HBorder bot = {
+        .border_style         = opts.border,
+        .inner_width          = inner_w,
+        .left_edge_character  = (char *)border_table[bt].bl,
+        .right_edge_character = (char *)border_table[bt].br,
+    };
 
 #define PMARG() \
     do { for (int _i = 0; _i < ml; _i++) fputc(' ', stdout); } while(0)
@@ -314,36 +334,31 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
 
     /* top border */
     PMARG();
-    render_hline(inner_w, opts.border.type,
-                 opts.border.color, opts.border.bg, tl, tr,
-                 opts.title.pos == SC_TITLE_TOP ? opts.title.text : NULL,
-                 opts.title.style, opts.title.align, title_pad);
+    ScTitle ttop = opts.title;
+    if (opts.title.pos != SC_TITLE_TOP) ttop.text = NULL;
+    render_horizontal_border(top, ttop);
 
     for (int i = 0; i < pad_t; i++) {
         PMARG();
-        render_empty_line(inner_w, opts.border.type,
-                          opts.border.color, opts.border.bg, opts.bg);
+        render_empty_line(inner_w, opts.border, opts.bg);
     }
 
     for (size_t i = 0; i < nlines; i++) {
         PMARG();
         render_content_line(&lines[i], inner_w, pad_l, pad_r,
-                            opts.border.type, opts.border.color, opts.border.bg,
-                            opts.content_align, opts.bg);
+                            opts.border, opts.content_align, opts.bg);
     }
 
     for (int i = 0; i < pad_b; i++) {
         PMARG();
-        render_empty_line(inner_w, opts.border.type,
-                          opts.border.color, opts.border.bg, opts.bg);
+        render_empty_line(inner_w, opts.border, opts.bg);
     }
 
     /* bottom border */
     PMARG();
-    render_hline(inner_w, opts.border.type,
-                 opts.border.color, opts.border.bg, bl, br,
-                 opts.title.pos == SC_TITLE_BOTTOM ? opts.title.text : NULL,
-                 opts.title.style, opts.title.align, title_pad);
+    ScTitle tbot = opts.title;
+    if (opts.title.pos != SC_TITLE_BOTTOM) tbot.text = NULL;
+    render_horizontal_border(bot, tbot);
 
     for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
 

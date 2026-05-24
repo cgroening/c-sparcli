@@ -402,7 +402,7 @@ static void tpre(const ScTable *t) {
 
 /* ── Horizontal rule rendering ───────────────────────────────────────────── */
 
-static void render_hline(const ScTable *t, int *col_widths,
+static void render_horizontal_border(const ScTable *t, int *col_widths,
                           const char *lc, const char *rc,
                           const char *fill, ScColor fill_color,
                           const char *mid,  ScColor mid_color,
@@ -940,7 +940,7 @@ void sc_table_print(const ScTable *t) {
         if (t->opts.title.text && t->opts.title.pos == SC_TITLE_TOP) {
             render_title_line(t, inner_w, 1);
         } else if (bs != SC_BORDER_NONE) {
-            render_hline(t, cw, tbc[bs].tl, tbc[bs].tr,
+            render_horizontal_border(t, cw, tbc[bs].tl, tbc[bs].tr,
                          tbc[bs].h, oc, tbc[bs].t_top, oc, oc, 0, NULL);
         }
     }
@@ -955,7 +955,7 @@ void sc_table_print(const ScTable *t) {
 
         if (bs != SC_BORDER_NONE) {
             ScColor hc = (hrsc.index != -2) ? hrsc : ic;
-            render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
+            render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
                          tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
         }
     }
@@ -1025,12 +1025,12 @@ void sc_table_print(const ScTable *t) {
     /* ── footer rows ── */
     if (t->nfooter_rows > 0 && bs != SC_BORDER_NONE) {
         ScColor hc = (hrsc.index != -2) ? hrsc : ic;
-        render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
+        render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
                      tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
     }
     for (size_t r = 0; r < t->nfooter_rows; r++) {
         if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
-            render_hline(t, cw, tbc[bs].t_left, tbc[bs].t_right,
+            render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
                          tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
         }
         render_row(t, t->footer_rows[r].cells, t->opts.footer.row_bg, 2, cw, 0, NULL);
@@ -1041,7 +1041,7 @@ void sc_table_print(const ScTable *t) {
         if (t->opts.title.text && t->opts.title.pos == SC_TITLE_BOTTOM) {
             render_title_line(t, inner_w, 0);
         } else if (bs != SC_BORDER_NONE) {
-            render_hline(t, cw, tbc[bs].bl, tbc[bs].br,
+            render_horizontal_border(t, cw, tbc[bs].bl, tbc[bs].br,
                          tbc[bs].h, oc, tbc[bs].t_bot, oc, oc, 0, NULL);
         }
     }
