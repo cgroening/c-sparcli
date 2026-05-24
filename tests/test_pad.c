@@ -24,8 +24,8 @@ void test_pad(void) {
         });
         sc_table_add_col(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t, (ScCell[]){ SC_CELL("Alice"), SC_CELL("9800") }, 2);
-        sc_table_add_row(t, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("7650") }, 2);
+        sc_table_add_row(t, (ScCell[]){ sc_cell("Alice"), sc_cell("9800") }, 2);
+        sc_table_add_row(t, (ScCell[]){ sc_cell("Bob"),   sc_cell("7650") }, 2);
 
         ScRendered *r = sc_capture_table(t);
         sc_pad_print(r, (ScPadOpts){ .top = 1, .bottom = 1, .left = 4 });

@@ -19,20 +19,52 @@ typedef struct {
     int         rowspan;    /* 0/1=normal, >1=spans N rows, -1=skip */
 } ScCell;
 
-#define SC_CELL(s)            ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, 0,     0 })
-#define SC_CELL_A(s,ha,va)    ((ScCell){ SC_CELL_STR,  (s), NULL, 1,(ha), 1,(va), 0, 0 })
-#define SC_CELL_T(t)          ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, 0,     0 })
-#define SC_CELL_TA(t,ha,va)   ((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 1,(va), 0, 0 })
-#define SC_CELL_CS(s,cs)      ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, (cs),  0 })
-#define SC_CELL_CSA(s,cs,ha)  ((ScCell){ SC_CELL_STR,  (s), NULL, 1,(ha), 0, 0, (cs),  0 })
-#define SC_CELL_TCS(t,cs)     ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, (cs),  0 })
-#define SC_CELL_TCSA(t,cs,ha) ((ScCell){ SC_CELL_TEXT, NULL, (t), 1,(ha), 0, 0, (cs),  0 })
-#define SC_CELL_SKIP          ((ScCell){ SC_CELL_STR,  "",  NULL, 0, 0, 0, 0, -1,    0 })
-#define SC_CELL_RS(s,rs)      ((ScCell){ SC_CELL_STR,  (s), NULL, 0, 0, 0, 0, 0,  (rs) })
-#define SC_CELL_TRS(t,rs)     ((ScCell){ SC_CELL_TEXT, NULL, (t), 0, 0, 0, 0, 0,  (rs) })
-#define SC_ROW_SKIP           ((ScCell){ SC_CELL_STR,  "",  NULL, 0, 0, 0, 0, 0,    -1 })
-/* SC_CELL_M: parse markup string; cell owns the ScText (freed by sc_table_free) */
-#define SC_CELL_M(s)          ((ScCell){ SC_CELL_MARKUP, NULL, sc_markup_parse(s), 0, 0, 0, 0, 0, 0 })
+static inline ScCell sc_cell(const char *s) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = s };
+}
+static inline ScCell sc_cell_a(const char *s, ScHAlign ha, ScVAlign va) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = s,
+                     .align_set = true, .align = ha,
+                     .valign_set = true, .valign = va };
+}
+static inline ScCell sc_cell_t(ScText *t) {
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t };
+}
+static inline ScCell sc_cell_ta(ScText *t, ScHAlign ha, ScVAlign va) {
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t,
+                     .align_set = true, .align = ha,
+                     .valign_set = true, .valign = va };
+}
+static inline ScCell sc_cell_cs(const char *s, int cs) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = s, .colspan = cs };
+}
+static inline ScCell sc_cell_csa(const char *s, int cs, ScHAlign ha) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = s,
+                     .align_set = true, .align = ha, .colspan = cs };
+}
+static inline ScCell sc_cell_tcs(ScText *t, int cs) {
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t, .colspan = cs };
+}
+static inline ScCell sc_cell_tcsa(ScText *t, int cs, ScHAlign ha) {
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t,
+                     .align_set = true, .align = ha, .colspan = cs };
+}
+static inline ScCell sc_cell_skip(void) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = "", .colspan = -1 };
+}
+static inline ScCell sc_cell_rs(const char *s, int rs) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = s, .rowspan = rs };
+}
+static inline ScCell sc_cell_trs(ScText *t, int rs) {
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t, .rowspan = rs };
+}
+static inline ScCell sc_row_skip(void) {
+    return (ScCell){ .kind = SC_CELL_STR, .str = "", .rowspan = -1 };
+}
+/* sc_cell_m: parses markup; cell owns the ScText (freed by sc_table_free) */
+static inline ScCell sc_cell_m(const char *s) {
+    return (ScCell){ .kind = SC_CELL_MARKUP, .text = sc_markup_parse(s) };
+}
 
 typedef struct {
     int      min_w;

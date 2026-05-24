@@ -16,9 +16,9 @@ void test_columns(void) {
         });
         sc_table_add_col(t1, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t1, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Alice"), SC_CELL("9800") }, 2);
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Bob"),   SC_CELL("7650") }, 2);
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Carol"), SC_CELL("6100") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Alice"), sc_cell("9800") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Bob"),   sc_cell("7650") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Carol"), sc_cell("6100") }, 2);
 
         ScTable *t2 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
@@ -29,9 +29,9 @@ void test_columns(void) {
         });
         sc_table_add_col(t2, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t2, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Dave"),  SC_CELL("8200") }, 2);
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Eve"),   SC_CELL("7100") }, 2);
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Frank"), SC_CELL("5400") }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Dave"),  sc_cell("8200") }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Eve"),   sc_cell("7100") }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Frank"), sc_cell("5400") }, 2);
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){ .gap = 3 });
         sc_columns_add_table(cl, t1, (ScColItem){0});
@@ -55,10 +55,10 @@ void test_columns(void) {
         sc_table_add_col(tb, "Port",    (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Service", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "State",   (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("22"),   SC_CELL("ssh"),   SC_CELL("open")   }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("80"),   SC_CELL("http"),  SC_CELL("open")   }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("443"),  SC_CELL("https"), SC_CELL("open")   }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("3306"), SC_CELL("mysql"), SC_CELL("closed") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("22"),   sc_cell("ssh"),   sc_cell("open")   }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("80"),   sc_cell("http"),  sc_cell("open")   }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("443"),  sc_cell("https"), sc_cell("open")   }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("3306"), sc_cell("mysql"), sc_cell("closed") }, 3);
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 2,
@@ -150,9 +150,9 @@ void test_columns(void) {
         });
         sc_table_add_col(tb, "Key",   (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Value", (ScColOpts){0,0,0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("env"),     SC_CELL("production") }, 2);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("region"),  SC_CELL("eu-west-1")  }, 2);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("version"), SC_CELL("2.4.1")      }, 2);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("env"),     sc_cell("production") }, 2);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("region"),  sc_cell("eu-west-1")  }, 2);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("version"), sc_cell("2.4.1")      }, 2);
 
         ScColumns *inner = sc_columns_new((ScColumnsOpts){ .gap = 2, .valign = SC_VALIGN_TOP });
         sc_columns_add_str(inner, "CPU:  34 %\nMEM:  61 %\nDISK: 48 %", (ScColItem){.fixed_w=14});
@@ -204,10 +204,10 @@ void test_columns(void) {
         });
         sc_table_add_col(t1, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t1, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q1"), SC_CELL("1 240 000") }, 2);
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q2"), SC_CELL("1 580 000") }, 2);
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q3"), SC_CELL("1 390 000") }, 2);
-        sc_table_add_row(t1, (ScCell[]){ SC_CELL("Q4"), SC_CELL("1 820 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Q1"), sc_cell("1 240 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Q2"), sc_cell("1 580 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Q3"), sc_cell("1 390 000") }, 2);
+        sc_table_add_row(t1, (ScCell[]){ sc_cell("Q4"), sc_cell("1 820 000") }, 2);
 
         ScTable *t2 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
@@ -218,10 +218,10 @@ void test_columns(void) {
         });
         sc_table_add_col(t2, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t2, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q1"), SC_CELL("980 000")   }, 2);
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q2"), SC_CELL("1 100 000") }, 2);
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q3"), SC_CELL("870 000")   }, 2);
-        sc_table_add_row(t2, (ScCell[]){ SC_CELL("Q4"), SC_CELL("1 250 000") }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Q1"), sc_cell("980 000")   }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Q2"), sc_cell("1 100 000") }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Q3"), sc_cell("870 000")   }, 2);
+        sc_table_add_row(t2, (ScCell[]){ sc_cell("Q4"), sc_cell("1 250 000") }, 2);
 
         ScTable *t3 = sc_table_new((ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
@@ -232,10 +232,10 @@ void test_columns(void) {
         });
         sc_table_add_col(t3, "Quarter", (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(t3, "EUR",     (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q1"), SC_CELL("260 000") }, 2);
-        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q2"), SC_CELL("480 000") }, 2);
-        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q3"), SC_CELL("520 000") }, 2);
-        sc_table_add_row(t3, (ScCell[]){ SC_CELL("Q4"), SC_CELL("570 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ sc_cell("Q1"), sc_cell("260 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ sc_cell("Q2"), sc_cell("480 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ sc_cell("Q3"), sc_cell("520 000") }, 2);
+        sc_table_add_row(t3, (ScCell[]){ sc_cell("Q4"), sc_cell("570 000") }, 2);
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 3,

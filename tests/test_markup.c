@@ -109,9 +109,9 @@ void test_markup(void) {
         });
         sc_table_add_col(t, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
         sc_table_add_col(t, "Message", (ScColOpts){ 0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
-        sc_table_add_row(t, (ScCell[]){ SC_CELL_M("[green]✔ OK[/]"),      SC_CELL_M("Build [bold]passed[/]")          }, 2);
-        sc_table_add_row(t, (ScCell[]){ SC_CELL_M("[yellow]⚠ Warn[/]"),   SC_CELL_M("[italic]Deprecation detected[/]") }, 2);
-        sc_table_add_row(t, (ScCell[]){ SC_CELL_M("[red]✖ Error[/]"),     SC_CELL_M("[bold red]Compilation failed[/]") }, 2);
+        sc_table_add_row(t, (ScCell[]){ sc_cell_m("[green]✔ OK[/]"),      sc_cell_m("Build [bold]passed[/]")          }, 2);
+        sc_table_add_row(t, (ScCell[]){ sc_cell_m("[yellow]⚠ Warn[/]"),   sc_cell_m("[italic]Deprecation detected[/]") }, 2);
+        sc_table_add_row(t, (ScCell[]){ sc_cell_m("[red]✖ Error[/]"),     sc_cell_m("[bold red]Compilation failed[/]") }, 2);
         sc_table_print(t);
         sc_table_free(t);
     }

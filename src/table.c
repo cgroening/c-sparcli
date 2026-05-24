@@ -190,7 +190,7 @@ void sc_table_print(const ScTable *t) {
     if (t->opts.header.row) {
         ScCell *hcells = malloc(t->ncols * sizeof(ScCell));
         for (size_t c = 0; c < t->ncols; c++)
-            hcells[c] = SC_CELL(t->cols[c].header ? t->cols[c].header : "");
+            hcells[c] = sc_cell(t->cols[c].header ? t->cols[c].header : "");
         render_row(t, hcells, t->opts.header.row_bg, 1, cw, 0, NULL);
         free(hcells);
 
@@ -252,8 +252,8 @@ void sc_table_print(const ScTable *t) {
         snprintf(msg, sizeof(msg), "… %zu more rows", t->nrows - max_r);
         ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         ScCell *ind = malloc(t->ncols * sizeof(ScCell));
-        ind[0] = SC_CELL_CS(msg, (int)t->ncols);
-        for (size_t c = 1; c < t->ncols; c++) ind[c] = SC_CELL_SKIP;
+        ind[0] = sc_cell_cs(msg, (int)t->ncols);
+        for (size_t c = 1; c < t->ncols; c++) ind[c] = sc_cell_skip();
 
         ScTable *mt = (ScTable *)t;
         ScTextStyle saved_hopts = mt->opts.header.opts;
@@ -1087,7 +1087,7 @@ static void add_row_to(TRow **arr, size_t *n, size_t *cap,
     row->bg    = bg;
     row->cells = malloc(t->ncols * sizeof(ScCell));
     for (size_t i = 0; i < t->ncols; i++)
-        row->cells[i] = (i < ncell) ? cells[i] : SC_CELL("");
+        row->cells[i] = (i < ncell) ? cells[i] : sc_cell("");
 }
 /* ── Public API ──────────────────────────────────────────────────────────── */
 

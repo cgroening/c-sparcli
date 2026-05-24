@@ -227,11 +227,11 @@ void test_trees(void) {
         sc_table_add_col(tb, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Lines", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_col(tb, "Size",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Button.tsx"), SC_CELL("142"), SC_CELL("3.2 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("Input.tsx"),  SC_CELL( "89"), SC_CELL("1.8 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("main.ts"),    SC_CELL( "34"), SC_CELL("0.7 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("utils.ts"),   SC_CELL("210"), SC_CELL("4.9 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ SC_CELL("api.ts"),     SC_CELL("178"), SC_CELL("3.8 KB") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("Button.tsx"), sc_cell("142"), sc_cell("3.2 KB") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("Input.tsx"),  sc_cell( "89"), sc_cell("1.8 KB") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("main.ts"),    sc_cell( "34"), sc_cell("0.7 KB") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("utils.ts"),   sc_cell("210"), sc_cell("4.9 KB") }, 3);
+        sc_table_add_row(tb, (ScCell[]){ sc_cell("api.ts"),     sc_cell("178"), sc_cell("3.8 KB") }, 3);
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 3,
