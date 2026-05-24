@@ -170,6 +170,14 @@ typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
 typedef struct { int top; int right; int bottom; int left; } ScEdges;
 
 /**
+ * ScSpacing Struct - Combines padding and margin insets for layout.
+ *
+ * Both `padding` and `margin` are `ScEdges`, so they each have
+ * top/right/bottom/left values. Zero-initialization means no padding/margin.
+ */
+typedef struct { ScEdges padding; ScEdges margin; } ScSpacing;
+
+/**
  * ScBorderStyle Struct - Groups the three visual properties of a border:
  * character style, foreground color, and background color.
  */
