@@ -39,6 +39,7 @@
 *.i*86
 *.x86_64
 *.hex
+tests/test_main
 
 # Debug files
 *.dSYM/
