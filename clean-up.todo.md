@@ -31,9 +31,9 @@
 
 ## Alerts
 
-- [ ] tests/test_alert.c
-- [ ] include/sparcli_alert.h
-- [ ] src/alert.c
+- [x] tests/test_alert.c
+- [x] include/sparcli_alert.h
+- [x] src/alert.c
 
 ## Tables
 

@@ -93,8 +93,24 @@ static Test *get_focused_tests(size_t *count) {
     static Test tests[] = {
         { "Text Attributes & Combinations", &test_text_attributes, 0 },
         { "Colors",                    &test_colors,               0 },
-        { "Panels",                    &test_panels,               0 },
-        // { "Alerts",                    &test_alert,                0 },
+        // { "Panels",                    &test_panels,               0 },
+        { "Alerts",                    &test_alert,                0 },
+        // { "Tables",                    &test_tables,               0 },
+        // { "Rules",                     &test_rules,                0 },
+        // { "Trees",                     &test_trees,                0 },
+        // { "Lists",                     &test_lists,                0 },
+        // { "Progress Bar",              &test_progressbar,          0 },
+        // { "Animated Progress Bar",     &test_progressbar_animated, 1 },
+        // { "Spinner",                   &test_spinner,              0 },
+        // { "Animated Spinner",          &test_spinner_animated,     1 },
+        // { "Key-Value Pairs",           &test_kv,                   0 },
+        // { "Badges",                    &test_badge,                0 },
+        // { "Utilities",                 &test_util,                 0 },
+        // { "Padding",                   &test_pad,                  0 },
+        // { "Alignment",                 &test_align,                0 },
+        // { "Markup",                    &test_markup,               0 },
+        // { "Columns (Basic)",           &test_columns_basic,        0 },
+        // { "Columns (Advanced)",        &test_columns,              0 },
     };
 
     *count = sizeof(tests) / sizeof(tests[0]);
