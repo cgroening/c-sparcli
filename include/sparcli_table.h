@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sparcli_core.h"
-#include "sparcli_text.h"
-#include "sparcli_markup.h"
+#include "sparcli_core.h"    // IWYU pragma: export
+#include "sparcli_text.h"    // IWYU pragma: export
+#include "sparcli_markup.h"  // IWYU pragma: export
 #include <stddef.h>
 
 typedef enum { SC_CELL_STR, SC_CELL_TEXT, SC_CELL_MARKUP } ScCellKind;
