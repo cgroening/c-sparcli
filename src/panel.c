@@ -101,7 +101,7 @@ typedef struct {
     PSpan       *spans;     /**< Growing span buffer for the current line */
     size_t       span_n;    /**< Spans written into `spans` */
     size_t       span_cap;  /**< Allocated capacity of `spans` */
-    size_t       span_w;    /**< Visible column width accumulated fo the
+    size_t       span_w;    /**< Visible column width accumulated for the
                                  current line */
     ScTextStyle  style;     /**< Style of the source span currently
                                  being scanned */
@@ -130,7 +130,7 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts);
 static void panel_render(Panel *panel);
     static void add_vertical_margin(int n);
     static void render_panel_border(Panel *panel, ScPosition pos);
-        static void print_margin(int n);
+        static void print_spaces(int n);
         static void render_horizontal_border(HBorder hborder, ScTitle title);
             static void print_colored(const char *s, ScBorderStyle style);
                 static ScColor norm_bg(ScColor c);
@@ -139,6 +139,7 @@ static void panel_render(Panel *panel);
     static void render_body(Panel *panel);
         static void render_empty_line(Panel *panel);
         static void render_content_line(Panel *panel, PLine *line);
+            static void print_line_spans(PLine *line, ScColor bg);
 
 static void panel_cleanup(Panel *panel);
     static void free_lines(PLine *lines, size_t n);
@@ -390,15 +391,10 @@ static void add_vertical_margin(int line_count) {
 static void render_panel_border(Panel *panel, ScPosition pos) {
     HBorder hborder = (pos == SC_POSITION_TOP)
         ? panel->top_border : panel->bottom_border;
-    print_margin(panel->spacing.margin.left);
+    print_spaces(panel->spacing.margin.left);
     ScTitle title = panel->opts.title;
     if (title.pos != pos) title.text = NULL;
     render_horizontal_border(hborder, title);
-}
-
-/** Prints `n` space characters to stdout (left margin). */
-static void print_margin(int n) {
-    for (int i = 0; i < n; i++) fputc(' ', stdout);
 }
 
 /**
@@ -475,7 +471,7 @@ static bool is_color_active(ScColor color) {
 }
 
 /**
- * Applies `style.color`/`style.bg`, prints `sring_raw` `count` times,
+ * Applies `style.color`/`style.bg`, prints `str_raw` `count` times,
  * then emits a reset.
  */
 static void print_repeat(const char *str_raw, int count, ScBorderStyle style) {
@@ -490,16 +486,16 @@ static void render_body(Panel *panel) {
     ScSpacing sp = panel->spacing;
 
     for (int i = 0; i < sp.padding.top; i++) {
-        print_margin(sp.margin.left); render_empty_line(panel);
+        print_spaces(sp.margin.left); render_empty_line(panel);
     }
 
     for (size_t i = 0; i < panel->line_count; i++) {
-        print_margin(sp.margin.left);
+        print_spaces(sp.margin.left);
         render_content_line(panel, &panel->lines[i]);
     }
 
     for (int i = 0; i < sp.padding.bottom; i++) {
-        print_margin(sp.margin.left); render_empty_line(panel);
+        print_spaces(sp.margin.left); render_empty_line(panel);
     }
 }
 
@@ -524,6 +520,7 @@ static void render_empty_line(Panel *panel) {
     print_colored(border_table[row.border_style.type].v, row.border_style);
     fputc('\n', stdout);
 }
+
 /**
  * Renders one content row with left/right padding and alignment spacing.
  *
@@ -531,49 +528,51 @@ static void render_empty_line(Panel *panel) {
  * a reset that would otherwise clear the background color.
  */
 static void render_content_line(Panel *panel, PLine *line) {
-    PLineView   row = panel->line_view_template;
-    PLineLayout l   = row.layout;
-    int spare = l.inner_width - l.pad_l - l.pad_r - (int)line->line_width;
-    if (spare < 0) {
-        spare = 0;
+    PLineView row = panel->line_view_template;
+    PLineLayout layout = row.layout;
+
+    // Alignment
+    int content_space = layout.inner_width - layout.pad_l - layout.pad_r
+                        - (int)line->line_width;
+    if (content_space < 0) content_space = 0;
+    int left_padding = 0, right_padding = content_space;
+    if (layout.content_align == SC_ALIGN_CENTER) {
+        left_padding = content_space / 2;
+        right_padding = content_space - left_padding;
     }
-    int lp = 0, rp = spare;
-    if (l.content_align == SC_ALIGN_CENTER) {
-        lp = spare / 2;
-        rp = spare - lp;
-    }
-    else if (l.content_align == SC_ALIGN_RIGHT) {
-        lp = spare; rp = 0;
+    else if (layout.content_align == SC_ALIGN_RIGHT)  {
+        left_padding = content_space;
+        right_padding = 0;
     }
 
+    // Output
     print_colored(border_table[row.border_style.type].v, row.border_style);
     if (is_color_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
     }
-    for (int i = 0; i < l.pad_l; i++) {
-        fputc(' ', stdout);
-    }
-    for (int i = 0; i < lp; i++) {
-        fputc(' ', stdout);
-    }
-    for (size_t i = 0; i < line->count; i++) {
-        sc_print(line->spans[i].text, line->spans[i].opts);
-        if (is_color_active(row.content_bg)) {
-            sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
-        }
-    }
-    for (int i = 0; i < rp; i++) {
-        fputc(' ', stdout);
-    }
-    for (int i = 0; i < l.pad_r; i++) {
-        fputc(' ', stdout);
-    }
+    print_spaces(layout.pad_l);
+    print_spaces(left_padding);
+    print_line_spans(line, row.content_bg);
+    print_spaces(right_padding);
+    print_spaces(layout.pad_r);
     if (is_color_active(row.content_bg)) {
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     }
-
     print_colored(border_table[row.border_style.type].v, row.border_style);
     fputc('\n', stdout);
+}
+
+/** Prints each span of `line`, re-applying `bg` after each reset if active. */
+static void print_line_spans(PLine *line, ScColor bg) {
+    for (size_t i = 0; i < line->count; i++) {
+        sc_print(line->spans[i].text, line->spans[i].opts);
+        if (is_color_active(bg)) sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
+    }
+}
+
+/** Prints `n` space characters to stdout. */
+static void print_spaces(int n) {
+    for (int i = 0; i < n; i++) fputc(' ', stdout);
 }
 
 /** Frees heap-allocated panel content. */
