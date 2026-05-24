@@ -80,9 +80,9 @@ static const struct {
 };
 
 
-void sc_panel_text(const ScText *content, ScPanelOpts opts) {
+void sc_panel_text(const ScText *text, ScPanelOpts opts) {
     size_t nlines;
-    PLine *lines = make_plines(content, &nlines);
+    PLine *lines = make_plines(text, &nlines);
 
     size_t max_cw = 0;
     for (size_t i = 0; i < nlines; i++)
@@ -167,12 +167,8 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts) {
     free_plines(lines, nlines);
 }
 
-void sc_panel_str(const char *content, ScPanelOpts opts) {
-    ScTextStyle plain = {
-        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
-    ScText *t = sc_text_new();
-    sc_text_append(t, content, plain);
+void sc_panel_str(const char *raw_str, ScPanelOpts opts) {
+    ScText *t = sc_text_from_str(raw_str);
     sc_panel_text(t, opts);
     sc_text_free(t);
 }

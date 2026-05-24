@@ -11,6 +11,15 @@ ScText *sc_text_new(void) {
     return sc_text;
 }
 
+ScText *sc_text_from_str(const char *s) {
+    static const ScTextStyle plain = {
+        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
+    ScText *t = sc_text_new();
+    sc_text_append(t, s, plain);
+    return t;
+}
+
 void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
     if (sc_text->count == sc_text->cap) {
         size_t new_cap = sc_text->cap ? sc_text->cap * 2 : 4;

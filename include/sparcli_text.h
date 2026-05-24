@@ -34,6 +34,15 @@ typedef struct {
 ScText *sc_text_new(void);
 
 /**
+ * Allocates an `ScText` containing `s` as a single unstyled span.
+ *
+ * Convenience wrapper around `sc_text_new` + `sc_text_append` for the common
+ * case of wrapping a plain string. Caller must free the result with
+ * `sc_text_free`.
+ */
+ScText *sc_text_from_str(const char *s);
+
+/**
  * Appends a new span to `sc_text` with the given raw UTF-8 string and style.
  *
  * The spans array is doubled in capacity when full, starting at 4. `raw_string`
