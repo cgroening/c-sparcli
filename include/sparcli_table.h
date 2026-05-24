@@ -67,12 +67,12 @@ static inline ScCell sc_cell_m(const char *s) {
 }
 
 typedef struct {
-    int      min_w;
-    int      max_w;
-    int      fixed_w;
-    ScHAlign  align;
+    int      min_width;
+    int      max_width;
+    int      fixed_width;
+    ScHAlign  halign;
     ScVAlign valign;
-    bool     wrap;   /* word-wrap instead of truncate */
+    bool     word_wrap;   /* word-wrap instead of truncate */
     ScColor  bg;     /* SC_ANSI_COLOR_NONE = not set */
 } ScColOpts;
 
@@ -118,7 +118,7 @@ typedef struct {
 typedef struct ScTable ScTable;
 
 ScTable *sc_table_new        (ScTableOpts opts);
-void     sc_table_add_col    (ScTable *t, const char *header, ScColOpts col);
+void     sc_table_add_column    (ScTable *t, const char *header, ScColOpts col);
 void     sc_table_add_row    (ScTable *t, ScCell *cells, size_t n);
 void     sc_table_add_row_bg (ScTable *t, ScCell *cells, size_t n, ScColor bg);
 void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);

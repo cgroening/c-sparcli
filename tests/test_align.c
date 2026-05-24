@@ -29,8 +29,8 @@ void test_align(void) {
             .title = {.text = " Summary ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
-        sc_table_add_col(t, "Item",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(t, "Total", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(t, "Item",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(t, "Total", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_row(t, (ScCell[]){ sc_cell("Passed"),  sc_cell("147") }, 2);
         sc_table_add_row(t, (ScCell[]){ sc_cell("Failed"),  sc_cell("0")   }, 2);
         sc_table_add_row(t, (ScCell[]){ sc_cell("Skipped"), sc_cell("3")   }, 2);
@@ -76,8 +76,8 @@ void test_align(void) {
             .title = {.text = " Left (padded) ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
-        sc_table_add_col(ta, "A", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(ta, "B", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(ta, "A", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(ta, "B", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_row(ta, (ScCell[]){ sc_cell("Alpha"), sc_cell("10") }, 2);
         sc_table_add_row(ta, (ScCell[]){ sc_cell("Beta"),  sc_cell("20") }, 2);
 
@@ -89,8 +89,8 @@ void test_align(void) {
             .title = {.text = " Right (captured) ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
-        sc_table_add_col(tb, "X", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Y", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(tb, "X", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(tb, "Y", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_row(tb, (ScCell[]){ sc_cell("Gamma"), sc_cell("30") }, 2);
         sc_table_add_row(tb, (ScCell[]){ sc_cell("Delta"), sc_cell("40") }, 2);
         sc_table_add_row(tb, (ScCell[]){ sc_cell("Eps"),   sc_cell("50") }, 2);

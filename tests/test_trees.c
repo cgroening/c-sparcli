@@ -224,9 +224,9 @@ void test_trees(void) {
             .title = {.text = " File Stats ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
-        sc_table_add_col(tb, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Lines", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_col(tb, "Size",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(tb, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(tb, "Lines", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(tb, "Size",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_row(tb, (ScCell[]){ sc_cell("Button.tsx"), sc_cell("142"), sc_cell("3.2 KB") }, 3);
         sc_table_add_row(tb, (ScCell[]){ sc_cell("Input.tsx"),  sc_cell( "89"), sc_cell("1.8 KB") }, 3);
         sc_table_add_row(tb, (ScCell[]){ sc_cell("main.ts"),    sc_cell( "34"), sc_cell("0.7 KB") }, 3);

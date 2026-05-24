@@ -144,7 +144,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
 ```c
 ScTable *sc_table_new(ScTableOpts opts);
-void     sc_table_add_col(ScTable *t, const char *header, ScColOpts col);
+void     sc_table_add_column(ScTable *t, const char *header, ScColOpts col);
 void     sc_table_add_row(ScTable *t, ScCell *cells, size_t n);
 void     sc_table_add_row_bg(ScTable *t, ScCell *cells, size_t n, ScColor bg);
 void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
