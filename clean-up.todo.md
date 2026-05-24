@@ -26,8 +26,8 @@
 ## Panels
 
 - [x] tests/test_panels.c
-- [ ] include/sparcli_panel.h
-- [ ] src/panel.c
+- [x] include/sparcli_panel.h
+- [x] src/panel.c
 
 ## Alerts
 
