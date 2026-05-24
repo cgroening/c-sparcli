@@ -94,9 +94,32 @@ typedef struct {
     PLineView     line_view_template;
 } Panel;
 
+/**
+ * ParseBuf – Accumulator used while splitting `ScText` spans into `PLines`.
+ */
+typedef struct {
+    PSpan       *spans;     /**< Growing span buffer for the current line */
+    size_t       span_n;    /**< Spans written into `spans` */
+    size_t       span_cap;  /**< Allocated capacity of `spans` */
+    size_t       span_w;    /**< Visible column width accumulated fo the
+                                 current line */
+    ScTextStyle  style;     /**< Style of the source span currently
+                                 being scanned */
+    PLine       *lines;     /**< Growing array of completed lines */
+    size_t       line_n;    /**< Lines written into `lines` */
+    size_t       line_cap;  /**< Allocated capacity of `lines` */
+} ParseBuf;
 
+
+// Forward declarations indented to reflect call hierarchy
 static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts);
     static void split_text_into_panel_lines(Panel *panel);
+        static void scan_source_span(ParseBuf *pb, const ScSpan *span);
+            static void append_span(
+                ParseBuf *pb, const char *start, size_t seglen
+            );
+            static void flush_line(ParseBuf *pb);
+        static void finish_parse_buf(Panel *panel, ParseBuf *pb);
     static void resolve_panel_spacing(Panel *panel);
     static void compute_max_line_width(Panel *panel);
     static void compute_inner_width(Panel *panel);
@@ -114,15 +137,11 @@ static void panel_render(Panel *panel);
                     static bool is_color_active(ScColor c);
         static void print_repeat(const char *s, int n, ScBorderStyle style);
     static void render_body(Panel *panel);
-        static void render_content_line(Panel *panel, PLine *line);
         static void render_empty_line(Panel *panel);
+        static void render_content_line(Panel *panel, PLine *line);
 
 static void panel_cleanup(Panel *panel);
     static void free_lines(PLine *lines, size_t n);
-
-
-
-
 
 
 /**
@@ -155,6 +174,7 @@ void sc_panel_str(const char *raw_str, ScPanelOpts opts) {
     sc_text_free(t);
 }
 
+
 /** Populates all `Panel` fields from `text` and `opts`. */
 static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
     panel->text = text;
@@ -167,124 +187,82 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
     resolve_horizontal_border_lines(panel);
 }
 
-/** Renders the panel to stdout. */
-static void panel_render(Panel *panel) {
-    add_vertical_margin(panel->spacing.margin.top);
-    render_panel_border(panel, SC_POSITION_TOP);
-    render_body(panel);
-    render_panel_border(panel, SC_POSITION_BOTTOM);
-    add_vertical_margin(panel->spacing.margin.bottom);
-}
-
-/** Frees heap-allocated panel content. */
-static void panel_cleanup(Panel *panel) {
-    free_lines(panel->lines, panel->line_count);
-}
-
 /**
  * Splits the spans of `text` on newline boundaries into an array of `PLine`
  * records. Each `PLine` owns heap copies of its span strings.
  * Caller must free the result with `free_lines`.
  */
 static void split_text_into_panel_lines(Panel *panel) {
-    size_t lines_cap = 8, nlines = 0;
-    PLine *lines = malloc(lines_cap * sizeof(PLine));
+    ParseBuf pb = {
+        .spans = malloc(8 * sizeof(PSpan)), .span_cap = 8,
+        .lines = malloc(8 * sizeof(PLine)), .line_cap = 8,
+    };
 
-    size_t buf_cap = 8, buf_n = 0, buf_w = 0;
-    PSpan *buf = malloc(buf_cap * sizeof(PSpan));
+    for (size_t si = 0; si < panel->text->count; si++)
+        scan_source_span(&pb, &panel->text->spans[si]);
 
-    for (size_t si = 0; si < panel->text->count; si++) {
-        const char *s     = panel->text->spans[si].raw_str;
-        ScTextStyle   opts  = panel->text->spans[si].style;
-        const char *start = s;
-
-        while (*s) {
-            if (*s == '\n') {
-                size_t seglen = (size_t)(s - start);
-                if (seglen > 0) {
-                    if (buf_n == buf_cap) {
-                        buf_cap *= 2;
-                        buf = realloc(buf, buf_cap * sizeof(PSpan));
-                    }
-                    buf[buf_n++] = (PSpan){ strndup(start, seglen), opts };
-                    buf_w += sc_utf8_string_length(start, seglen);
-                }
-                /* flush line */
-                if (nlines == lines_cap) {
-                    lines_cap *= 2;
-                    lines = realloc(lines, lines_cap * sizeof(PLine));
-                }
-                PSpan *ls = malloc((buf_n + 1) * sizeof(PSpan));
-                memcpy(ls, buf, buf_n * sizeof(PSpan));
-                lines[nlines++] = (PLine){ ls, buf_n, buf_w };
-                buf_n = 0;
-                buf_w = 0;
-                start = s + 1;
-            }
-            s++;
-        }
-        size_t seglen = (size_t)(s - start);
-        if (seglen > 0) {
-            if (buf_n == buf_cap) {
-                buf_cap *= 2;
-                buf = realloc(buf, buf_cap * sizeof(PSpan));
-            }
-            buf[buf_n++] = (PSpan){ strndup(start, seglen), opts };
-            buf_w += sc_utf8_string_length(start, seglen);
-        }
-    }
-
-    /* flush last line */
-    if (nlines == lines_cap) {
-        lines_cap *= 2;
-        lines = realloc(lines, lines_cap * sizeof(PLine));
-    }
-    PSpan *ls = malloc((buf_n + 1) * sizeof(PSpan));
-    memcpy(ls, buf, buf_n * sizeof(PSpan));
-    lines[nlines++] = (PLine){ ls, buf_n, buf_w };
-
-    free(buf);
-    panel->lines      = lines;
-    panel->line_count = nlines;
-}
-
-/** Prints `n` space characters to stdout (left margin). */
-static void print_margin(int n) {
-    for (int i = 0; i < n; i++) fputc(' ', stdout);
+    finish_parse_buf(panel, &pb);
 }
 
 /**
- * Returns true if `color` should cause ANSI color escape codes to be emitted.
- *
- * Returns false for `SC_ANSI_COLOR_NONE` (index == -2) and for zero-initialized
- * `ScColor` structs. Zero-init ({index=0, r=0, g=0, b=0}) is treated as "not
- * set" because it is indistinguishable from `SC_ANSI_COLOR_BLACK`. Use
- * `sc_ansi_color_from_rgb(0,0,0)` to specify an explicit black.
+ * Scans one source span for `\n`, flushing a `PLine` on each new line and
+ * buffering the rest.
  */
-static bool is_color_active(ScColor color) {
-    bool is_none     = color.index == -2;
-    bool is_zeroinit = color.index == 0 && !color.r && !color.g && !color.b;
-    return !is_none && !is_zeroinit;
+static void scan_source_span(ParseBuf *pb, const ScSpan *span) {
+    pb->style          = span->style;
+    const char *cursor = span->raw_str;
+    const char *start  = cursor;
+
+    while (*cursor) {
+        if (*cursor == '\n') {
+            size_t seglen = (size_t)(cursor - start);
+            if (seglen > 0) append_span(pb, start, seglen);
+            flush_line(pb);
+            start = cursor + 1;
+        }
+        cursor++;
+    }
+    size_t seglen = (size_t)(cursor - start);
+    if (seglen > 0) append_span(pb, start, seglen);
 }
 
-/** Returns `SC_ANSI_COLOR_NONE` for the zero-init sentinel; else `color`. */
-static ScColor norm_bg(ScColor color) {
-    return is_color_active(color) ? color : SC_ANSI_COLOR_NONE;
+/**
+ * Grows the span buffer if full, then appends a heap copy of [start, seglen).
+ */
+static void append_span(ParseBuf *pb, const char *start, size_t seglen) {
+    if (pb->span_n == pb->span_cap) {
+        pb->span_cap *= 2;
+        pb->spans = realloc(pb->spans, pb->span_cap * sizeof(PSpan));
+    }
+    pb->spans[pb->span_n++] = (PSpan){ strndup(start, seglen), pb->style };
+    pb->span_w += sc_utf8_string_length(start, seglen);
 }
 
-/** Applies `style.color`/`style.bg`, prints `s`, then emits a reset. */
-static void print_colored(const char *s, ScBorderStyle style) {
-    sc_apply_colors(style.color, norm_bg(style.bg));
-    fputs(s, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+/**
+ * Copies the span buffer into a new `PLine`, appends it to the line array
+ * and resets the span buffer.
+ */
+static void flush_line(ParseBuf *pb) {
+    if (pb->line_n == pb->line_cap) {
+        pb->line_cap *= 2;
+        pb->lines = realloc(pb->lines, pb->line_cap * sizeof(PLine));
+    }
+    PSpan *ls = malloc((pb->span_n + 1) * sizeof(PSpan));
+    memcpy(ls, pb->spans, pb->span_n * sizeof(PSpan));
+    pb->lines[pb->line_n++] = (PLine){ ls, pb->span_n, pb->span_w };
+    pb->span_n = 0;
+    pb->span_w = 0;
 }
 
-/** Applies `style.color`/`style.bg`, prints `s` `n` times, then emits a reset. */
-static void print_repeat(const char *str_raw, int count, ScBorderStyle style) {
-    if (count <= 0) return;
-    sc_apply_colors(style.color, norm_bg(style.bg));
-    for (int i = 0; i < count; i++) fputs(str_raw, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+/**
+ * Flushes the last line, transfers ownership of the line array to `panel`
+ * and frees the span buffer.
+ */
+static void finish_parse_buf(Panel *panel, ParseBuf *pb) {
+    flush_line(pb);
+    free(pb->spans);
+    panel->lines      = pb->lines;
+    panel->line_count = pb->line_n;
 }
 
 /** Clamps all padding and margin values from `panel->opts` to >= 0. */
@@ -306,7 +284,9 @@ static void resolve_panel_spacing(Panel *panel) {
     };
 }
 
-/** Sets `panel->max_line_width` to the visible column width of the widest line. */
+/**
+ * Sets `panel->max_line_width` to the visible column width of the widest line.
+ */
 static void compute_max_line_width(Panel *panel) {
     size_t max = 0;
     for (size_t i = 0; i < panel->line_count; i++)
@@ -315,27 +295,34 @@ static void compute_max_line_width(Panel *panel) {
     panel->max_line_width = max;
 }
 
-/** Sets `panel->inner_width` to the number of chars between the vertical border chars. */
+/**
+ * Sets `panel->inner_width` to the number of chars between the vertical border
+ * chars.
+ */
 static void compute_inner_width(Panel *panel) {
     ScPanelOpts opts = panel->opts;
     ScSpacing   sp   = panel->spacing;
+    const char *title_text = opts.title.text;
+
     int w;
     if (opts.full_width) {
         w = sc_terminal_width() - 2 - sp.margin.left - sp.margin.right;
     } else if (opts.width > 0) {
         w = opts.width - 2;
     } else {
-        int title_len = opts.title.text
-            ? (int)sc_utf8_string_length(opts.title.text, strlen(opts.title.text))
+        int title_len = title_text
+            ? (int)sc_utf8_string_length(title_text, strlen(title_text))
             : 0;
-        int min4title = opts.title.text ? title_len + 2 * opts.title.pad + 2 : 0;
-        int from_content = (int)panel->max_line_width + sp.padding.left + sp.padding.right;
-        w = from_content > min4title ? from_content : min4title;
+        int title_min_width = title_text
+            ? title_len + 2 * opts.title.pad + 2 : 0;
+        int from_content = (int)panel->max_line_width
+            + sp.padding.left + sp.padding.right;
+        w = from_content > title_min_width ? from_content : title_min_width;
     }
     panel->inner_width = w < 2 ? 2 : w;
 }
 
-
+/** Builds the `PLineView` template shared by all content and empty rows. */
 static void create_line_view_template(Panel *panel) {
     panel->line_view_template = (PLineView){
         .layout = {
@@ -349,17 +336,17 @@ static void create_line_view_template(Panel *panel) {
     };
 }
 
-
+/** Constructs and stores the top and bottom `HBorder` records in `panel`. */
 static void resolve_horizontal_border_lines(Panel *panel) {
-
     panel->top_border    = make_hborder(panel, SC_POSITION_TOP);
     panel->bottom_border = make_hborder(panel, SC_POSITION_BOTTOM);
-
 }
 
 
-
-/**  */
+/**
+ * Constructs an `HBorder` for `position`, selecting corner characters
+ * from `border_table`.
+ */
 static HBorder make_hborder(Panel *panel, ScPosition position) {
     int border_type = panel->opts.border.type;
     const char *left_edge_character;
@@ -378,6 +365,40 @@ static HBorder make_hborder(Panel *panel, ScPosition position) {
         .left_edge_character  = left_edge_character,
         .right_edge_character = right_edge_character,
     };
+}
+
+
+/** Renders the panel to stdout. */
+static void panel_render(Panel *panel) {
+    add_vertical_margin(panel->spacing.margin.top);
+    render_panel_border(panel, SC_POSITION_TOP);
+    render_body(panel);
+    render_panel_border(panel, SC_POSITION_BOTTOM);
+    add_vertical_margin(panel->spacing.margin.bottom);
+}
+
+/** Emits `line_count` blank lines to stdout. */
+static void add_vertical_margin(int line_count) {
+    for (int i = 0; i < line_count; i++) {
+        fputc('\n', stdout);
+    }
+}
+
+/**
+ * Prints the left margin then renders the top or bottom border with its title.
+ */
+static void render_panel_border(Panel *panel, ScPosition pos) {
+    HBorder hborder = (pos == SC_POSITION_TOP)
+        ? panel->top_border : panel->bottom_border;
+    print_margin(panel->spacing.margin.left);
+    ScTitle title = panel->opts.title;
+    if (title.pos != pos) title.text = NULL;
+    render_horizontal_border(hborder, title);
+}
+
+/** Prints `n` space characters to stdout (left margin). */
+static void print_margin(int n) {
+    for (int i = 0; i < n; i++) fputc(' ', stdout);
 }
 
 /**
@@ -399,24 +420,24 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
         int dashes = hborder.inner_width - tlen - 2 * title.pad;
         if (dashes < 0) dashes = 0;
 
-        int ld, rd;
+        int left_dashes, right_dashes;
         if (title.align == SC_ALIGN_LEFT) {
-            ld = 1; rd = dashes - 1;
+            left_dashes = 1; right_dashes = dashes - 1;
         } else if (title.align == SC_ALIGN_RIGHT) {
-            ld = dashes - 1; rd = 1;
-        } else { /* CENTER */
-            ld = dashes / 2; rd = dashes - ld;
+            left_dashes = dashes - 1; right_dashes = 1;
+        } else {  // CENTER
+            left_dashes = dashes / 2; right_dashes = dashes - left_dashes;
         }
-        if (ld < 0) ld = 0;
-        if (rd < 0) rd = 0;
+        if (left_dashes < 0) left_dashes = 0;
+        if (right_dashes < 0) right_dashes = 0;
 
-        print_repeat(h, ld, hborder.border_style);
+        print_repeat(h, left_dashes, hborder.border_style);
         for (int i = 0; i < title.pad; i++)
             print_colored(" ", title_pad_style);
         sc_print(title.text, title.style);
         for (int i = 0; i < title.pad; i++)
             print_colored(" ", title_pad_style);
-        print_repeat(h, rd, hborder.border_style);
+        print_repeat(h, right_dashes, hborder.border_style);
     } else {
         print_repeat(h, hborder.inner_width, hborder.border_style);
     }
@@ -425,36 +446,84 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
     fputc('\n', stdout);
 }
 
-static void add_vertical_margin(int line_count) {
-    for (int i = 0; i < line_count; i++) {
-        fputc('\n', stdout);
+/**
+ * Applies `style.color`/`style.bg`, prints `s`, then emits a reset.
+ */
+static void print_colored(const char *s, ScBorderStyle style) {
+    sc_apply_colors(style.color, norm_bg(style.bg));
+    fputs(s, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+}
+
+/** Returns `SC_ANSI_COLOR_NONE` for the zero-init sentinel; else `color`. */
+static ScColor norm_bg(ScColor color) {
+    return is_color_active(color) ? color : SC_ANSI_COLOR_NONE;
+}
+
+/**
+ * Returns true if `color` should cause ANSI color escape codes to be emitted.
+ *
+ * Returns false for `SC_ANSI_COLOR_NONE` (index == -2) and for zero-initialized
+ * `ScColor` structs. Zero-init ({index=0, r=0, g=0, b=0}) is treated as "not
+ * set" because it is indistinguishable from `SC_ANSI_COLOR_BLACK`. Use
+ * `sc_ansi_color_from_rgb(0,0,0)` to specify an explicit black.
+ */
+static bool is_color_active(ScColor color) {
+    bool is_none     = color.index == -2;
+    bool is_zeroinit = color.index == 0 && !color.r && !color.g && !color.b;
+    return !is_none && !is_zeroinit;
+}
+
+/**
+ * Applies `style.color`/`style.bg`, prints `sring_raw` `count` times,
+ * then emits a reset.
+ */
+static void print_repeat(const char *str_raw, int count, ScBorderStyle style) {
+    if (count <= 0) return;
+    sc_apply_colors(style.color, norm_bg(style.bg));
+    for (int i = 0; i < count; i++) fputs(str_raw, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+}
+
+/** Renders top padding rows, all content lines, and bottom padding rows. */
+static void render_body(Panel *panel) {
+    ScSpacing sp = panel->spacing;
+
+    for (int i = 0; i < sp.padding.top; i++) {
+        print_margin(sp.margin.left); render_empty_line(panel);
+    }
+
+    for (size_t i = 0; i < panel->line_count; i++) {
+        print_margin(sp.margin.left);
+        render_content_line(panel, &panel->lines[i]);
+    }
+
+    for (int i = 0; i < sp.padding.bottom; i++) {
+        print_margin(sp.margin.left); render_empty_line(panel);
     }
 }
 
-/** Prints the left margin then renders the top or bottom border with its title. */
-static void render_panel_border(Panel *panel, ScPosition pos) {
-    HBorder hborder = (pos == SC_POSITION_TOP) ? panel->top_border : panel->bottom_border;
-    print_margin(panel->spacing.margin.left);
-    ScTitle title = panel->opts.title;
-    if (title.pos != pos) title.text = NULL;
-    render_horizontal_border(hborder, title);
-}
-
-/** Renders one border-enclosed blank row, filling the interior with bg if active. */
+/**
+ * Renders one border-enclosed blank row, filling the interior with `bg` color
+ * if active.
+ */
 static void render_empty_line(Panel *panel) {
     PLineView row = panel->line_view_template;
     print_colored(border_table[row.border_style.type].v, row.border_style);
     if (is_color_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
-        for (int i = 0; i < row.layout.inner_width; i++) fputc(' ', stdout);
+        for (int i = 0; i < row.layout.inner_width; i++) {
+            fputc(' ', stdout);
+        }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     } else {
-        for (int i = 0; i < row.layout.inner_width; i++) fputc(' ', stdout);
+        for (int i = 0; i < row.layout.inner_width; i++) {
+            fputc(' ', stdout);
+        }
     }
     print_colored(border_table[row.border_style.type].v, row.border_style);
     fputc('\n', stdout);
 }
-
 /**
  * Renders one content row with left/right padding and alignment spacing.
  *
@@ -465,41 +534,57 @@ static void render_content_line(Panel *panel, PLine *line) {
     PLineView   row = panel->line_view_template;
     PLineLayout l   = row.layout;
     int spare = l.inner_width - l.pad_l - l.pad_r - (int)line->line_width;
-    if (spare < 0) spare = 0;
+    if (spare < 0) {
+        spare = 0;
+    }
     int lp = 0, rp = spare;
-    if (l.content_align == SC_ALIGN_CENTER) { lp = spare / 2; rp = spare - lp; }
-    else if (l.content_align == SC_ALIGN_RIGHT) { lp = spare; rp = 0; }
+    if (l.content_align == SC_ALIGN_CENTER) {
+        lp = spare / 2;
+        rp = spare - lp;
+    }
+    else if (l.content_align == SC_ALIGN_RIGHT) {
+        lp = spare; rp = 0;
+    }
 
     print_colored(border_table[row.border_style.type].v, row.border_style);
-    if (is_color_active(row.content_bg))
+    if (is_color_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
-    for (int i = 0; i < l.pad_l; i++) fputc(' ', stdout);
-    for (int i = 0; i < lp; i++) fputc(' ', stdout);
+    }
+    for (int i = 0; i < l.pad_l; i++) {
+        fputc(' ', stdout);
+    }
+    for (int i = 0; i < lp; i++) {
+        fputc(' ', stdout);
+    }
     for (size_t i = 0; i < line->count; i++) {
         sc_print(line->spans[i].text, line->spans[i].opts);
-        if (is_color_active(row.content_bg))
+        if (is_color_active(row.content_bg)) {
             sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
+        }
     }
-    for (int i = 0; i < rp; i++) fputc(' ', stdout);
-    for (int i = 0; i < l.pad_r; i++) fputc(' ', stdout);
-    if (is_color_active(row.content_bg))
+    for (int i = 0; i < rp; i++) {
+        fputc(' ', stdout);
+    }
+    for (int i = 0; i < l.pad_r; i++) {
+        fputc(' ', stdout);
+    }
+    if (is_color_active(row.content_bg)) {
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    }
+
     print_colored(border_table[row.border_style.type].v, row.border_style);
     fputc('\n', stdout);
 }
 
-/** Renders top padding rows, all content lines, and bottom padding rows. */
-static void render_body(Panel *panel) {
-    ScSpacing sp = panel->spacing;
-    for (int i = 0; i < sp.padding.top; i++) { print_margin(sp.margin.left); render_empty_line(panel); }
-    for (size_t i = 0; i < panel->line_count; i++) {
-        print_margin(sp.margin.left);
-        render_content_line(panel, &panel->lines[i]);
-    }
-    for (int i = 0; i < sp.padding.bottom; i++) { print_margin(sp.margin.left); render_empty_line(panel); }
+/** Frees heap-allocated panel content. */
+static void panel_cleanup(Panel *panel) {
+    free_lines(panel->lines, panel->line_count);
 }
 
-/** Frees the span strings and line array produced by `split_text_into_panel_lines`. */
+/**
+ * Frees the span strings and line array produced by
+ * `split_text_into_panel_lines`.
+ */
 static void free_lines(PLine *lines, size_t n) {
     for (size_t i = 0; i < n; i++) {
         for (size_t j = 0; j < lines[i].count; j++)
@@ -508,4 +593,3 @@ static void free_lines(PLine *lines, size_t n) {
     }
     free(lines);
 }
-
