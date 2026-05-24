@@ -147,9 +147,11 @@ typedef enum {
 } ScBorderType;
 
 /**
- * ScTitlePosition Enum - Position of the title in a component (top or bottom).
+ * ScPosition Enum - Position of the title in a component (top or bottom).
  */
-typedef enum { SC_TITLE_TOP, SC_TITLE_BOTTOM } ScTitlePosition;
+typedef enum {
+    SC_POSITION_TOP, SC_POSITION_BOTTOM, SC_POSITION_LEFT, SC_POSITION_RIGHT
+} ScPosition;
 
 /**
  * ScHAlign Enum - Horizontal alignment options (left, center, right) for text
@@ -198,7 +200,7 @@ typedef struct {
     ScTextStyle  style; /**< Text style (bold, color, …) applied to the title */
     ScHAlign     align; /**< Horizontal placement of the title */
     int          pad;   /**< Spaces on each side of the title text */
-    ScTitlePosition pos;  /**< SC_TITLE_TOP/SC_TITLE_BOTTOM; unused for rules */
+    ScPosition pos;  /**< SC_POSITION_TOP/SC_POSITION_BOTTOM; unused for rules */
 } ScTitle;
 
 

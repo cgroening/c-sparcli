@@ -98,7 +98,7 @@ typedef struct {
     ScTextStyle      style; /* text rendering (bold, color, …) */
     ScHAlign         align; /* LEFT / CENTER / RIGHT */
     int              pad;   /* spaces on each side of the title text */
-    ScTitlePosition  pos;   /* SC_TITLE_TOP / SC_TITLE_BOTTOM; unused for rules */
+    ScTitlePosition  pos;   /* SC_POSITION_TOP / SC_POSITION_BOTTOM; unused for rules */
 } ScTitle;
 ```
 
@@ -127,7 +127,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | `title.style` | `ScTextStyle` | Text style (bold, color, …) |
 | `title.align` | `ScHAlign` | LEFT / CENTER / RIGHT |
 | `title.pad` | `int` | Spaces on each side of the title text |
-| `title.pos` | `ScTitlePosition` | `SC_TITLE_TOP` / `SC_TITLE_BOTTOM` |
+| `title.pos` | `ScTitlePosition` | `SC_POSITION_TOP` / `SC_POSITION_BOTTOM` |
 | `padding` | `ScEdges` | Inner content padding (top/right/bottom/left) |
 | `margin` | `ScEdges` | Outer margin |
 | `width` | `int` | 0 = auto-fit content |

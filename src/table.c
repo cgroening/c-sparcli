@@ -937,7 +937,7 @@ void sc_table_print(const ScTable *t) {
 
     /* ── top border ── */
     if (!no_outer) {
-        if (t->opts.title.text && t->opts.title.pos == SC_TITLE_TOP) {
+        if (t->opts.title.text && t->opts.title.pos == SC_POSITION_TOP) {
             render_title_line(t, inner_w, 1);
         } else if (bs != SC_BORDER_NONE) {
             render_horizontal_border(t, cw, tbc[bs].tl, tbc[bs].tr,
@@ -1038,7 +1038,7 @@ void sc_table_print(const ScTable *t) {
 
     /* ── bottom border ── */
     if (!no_outer) {
-        if (t->opts.title.text && t->opts.title.pos == SC_TITLE_BOTTOM) {
+        if (t->opts.title.text && t->opts.title.pos == SC_POSITION_BOTTOM) {
             render_title_line(t, inner_w, 0);
         } else if (bs != SC_BORDER_NONE) {
             render_horizontal_border(t, cw, tbc[bs].bl, tbc[bs].br,

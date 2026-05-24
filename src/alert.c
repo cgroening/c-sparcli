@@ -29,7 +29,7 @@ void sc_alert_str(ScAlertType type, const char *content) {
         .title      = { .text = title,
                         .style = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
                         .align = SC_ALIGN_LEFT, .pad = 1,
-                        .pos = SC_TITLE_TOP },
+                        .pos = SC_POSITION_TOP },
         .padding    = {0, 1, 0, 1},
         .full_width = 1,
     };
@@ -48,7 +48,7 @@ void sc_alert_text(ScAlertType type, const ScText *content) {
         .title      = { .text = title,
                         .style = { SC_TEXT_ATTR_BOLD, col, SC_ANSI_COLOR_NONE },
                         .align = SC_ALIGN_LEFT, .pad = 1,
-                        .pos = SC_TITLE_TOP },
+                        .pos = SC_POSITION_TOP },
         .padding    = {0, 1, 0, 1},
         .full_width = 1,
     };

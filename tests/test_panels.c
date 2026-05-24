@@ -24,7 +24,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_LEFT,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = { .type = SC_BORDER_NONE, .color = SC_ANSI_COLOR_NONE },
         .bg      = SC_ANSI_COLOR_NONE,
@@ -38,7 +38,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_LEFT,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = { .type = SC_BORDER_ASCII, .color = SC_ANSI_COLOR_NONE },
         .bg      = SC_ANSI_COLOR_NONE,
@@ -52,7 +52,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_CENTER,
             .pad   = 4,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_CYAN },
         .bg      = SC_ANSI_COLOR_NONE,
@@ -68,7 +68,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_RIGHT,
             .pad   = 1,
-            .pos   = SC_TITLE_BOTTOM
+            .pos   = SC_POSITION_BOTTOM
         },
         .border  = { .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_YELLOW },
         .bg      = SC_ANSI_COLOR_NONE,
@@ -80,7 +80,7 @@ void test_panels(void) {
         .title = {
             .align = SC_ALIGN_LEFT,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = {
             .type  = SC_BORDER_ROUNDED,
@@ -96,7 +96,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_LEFT,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = { .type = SC_BORDER_THICK, .color = SC_ANSI_COLOR_GREEN },
         .bg      = SC_ANSI_COLOR_NONE,
@@ -119,7 +119,7 @@ void test_panels(void) {
             .style = on_blue,
             .align = SC_ALIGN_LEFT,
             .pad   = 0,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN },
         .bg      = SC_ANSI_COLOR_NONE,
@@ -138,7 +138,7 @@ void test_panels(void) {
             .style = bold_on_dark_blue,
             .align = SC_ALIGN_LEFT,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = {
             .type  = SC_BORDER_ROUNDED,
@@ -157,7 +157,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_CENTER,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = {
             .type = SC_BORDER_THICK,
@@ -179,7 +179,7 @@ void test_panels(void) {
                 .style = bold_ttl,
                 .align = SC_ALIGN_CENTER,
                 .pad   = 1,
-                .pos   = SC_TITLE_TOP
+                .pos   = SC_POSITION_TOP
             },
             .border  = {
                 .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN
@@ -197,7 +197,7 @@ void test_panels(void) {
             .style = bold_ttl,
             .align = SC_ALIGN_RIGHT,
             .pad   = 1,
-            .pos   = SC_TITLE_TOP
+            .pos   = SC_POSITION_TOP
         },
         .border  = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
         .bg      = SC_ANSI_COLOR_NONE,

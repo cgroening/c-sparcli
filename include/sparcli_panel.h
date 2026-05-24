@@ -21,7 +21,7 @@
  *     .border  = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
  *     .title   = {
  *         .text = "Status", .align = SC_ALIGN_CENTER, .pad = 1,
- *         .pos  = SC_TITLE_TOP
+ *         .pos  = SC_POSITION_TOP
  *     },
  *     .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },
  *     .full_width    = true,
