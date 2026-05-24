@@ -4,11 +4,295 @@
 #include <string.h>
 #include <stdio.h>
 
-/* ── Internal line types ─────────────────────────────────────────────────── */
 
-typedef struct { const char *text; ScTextStyle opts; } TSpan;
-typedef struct { TSpan *spans; size_t count; size_t vis_w; } TLine;
+typedef struct {
+    const char *text;
+    ScTextStyle opts; } TSpan;
 
+typedef struct {
+    TSpan *spans;
+    size_t count;
+    size_t vis_w;
+} TLine;
+
+/* ── Extended border character sets ─────────────────────────────────────── */
+
+typedef struct {
+    const char *tl, *tr, *bl, *br;
+    const char *h, *v;
+    const char *cross, *t_top, *t_bot, *t_left, *t_right;
+} TBC;
+
+static const TBC tbc[] = {
+    [SC_BORDER_NONE]    = { " "," "," "," ", " "," ", " "," "," "," "," " },
+    [SC_BORDER_ASCII]   = { "+","+","+","+", "-","|", "+","+","+","+","+" },
+    [SC_BORDER_SINGLE]  = { "┌","┐","└","┘", "─","│", "┼","┬","┴","├","┤" },
+    [SC_BORDER_DOUBLE]  = { "╔","╗","╚","╝", "═","║", "╬","╦","╩","╠","╣" },
+    [SC_BORDER_ROUNDED] = { "╭","╮","╰","╯", "─","│", "┼","┬","┴","├","┤" },
+    [SC_BORDER_THICK]   = { "┏","┓","┗","┛", "━","┃", "╋","┳","┻","┣","┫" },
+};
+
+/* ── Rowspan context (tracks active spans across rows) ───────────────────── */
+
+typedef struct {
+    const ScCell *cell;
+    int           span_h;
+    int           vis_offset;
+    ScVAlign      valign;
+} RSCtx;
+
+/* ── Internal table structures ───────────────────────────────────────────── */
+
+typedef struct {
+    char     *header;
+    ScColOpts opts;
+    int       width;
+} TCol;
+
+typedef struct {
+    ScCell *cells;
+    size_t  ncols;
+    ScColor bg;
+} TRow;
+
+struct ScTable {
+    TCol       *cols;
+    size_t      ncols, cols_cap;
+    TRow       *rows;
+    size_t      nrows, rows_cap;
+    TRow       *footer_rows;
+    size_t      nfooter_rows, footer_rows_cap;
+    ScTableOpts opts;
+};
+
+/* ── Forward declarations ────────────────────────────────────────────────── */
+
+static void    free_tlines(TLine *lines, size_t n);
+static void    flush_tline(TLine **lines, size_t *cap, size_t *n,
+                            TSpan *buf, size_t buf_n, size_t vis_w);
+static TLine  *make_cell_lines(const ScCell *cell, size_t *out_n);
+static size_t  cell_vis_width(const ScCell *cell);
+static TLine  *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n);
+static TLine  *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
+static void    print_ch(const char *s, ScColor fg);
+static void    print_spaces_bg(int n, ScColor bg);
+static void    print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg);
+static void    compute_col_widths(ScTable *t);
+static void    apply_total_width(ScTable *t);
+static int     table_inner_w(const ScTable *t);
+static int    *compute_row_heights(const ScTable *t, const int *cw);
+static void    tpre(const ScTable *t);
+static void    render_horizontal_border(const ScTable *t, int *col_widths,
+                                         const char *lc, const char *rc,
+                                         const char *fill, ScColor fill_color,
+                                         const char *mid,  ScColor mid_color,
+                                         ScColor edge_color, int use_hcol,
+                                         const int *rs);
+static void    render_inner_sep(const ScTable *t, int *cw,
+                                 ScColor ic, const int *is_rs, const RSCtx *rsc);
+static void    render_title_line(const ScTable *t, int inner_w, int is_top);
+static void    render_row(const ScTable *t, const ScCell *cells,
+                           ScColor row_bg, int row_kind, int *col_widths,
+                           int row_h_in, const RSCtx *rsc);
+static void    add_row_to(TRow **arr, size_t *n, size_t *cap,
+                           ScTable *t, ScCell *cells, size_t ncell, ScColor bg);
+
+
+ScTable *sc_table_new(ScTableOpts opts) {
+    ScTable *t = malloc(sizeof(ScTable));
+    t->cols = NULL; t->ncols = 0; t->cols_cap = 0;
+    t->rows = NULL; t->nrows = 0; t->rows_cap = 0;
+    t->footer_rows = NULL; t->nfooter_rows = 0; t->footer_rows_cap = 0;
+    t->opts = opts;
+    return t;
+}
+
+void sc_table_add_col(ScTable *t, const char *header, ScColOpts col) {
+    if (t->ncols == t->cols_cap) {
+        t->cols_cap = t->cols_cap ? t->cols_cap * 2 : 4;
+        t->cols = realloc(t->cols, t->cols_cap * sizeof(TCol));
+    }
+    t->cols[t->ncols].header = header ? strdup(header) : NULL;
+    t->cols[t->ncols].opts   = col;
+    t->cols[t->ncols].width  = 0;
+    t->ncols++;
+}
+
+
+void sc_table_add_row(ScTable *t, ScCell *cells, size_t n) {
+    add_row_to(&t->rows, &t->nrows, &t->rows_cap, t, cells, n, SC_ANSI_COLOR_NONE);
+}
+
+void sc_table_add_row_bg(ScTable *t, ScCell *cells, size_t n, ScColor bg) {
+    add_row_to(&t->rows, &t->nrows, &t->rows_cap, t, cells, n, bg);
+}
+
+void sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n) {
+    add_row_to(&t->footer_rows, &t->nfooter_rows, &t->footer_rows_cap,
+               t, cells, n, SC_ANSI_COLOR_NONE);
+}
+
+void sc_table_free(ScTable *t) {
+    for (size_t i = 0; i < t->ncols; i++) free(t->cols[i].header);
+    free(t->cols);
+    for (size_t i = 0; i < t->nrows; i++) {
+        for (size_t j = 0; j < t->rows[i].ncols; j++)
+            if (t->rows[i].cells[j].kind == SC_CELL_MARKUP && t->rows[i].cells[j].text)
+                sc_text_free(t->rows[i].cells[j].text);
+        free(t->rows[i].cells);
+    }
+    free(t->rows);
+    for (size_t i = 0; i < t->nfooter_rows; i++) {
+        for (size_t j = 0; j < t->footer_rows[i].ncols; j++)
+            if (t->footer_rows[i].cells[j].kind == SC_CELL_MARKUP && t->footer_rows[i].cells[j].text)
+                sc_text_free(t->footer_rows[i].cells[j].text);
+        free(t->footer_rows[i].cells);
+    }
+    free(t->footer_rows);
+    free(t);
+}
+
+void sc_table_print(const ScTable *t) {
+    if (!t->ncols) return;
+
+    for (int i = 0; i < t->opts.margin.top; i++) fputc('\n', stdout);
+    compute_col_widths((ScTable *)t);
+    apply_total_width((ScTable *)t);
+
+    int *cw = malloc(t->ncols * sizeof(int));
+    for (size_t c = 0; c < t->ncols; c++) cw[c] = t->cols[c].width;
+
+    int *row_h_arr = compute_row_heights(t, cw);
+    RSCtx *rsc = calloc(t->ncols, sizeof(RSCtx));
+
+    ScBorderType bs    = t->opts.borders.style;
+    ScColor oc    = t->opts.borders.outer_color;
+    ScColor ic    = t->opts.borders.inner_color;
+    ScColor hrsc  = t->opts.borders.header_row_sep_color;
+    int no_outer  = t->opts.borders.no_outer;
+    int no_inner_h = t->opts.borders.no_inner_h;
+
+    int inner_w = table_inner_w(t);
+
+    int *is_rs = calloc(t->ncols, sizeof(int));
+
+    /* ── top border ── */
+    if (!no_outer) {
+        if (t->opts.title.text && t->opts.title.pos == SC_POSITION_TOP) {
+            render_title_line(t, inner_w, 1);
+        } else if (bs != SC_BORDER_NONE) {
+            render_horizontal_border(t, cw, tbc[bs].tl, tbc[bs].tr,
+                         tbc[bs].h, oc, tbc[bs].t_top, oc, oc, 0, NULL);
+        }
+    }
+
+    /* ── header row ── */
+    if (t->opts.header.row) {
+        ScCell *hcells = malloc(t->ncols * sizeof(ScCell));
+        for (size_t c = 0; c < t->ncols; c++)
+            hcells[c] = SC_CELL(t->cols[c].header ? t->cols[c].header : "");
+        render_row(t, hcells, t->opts.header.row_bg, 1, cw, 0, NULL);
+        free(hcells);
+
+        if (bs != SC_BORDER_NONE) {
+            ScColor hc = (hrsc.index != -2) ? hrsc : ic;
+            render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
+                         tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
+        }
+    }
+
+    /* ── data rows ── */
+    size_t max_r = t->nrows;
+    if (t->opts.max_rows > 0 && (size_t)t->opts.max_rows < max_r)
+        max_r = (size_t)t->opts.max_rows;
+
+    for (size_t r = 0; r < max_r; r++) {
+        /* Update RSCtx: initialize new spans, clear non-continuations */
+        for (size_t c = 0; c < t->ncols; c++) {
+            int rs = t->rows[r].cells[c].rowspan;
+            if (rs > 1) {
+                int sep_h = (bs != SC_BORDER_NONE && !no_inner_h) ? 1 : 0;
+                int sh = 0;
+                for (int k = 0; k < rs && r + (size_t)k < t->nrows; k++) {
+                    if (k > 0) sh += sep_h;
+                    sh += row_h_arr[r + k];
+                }
+                ScVAlign va = t->cols[c].opts.valign;
+                if (t->rows[r].cells[c].valign_set) va = t->rows[r].cells[c].valign;
+                rsc[c] = (RSCtx){ &t->rows[r].cells[c], sh, 0, va };
+            } else if (rs != -1) {
+                rsc[c] = (RSCtx){ NULL, 0, 0, 0 };
+            }
+        }
+
+        if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
+            /* Compute rowspan state: cols with SC_ROW_SKIP get blank separator */
+            for (size_t c = 0; c < t->ncols; c++)
+                is_rs[c] = (t->rows[r].cells[c].rowspan == -1);
+            render_inner_sep(t, cw, ic, is_rs, rsc);
+            /* Separator is 1 visual line within already-running spans only */
+            for (size_t c = 0; c < t->ncols; c++)
+                if (is_rs[c] && rsc[c].cell) rsc[c].vis_offset++;
+        }
+        ScColor row_bg = t->rows[r].bg;
+        if (row_bg.index == -2) {
+            row_bg = SC_ANSI_COLOR_NONE;
+            if (t->opts.striped && (r % 2 == 1)) row_bg = t->opts.stripe_bg;
+        }
+        render_row(t, t->rows[r].cells, row_bg, 0, cw, row_h_arr[r], rsc);
+
+        /* Advance vis_offset for all active spans */
+        for (size_t c = 0; c < t->ncols; c++)
+            if (rsc[c].cell) rsc[c].vis_offset += row_h_arr[r];
+    }
+
+    /* ── truncation indicator ── */
+    if (t->opts.max_rows > 0 && t->nrows > max_r) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "… %zu more rows", t->nrows - max_r);
+        ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        ScCell *ind = malloc(t->ncols * sizeof(ScCell));
+        ind[0] = SC_CELL_CS(msg, (int)t->ncols);
+        for (size_t c = 1; c < t->ncols; c++) ind[c] = SC_CELL_SKIP;
+
+        ScTable *mt = (ScTable *)t;
+        ScTextStyle saved_hopts = mt->opts.header.opts;
+        mt->opts.header.opts = dim;
+        render_row(t, ind, SC_ANSI_COLOR_NONE, 1, cw, 0, NULL);
+        mt->opts.header.opts = saved_hopts;
+        free(ind);
+    }
+
+    /* ── footer rows ── */
+    if (t->nfooter_rows > 0 && bs != SC_BORDER_NONE) {
+        ScColor hc = (hrsc.index != -2) ? hrsc : ic;
+        render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
+                     tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
+    }
+    for (size_t r = 0; r < t->nfooter_rows; r++) {
+        if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
+            render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
+                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
+        }
+        render_row(t, t->footer_rows[r].cells, t->opts.footer.row_bg, 2, cw, 0, NULL);
+    }
+
+    /* ── bottom border ── */
+    if (!no_outer) {
+        if (t->opts.title.text && t->opts.title.pos == SC_POSITION_BOTTOM) {
+            render_title_line(t, inner_w, 0);
+        } else if (bs != SC_BORDER_NONE) {
+            render_horizontal_border(t, cw, tbc[bs].bl, tbc[bs].br,
+                         tbc[bs].h, oc, tbc[bs].t_bot, oc, oc, 0, NULL);
+        }
+    }
+
+    free(is_rs);
+    free(rsc);
+    free(row_h_arr);
+    free(cw);
+    for (int i = 0; i < t->opts.margin.bottom; i++) fputc('\n', stdout);
+}
 static void free_tlines(TLine *lines, size_t n) {
     for (size_t i = 0; i < n; i++) {
         for (size_t j = 0; j < lines[i].count; j++)
@@ -211,56 +495,6 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n) {
     *out_n = nres;
     return res;
 }
-
-/* ── Extended border character sets ─────────────────────────────────────── */
-
-typedef struct {
-    const char *tl, *tr, *bl, *br;
-    const char *h, *v;
-    const char *cross, *t_top, *t_bot, *t_left, *t_right;
-} TBC;
-
-static const TBC tbc[] = {
-    [SC_BORDER_NONE]    = { " "," "," "," ", " "," ", " "," "," "," "," " },
-    [SC_BORDER_ASCII]   = { "+","+","+","+", "-","|", "+","+","+","+","+" },
-    [SC_BORDER_SINGLE]  = { "┌","┐","└","┘", "─","│", "┼","┬","┴","├","┤" },
-    [SC_BORDER_DOUBLE]  = { "╔","╗","╚","╝", "═","║", "╬","╦","╩","╠","╣" },
-    [SC_BORDER_ROUNDED] = { "╭","╮","╰","╯", "─","│", "┼","┬","┴","├","┤" },
-    [SC_BORDER_THICK]   = { "┏","┓","┗","┛", "━","┃", "╋","┳","┻","┣","┫" },
-};
-
-/* ── Rowspan context (tracks active spans across rows) ───────────────────── */
-
-typedef struct {
-    const ScCell *cell;   /* NULL = no active span */
-    int           span_h;     /* total visual height of entire span */
-    int           vis_offset; /* visual lines already rendered */
-    ScVAlign      valign;
-} RSCtx;
-
-/* ── Internal table structures ───────────────────────────────────────────── */
-
-typedef struct {
-    char     *header;
-    ScColOpts opts;
-    int       width;
-} TCol;
-
-typedef struct {
-    ScCell *cells;
-    size_t  ncols;
-    ScColor bg;      /* SC_ANSI_COLOR_NONE = use default / stripe */
-} TRow;
-
-struct ScTable {
-    TCol       *cols;
-    size_t      ncols, cols_cap;
-    TRow       *rows;
-    size_t      nrows, rows_cap;
-    TRow       *footer_rows;
-    size_t      nfooter_rows, footer_rows_cap;
-    ScTableOpts opts;
-};
 
 /* ── Low-level print helpers ─────────────────────────────────────────────── */
 
@@ -842,28 +1076,6 @@ static void render_row(const ScTable *t, const ScCell *cells,
     free(cnl);
 }
 
-/* ── Public API ──────────────────────────────────────────────────────────── */
-
-ScTable *sc_table_new(ScTableOpts opts) {
-    ScTable *t = malloc(sizeof(ScTable));
-    t->cols = NULL; t->ncols = 0; t->cols_cap = 0;
-    t->rows = NULL; t->nrows = 0; t->rows_cap = 0;
-    t->footer_rows = NULL; t->nfooter_rows = 0; t->footer_rows_cap = 0;
-    t->opts = opts;
-    return t;
-}
-
-void sc_table_add_col(ScTable *t, const char *header, ScColOpts col) {
-    if (t->ncols == t->cols_cap) {
-        t->cols_cap = t->cols_cap ? t->cols_cap * 2 : 4;
-        t->cols = realloc(t->cols, t->cols_cap * sizeof(TCol));
-    }
-    t->cols[t->ncols].header = header ? strdup(header) : NULL;
-    t->cols[t->ncols].opts   = col;
-    t->cols[t->ncols].width  = 0;
-    t->ncols++;
-}
-
 static void add_row_to(TRow **arr, size_t *n, size_t *cap,
                         ScTable *t, ScCell *cells, size_t ncell, ScColor bg) {
     if (*n == *cap) {
@@ -877,178 +1089,5 @@ static void add_row_to(TRow **arr, size_t *n, size_t *cap,
     for (size_t i = 0; i < t->ncols; i++)
         row->cells[i] = (i < ncell) ? cells[i] : SC_CELL("");
 }
+/* ── Public API ──────────────────────────────────────────────────────────── */
 
-void sc_table_add_row(ScTable *t, ScCell *cells, size_t n) {
-    add_row_to(&t->rows, &t->nrows, &t->rows_cap, t, cells, n, SC_ANSI_COLOR_NONE);
-}
-
-void sc_table_add_row_bg(ScTable *t, ScCell *cells, size_t n, ScColor bg) {
-    add_row_to(&t->rows, &t->nrows, &t->rows_cap, t, cells, n, bg);
-}
-
-void sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n) {
-    add_row_to(&t->footer_rows, &t->nfooter_rows, &t->footer_rows_cap,
-               t, cells, n, SC_ANSI_COLOR_NONE);
-}
-
-void sc_table_free(ScTable *t) {
-    for (size_t i = 0; i < t->ncols; i++) free(t->cols[i].header);
-    free(t->cols);
-    for (size_t i = 0; i < t->nrows; i++) {
-        for (size_t j = 0; j < t->rows[i].ncols; j++)
-            if (t->rows[i].cells[j].kind == SC_CELL_MARKUP && t->rows[i].cells[j].text)
-                sc_text_free(t->rows[i].cells[j].text);
-        free(t->rows[i].cells);
-    }
-    free(t->rows);
-    for (size_t i = 0; i < t->nfooter_rows; i++) {
-        for (size_t j = 0; j < t->footer_rows[i].ncols; j++)
-            if (t->footer_rows[i].cells[j].kind == SC_CELL_MARKUP && t->footer_rows[i].cells[j].text)
-                sc_text_free(t->footer_rows[i].cells[j].text);
-        free(t->footer_rows[i].cells);
-    }
-    free(t->footer_rows);
-    free(t);
-}
-
-void sc_table_print(const ScTable *t) {
-    if (!t->ncols) return;
-
-    for (int i = 0; i < t->opts.margin.top; i++) fputc('\n', stdout);
-    compute_col_widths((ScTable *)t);
-    apply_total_width((ScTable *)t);
-
-    int *cw = malloc(t->ncols * sizeof(int));
-    for (size_t c = 0; c < t->ncols; c++) cw[c] = t->cols[c].width;
-
-    int *row_h_arr = compute_row_heights(t, cw);
-    RSCtx *rsc = calloc(t->ncols, sizeof(RSCtx));
-
-    ScBorderType bs    = t->opts.borders.style;
-    ScColor oc    = t->opts.borders.outer_color;
-    ScColor ic    = t->opts.borders.inner_color;
-    ScColor hrsc  = t->opts.borders.header_row_sep_color;
-    int no_outer  = t->opts.borders.no_outer;
-    int no_inner_h = t->opts.borders.no_inner_h;
-
-    int inner_w = table_inner_w(t);
-
-    int *is_rs = calloc(t->ncols, sizeof(int));
-
-    /* ── top border ── */
-    if (!no_outer) {
-        if (t->opts.title.text && t->opts.title.pos == SC_POSITION_TOP) {
-            render_title_line(t, inner_w, 1);
-        } else if (bs != SC_BORDER_NONE) {
-            render_horizontal_border(t, cw, tbc[bs].tl, tbc[bs].tr,
-                         tbc[bs].h, oc, tbc[bs].t_top, oc, oc, 0, NULL);
-        }
-    }
-
-    /* ── header row ── */
-    if (t->opts.header.row) {
-        ScCell *hcells = malloc(t->ncols * sizeof(ScCell));
-        for (size_t c = 0; c < t->ncols; c++)
-            hcells[c] = SC_CELL(t->cols[c].header ? t->cols[c].header : "");
-        render_row(t, hcells, t->opts.header.row_bg, 1, cw, 0, NULL);
-        free(hcells);
-
-        if (bs != SC_BORDER_NONE) {
-            ScColor hc = (hrsc.index != -2) ? hrsc : ic;
-            render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
-        }
-    }
-
-    /* ── data rows ── */
-    size_t max_r = t->nrows;
-    if (t->opts.max_rows > 0 && (size_t)t->opts.max_rows < max_r)
-        max_r = (size_t)t->opts.max_rows;
-
-    for (size_t r = 0; r < max_r; r++) {
-        /* Update RSCtx: initialize new spans, clear non-continuations */
-        for (size_t c = 0; c < t->ncols; c++) {
-            int rs = t->rows[r].cells[c].rowspan;
-            if (rs > 1) {
-                int sep_h = (bs != SC_BORDER_NONE && !no_inner_h) ? 1 : 0;
-                int sh = 0;
-                for (int k = 0; k < rs && r + (size_t)k < t->nrows; k++) {
-                    if (k > 0) sh += sep_h;
-                    sh += row_h_arr[r + k];
-                }
-                ScVAlign va = t->cols[c].opts.valign;
-                if (t->rows[r].cells[c].valign_set) va = t->rows[r].cells[c].valign;
-                rsc[c] = (RSCtx){ &t->rows[r].cells[c], sh, 0, va };
-            } else if (rs != -1) {
-                rsc[c] = (RSCtx){ NULL, 0, 0, 0 };
-            }
-        }
-
-        if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
-            /* Compute rowspan state: cols with SC_ROW_SKIP get blank separator */
-            for (size_t c = 0; c < t->ncols; c++)
-                is_rs[c] = (t->rows[r].cells[c].rowspan == -1);
-            render_inner_sep(t, cw, ic, is_rs, rsc);
-            /* Separator is 1 visual line within already-running spans only */
-            for (size_t c = 0; c < t->ncols; c++)
-                if (is_rs[c] && rsc[c].cell) rsc[c].vis_offset++;
-        }
-        ScColor row_bg = t->rows[r].bg;
-        if (row_bg.index == -2) {
-            row_bg = SC_ANSI_COLOR_NONE;
-            if (t->opts.striped && (r % 2 == 1)) row_bg = t->opts.stripe_bg;
-        }
-        render_row(t, t->rows[r].cells, row_bg, 0, cw, row_h_arr[r], rsc);
-
-        /* Advance vis_offset for all active spans */
-        for (size_t c = 0; c < t->ncols; c++)
-            if (rsc[c].cell) rsc[c].vis_offset += row_h_arr[r];
-    }
-
-    /* ── truncation indicator ── */
-    if (t->opts.max_rows > 0 && t->nrows > max_r) {
-        char msg[64];
-        snprintf(msg, sizeof(msg), "… %zu more rows", t->nrows - max_r);
-        ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-        ScCell *ind = malloc(t->ncols * sizeof(ScCell));
-        ind[0] = SC_CELL_CS(msg, (int)t->ncols);
-        for (size_t c = 1; c < t->ncols; c++) ind[c] = SC_CELL_SKIP;
-
-        ScTable *mt = (ScTable *)t;
-        ScTextStyle saved_hopts = mt->opts.header.opts;
-        mt->opts.header.opts = dim;
-        render_row(t, ind, SC_ANSI_COLOR_NONE, 1, cw, 0, NULL);
-        mt->opts.header.opts = saved_hopts;
-        free(ind);
-    }
-
-    /* ── footer rows ── */
-    if (t->nfooter_rows > 0 && bs != SC_BORDER_NONE) {
-        ScColor hc = (hrsc.index != -2) ? hrsc : ic;
-        render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                     tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
-    }
-    for (size_t r = 0; r < t->nfooter_rows; r++) {
-        if (r > 0 && bs != SC_BORDER_NONE && !no_inner_h) {
-            render_horizontal_border(t, cw, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
-        }
-        render_row(t, t->footer_rows[r].cells, t->opts.footer.row_bg, 2, cw, 0, NULL);
-    }
-
-    /* ── bottom border ── */
-    if (!no_outer) {
-        if (t->opts.title.text && t->opts.title.pos == SC_POSITION_BOTTOM) {
-            render_title_line(t, inner_w, 0);
-        } else if (bs != SC_BORDER_NONE) {
-            render_horizontal_border(t, cw, tbc[bs].bl, tbc[bs].br,
-                         tbc[bs].h, oc, tbc[bs].t_bot, oc, oc, 0, NULL);
-        }
-    }
-
-    free(is_rs);
-    free(rsc);
-    free(row_h_arr);
-    free(cw);
-    for (int i = 0; i < t->opts.margin.bottom; i++) fputc('\n', stdout);
-}
