@@ -56,8 +56,8 @@ void test_panels(void) {
         },
         .border  = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_CYAN },
         .bg      = SC_ANSI_COLOR_NONE,
-        // .padding = {2, 4, 2, 4},
-        // .margin  = {2, 5, 2, 5},
+        .padding = {2, 4, 2, 4},
+        .margin  = {2, 5, 2, 5},
         .content_align = SC_ALIGN_LEFT,
     });
 
