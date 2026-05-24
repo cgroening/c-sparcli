@@ -52,7 +52,7 @@ typedef struct {
 } PLineView;
 
 
-static int color_active(ScColor c);
+static bool color_active(ScColor c);
 static ScColor norm_bg(ScColor c);
 static void print_colored(const char *s, ScBorderStyle style);
 static void print_repeat(const char *s, int n, ScBorderStyle style);
@@ -79,20 +79,117 @@ static const struct {
     [SC_BORDER_THICK]   = { "┏", "┓", "┗", "┛", "━", "┃" },
 };
 
-/**
- * Returns non-zero if `c` carries an active color.
- *
- * Both the zero-init sentinel and SC_ANSI_COLOR_BLACK have index==0 and
- * rgb==0,0,0 — they are indistinguishable. Use sc_ansi_color_from_rgb(0,0,0)
- * to specify an explicit black background.
- */
-static int color_active(ScColor c) {
-    return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
+
+void sc_panel_text(const ScText *content, ScPanelOpts opts) {
+    size_t nlines;
+    PLine *lines = make_plines(content, &nlines);
+
+    size_t max_cw = 0;
+    for (size_t i = 0; i < nlines; i++)
+        if (lines[i].line_width > max_cw) max_cw = lines[i].line_width;
+
+    int title_len = opts.title.text
+        ? (int)sc_utf8_string_length(opts.title.text,
+                                     strlen(opts.title.text))
+        : 0;
+    int min4title = opts.title.text
+        ? title_len + 2 * opts.title.pad + 2 : 0;
+    int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
+    int pad_r = opts.padding.right > 0 ? opts.padding.right : 0;
+    int pad_t = opts.padding.top   > 0 ? opts.padding.top   : 0;
+    int pad_b = opts.padding.bottom> 0 ? opts.padding.bottom: 0;
+    int ml    = opts.margin.left   > 0 ? opts.margin.left   : 0;
+    int mr    = opts.margin.right  > 0 ? opts.margin.right  : 0;
+
+    int inner_w;
+    if (opts.full_width) {
+        inner_w = sc_terminal_width() - 2 - ml - mr;
+        if (inner_w < 2) inner_w = 2;
+    } else if (opts.width > 0) {
+        inner_w = opts.width - 2;
+    } else {
+        int from_content = (int)max_cw + pad_l + pad_r;
+        inner_w = from_content > min4title ? from_content : min4title;
+        if (inner_w < 2) inner_w = 2;
+    }
+
+    int bt = opts.border.type;
+    HBorder top = {
+        .border_style         = opts.border,
+        .inner_width          = inner_w,
+        .left_edge_character  = (char *)border_table[bt].tl,
+        .right_edge_character = (char *)border_table[bt].tr,
+    };
+    HBorder bot = {
+        .border_style         = opts.border,
+        .inner_width          = inner_w,
+        .left_edge_character  = (char *)border_table[bt].bl,
+        .right_edge_character = (char *)border_table[bt].br,
+    };
+
+#define PMARG() \
+    do { for (int _i = 0; _i < ml; _i++) fputc(' ', stdout); } while(0)
+
+    for (int i = 0; i < opts.margin.top; i++) fputc('\n', stdout);
+
+    /* top border */
+    PMARG();
+    ScTitle ttop = opts.title;
+    if (opts.title.pos != SC_TITLE_TOP) ttop.text = NULL;
+    render_horizontal_border(top, ttop);
+
+    PLineView row = {
+        .layout = { inner_w, pad_l, pad_r, opts.content_align },
+        .border = opts.border,
+        .bg     = opts.bg,
+    };
+
+    for (int i = 0; i < pad_t; i++) { PMARG(); render_empty_line(row); }
+
+    for (size_t i = 0; i < nlines; i++) {
+        row.line = &lines[i];
+        PMARG();
+        render_content_line(row);
+    }
+
+    for (int i = 0; i < pad_b; i++) { PMARG(); render_empty_line(row); }
+
+    /* bottom border */
+    PMARG();
+    ScTitle tbot = opts.title;
+    if (opts.title.pos != SC_TITLE_BOTTOM) tbot.text = NULL;
+    render_horizontal_border(bot, tbot);
+
+    for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
+
+#undef PMARG
+
+    free_plines(lines, nlines);
 }
 
-/** Returns `SC_ANSI_COLOR_NONE` for the zero-init sentinel; else `c`. */
-static ScColor norm_bg(ScColor c) {
-    return color_active(c) ? c : SC_ANSI_COLOR_NONE;
+void sc_panel_str(const char *content, ScPanelOpts opts) {
+    ScTextStyle plain = {
+        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
+    ScText *t = sc_text_new();
+    sc_text_append(t, content, plain);
+    sc_panel_text(t, opts);
+    sc_text_free(t);
+}
+
+
+/**
+ * Returns true if `color` should cause ANSI color escape codes to be emitted.
+ *
+ * Returns false for `SC_ANSI_COLOR_NONE` (index == -2) and for zero-initialized
+ * `ScColor` structs. Zero-init ({index=0, r=0, g=0, b=0}) is treated as "not
+ * set" because it is indistinguishable from `SC_ANSI_COLOR_BLACK`. Use
+ * `sc_ansi_color_from_rgb(0,0,0)` to specify an explicit black.
+ */
+static bool color_active(ScColor color) {
+    bool is_none     = color.index == -2;
+    bool is_zeroinit = color.index == 0 && !color.r && !color.g && !color.b;
+    return !is_none && !is_zeroinit;
 }
 
 /** Applies `style.color`/`style.bg`, prints `s`, then emits a reset. */
@@ -108,6 +205,13 @@ static void print_repeat(const char *s, int n, ScBorderStyle style) {
     sc_apply_colors(style.color, norm_bg(style.bg));
     for (int i = 0; i < n; i++) fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+}
+
+/**
+ * Returns `SC_ANSI_COLOR_NONE` for the zero-init sentinel; else `color`.
+ */
+static ScColor norm_bg(ScColor color) {
+    return color_active(color) ? color : SC_ANSI_COLOR_NONE;
 }
 
 /**
@@ -278,99 +382,3 @@ static void render_content_line(PLineView row) {
     fputc('\n', stdout);
 }
 
-void sc_panel_text(const ScText *content, ScPanelOpts opts) {
-    size_t nlines;
-    PLine *lines = make_plines(content, &nlines);
-
-    size_t max_cw = 0;
-    for (size_t i = 0; i < nlines; i++)
-        if (lines[i].line_width > max_cw) max_cw = lines[i].line_width;
-
-    int title_len = opts.title.text
-        ? (int)sc_utf8_string_length(opts.title.text,
-                                     strlen(opts.title.text))
-        : 0;
-    int min4title = opts.title.text
-        ? title_len + 2 * opts.title.pad + 2 : 0;
-    int pad_l = opts.padding.left  > 0 ? opts.padding.left  : 0;
-    int pad_r = opts.padding.right > 0 ? opts.padding.right : 0;
-    int pad_t = opts.padding.top   > 0 ? opts.padding.top   : 0;
-    int pad_b = opts.padding.bottom> 0 ? opts.padding.bottom: 0;
-    int ml    = opts.margin.left   > 0 ? opts.margin.left   : 0;
-    int mr    = opts.margin.right  > 0 ? opts.margin.right  : 0;
-
-    int inner_w;
-    if (opts.full_width) {
-        inner_w = sc_terminal_width() - 2 - ml - mr;
-        if (inner_w < 2) inner_w = 2;
-    } else if (opts.width > 0) {
-        inner_w = opts.width - 2;
-    } else {
-        int from_content = (int)max_cw + pad_l + pad_r;
-        inner_w = from_content > min4title ? from_content : min4title;
-        if (inner_w < 2) inner_w = 2;
-    }
-
-    int bt = opts.border.type;
-    HBorder top = {
-        .border_style         = opts.border,
-        .inner_width          = inner_w,
-        .left_edge_character  = (char *)border_table[bt].tl,
-        .right_edge_character = (char *)border_table[bt].tr,
-    };
-    HBorder bot = {
-        .border_style         = opts.border,
-        .inner_width          = inner_w,
-        .left_edge_character  = (char *)border_table[bt].bl,
-        .right_edge_character = (char *)border_table[bt].br,
-    };
-
-#define PMARG() \
-    do { for (int _i = 0; _i < ml; _i++) fputc(' ', stdout); } while(0)
-
-    for (int i = 0; i < opts.margin.top; i++) fputc('\n', stdout);
-
-    /* top border */
-    PMARG();
-    ScTitle ttop = opts.title;
-    if (opts.title.pos != SC_TITLE_TOP) ttop.text = NULL;
-    render_horizontal_border(top, ttop);
-
-    PLineView row = {
-        .layout = { inner_w, pad_l, pad_r, opts.content_align },
-        .border = opts.border,
-        .bg     = opts.bg,
-    };
-
-    for (int i = 0; i < pad_t; i++) { PMARG(); render_empty_line(row); }
-
-    for (size_t i = 0; i < nlines; i++) {
-        row.line = &lines[i];
-        PMARG();
-        render_content_line(row);
-    }
-
-    for (int i = 0; i < pad_b; i++) { PMARG(); render_empty_line(row); }
-
-    /* bottom border */
-    PMARG();
-    ScTitle tbot = opts.title;
-    if (opts.title.pos != SC_TITLE_BOTTOM) tbot.text = NULL;
-    render_horizontal_border(bot, tbot);
-
-    for (int i = 0; i < opts.margin.bottom; i++) fputc('\n', stdout);
-
-#undef PMARG
-
-    free_plines(lines, nlines);
-}
-
-void sc_panel_str(const char *content, ScPanelOpts opts) {
-    ScTextStyle plain = {
-        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
-    ScText *t = sc_text_new();
-    sc_text_append(t, content, plain);
-    sc_panel_text(t, opts);
-    sc_text_free(t);
-}
