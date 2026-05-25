@@ -30,7 +30,7 @@ typedef struct {
 typedef struct ScColumns ScColumns;
 
 ScColumns *sc_columns_new         (ScColumnsOpts opts);
-void sc_columns_add_table         (ScColumns *cl, const ScTableData *t, ScTableOpts opts, ScColItem item);
+void sc_columns_add_table         (ScColumns *cl, const ScTableData *table_data, ScTableOpts opts, ScColItem item);
 void sc_columns_add_panel_str     (ScColumns *cl, const char      *content, ScPanelOpts opts, ScColItem item);
 void sc_columns_add_panel_text    (ScColumns *cl, const ScText    *content, ScPanelOpts opts, ScColItem item);
 void sc_columns_add_text          (ScColumns *cl, const ScText    *t,       ScColItem item);

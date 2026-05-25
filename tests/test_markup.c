@@ -100,20 +100,20 @@ void test_markup(void) {
     /* ── 10. SC_CELL_M in a table ── */
     printf("--- Markup 10. SC_CELL_M in table ---\n");
     {
-        ScTableData *t = sc_table_new();
-        sc_table_add_column(t, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
-        sc_table_add_column(t, "Message", (ScColOpts){ 0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
-        sc_table_add_row(t, (ScCell[]){ sc_cell_m("[green]✔ OK[/]"),      sc_cell_m("Build [bold]passed[/]")          }, 2);
-        sc_table_add_row(t, (ScCell[]){ sc_cell_m("[yellow]⚠ Warn[/]"),   sc_cell_m("[italic]Deprecation detected[/]") }, 2);
-        sc_table_add_row(t, (ScCell[]){ sc_cell_m("[red]✖ Error[/]"),     sc_cell_m("[bold red]Compilation failed[/]") }, 2);
-        sc_table_print(t, (ScTableOpts){
+        ScTableData *table_data = sc_table_new();
+        sc_table_add_column(table_data, "Status",  (ScColOpts){ 0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
+        sc_table_add_column(table_data, "Message", (ScColOpts){ 0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE });
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell_m("[green]✔ OK[/]"),      sc_cell_m("Build [bold]passed[/]")          }, 2);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell_m("[yellow]⚠ Warn[/]"),   sc_cell_m("[italic]Deprecation detected[/]") }, 2);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell_m("[red]✖ Error[/]"),     sc_cell_m("[bold red]Compilation failed[/]") }, 2);
+        sc_table_print(table_data, (ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad = {0, 1, 0, 1},
         });
-        sc_table_free(t);
+        sc_table_free(table_data);
     }
 
     printf("\n");

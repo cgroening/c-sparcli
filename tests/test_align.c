@@ -21,14 +21,14 @@ void test_align(void) {
     /* ── 3. Center-align a table ── */
     printf("--- Align 3. Center-aligned table ---\n");
     {
-        ScTableData *t = sc_table_new();
-        sc_table_add_column(t, "Item",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_column(t, "Total", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t, (ScCell[]){ sc_cell("Passed"),  sc_cell("147") }, 2);
-        sc_table_add_row(t, (ScCell[]){ sc_cell("Failed"),  sc_cell("0")   }, 2);
-        sc_table_add_row(t, (ScCell[]){ sc_cell("Skipped"), sc_cell("3")   }, 2);
+        ScTableData *table_data = sc_table_new();
+        sc_table_add_column(table_data, "Item",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(table_data, "Total", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("Passed"),  sc_cell("147") }, 2);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("Failed"),  sc_cell("0")   }, 2);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("Skipped"), sc_cell("3")   }, 2);
 
-        ScRendered *r = sc_capture_table(t, (ScTableOpts){
+        ScRendered *r = sc_capture_table(table_data, (ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
@@ -39,7 +39,7 @@ void test_align(void) {
         });
         sc_align_print(r, SC_ALIGN_CENTER, 0);
         sc_rendered_free(r);
-        sc_table_free(t);
+        sc_table_free(table_data);
     }
 
     printf("\n");
@@ -69,20 +69,20 @@ void test_align(void) {
     /* ── 5. sc_columns_add_rendered: pad left + align center ── */
     printf("--- Align 5. columns_add_rendered: pad left + align center ---\n");
     {
-        ScTableData *ta = sc_table_new();
-        sc_table_add_column(ta, "A", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_column(ta, "B", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(ta, (ScCell[]){ sc_cell("Alpha"), sc_cell("10") }, 2);
-        sc_table_add_row(ta, (ScCell[]){ sc_cell("Beta"),  sc_cell("20") }, 2);
+        ScTableData *table_data_1 = sc_table_new();
+        sc_table_add_column(table_data_1, "A", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(table_data_1, "B", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_row(table_data_1, (ScCell[]){ sc_cell("Alpha"), sc_cell("10") }, 2);
+        sc_table_add_row(table_data_1, (ScCell[]){ sc_cell("Beta"),  sc_cell("20") }, 2);
 
-        ScTableData *tb = sc_table_new();
-        sc_table_add_column(tb, "X", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_column(tb, "Y", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("Gamma"), sc_cell("30") }, 2);
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("Delta"), sc_cell("40") }, 2);
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("Eps"),   sc_cell("50") }, 2);
+        ScTableData *table_data_2 = sc_table_new();
+        sc_table_add_column(table_data_2, "X", (ScColOpts){0,0,8, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(table_data_2, "Y", (ScColOpts){0,0,6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_row(table_data_2, (ScCell[]){ sc_cell("Gamma"), sc_cell("30") }, 2);
+        sc_table_add_row(table_data_2, (ScCell[]){ sc_cell("Delta"), sc_cell("40") }, 2);
+        sc_table_add_row(table_data_2, (ScCell[]){ sc_cell("Eps"),   sc_cell("50") }, 2);
 
-        ScRendered *ra = sc_capture_table(ta, (ScTableOpts){
+        ScRendered *ra = sc_capture_table(table_data_1, (ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
@@ -91,7 +91,7 @@ void test_align(void) {
                       .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
             .cell_pad = {0, 1, 0, 1},
         });
-        ScRendered *rb = sc_capture_table(tb, (ScTableOpts){
+        ScRendered *rb = sc_capture_table(table_data_2, (ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
@@ -112,7 +112,7 @@ void test_align(void) {
 
         sc_rendered_free(ra);
         sc_rendered_free(rb);
-        sc_table_free(ta);
-        sc_table_free(tb);
+        sc_table_free(table_data_1);
+        sc_table_free(table_data_2);
     }
 }

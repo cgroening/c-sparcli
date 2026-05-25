@@ -216,15 +216,15 @@ void test_trees(void) {
         sc_tree_add_str(tree, lib,  "utils.ts",   file_o, "· ", ic_f);
         sc_tree_add_str(tree, lib,  "api.ts",     file_o, "· ", ic_f);
 
-        ScTableData *tb = sc_table_new();
-        sc_table_add_column(tb, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_column(tb, "Lines", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_column(tb, "Size",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("Button.tsx"), sc_cell("142"), sc_cell("3.2 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("Input.tsx"),  sc_cell( "89"), sc_cell("1.8 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("main.ts"),    sc_cell( "34"), sc_cell("0.7 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("utils.ts"),   sc_cell("210"), sc_cell("4.9 KB") }, 3);
-        sc_table_add_row(tb, (ScCell[]){ sc_cell("api.ts"),     sc_cell("178"), sc_cell("3.8 KB") }, 3);
+        ScTableData *table_data = sc_table_new();
+        sc_table_add_column(table_data, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(table_data, "Lines", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(table_data, "Size",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("Button.tsx"), sc_cell("142"), sc_cell("3.2 KB") }, 3);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("Input.tsx"),  sc_cell( "89"), sc_cell("1.8 KB") }, 3);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("main.ts"),    sc_cell( "34"), sc_cell("0.7 KB") }, 3);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("utils.ts"),   sc_cell("210"), sc_cell("4.9 KB") }, 3);
+        sc_table_add_row(table_data, (ScCell[]){ sc_cell("api.ts"),     sc_cell("178"), sc_cell("3.8 KB") }, 3);
 
         ScColumns *cl = sc_columns_new((ScColumnsOpts){
             .gap       = 3,
@@ -232,7 +232,7 @@ void test_trees(void) {
             .valign    = SC_VALIGN_TOP,
         });
         sc_columns_add_tree(cl, tree, (ScColItem){0});
-        sc_columns_add_table(cl, tb, (ScTableOpts){
+        sc_columns_add_table(cl, table_data, (ScTableOpts){
             .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1,
@@ -245,6 +245,6 @@ void test_trees(void) {
 
         sc_columns_free(cl);
         sc_tree_free(tree);
-        sc_table_free(tb);
+        sc_table_free(table_data);
     }
 }
