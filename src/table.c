@@ -98,7 +98,7 @@ void sc_table_add_column(ScTableData *table_data, const char *header, ScColOpts 
 void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t n);
 void sc_table_add_row_bg(ScTableData *table_data, ScCell *cells, size_t n, ScColor bg);
 void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n);
-    static void add_row_to(
+    static void add_row(
         ScTableData *table_data, ScCell *cells, size_t ncell, ScColor bg, bool to_footer
     );
 
@@ -216,15 +216,17 @@ static void *dynarray_grow(
 
 
 void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t n) {
-    add_row_to(table_data, cells, n, SC_ANSI_COLOR_NONE, false);
+    add_row(table_data, cells, n, SC_ANSI_COLOR_NONE, false);
 }
 
-void sc_table_add_row_bg(ScTableData *table_data, ScCell *cells, size_t n, ScColor bg) {
-    add_row_to(table_data, cells, n, bg, false);
+void sc_table_add_row_bg(
+    ScTableData *table_data, ScCell *cells, size_t n, ScColor bg
+) {
+    add_row(table_data, cells, n, bg, false);
 }
 
 void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n) {
-    add_row_to(table_data, cells, n, SC_ANSI_COLOR_NONE, true);
+    add_row(table_data, cells, n, SC_ANSI_COLOR_NONE, true);
 }
 
 /**
@@ -235,13 +237,13 @@ void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n) {
  * `sc_table_add_row_bg` and `sc_table_add_footer_row`.
  *
  * @param table_data  Table to modify.
- * @param cells      Array of cells; one entry per column.
- * @param ncell      Number of elements in `cells`.
- * @param bg         Row background color; `SC_ANSI_COLOR_NONE` for none.
- * @param to_footer  `true` to append to the footer section, `false` for
- *                   data rows.
+ * @param cells       Array of cells; one entry per column.
+ * @param ncell       Number of elements in `cells`.
+ * @param bg          Row background color; `SC_ANSI_COLOR_NONE` for none.
+ * @param to_footer   `true` to append to the footer section, `false` for
+ *                    data rows.
  */
-static void add_row_to(
+static void add_row(
     ScTableData *table_data, ScCell *cells, size_t ncell, ScColor bg, bool to_footer
 ) {
     // Determine which array and counters to use based on the target (main rows
