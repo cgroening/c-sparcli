@@ -216,14 +216,7 @@ void test_trees(void) {
         sc_tree_add_str(tree, lib,  "utils.ts",   file_o, "· ", ic_f);
         sc_tree_add_str(tree, lib,  "api.ts",     file_o, "· ", ic_f);
 
-        ScTable *tb = sc_table_new((ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
-            .header.row  = 1,
-            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .title = {.text = " File Stats ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE }, .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
-            .cell_pad = {0, 1, 0, 1},
-        });
+        ScTableData *tb = sc_table_new();
         sc_table_add_column(tb, "File",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_column(tb, "Lines", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
         sc_table_add_column(tb, "Size",  (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
@@ -239,7 +232,15 @@ void test_trees(void) {
             .valign    = SC_VALIGN_TOP,
         });
         sc_columns_add_tree(cl, tree, (ScColItem){0});
-        sc_columns_add_table(cl, tb, (ScColItem){0});
+        sc_columns_add_table(cl, tb, (ScTableOpts){
+            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
+            .header.row  = 1,
+            .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .title = {.text = " File Stats ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+                      .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
+            .cell_pad = {0, 1, 0, 1},
+        }, (ScColItem){0});
         sc_columns_print(cl);
 
         sc_columns_free(cl);

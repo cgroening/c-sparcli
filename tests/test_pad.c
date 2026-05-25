@@ -15,19 +15,19 @@ void test_pad(void) {
     /* ── 2. Indent a table with top/bottom/left padding ── */
     printf("--- Pad 2. Table with top=1, bottom=1, left=4 ---\n");
     {
-        ScTable *t = sc_table_new((ScTableOpts){
+        ScTableData *t = sc_table_new();
+        sc_table_add_column(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_column(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
+        sc_table_add_row(t, (ScCell[]){ sc_cell("Alice"), sc_cell("9800") }, 2);
+        sc_table_add_row(t, (ScCell[]){ sc_cell("Bob"),   sc_cell("7650") }, 2);
+
+        ScRendered *r = sc_capture_table(t, (ScTableOpts){
             .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
             .cell_pad = {0, 1, 0, 1},
         });
-        sc_table_add_column(t, "Name",  (ScColOpts){0,0,0, SC_ALIGN_LEFT,  SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_column(t, "Score", (ScColOpts){0,0,0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE});
-        sc_table_add_row(t, (ScCell[]){ sc_cell("Alice"), sc_cell("9800") }, 2);
-        sc_table_add_row(t, (ScCell[]){ sc_cell("Bob"),   sc_cell("7650") }, 2);
-
-        ScRendered *r = sc_capture_table(t);
         sc_pad_print(r, (ScPadOpts){ .top = 1, .bottom = 1, .left = 4 });
         sc_rendered_free(r);
         sc_table_free(t);

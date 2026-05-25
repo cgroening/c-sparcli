@@ -12,7 +12,7 @@
 
 ScRendered *sc_capture_str        (const char *s);
 ScRendered *sc_capture_text       (const ScText *t);
-ScRendered *sc_capture_table      (const ScTable *t);
+ScRendered *sc_capture_table      (const ScTableData *t, ScTableOpts opts);
 ScRendered *sc_capture_list       (const ScList *l);
 ScRendered *sc_capture_tree       (const ScTree *t);
 ScRendered *sc_capture_kv         (const ScKV *kv);

@@ -136,9 +136,10 @@ static ScRendered *render_captured(void (*fn)(void *), void *ctx) {
 
 /* ── Capture wrappers ───────────────────────────────────────────────────── */
 
-typedef struct { const ScTable *t; } CtxTable;
+typedef struct { const ScTableData *t; ScTableOpts opts; } CtxTable;
 static void _render_table(void *p) {
-    sc_table_print(((CtxTable *)p)->t);
+    CtxTable *c = p;
+    sc_table_print(c->t, c->opts);
 }
 
 typedef struct { const char *content; ScPanelOpts opts; } CtxPanelStr;
@@ -239,8 +240,8 @@ ScColumns *sc_columns_new(ScColumnsOpts opts) {
     return cl;
 }
 
-void sc_columns_add_table(ScColumns *cl, const ScTable *t, ScColItem item) {
-    CtxTable ctx = { t };
+void sc_columns_add_table(ScColumns *cl, const ScTableData *t, ScTableOpts opts, ScColItem item) {
+    CtxTable ctx = { t, opts };
     columns_push(cl, render_captured(_render_table, &ctx), item);
 }
 
@@ -289,8 +290,8 @@ ScRendered *sc_capture_str(const char *s) {
 ScRendered *sc_capture_text(const ScText *t) {
     CtxText ctx = { t }; return render_captured(_render_text, &ctx);
 }
-ScRendered *sc_capture_table(const ScTable *t) {
-    CtxTable ctx = { t }; return render_captured(_render_table, &ctx);
+ScRendered *sc_capture_table(const ScTableData *t, ScTableOpts opts) {
+    CtxTable ctx = { t, opts }; return render_captured(_render_table, &ctx);
 }
 ScRendered *sc_capture_list(const ScList *l) {
     CtxList ctx = { l }; return render_captured(_render_list, &ctx);

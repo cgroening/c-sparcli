@@ -115,19 +115,19 @@ typedef struct {
     bool           rtl;
 } ScTableOpts;
 
-typedef struct ScTable ScTable;
+typedef struct ScTableData ScTableData;
 
 
 /**
- * Allocates and initializes a new table with the given options.
+ * Allocates and initializes a new table.
  *
  * The returned pointer must be released with `sc_table_free` when no longer
- * needed.
+ * needed. Layout and visual options are passed at render time via
+ * `sc_table_print`.
  *
- * @param opts  Layout and visual options; see `ScTableOpts`.
- * @return      Pointer to the newly allocated table.
+ * @return  Pointer to the newly allocated table.
  */
-ScTable *sc_table_new(ScTableOpts opts);
+ScTableData *sc_table_new(void);
 
 /**
  * Appends a column to the table.
@@ -139,7 +139,7 @@ ScTable *sc_table_new(ScTableOpts opts);
  * @param header  Column header text, or `NULL` for no header.
  * @param col     Per-column layout options; see `ScColOpts`.
  */
-void sc_table_add_column(ScTable *table, const char *header, ScColOpts col);
+void sc_table_add_column(ScTableData *table, const char *header, ScColOpts col);
 
 /**
  * Appends a data row to the table.
@@ -148,7 +148,7 @@ void sc_table_add_column(ScTable *table, const char *header, ScColOpts col);
  * @param cells  Array of cells; one entry per column.
  * @param n      Number of elements in `cells`.
  */
-void sc_table_add_row(ScTable *table, ScCell *cells, size_t n);
+void sc_table_add_row(ScTableData *table, ScCell *cells, size_t n);
 
 /**
  * Appends a data row with a custom background color to the table.
@@ -158,7 +158,7 @@ void sc_table_add_row(ScTable *table, ScCell *cells, size_t n);
  * @param n      Number of elements in `cells`.
  * @param bg     Background color applied to every cell in this row.
  */
-void sc_table_add_row_bg(ScTable *table, ScCell *cells, size_t n, ScColor bg);
+void sc_table_add_row_bg(ScTableData *table, ScCell *cells, size_t n, ScColor bg);
 
 /**
  * Appends a row to the footer section of the table.
@@ -170,18 +170,19 @@ void sc_table_add_row_bg(ScTable *table, ScCell *cells, size_t n, ScColor bg);
  * @param cells  Array of cells; one entry per column.
  * @param n      Number of elements in `cells`.
  */
-void sc_table_add_footer_row(ScTable *table, ScCell *cells, size_t n);
+void sc_table_add_footer_row(ScTableData *table, ScCell *cells, size_t n);
 
 /**
  * Renders the table to stdout.
  *
  * @param table  Table to print. Must not be `NULL`.
+ * @param opts   Layout and visual options; see `ScTableOpts`.
  */
-void sc_table_print(const ScTable *table);
+void sc_table_print(const ScTableData *table, ScTableOpts opts);
 
 /**
  * Frees all resources owned by the table, including the table itself.
  *
  * @param table  Table to free. Must not be `NULL`.
  */
-void sc_table_free(ScTable *table);
+void sc_table_free(ScTableData *table);
