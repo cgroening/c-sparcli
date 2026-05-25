@@ -107,7 +107,7 @@ typedef struct {
     bool           striped;
     ScColor        stripe_bg;
     ScTableFooter  footer;
-    ScTitle        title;
+    ScTitle   title;
     ScEdges        cell_pad;      /* inner cell padding (top/right/bottom/left) */
     ScEdges        margin;        /* outer table margin (top/right/bottom/left) */
     int            total_width;
@@ -117,72 +117,10 @@ typedef struct {
 
 typedef struct ScTableData ScTableData;
 
-
-/**
- * Allocates and initializes a new table.
- *
- * The returned pointer must be released with `sc_table_free` when no longer
- * needed. Layout and visual options are passed at render time via
- * `sc_table_print`.
- *
- * @return  Pointer to the newly allocated table.
- */
 ScTableData *sc_table_new(void);
-
-/**
- * Appends a column to the table.
- *
- * Must be called before any rows are added. The header string is copied
- * internally; the caller does not need to keep it alive.
- *
- * @param table_data  Table to modify. Must not be `NULL`.
- * @param header      Column header text, or `NULL` for no header.
- * @param col         Per-column layout options; see `ScColOpts`.
- */
-void sc_table_add_column(ScTableData *table_data, const char *header, ScColOpts col);
-
-/**
- * Appends a data row to the table.
- *
- * @param table_data  Table to modify. Must not be `NULL`.
- * @param cells       Array of cells; one entry per column.
- * @param n           Number of elements in `cells`.
- */
-void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t n);
-
-/**
- * Appends a data row with a custom background color to the table.
- *
- * @param table_data  Table to modify. Must not be `NULL`.
- * @param cells       Array of cells; one entry per column.
- * @param n           Number of elements in `cells`.
- * @param bg          Background color applied to every cell in this row.
- */
-void sc_table_add_row_bg(ScTableData *table_data, ScCell *cells, size_t n, ScColor bg);
-
-/**
- * Appends a row to the footer section of the table.
- *
- * Footer rows are rendered below all data rows, separated visually according
- * to `ScTableOpts.footer`.
- *
- * @param table_data  Table to modify. Must not be `NULL`.
- * @param cells       Array of cells; one entry per column.
- * @param n           Number of elements in `cells`.
- */
-void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n);
-
-/**
- * Renders the table to stdout.
- *
- * @param table_data  Table to print. Must not be `NULL`.
- * @param opts        Layout and visual options; see `ScTableOpts`.
- */
-void sc_table_print(const ScTableData *table_data, ScTableOpts opts);
-
-/**
- * Frees all resources owned by the table, including the table itself.
- *
- * @param table_data  Table to free. Must not be `NULL`.
- */
-void sc_table_free(ScTableData *table_data);
+void sc_table_add_column(ScTableData *table, const char *header, ScColOpts col);
+void sc_table_add_row(ScTableData *table, ScCell *cells, size_t n);
+void sc_table_add_row_bg(ScTableData *table, ScCell *cells, size_t n, ScColor bg);
+void sc_table_add_footer_row(ScTableData *table, ScCell *cells, size_t n);
+void sc_table_print(const ScTableData *table, ScTableOpts opts);
+void sc_table_free(ScTableData *table);

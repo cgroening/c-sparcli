@@ -40,6 +40,8 @@
 - [ ] tests/test_tables.c
 - [ ] include/sparcli_table.h
 - [ ] src/table.c
+- [ ] src/table_print.c
+- [ ] src/table_internal.h
 
 ## Rules
 
