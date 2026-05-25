@@ -207,11 +207,6 @@ static void grow_rows_array(RowBlock *row_block) {
 }
 
 
-
-
-
-
-
 void sc_table_free(ScTableData *table_data) {
     for (size_t i = 0; i < table_data->column_count; i++) {
         free(table_data->columns[i].header);
