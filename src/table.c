@@ -55,6 +55,12 @@ typedef struct {
     ScColor bg;
 } TRow;
 
+typedef struct {
+    TRow **rows;
+    size_t *count;
+    size_t *capacity;
+} RowBlock;  // TODO: More meaningful name for this
+
 struct ScTableData {
     TCol   *columns;
     size_t  column_capacity;
@@ -64,7 +70,7 @@ struct ScTableData {
     size_t  row_count;
     TRow   *footer_rows;
     size_t  footer_rows_capacity;
-    size_t  footer_rows_count;
+    size_t  footer_row_count;
 };
 
 /**
@@ -101,6 +107,8 @@ void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n);
     static void add_row(
         ScTableData *table_data, ScCell *cells, size_t ncell, ScColor bg, bool to_footer
     );
+        static RowBlock get_row_block(ScTableData *table_data, bool to_footer);
+        static void grow_rows_array(RowBlock *row_block);
 
 void sc_table_print(const ScTableData *table_data, ScTableOpts opts);
     static void table_init(Table *table, const ScTableData *table_data, ScTableOpts opts);
@@ -161,7 +169,7 @@ ScTableData *sc_table_new(void) {
     table_data->row_count = 0;
     table_data->footer_rows = NULL;
     table_data->footer_rows_capacity = 0;
-    table_data->footer_rows_count = 0;
+    table_data->footer_row_count = 0;
     return table_data;
 }
 
@@ -238,27 +246,23 @@ void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n) {
  *
  * @param table_data  Table to modify.
  * @param cells       Array of cells; one entry per column.
- * @param ncell       Number of elements in `cells`.
+ * @param cell_count  Number of elements in `cells`.
  * @param bg          Row background color; `SC_ANSI_COLOR_NONE` for none.
  * @param to_footer   `true` to append to the footer section, `false` for
  *                    data rows.
  */
 static void add_row(
-    ScTableData *table_data, ScCell *cells, size_t ncell, ScColor bg, bool to_footer
+    ScTableData *table_data,
+    ScCell *cells,
+    size_t cell_count,
+    ScColor bg,
+    bool to_footer
 ) {
-    // Determine which array and counters to use based on the target (main rows
-    // or footer rows)
-    TRow **row_array = to_footer ? &table_data->footer_rows : &table_data->rows;
-    size_t *row_count = to_footer ? &table_data->footer_rows_count : &table_data->row_count;
-    size_t *capacity = to_footer ? &table_data->footer_rows_capacity : &table_data->row_capacity;
+    RowBlock row_block = get_row_block(table_data, to_footer);
+    grow_rows_array(&row_block);
 
-    // Grow the array if capacity is reached
-    if (*row_count == *capacity) {
-        *row_array = dynarray_grow(*row_array, capacity, sizeof(TRow), 8);
-    }
-
-    // Determin address of the new row and initialize it
-    TRow *row = &(*row_array)[(*row_count)++];
+    // Determine the address of the new row and initialize it
+    TRow *row = &(*row_block.rows)[(*row_block.count)++];
     row->ncols = table_data->column_count;
     row->bg    = bg;
     row->cells = malloc(table_data->column_count * sizeof(ScCell));
@@ -266,15 +270,51 @@ static void add_row(
     // Copy provided cells into the new row, filling remaining cells with
     // empty content
     for (size_t i = 0; i < table_data->column_count; i++)
-        row->cells[i] = (i < ncell) ? cells[i] : sc_cell("");
+        row->cells[i] = (i < cell_count) ? cells[i] : sc_cell("");
+}
+
+/**
+ * Returns a `RowBlock` struct containing pointers to the appropriate row array,
+ * count and capacity based on whether the target is the main rows block or the
+ * footer rows block.
+ */
+static RowBlock get_row_block(ScTableData *table_data, bool to_footer) {
+    if(to_footer) {
+        return (RowBlock){
+            .rows = &table_data->footer_rows,
+            .count = &table_data->footer_row_count,
+            .capacity = &table_data->footer_rows_capacity
+        };
+    } else {
+        return (RowBlock){
+            .rows = &table_data->rows,
+            .count = &table_data->row_count,
+            .capacity = &table_data->row_capacity
+        };
+    }
+}
+
+/**
+ * Checks if the row array has reached its capacity and grows it if necessary.
+ */
+static void grow_rows_array(RowBlock *row_block) {
+    if (*row_block->count == *row_block->capacity) {
+        *row_block->rows = dynarray_grow(
+            *row_block->rows, row_block->capacity, sizeof(TRow), 8
+        );
+    }
 }
 
 
 
 
+
 void sc_table_print(const ScTableData *table_data, ScTableOpts opts) {
-    if (!table_data->column_count) return;
-    Table table;
+    if (!table_data->column_count) {
+        return;
+    }
+
+    Table table = {0};
     table_init(&table, table_data, opts);
     table_render(&table);
     table_cleanup(&table);
@@ -411,12 +451,12 @@ static void render_footer_rows(const Table *table) {
     ScColor ic       = table->opts.borders.inner_color;
     ScColor hrsc     = table->opts.borders.header_row_sep_color;
 
-    if (table_data->footer_rows_count > 0 && bs != SC_BORDER_NONE) {
+    if (table_data->footer_row_count > 0 && bs != SC_BORDER_NONE) {
         ScColor hc = (hrsc.index != -2) ? hrsc : ic;
         render_horizontal_border(table, tbc[bs].t_left, tbc[bs].t_right,
                      tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
     }
-    for (size_t r = 0; r < table_data->footer_rows_count; r++) {
+    for (size_t r = 0; r < table_data->footer_row_count; r++) {
         if (r > 0 && bs != SC_BORDER_NONE && !table->opts.borders.no_inner_h) {
             render_horizontal_border(table, tbc[bs].t_left, tbc[bs].t_right,
                          tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
@@ -676,7 +716,7 @@ static void compute_col_widths(Table *table) {
             size_t w = cell_vis_width(cell);
             if (w > max_w) max_w = w;
         }
-        for (size_t r = 0; r < table_data->footer_rows_count; r++) {
+        for (size_t r = 0; r < table_data->footer_row_count; r++) {
             if (c >= table_data->footer_rows[r].ncols) continue;
             ScCell *cell = &table_data->footer_rows[r].cells[c];
             if (cell->colspan != 0 && cell->colspan != 1) continue;
@@ -1239,7 +1279,7 @@ void sc_table_free(ScTableData *table_data) {
     }
     free(table_data->columns);
     free_row_array(table_data->rows, table_data->row_count);
-    free_row_array(table_data->footer_rows, table_data->footer_rows_count);
+    free_row_array(table_data->footer_rows, table_data->footer_row_count);
     free(table_data);
 }
 
