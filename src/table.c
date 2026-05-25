@@ -208,7 +208,18 @@ void sc_table_add_footer_row(ScTable *table, ScCell *cells, size_t n) {
 }
 
 /**
+ * Appends a row to either the data or footer section of the table.
  *
+ * Grows the target array if needed, then copies the cells and sets the
+ * row background color. Shared implementation for `sc_table_add_row`,
+ * `sc_table_add_row_bg` and `sc_table_add_footer_row`.
+ *
+ * @param t          Table to modify.
+ * @param cells      Array of cells; one entry per column.
+ * @param ncell      Number of elements in `cells`.
+ * @param bg         Row background color; `SC_ANSI_COLOR_NONE` for none.
+ * @param to_footer  `true` to append to the footer section, `false` for
+ *                   data rows.
  */
 static void add_row_to(
     ScTable *t, ScCell *cells, size_t ncell, ScColor bg, bool to_footer
