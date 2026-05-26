@@ -22,7 +22,7 @@ void test_pad(void) {
         sc_table_add_row(table_data,(ScCell[]){ sc_cell("Bob"),   sc_cell("7650") }, 2);
 
         ScRendered *r = sc_capture_table(table_data,(ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },

@@ -75,7 +75,7 @@ struct ScTableData {
 typedef struct {
     const ScTableData *table_data;
     ScTableOpts        opts;
-    int               *col_widths;
+    int               *column_widths;
     int               *is_rs;
     RSCtx             *rsc;
     int                inner_w;

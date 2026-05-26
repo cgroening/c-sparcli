@@ -134,7 +134,7 @@ typedef struct {
 } ScTextStyle;
 
 /**
- * ScBorderType Enum - Styles for borders around components (none, ASCII,
+ * ScBorderType Enum - Styles for border around components (none, ASCII,
  * single, double, etc.).
  */
 typedef enum {

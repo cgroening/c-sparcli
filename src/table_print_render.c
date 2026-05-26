@@ -41,7 +41,7 @@ static void table_render(Table *table);
         static TLine  *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
 
 
-/* Top-level render sequence: margins → borders → header → data → footer → margins. */
+/* Top-level render sequence: margins → border → header → data → footer → margins. */
 static void table_render(Table *table) {
     print_empty_lines(table->opts.margin.top);
     render_top_border(table);
@@ -335,9 +335,9 @@ static void render_horizontal_border(
     const int *rs   /* rs[c]=1 → col c has active rowspan */
 ) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs  = table->opts.borders.style;
+    ScBorderType bs  = table->opts.border.style;
     int rtl          = table->opts.rtl;
-    int no_outer     = table->opts.borders.no_outer;
+    int no_outer     = table->opts.border.no_outer;
 
     /* --- adjust outer corners when first/last rendered column has a rowspan --- */
     if (rs && !no_outer) {
@@ -357,11 +357,11 @@ static void render_horizontal_border(
 
         if (rs && rs[c]) {
             /* rowspan column: print spaces to keep the cell content area open */
-            for (int i = 0; i < table->col_widths[c]; i++) fputc(' ', stdout);
+            for (int i = 0; i < table->column_widths[c]; i++) fputc(' ', stdout);
         } else {
             /* normal column: fill with the border character */
             sc_apply_colors(fill_color, SC_ANSI_COLOR_NONE);
-            for (int i = 0; i < table->col_widths[c]; i++) fputs(fill, stdout);
+            for (int i = 0; i < table->column_widths[c]; i++) fputs(fill, stdout);
             fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         }
 
@@ -369,7 +369,7 @@ static void render_horizontal_border(
         if (ci < table_data->column_count - 1 && mid) {
             size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
             int is_hcol  = (table->opts.header.col && c == hcol_phys);
-            int has_vsep = !table->opts.borders.no_inner_v || is_hcol;
+            int has_vsep = !table->opts.border.no_inner_v || is_hcol;
             if (has_vsep) {
                 /* pick the junction glyph based on which neighbouring columns span */
                 const char *jchar = mid;
@@ -384,8 +384,8 @@ static void render_horizontal_border(
                 /* override junction color for the header-column separator */
                 ScColor jc = mid_color;
                 if (use_hcol && is_hcol
-                        && table->opts.borders.header_col_sep_color.index != -2)
-                    jc = table->opts.borders.header_col_sep_color;
+                        && table->opts.border.header_col_sep_color.index != -2)
+                    jc = table->opts.border.header_col_sep_color;
                 print_ch(jchar, jc);
             }
         }
@@ -405,11 +405,11 @@ static void render_inner_sep(Table *table) {
     const ScTableData *table_data = table->table_data;
     const int *is_rs    = table->is_rs;
     const RSCtx *rsc    = table->rsc;
-    ScBorderType bs    = table->opts.borders.style;
-    ScColor oc          = table->opts.borders.outer_color;
-    ScColor ic          = table->opts.borders.inner_color;
-    int no_outer        = table->opts.borders.no_outer;
-    int no_inner_v      = table->opts.borders.no_inner_v;
+    ScBorderType bs    = table->opts.border.style;
+    ScColor oc          = table->opts.border.outer_color;
+    ScColor ic          = table->opts.border.inner_color;
+    int no_outer        = table->opts.border.no_outer;
+    int no_inner_v      = table->opts.border.no_inner_v;
     int rtl             = table->opts.rtl;
     int cpxl            = table->opts.cell_pad.left;
     int cpxr            = table->opts.cell_pad.right;
@@ -436,7 +436,7 @@ static void render_inner_sep(Table *table) {
             ScColor col_bg = table_data->columns[c].opts.bg;
             if (rsc && rsc[c].cell) {
                 /* build (or wrap) all lines of the spanning cell */
-                int content_w = table->col_widths[c] - cpx;
+                int content_w = table->column_widths[c] - cpx;
                 if (content_w < 0) content_w = 0;
                 size_t ncl;
                 TLine *cl = (table_data->columns[c].opts.word_wrap && content_w > 0)
@@ -493,12 +493,12 @@ static void render_inner_sep(Table *table) {
                 free_tlines(cl, ncl);
             } else {
                 /* spanning cell without content: fill entire column with spaces */
-                print_spaces_bg(table->col_widths[c], col_bg);
+                print_spaces_bg(table->column_widths[c], col_bg);
             }
         } else {
             /* --- normal column: draw the horizontal border fill --- */
             sc_apply_colors(ic, SC_ANSI_COLOR_NONE);
-            for (int i = 0; i < table->col_widths[c]; i++) fputs(tbc[bs].h, stdout);
+            for (int i = 0; i < table->column_widths[c]; i++) fputs(tbc[bs].h, stdout);
             fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         }
 
@@ -515,8 +515,8 @@ static void render_inner_sep(Table *table) {
                 else if (cur_rs)            jchar = tbc[bs].t_left;
                 else if (next_rs)           jchar = tbc[bs].t_right;
                 ScColor jc = ic;
-                if (is_hcol && table->opts.borders.header_col_sep_color.index != -2)
-                    jc = table->opts.borders.header_col_sep_color;
+                if (is_hcol && table->opts.border.header_col_sep_color.index != -2)
+                    jc = table->opts.border.header_col_sep_color;
                 print_ch(jchar, jc);
             }
         }
@@ -532,8 +532,8 @@ static void render_inner_sep(Table *table) {
    Called instead of render_horizontal_border when opts.title.text is set and
    the title position matches `is_top`. */
 static void render_title_line(const Table *table, int is_top) {
-    ScBorderType bs = table->opts.borders.style;
-    ScColor oc = table->opts.borders.outer_color;
+    ScBorderType bs = table->opts.border.style;
+    ScColor oc = table->opts.border.outer_color;
     const char *lc = is_top ? tbc[bs].tl : tbc[bs].bl;
     const char *rc = is_top ? tbc[bs].tr : tbc[bs].br;
     const char *h  = tbc[bs].h;
@@ -584,11 +584,11 @@ static void render_row(const Table *table, const ScCell *cells,
                         ScColor row_bg, int row_kind, int row_h_in) {
     const ScTableData *table_data = table->table_data;
     const RSCtx *rsc   = (row_kind == 0) ? table->rsc : NULL;
-    ScBorderType bs  = table->opts.borders.style;
-    ScColor oc       = table->opts.borders.outer_color;
-    ScColor ic       = table->opts.borders.inner_color;
-    int no_outer     = table->opts.borders.no_outer;
-    int no_inner_v   = table->opts.borders.no_inner_v;
+    ScBorderType bs  = table->opts.border.style;
+    ScColor oc       = table->opts.border.outer_color;
+    ScColor ic       = table->opts.border.inner_color;
+    int no_outer     = table->opts.border.no_outer;
+    int no_inner_v   = table->opts.border.no_inner_v;
     int rtl          = table->opts.rtl;
     int cpx          = table->opts.cell_pad.left + table->opts.cell_pad.right;
     int cpxl         = table->opts.cell_pad.left;
@@ -615,7 +615,7 @@ static void render_row(const Table *table, const ScCell *cells,
         /* rowspan continuation: build lines from the originating cell via RSCtx */
         if (cells[c].rowspan == -1) {
             if (rsc && rsc[c].cell) {
-                int span_cw = table->col_widths[c] - cpx;
+                int span_cw = table->column_widths[c] - cpx;
                 if (span_cw < 0) span_cw = 0;
                 if (table_data->columns[c].opts.word_wrap && span_cw > 0)
                     cl[c] = wrap_cell_lines(rsc[c].cell, span_cw, &cnl[c]);
@@ -635,7 +635,7 @@ static void render_row(const Table *table, const ScCell *cells,
         int span_total = 0;
         for (int k = 0; k < ecs; k++) {
             size_t cc = c + (size_t)k;
-            span_total += table->col_widths[cc];
+            span_total += table->column_widths[cc];
             if (k < ecs - 1) {
                 int is_hcol_k = (table->opts.header.col && cc == hcol_phys);
                 if (!no_inner_v || is_hcol_k) span_total++; /* inner sep absorbed */
@@ -696,7 +696,7 @@ static void render_row(const Table *table, const ScCell *cells,
             int span_total = 0;
             for (int k = 0; k < ecs; k++) {
                 size_t cc = c + (size_t)k;
-                span_total += table->col_widths[cc];
+                span_total += table->column_widths[cc];
                 if (k < ecs - 1) {
                     int is_hcol_k = (table->opts.header.col && cc == hcol_phys);
                     if (!no_inner_v || is_hcol_k) span_total++;
@@ -794,8 +794,8 @@ static void render_row(const Table *table, const ScCell *cells,
                 if (!no_inner_v || is_hcol_end) {
                     ScColor sc_col = ic;
                     if (is_hcol_end
-                            && table->opts.borders.header_col_sep_color.index != -2)
-                        sc_col = table->opts.borders.header_col_sep_color;
+                            && table->opts.border.header_col_sep_color.index != -2)
+                        sc_col = table->opts.border.header_col_sep_color;
                     print_ch(tbc[bs].v, sc_col);
                 }
             }
@@ -820,9 +820,9 @@ static void render_row(const Table *table, const ScCell *cells,
 /* Renders the top border: title line if a top title is set, otherwise a plain
    horizontal border. No-op when no_outer is set. */
 static void render_top_border(const Table *table) {
-    ScBorderType bs = table->opts.borders.style;
-    ScColor oc = table->opts.borders.outer_color;
-    if (table->opts.borders.no_outer) return;
+    ScBorderType bs = table->opts.border.style;
+    ScColor oc = table->opts.border.outer_color;
+    if (table->opts.border.no_outer) return;
     if (table->opts.title.text && table->opts.title.pos == SC_POSITION_TOP) {
         render_title_line(table, 1);
     } else if (bs != SC_BORDER_NONE) {
@@ -835,10 +835,10 @@ static void render_top_border(const Table *table) {
 static void render_header_row(const Table *table) {
     const ScTableData *table_data = table->table_data;
     if (!table->opts.header.row) return;
-    ScBorderType bs  = table->opts.borders.style;
-    ScColor oc       = table->opts.borders.outer_color;
-    ScColor ic       = table->opts.borders.inner_color;
-    ScColor hrsc     = table->opts.borders.header_row_sep_color;
+    ScBorderType bs  = table->opts.border.style;
+    ScColor oc       = table->opts.border.outer_color;
+    ScColor ic       = table->opts.border.inner_color;
+    ScColor hrsc     = table->opts.border.header_row_sep_color;
 
     /* --- build synthetic header cells from column header strings --- */
     ScCell *hcells = malloc(table_data->column_count * sizeof(ScCell));
@@ -860,8 +860,8 @@ static void render_header_row(const Table *table) {
    optional truncation indicator when max_rows is set. */
 static void render_data_rows(Table *table) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs = table->opts.borders.style;
-    int no_inner_h  = table->opts.borders.no_inner_h;
+    ScBorderType bs = table->opts.border.style;
+    int no_inner_h  = table->opts.border.no_inner_h;
 
     size_t max_r = table_data->row_count;
     if (table->opts.max_rows > 0 && (size_t)table->opts.max_rows < max_r)
@@ -929,10 +929,10 @@ static void render_data_rows(Table *table) {
 /* Renders the footer separator and all footer rows with inner separators. */
 static void render_footer_rows(const Table *table) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs  = table->opts.borders.style;
-    ScColor oc       = table->opts.borders.outer_color;
-    ScColor ic       = table->opts.borders.inner_color;
-    ScColor hrsc     = table->opts.borders.header_row_sep_color;
+    ScBorderType bs  = table->opts.border.style;
+    ScColor oc       = table->opts.border.outer_color;
+    ScColor ic       = table->opts.border.inner_color;
+    ScColor hrsc     = table->opts.border.header_row_sep_color;
 
     /* --- separator between data rows and footer rows --- */
     if (table_data->footer_row_count > 0 && bs != SC_BORDER_NONE) {
@@ -943,7 +943,7 @@ static void render_footer_rows(const Table *table) {
 
     /* --- render each footer row, with inner separators between them --- */
     for (size_t r = 0; r < table_data->footer_row_count; r++) {
-        if (r > 0 && bs != SC_BORDER_NONE && !table->opts.borders.no_inner_h) {
+        if (r > 0 && bs != SC_BORDER_NONE && !table->opts.border.no_inner_h) {
             render_horizontal_border(table, tbc[bs].t_left, tbc[bs].t_right,
                          tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
         }
@@ -954,9 +954,9 @@ static void render_footer_rows(const Table *table) {
 /* Renders the bottom border: title line if a bottom title is set, otherwise a
    plain horizontal border. No-op when no_outer is set. */
 static void render_bottom_border(const Table *table) {
-    ScBorderType bs = table->opts.borders.style;
-    ScColor oc = table->opts.borders.outer_color;
-    if (table->opts.borders.no_outer) return;
+    ScBorderType bs = table->opts.border.style;
+    ScColor oc = table->opts.border.outer_color;
+    if (table->opts.border.no_outer) return;
     if (table->opts.title.text && table->opts.title.pos == SC_POSITION_BOTTOM) {
         render_title_line(table, 0);
     } else if (bs != SC_BORDER_NONE) {

@@ -25,7 +25,7 @@ void sc_table_print(const ScTableData *table_data, ScTableOpts opts) {
 }
 
 static void table_cleanup(Table *table) {
-    free(table->col_widths);
+    free(table->column_widths);
     free(table->row_heights);
     free(table->rsc);
     free(table->is_rs);

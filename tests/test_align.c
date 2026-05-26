@@ -29,7 +29,7 @@ void test_align(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Skipped"), sc_cell("3")   }, 2);
 
         ScRendered *r = sc_capture_table(table_data, (ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
+            .border    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -83,7 +83,7 @@ void test_align(void) {
         sc_table_add_row(table_data_2, (ScCell[]){ sc_cell("Eps"),   sc_cell("50") }, 2);
 
         ScRendered *ra = sc_capture_table(table_data_1, (ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            .border    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -92,7 +92,7 @@ void test_align(void) {
             .cell_pad = {0, 1, 0, 1},
         });
         ScRendered *rb = sc_capture_table(table_data_2, (ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE,
+            .border    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },

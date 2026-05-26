@@ -85,7 +85,7 @@ typedef struct {
     bool          no_outer;    /* suppress outer frame */
     bool          no_inner_h;  /* suppress inner row separators */
     bool          no_inner_v;  /* suppress inner col separators (except header col) */
-} ScTableBorders;
+} ScTableBorder;
 
 typedef struct {
     bool        row;
@@ -102,7 +102,7 @@ typedef struct {
 } ScTableFooter;
 
 typedef struct {
-    ScTableBorders borders;
+    ScTableBorder border;
     ScTableHeader  header;
     bool           striped;
     ScColor        stripe_bg;

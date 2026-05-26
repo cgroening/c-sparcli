@@ -107,7 +107,7 @@ void test_markup(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell_m("[yellow]⚠ Warn[/]"),   sc_cell_m("[italic]Deprecation detected[/]") }, 2);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell_m("[red]✖ Error[/]"),     sc_cell_m("[bold red]Compilation failed[/]") }, 2);
         sc_table_print(table_data, (ScTableOpts){
-            .borders    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border    = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                             SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row = 1,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },

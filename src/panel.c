@@ -51,7 +51,7 @@ typedef struct {
     /** Border style for the vertical edge characters */
     ScBorderStyle border_style;
 
-    /** Content area background color, excluding borders */
+    /** Content area background color, excluding border */
     ScColor       content_bg;
 } PLineView;
 

@@ -15,7 +15,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Bob"),   sc_cell("24"), sc_cell("Hamburg") }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Carol"), sc_cell("35"), sc_cell("München") }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -37,7 +37,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Bananas"),  sc_cell("80"),  sc_cell("110"), sc_cell("70")  }, 4);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Cherries"), sc_cell("45"),  sc_cell("60"),  sc_cell("90")  }, 4);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_DOUBLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_DOUBLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_YELLOW, 0, 0, 0 },
             .header.row  = 1, .header.col   = 1,
             .header.row_bg = SC_ANSI_COLOR_NONE, .header.col_bg = SC_ANSI_COLOR_NONE,
@@ -61,7 +61,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Lua"),    sc_cell("1993"), sc_cell("Dynamic") }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Zig"),    sc_cell("2016"), sc_cell("Static")  }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -100,7 +100,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("database"), sc_cell_t(err), sc_cell("72.1%")  }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("cache"),    sc_cell_t(ok),  sc_cell("100.0%") }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -124,7 +124,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("longer text"), sc_cell("longer text"), sc_cell("longer text") }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("x"),           sc_cell("x"),           sc_cell("x")           }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -150,7 +150,7 @@ void test_tables(void) {
             sc_cell_t(tall), sc_cell("▲ top"), sc_cell("● mid"), sc_cell("▼ bot"),
         }, 4);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -172,7 +172,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("short"),       sc_cell("hi"),  sc_cell("truncated?"), sc_cell("auto") }, 4);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("a bit longer"), sc_cell("pad"), sc_cell("clipped"),   sc_cell("fits") }, 4);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -193,7 +193,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Bird"),  sc_cell("Tweet"), sc_cell("2") }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Snake"), sc_cell("Hiss"),  sc_cell("0") }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -213,7 +213,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("port"),    sc_cell("8080")      }, 2);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("timeout"), sc_cell("30s")       }, 2);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_ASCII, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_ASCII, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -234,7 +234,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("macOS"),   sc_cell("XNU"),   sc_cell("zsh")  }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Windows"), sc_cell("NT 10"), sc_cell("pwsh") }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_THICK, sc_ansi_color_from_rgb(255,180,0), SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_THICK, sc_ansi_color_from_rgb(255,180,0), SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(255,180,0), SC_ANSI_COLOR_NONE },
@@ -267,7 +267,7 @@ void test_tables(void) {
             sc_cell("OK"),
         }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders     = { SC_BORDER_DOUBLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            .border     = { SC_BORDER_DOUBLE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row  = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -300,7 +300,7 @@ void test_tables(void) {
             sc_cell("TOTAL"), sc_cell("9"), sc_cell(""), sc_cell("$ 108.49"),
         }, 4);
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -338,7 +338,7 @@ void test_tables(void) {
             sc_cell("#105"), sc_cell("release/2"), sc_cell("FAIL"), sc_cell("3m 12s"),
         }, 4, sc_ansi_color_from_rgb(60, 20, 20));
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -374,7 +374,7 @@ void test_tables(void) {
             sc_cell("Custom domain"), sc_cell("✗"),         sc_cell("✓"),          sc_cell("✓"),
         }, 4);
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = sc_ansi_color_from_rgb(30, 30, 50),
             .header.opts   = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(200, 200, 255), SC_ANSI_COLOR_NONE },
@@ -397,7 +397,7 @@ void test_tables(void) {
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("France"),      sc_cell("Paris"),     sc_cell("68M") }, 3);
         sc_table_add_row(table_data, (ScCell[]){ sc_cell("Netherlands"), sc_cell("Amsterdam"), sc_cell("18M") }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -437,7 +437,7 @@ void test_tables(void) {
             sc_cell_skip(), sc_cell_skip(), sc_cell_skip(), sc_cell_skip(),
         }, 5);
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -472,7 +472,7 @@ void test_tables(void) {
             sc_row_skip(),              sc_cell("Pepper"), sc_cell("$  1.20"),
         }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -498,7 +498,7 @@ void test_tables(void) {
             sc_cell("1"), sc_cell("2"), sc_cell("3"),
         }, 3);
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
@@ -529,7 +529,7 @@ void test_tables(void) {
             }, 3);
         }
         sc_table_print(table_data, (ScTableOpts){
-            .borders       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },

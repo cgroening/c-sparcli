@@ -41,7 +41,7 @@
 - [ ] include/sparcli_table.h
 - [ ] src/table.c
 - [ ] src/table_print.c
-- [ ] src/table_print_init.c
+- [x] src/table_print_init.c
 - [ ] src/table_print_render.c
 - [ ] src/table_internal.h
 
