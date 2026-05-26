@@ -1,7 +1,7 @@
 CC      = cc
-CFLAGS  = -std=c11 -Wall -Wextra -Iinclude
+CFLAGS  = -std=c11 -Wall -Wextra -Iinclude -Isrc
 
-SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c src/table.c src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
+SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c src/table/table.c src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
 BUILDDIR = build.nosync
 OBJ     = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 LIB     = libsparcli.a
@@ -35,6 +35,7 @@ $(LIB): $(OBJ)
 	ar rcs $@ $^
 
 $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILDDIR):
