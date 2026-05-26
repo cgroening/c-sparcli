@@ -11,6 +11,17 @@
    non-spaces extracted from a TLine span. */
 typedef struct { char *s; size_t vis_w; ScTextStyle opts; int is_space; } WwTok;
 
+/* Mutable accumulator for the word-wrap line-building loop. */
+typedef struct {
+    TLine  *res;   /* completed output lines */
+    size_t  nres;
+    size_t  rcap;
+    TSpan  *sbuf;  /* spans accumulating for the current output line */
+    size_t  sn;    /* span count */
+    size_t  sc2;   /* span buffer capacity */
+    size_t  sw;    /* visible width of the current output line */
+} WwAccum;
+
 static void table_render(Table *table);
     static void print_empty_lines(int n);
     static void render_top_border    (const Table *table);
@@ -29,6 +40,9 @@ static void table_render(Table *table);
         const char *mid,  ScColor mid_color,
         ScColor edge_color, int use_hcol, const int *rs
     );
+    static void adjust_hborder_corners (const Table *table, const int *rs, const char **lc, const char **rc);
+    static void render_hborder_col_fill(const Table *table, size_t c, const int *rs, const char *fill, ScColor fill_color);
+    static void render_hborder_junction(const Table *table, size_t c, const int *rs, const char *mid, ScColor mid_color, int use_hcol);
     static void render_inner_sep (Table *table);
     static void render_title_line(const Table *table, int is_top);
     static void render_row(
@@ -45,10 +59,14 @@ static void table_render(Table *table);
         static size_t  cell_vis_width       (const ScCell *cell);
         static TLine  *wrap_one_tline      (const TLine *src, int wrap_w, size_t *out_n);
         static void    tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out_n);
-        static void    ww_flush_sbuf       (TLine **res, size_t *nres, size_t *rcap, TSpan **sbuf, size_t *sn, size_t *sw);
-        static void    ww_push_span        (TSpan **sbuf, size_t *sn, size_t *sc2, size_t *sw, char *s, size_t vis_w, ScTextStyle opts);
-        static void    hard_break_word     (TLine **res, size_t *nres, size_t *rcap, TSpan **sbuf, size_t *sc2, size_t *sn, size_t *sw, WwTok *tok, int wrap_w);
+        static void    emit_space_tok      (WwAccum *a, WwTok *tok, const WwTok *next, int wrap_w);
+        static void    emit_word_tok       (WwAccum *a, WwTok *tok, int wrap_w);
+        static void    hard_break_word     (WwAccum *a, WwTok *tok, int wrap_w);
+        static void    ww_flush_sbuf       (WwAccum *a);
+        static void    ww_push_span        (WwAccum *a, char *s, size_t vis_w, ScTextStyle opts);
         static TLine  *wrap_cell_lines     (const ScCell *cell, int wrap_w, size_t *out_n);
+        static void    append_tline_copy   (TLine **res, size_t *nres, size_t *rcap, const TLine *src);
+        static void    append_wrapped_lines(TLine **res, size_t *nres, size_t *rcap, const TLine *src, int wrap_w);
 
 
 /* Top-level render sequence: margins → border → header → data → footer → margins. */
@@ -182,46 +200,27 @@ static size_t cell_vis_width(const ScCell *cell) {
 /* ── Word-wrap ───────────────────────────────────────────────────────────── */
 
 /** Wraps a single TLine into multiple TLines each fitting within @p wrap_w cols.
- *  Breaks at word boundaries; words wider than @p wrap_w are hard-broken. */
+ *  Tokenizes the line, dispatches each token to emit_space_tok() or
+ *  emit_word_tok(), then flushes the final accumulated line. */
 static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
     WwTok *toks; size_t ntok;
     tokenize_tline_spans(src, &toks, &ntok);
 
-    TLine *res = NULL; size_t nres = 0, rcap = 0;
-    TSpan *sbuf = NULL; size_t sn = 0, sc2 = 0; size_t sw = 0;
-
+    WwAccum acc = {0};
     for (size_t ti = 0; ti < ntok; ti++) {
-        WwTok *tok = &toks[ti];
-        if (tok->is_space) {
-            /* skip leading spaces on a fresh line */
-            if (sn == 0) { free(tok->s); tok->s = NULL; continue; }
-            /* peek ahead: if the next word doesn't fit after this space, wrap now */
-            if (ti + 1 < ntok && !toks[ti+1].is_space
-                    && (int)(sw + tok->vis_w + toks[ti+1].vis_w) > wrap_w) {
-                free(tok->s); tok->s = NULL;
-                ww_flush_sbuf(&res, &nres, &rcap, &sbuf, &sn, &sw);
-                continue;
-            }
-            ww_push_span(&sbuf, &sn, &sc2, &sw, tok->s, tok->vis_w, tok->opts);
-            tok->s = NULL;
-        } else {
-            /* flush current line if this word no longer fits */
-            if (sn > 0 && (int)(sw + tok->vis_w) > wrap_w)
-                ww_flush_sbuf(&res, &nres, &rcap, &sbuf, &sn, &sw);
-            if ((int)tok->vis_w > wrap_w)
-                hard_break_word(&res, &nres, &rcap, &sbuf, &sc2, &sn, &sw, tok, wrap_w);
-            else {
-                ww_push_span(&sbuf, &sn, &sc2, &sw, tok->s, tok->vis_w, tok->opts);
-                tok->s = NULL;
-            }
-        }
+        const WwTok *next = (ti + 1 < ntok) ? &toks[ti + 1] : NULL;
+        if (toks[ti].is_space)
+            emit_space_tok(&acc, &toks[ti], next, wrap_w);
+        else
+            emit_word_tok(&acc, &toks[ti], wrap_w);
     }
-    ww_flush_sbuf(&res, &nres, &rcap, &sbuf, &sn, &sw);
+    ww_flush_sbuf(&acc);
 
-    free(sbuf);
+    TLine *res = acc.res;
+    free(acc.sbuf);
     for (size_t ti = 0; ti < ntok; ti++) if (toks[ti].s) free(toks[ti].s);
     free(toks);
-    *out_n = nres;
+    *out_n = acc.nres;
     return res;
 }
 
@@ -246,79 +245,114 @@ static void tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out
     *out_n    = ntok;
 }
 
-/** Trims trailing space spans from @p sbuf, flushes it as a new TLine into
- *  @p res via flush_tline(), then resets the span count and width to zero. */
-static void ww_flush_sbuf(TLine **res, size_t *nres, size_t *rcap,
-                           TSpan **sbuf, size_t *sn, size_t *sw) {
-    while (*sn > 0 && (*sbuf)[*sn - 1].text[0] == ' ') {
-        *sw -= strlen((*sbuf)[*sn - 1].text);
-        free((char *)(*sbuf)[--(*sn)].text);
+/** Emits a space token: drops it when at line start, flushes and wraps when
+ *  the following word won't fit after it, otherwise appends it to the line. */
+static void emit_space_tok(WwAccum *a, WwTok *tok, const WwTok *next, int wrap_w) {
+    if (a->sn == 0) { free(tok->s); tok->s = NULL; return; }
+    if (next && !next->is_space
+            && (int)(a->sw + tok->vis_w + next->vis_w) > wrap_w) {
+        free(tok->s); tok->s = NULL;
+        ww_flush_sbuf(a);
+        return;
     }
-    flush_tline(res, rcap, nres, *sbuf, *sn, *sw);
-    *sn = 0; *sw = 0;
+    ww_push_span(a, tok->s, tok->vis_w, tok->opts);
+    tok->s = NULL;
 }
 
-/** Appends span @p s (taking ownership) to @p sbuf, growing the buffer if
- *  needed, and adds @p vis_w to the accumulated line width @p sw. */
-static void ww_push_span(TSpan **sbuf, size_t *sn, size_t *sc2, size_t *sw,
-                          char *s, size_t vis_w, ScTextStyle opts) {
-    if (*sn == *sc2) { *sc2 = *sc2 ? *sc2*2 : 8; *sbuf = realloc(*sbuf, *sc2*sizeof(TSpan)); }
-    (*sbuf)[(*sn)++] = (TSpan){ s, opts };
-    *sw += vis_w;
+/** Emits a word token: flushes the current line first if the word doesn't fit,
+ *  then hard-breaks it when it exceeds @p wrap_w, otherwise appends it. */
+static void emit_word_tok(WwAccum *a, WwTok *tok, int wrap_w) {
+    if (a->sn > 0 && (int)(a->sw + tok->vis_w) > wrap_w)
+        ww_flush_sbuf(a);
+    if ((int)tok->vis_w > wrap_w)
+        hard_break_word(a, tok, wrap_w);
+    else {
+        ww_push_span(a, tok->s, tok->vis_w, tok->opts);
+        tok->s = NULL;
+    }
 }
 
-/** Splits a word token wider than @p wrap_w into chunks that each fit, flushing
- *  a new TLine via ww_flush_sbuf() after each full chunk. Frees @p tok->s. */
-static void hard_break_word(TLine **res, size_t *nres, size_t *rcap,
-                             TSpan **sbuf, size_t *sc2, size_t *sn, size_t *sw,
-                             WwTok *tok, int wrap_w) {
+/** Splits a word token wider than @p wrap_w into fit-sized chunks, flushing
+ *  a new output line after each full chunk. Frees @p tok->s when done. */
+static void hard_break_word(WwAccum *a, WwTok *tok, int wrap_w) {
     const char *p = tok->s;
     size_t rem = strlen(tok->s);
     while (rem > 0) {
-        int avail = wrap_w - (int)*sw;
-        if (avail <= 0) { ww_flush_sbuf(res, nres, rcap, sbuf, sn, sw); avail = wrap_w; }
+        int avail = wrap_w - (int)a->sw;
+        if (avail <= 0) { ww_flush_sbuf(a); avail = wrap_w; }
         size_t cb = sc_utf8_trim_to_cols(p, avail);
         if (cb == 0) break;
         size_t cw2 = sc_utf8_string_length(p, cb);
-        ww_push_span(sbuf, sn, sc2, sw, strndup(p, cb), cw2, tok->opts);
+        ww_push_span(a, strndup(p, cb), cw2, tok->opts);
         p += cb; rem -= cb;
-        if (rem > 0) ww_flush_sbuf(res, nres, rcap, sbuf, sn, sw);
+        if (rem > 0) ww_flush_sbuf(a);
     }
     free(tok->s); tok->s = NULL;
 }
 
-/* Wraps all lines of a cell that exceed wrap_w, copying short lines as-is. */
+/** Trims trailing space spans from the current line, flushes it as a new TLine
+ *  into @p a->res via flush_tline(), then resets the span count and width. */
+static void ww_flush_sbuf(WwAccum *a) {
+    while (a->sn > 0 && a->sbuf[a->sn - 1].text[0] == ' ') {
+        a->sw -= strlen(a->sbuf[a->sn - 1].text);
+        free((char *)a->sbuf[--a->sn].text);
+    }
+    flush_tline(&a->res, &a->rcap, &a->nres, a->sbuf, a->sn, a->sw);
+    a->sn = 0; a->sw = 0;
+}
+
+/** Appends span @p s (taking ownership) to the current-line accumulator,
+ *  growing the span buffer if needed, and adds @p vis_w to the line width. */
+static void ww_push_span(WwAccum *a, char *s, size_t vis_w, ScTextStyle opts) {
+    if (a->sn == a->sc2) { a->sc2 = a->sc2 ? a->sc2*2 : 8; a->sbuf = realloc(a->sbuf, a->sc2*sizeof(TSpan)); }
+    a->sbuf[a->sn++] = (TSpan){ s, opts };
+    a->sw += vis_w;
+}
+
+/** Wraps all lines of @p cell that exceed @p wrap_w columns, copying lines
+ *  that fit via append_tline_copy() and wrapping wider ones via
+ *  append_wrapped_lines(). */
 static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n) {
-    /* --- build raw (pre-wrap) lines from the cell --- */
     size_t nraw;
     TLine *raw = make_cell_lines(cell, &nraw);
     if (wrap_w <= 0) { *out_n = nraw; return raw; }
 
     TLine *res = NULL; size_t nres = 0, rcap = 0;
     for (size_t li = 0; li < nraw; li++) {
-        if ((int)raw[li].vis_w <= wrap_w) {
-            /* --- line fits: deep-copy spans and append as-is --- */
-            if (nres == rcap) { rcap = rcap?rcap*2:4; res = realloc(res, rcap*sizeof(TLine)); }
-            TSpan *ls = malloc((raw[li].count + 1) * sizeof(TSpan));
-            for (size_t j = 0; j < raw[li].count; j++)
-                ls[j] = (TSpan){ strdup(raw[li].spans[j].text), raw[li].spans[j].opts };
-            res[nres++] = (TLine){ ls, raw[li].count, raw[li].vis_w };
-        } else {
-            /* --- line too wide: word-wrap it and append all resulting lines --- */
-            size_t nw;
-            TLine *wrapped = wrap_one_tline(&raw[li], wrap_w, &nw);
-            if (nres + nw > rcap) {
-                while (rcap < nres + nw) rcap = rcap ? rcap*2 : 4;
-                res = realloc(res, rcap * sizeof(TLine));
-            }
-            memcpy(res + nres, wrapped, nw * sizeof(TLine));
-            free(wrapped); /* shallow: TLine structs moved, spans owned by res */
-            nres += nw;
-        }
+        if ((int)raw[li].vis_w <= wrap_w)
+            append_tline_copy(&res, &nres, &rcap, &raw[li]);
+        else
+            append_wrapped_lines(&res, &nres, &rcap, &raw[li], wrap_w);
     }
     free_tlines(raw, nraw);
     *out_n = nres;
     return res;
+}
+
+/** Deep-copies @p src's spans into a new TLine and appends it to @p res,
+ *  growing the array if needed. */
+static void append_tline_copy(TLine **res, size_t *nres, size_t *rcap, const TLine *src) {
+    if (*nres == *rcap) { *rcap = *rcap ? *rcap*2 : 4; *res = realloc(*res, *rcap*sizeof(TLine)); }
+    TSpan *ls = malloc((src->count + 1) * sizeof(TSpan));
+    for (size_t j = 0; j < src->count; j++)
+        ls[j] = (TSpan){ strdup(src->spans[j].text), src->spans[j].opts };
+    (*res)[(*nres)++] = (TLine){ ls, src->count, src->vis_w };
+}
+
+/** Wraps @p src via wrap_one_tline() and bulk-appends all resulting TLines into
+ *  @p res. The temporary wrap buffer is freed shallowly — span ownership
+ *  transfers to @p res. */
+static void append_wrapped_lines(TLine **res, size_t *nres, size_t *rcap,
+                                  const TLine *src, int wrap_w) {
+    size_t nw;
+    TLine *wrapped = wrap_one_tline(src, wrap_w, &nw);
+    if (*nres + nw > *rcap) {
+        while (*rcap < *nres + nw) *rcap = *rcap ? *rcap*2 : 4;
+        *res = realloc(*res, *rcap * sizeof(TLine));
+    }
+    memcpy(*res + *nres, wrapped, nw * sizeof(TLine));
+    free(wrapped);
+    *nres += nw;
 }
 
 /* ── Low-level print helpers ─────────────────────────────────────────────── */
@@ -359,11 +393,9 @@ static void print_empty_lines(int n) {
 
 /* ── Horizontal border rendering ─────────────────────────────────────────── */
 
-/* Renders one horizontal border line (top, bottom, or inner separator) with
-   corner/junction characters, fill segments, and optional rowspan adjustments.
-   `rs[c]` non-zero means column c currently has an active rowspan — the fill
-   for that column is replaced with spaces and the adjacent junction char is
-   adjusted accordingly. */
+/** Renders one horizontal border line (top, bottom, or inner separator).
+ *  Adjusts edge corners for active rowspans, then prints margin, left edge,
+ *  per-column fill and junction chars, right edge, and newline. */
 static void render_horizontal_border(
     const Table *table,
     const char *lc,  const char *rc,
@@ -373,65 +405,85 @@ static void render_horizontal_border(
     const int *rs   /* rs[c]=1 → col c has active rowspan */
 ) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs  = table->opts.border.style;
-    int rtl          = table->opts.rtl;
-    int no_outer     = table->opts.border.no_outer;
+    int rtl      = table->opts.rtl;
+    int no_outer = table->opts.border.no_outer;
 
-    /* --- adjust outer corners when first/last rendered column has a rowspan --- */
-    if (rs && !no_outer) {
-        size_t fc  = rtl ? (table_data->column_count - 1) : 0;
-        size_t lcc = rtl ? 0 : (table_data->column_count - 1);
-        if (rs[fc])  lc = tbc[bs].v;
-        if (rs[lcc]) rc = tbc[bs].v;
-    }
+    if (rs && !no_outer)
+        adjust_hborder_corners(table, rs, &lc, &rc);
 
-    /* --- left outer edge --- */
     tpre(table);
     if (!no_outer) print_ch(lc, edge_color);
 
-    /* --- fill each column segment --- */
     for (size_t ci = 0; ci < table_data->column_count; ci++) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
-
-        if (rs && rs[c]) {
-            /* rowspan column: print spaces to keep the cell content area open */
-            for (int i = 0; i < table->column_widths[c]; i++) fputc(' ', stdout);
-        } else {
-            /* normal column: fill with the border character */
-            sc_apply_colors(fill_color, SC_ANSI_COLOR_NONE);
-            for (int i = 0; i < table->column_widths[c]; i++) fputs(fill, stdout);
-            fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-        }
-
-        /* --- junction character between this column and the next --- */
-        if (ci < table_data->column_count - 1 && mid) {
-            size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
-            int is_hcol  = (table->opts.header.col && c == hcol_phys);
-            int has_vsep = !table->opts.border.no_inner_v || is_hcol;
-            if (has_vsep) {
-                /* pick the junction glyph based on which neighbouring columns span */
-                const char *jchar = mid;
-                if (rs) {
-                    size_t nc   = rtl ? (c - 1) : (c + 1);
-                    int cur_rs  = rs[c];
-                    int next_rs = rs[nc];
-                    if      (cur_rs && next_rs) jchar = tbc[bs].v;
-                    else if (cur_rs)            jchar = tbc[bs].t_left;
-                    else if (next_rs)           jchar = tbc[bs].t_right;
-                }
-                /* override junction color for the header-column separator */
-                ScColor jc = mid_color;
-                if (use_hcol && is_hcol
-                        && table->opts.border.header_col_sep_color.index != -2)
-                    jc = table->opts.border.header_col_sep_color;
-                print_ch(jchar, jc);
-            }
-        }
+        render_hborder_col_fill(table, c, rs, fill, fill_color);
+        if (ci < table_data->column_count - 1 && mid)
+            render_hborder_junction(table, c, rs, mid, mid_color, use_hcol);
     }
 
-    /* --- right outer edge --- */
     if (!no_outer) print_ch(rc, edge_color);
     fputc('\n', stdout);
+}
+
+/** Replaces @p *lc / @p *rc with the vertical-bar glyph when the first or
+ *  last rendered column has an active rowspan. */
+static void adjust_hborder_corners(
+    const Table *table, const int *rs,
+    const char **lc, const char **rc
+) {
+    const ScTableData *table_data = table->table_data;
+    ScBorderType bs = table->opts.border.style;
+    int rtl         = table->opts.rtl;
+    size_t fc  = rtl ? (table_data->column_count - 1) : 0;
+    size_t lcc = rtl ? 0 : (table_data->column_count - 1);
+    if (rs[fc])  *lc = tbc[bs].v;
+    if (rs[lcc]) *rc = tbc[bs].v;
+}
+
+/** Prints the fill segment for column @p c: spaces when a rowspan is active,
+ *  otherwise the repeated @p fill character in @p fill_color. */
+static void render_hborder_col_fill(
+    const Table *table, size_t c, const int *rs,
+    const char *fill, ScColor fill_color
+) {
+    if (rs && rs[c]) {
+        for (int i = 0; i < table->column_widths[c]; i++) fputc(' ', stdout);
+    } else {
+        sc_apply_colors(fill_color, SC_ANSI_COLOR_NONE);
+        for (int i = 0; i < table->column_widths[c]; i++) fputs(fill, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    }
+}
+
+/** Prints the junction character between column @p c and its neighbour.
+ *  Selects the glyph based on which side has an active rowspan, and overrides
+ *  the color for the header-column separator when @p use_hcol is set. */
+static void render_hborder_junction(
+    const Table *table, size_t c,
+    const int *rs,
+    const char *mid, ScColor mid_color, int use_hcol
+) {
+    const ScTableData *table_data = table->table_data;
+    ScBorderType bs  = table->opts.border.style;
+    int rtl          = table->opts.rtl;
+    size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
+    int is_hcol      = (table->opts.header.col && c == hcol_phys);
+    int has_vsep     = !table->opts.border.no_inner_v || is_hcol;
+    if (!has_vsep) return;
+
+    const char *jchar = mid;
+    if (rs) {
+        size_t nc   = rtl ? (c - 1) : (c + 1);
+        int cur_rs  = rs[c];
+        int next_rs = rs[nc];
+        if      (cur_rs && next_rs) jchar = tbc[bs].v;
+        else if (cur_rs)            jchar = tbc[bs].t_left;
+        else if (next_rs)           jchar = tbc[bs].t_right;
+    }
+    ScColor jc = mid_color;
+    if (use_hcol && is_hcol && table->opts.border.header_col_sep_color.index != -2)
+        jc = table->opts.border.header_col_sep_color;
+    print_ch(jchar, jc);
 }
 
 /* ── Inner row separator ─────────────────────────────────────────────────── */
