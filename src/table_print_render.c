@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdio.h>
 
+/* Token type for the word-wrap subsystem: one contiguous run of spaces or
+   non-spaces extracted from a TLine span. */
+typedef struct { char *s; size_t vis_w; ScTextStyle opts; int is_space; } WwTok;
 
 static void table_render(Table *table);
     static void print_empty_lines(int n);
@@ -35,10 +38,17 @@ static void table_render(Table *table);
         static void    free_tlines    (TLine *lines, size_t n);
         static void    flush_tline    (TLine **lines, size_t *cap, size_t *n,
                                        TSpan *buf, size_t buf_n, size_t vis_w);
-        static TLine  *make_cell_lines(const ScCell *cell, size_t *out_n);
-        static size_t  cell_vis_width (const ScCell *cell);
-        static TLine  *wrap_one_tline (const TLine *src, int wrap_w, size_t *out_n);
-        static TLine  *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
+        static TLine  *make_cell_lines      (const ScCell *cell, size_t *out_n);
+        static void    resolve_cell_span    (const ScCell *cell, size_t si, const char **out_s, ScTextStyle *out_opts);
+        static void    scan_text_for_newlines(const char *s, ScTextStyle opts, TLine **lines, size_t *lines_cap, size_t *nlines, TSpan **buf, size_t *buf_cap, size_t *buf_n, size_t *buf_w);
+        static void    buf_push_segment     (TSpan **buf, size_t *buf_cap, size_t *buf_n, size_t *buf_w, const char *start, size_t len, ScTextStyle opts);
+        static size_t  cell_vis_width       (const ScCell *cell);
+        static TLine  *wrap_one_tline      (const TLine *src, int wrap_w, size_t *out_n);
+        static void    tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out_n);
+        static void    ww_flush_sbuf       (TLine **res, size_t *nres, size_t *rcap, TSpan **sbuf, size_t *sn, size_t *sw);
+        static void    ww_push_span        (TSpan **sbuf, size_t *sn, size_t *sc2, size_t *sw, char *s, size_t vis_w, ScTextStyle opts);
+        static void    hard_break_word     (TLine **res, size_t *nres, size_t *rcap, TSpan **sbuf, size_t *sc2, size_t *sn, size_t *sw, WwTok *tok, int wrap_w);
+        static TLine  *wrap_cell_lines     (const ScCell *cell, int wrap_w, size_t *out_n);
 
 
 /* Top-level render sequence: margins → border → header → data → footer → margins. */
@@ -84,13 +94,10 @@ static void flush_tline(TLine **lines, size_t *cap, size_t *n,
 
 /* ── Cell line building ───────────────────────────────────────────────────── */
 
-/* Splits the content of a cell on '\n' into an array of TLines. Each TLine
-   owns heap copies of its span strings. Handles SC_CELL_STR (single plain
-   span) and SC_CELL_TEXT / SC_CELL_MARKUP (multi-span ScText). */
+/** Splits the content of @p cell on '\\n' into an array of TLines. Each TLine
+ *  owns heap copies of its span strings. Delegates span resolution and newline
+ *  scanning to resolve_cell_span() and scan_text_for_newlines(). */
 static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
-    static const ScTextStyle PLAIN = { 0, { -2,0,0,0 }, { -2,0,0,0 } };
-
-    /* --- allocate growing buffers for lines and the current line's spans --- */
     size_t lines_cap = 4, nlines = 0;
     TLine *lines = malloc(lines_cap * sizeof(TLine));
     size_t buf_cap = 4, buf_n = 0, buf_w = 0;
@@ -100,48 +107,65 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
         ? cell->text->count : 1;
 
     for (size_t si = 0; si < nspans; si++) {
-        /* --- resolve the raw string and style for this source span --- */
         const char *s;
-        ScTextStyle   opts;
-
-        if (cell->kind == SC_CELL_STR) {
-            s    = cell->str ? cell->str : "";
-            opts = PLAIN;
-        } else {
-            s    = cell->text->spans[si].raw_str;
-            opts = cell->text->spans[si].style;
-        }
-
-        /* --- scan for '\n': flush a TLine on each newline, buffer the rest --- */
-        const char *start = s;
-        while (*s) {
-            if (*s == '\n') {
-                size_t len = (size_t)(s - start);
-                if (len > 0) {
-                    if (buf_n == buf_cap) { buf_cap *= 2; buf = realloc(buf, buf_cap * sizeof(TSpan)); }
-                    buf[buf_n++] = (TSpan){ strndup(start, len), opts };
-                    buf_w += sc_utf8_string_length(start, len);
-                }
-                flush_tline(&lines, &lines_cap, &nlines, buf, buf_n, buf_w);
-                buf_n = 0; buf_w = 0;
-                start = s + 1;
-            }
-            s++;
-        }
-        /* --- append any remaining text after the last '\n' --- */
-        size_t len = (size_t)(s - start);
-        if (len > 0) {
-            if (buf_n == buf_cap) { buf_cap *= 2; buf = realloc(buf, buf_cap * sizeof(TSpan)); }
-            buf[buf_n++] = (TSpan){ strndup(start, len), opts };
-            buf_w += sc_utf8_string_length(start, len);
-        }
+        ScTextStyle opts;
+        resolve_cell_span(cell, si, &s, &opts);
+        scan_text_for_newlines(s, opts, &lines, &lines_cap, &nlines, &buf, &buf_cap, &buf_n, &buf_w);
     }
 
-    /* --- flush the final (possibly only) line --- */
     flush_tline(&lines, &lines_cap, &nlines, buf, buf_n, buf_w);
     free(buf);
     *out_n = nlines;
     return lines;
+}
+
+/** Resolves the raw string and text style for span index @p si of @p cell.
+ *  SC_CELL_STR cells have exactly one span and use a plain (unstyled) style. */
+static void resolve_cell_span(const ScCell *cell, size_t si,
+                               const char **out_s, ScTextStyle *out_opts) {
+    static const ScTextStyle PLAIN = { 0, { -2,0,0,0 }, { -2,0,0,0 } };
+    if (cell->kind == SC_CELL_STR) {
+        *out_s    = cell->str ? cell->str : "";
+        *out_opts = PLAIN;
+    } else {
+        *out_s    = cell->text->spans[si].raw_str;
+        *out_opts = cell->text->spans[si].style;
+    }
+}
+
+/** Scans @p s for '\\n', calling buf_push_segment() for each text segment and
+ *  flush_tline() on each newline. Remaining text after the last newline is
+ *  left in the buffer for the caller to flush. */
+static void scan_text_for_newlines(const char *s, ScTextStyle opts,
+                                    TLine **lines, size_t *lines_cap, size_t *nlines,
+                                    TSpan **buf, size_t *buf_cap, size_t *buf_n, size_t *buf_w) {
+    const char *start = s;
+    while (*s) {
+        if (*s == '\n') {
+            size_t len = (size_t)(s - start);
+            if (len > 0)
+                buf_push_segment(buf, buf_cap, buf_n, buf_w, start, len, opts);
+            flush_tline(lines, lines_cap, nlines, *buf, *buf_n, *buf_w);
+            *buf_n = 0; *buf_w = 0;
+            start = s + 1;
+        }
+        s++;
+    }
+    size_t len = (size_t)(s - start);
+    if (len > 0)
+        buf_push_segment(buf, buf_cap, buf_n, buf_w, start, len, opts);
+}
+
+/** Appends the text segment [@p start, @p start+@p len) with style @p opts to
+ *  the span buffer, doubling its capacity if it is full. */
+static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_n, size_t *buf_w,
+                              const char *start, size_t len, ScTextStyle opts) {
+    if (*buf_n == *buf_cap) {
+        *buf_cap *= 2;
+        *buf = realloc(*buf, *buf_cap * sizeof(TSpan));
+    }
+    (*buf)[(*buf_n)++] = (TSpan){ strndup(start, len), opts };
+    *buf_w += sc_utf8_string_length(start, len);
 }
 
 /* Returns the visible column width of the widest line in a cell. */
@@ -157,13 +181,54 @@ static size_t cell_vis_width(const ScCell *cell) {
 
 /* ── Word-wrap ───────────────────────────────────────────────────────────── */
 
-/* Wraps a single TLine into multiple TLines each fitting within wrap_w cols.
-   Wraps at word boundaries (spaces); hard-breaks words longer than wrap_w. */
+/** Wraps a single TLine into multiple TLines each fitting within @p wrap_w cols.
+ *  Breaks at word boundaries; words wider than @p wrap_w are hard-broken. */
 static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
-    /* --- tokenize all spans into alternating word/space-run tokens --- */
-    typedef struct { char *s; size_t vis_w; ScTextStyle opts; int is_space; } Tok;
-    Tok *toks = NULL; size_t ntok = 0, tcap = 0;
+    WwTok *toks; size_t ntok;
+    tokenize_tline_spans(src, &toks, &ntok);
 
+    TLine *res = NULL; size_t nres = 0, rcap = 0;
+    TSpan *sbuf = NULL; size_t sn = 0, sc2 = 0; size_t sw = 0;
+
+    for (size_t ti = 0; ti < ntok; ti++) {
+        WwTok *tok = &toks[ti];
+        if (tok->is_space) {
+            /* skip leading spaces on a fresh line */
+            if (sn == 0) { free(tok->s); tok->s = NULL; continue; }
+            /* peek ahead: if the next word doesn't fit after this space, wrap now */
+            if (ti + 1 < ntok && !toks[ti+1].is_space
+                    && (int)(sw + tok->vis_w + toks[ti+1].vis_w) > wrap_w) {
+                free(tok->s); tok->s = NULL;
+                ww_flush_sbuf(&res, &nres, &rcap, &sbuf, &sn, &sw);
+                continue;
+            }
+            ww_push_span(&sbuf, &sn, &sc2, &sw, tok->s, tok->vis_w, tok->opts);
+            tok->s = NULL;
+        } else {
+            /* flush current line if this word no longer fits */
+            if (sn > 0 && (int)(sw + tok->vis_w) > wrap_w)
+                ww_flush_sbuf(&res, &nres, &rcap, &sbuf, &sn, &sw);
+            if ((int)tok->vis_w > wrap_w)
+                hard_break_word(&res, &nres, &rcap, &sbuf, &sc2, &sn, &sw, tok, wrap_w);
+            else {
+                ww_push_span(&sbuf, &sn, &sc2, &sw, tok->s, tok->vis_w, tok->opts);
+                tok->s = NULL;
+            }
+        }
+    }
+    ww_flush_sbuf(&res, &nres, &rcap, &sbuf, &sn, &sw);
+
+    free(sbuf);
+    for (size_t ti = 0; ti < ntok; ti++) if (toks[ti].s) free(toks[ti].s);
+    free(toks);
+    *out_n = nres;
+    return res;
+}
+
+/** Splits each span of @p src into alternating non-space/space-run WwTok tokens.
+ *  The caller owns the returned array and must free each token's @c s field. */
+static void tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out_n) {
+    WwTok *toks = NULL; size_t ntok = 0, tcap = 0;
     for (size_t si = 0; si < src->count; si++) {
         const char *p = src->spans[si].text;
         ScTextStyle opts = src->spans[si].opts;
@@ -173,80 +238,53 @@ static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
             while (*p && ((*p == ' ') == is_sp)) p++;
             size_t len = (size_t)(p - seg);
             size_t vw  = is_sp ? len : sc_utf8_string_length(seg, len);
-            if (ntok == tcap) { tcap = tcap ? tcap * 2 : 16; toks = realloc(toks, tcap * sizeof(Tok)); }
-            toks[ntok++] = (Tok){ strndup(seg, len), vw, opts, is_sp };
+            if (ntok == tcap) { tcap = tcap ? tcap*2 : 16; toks = realloc(toks, tcap*sizeof(WwTok)); }
+            toks[ntok++] = (WwTok){ strndup(seg, len), vw, opts, is_sp };
         }
     }
+    *out_toks = toks;
+    *out_n    = ntok;
+}
 
-    /* --- result line buffer and current-line span accumulator --- */
-    TLine *res = NULL; size_t nres = 0, rcap = 0;
-    TSpan *sbuf = NULL; size_t sn = 0, sc2 = 0; size_t sw = 0;
-
-    /* flush sbuf as a new TLine, trimming trailing space spans */
-    #define WW_FLUSH() do { \
-        /* trim trailing spaces */ \
-        while (sn > 0 && sbuf[sn-1].text[0] == ' ') { \
-            sw -= strlen(sbuf[sn-1].text); \
-            free((char*)sbuf[--sn].text); \
-        } \
-        flush_tline(&res, &rcap, &nres, sbuf, sn, sw); \
-        sn = 0; sw = 0; \
-    } while(0)
-
-    /* --- emit tokens into lines, wrapping when a word won't fit --- */
-    for (size_t ti = 0; ti < ntok; ti++) {
-        Tok *tok = &toks[ti];
-        if (tok->is_space) {
-            /* skip leading spaces on a fresh line */
-            if (sn == 0) { free(tok->s); tok->s = NULL; continue; }
-            /* peek ahead: if the next word doesn't fit after this space, wrap now */
-            if (ti + 1 < ntok && !toks[ti+1].is_space
-                    && (int)(sw + tok->vis_w + toks[ti+1].vis_w) > wrap_w) {
-                free(tok->s); tok->s = NULL;
-                WW_FLUSH();
-                continue;
-            }
-            if (sn == sc2) { sc2 = sc2 ? sc2*2 : 8; sbuf = realloc(sbuf, sc2*sizeof(TSpan)); }
-            sbuf[sn++] = (TSpan){ tok->s, tok->opts }; tok->s = NULL;
-            sw += tok->vis_w;
-        } else {
-            /* word: flush current line if this word no longer fits */
-            if (sn > 0 && (int)(sw + tok->vis_w) > wrap_w) WW_FLUSH();
-
-            if ((int)tok->vis_w > wrap_w) {
-                /* --- hard-break: split oversized word into wrap_w-sized chunks --- */
-                const char *p = tok->s;
-                size_t rem = strlen(tok->s);
-                while (rem > 0) {
-                    int avail = wrap_w - (int)sw;
-                    if (avail <= 0) { WW_FLUSH(); avail = wrap_w; }
-                    size_t cb = sc_utf8_trim_to_cols(p, avail);
-                    if (cb == 0) break;
-                    char *chunk = strndup(p, cb);
-                    size_t cw2  = sc_utf8_string_length(p, cb);
-                    if (sn == sc2) { sc2 = sc2?sc2*2:8; sbuf = realloc(sbuf, sc2*sizeof(TSpan)); }
-                    sbuf[sn++] = (TSpan){ chunk, tok->opts };
-                    sw += cw2; p += cb; rem -= cb;
-                    if (rem > 0) WW_FLUSH();
-                }
-                free(tok->s); tok->s = NULL;
-            } else {
-                /* --- normal word: append to current line --- */
-                if (sn == sc2) { sc2 = sc2?sc2*2:8; sbuf = realloc(sbuf, sc2*sizeof(TSpan)); }
-                sbuf[sn++] = (TSpan){ tok->s, tok->opts }; tok->s = NULL;
-                sw += tok->vis_w;
-            }
-        }
+/** Trims trailing space spans from @p sbuf, flushes it as a new TLine into
+ *  @p res via flush_tline(), then resets the span count and width to zero. */
+static void ww_flush_sbuf(TLine **res, size_t *nres, size_t *rcap,
+                           TSpan **sbuf, size_t *sn, size_t *sw) {
+    while (*sn > 0 && (*sbuf)[*sn - 1].text[0] == ' ') {
+        *sw -= strlen((*sbuf)[*sn - 1].text);
+        free((char *)(*sbuf)[--(*sn)].text);
     }
-    WW_FLUSH();
-    #undef WW_FLUSH
+    flush_tline(res, rcap, nres, *sbuf, *sn, *sw);
+    *sn = 0; *sw = 0;
+}
 
-    /* --- clean up token array --- */
-    free(sbuf);
-    for (size_t ti = 0; ti < ntok; ti++) if (toks[ti].s) free(toks[ti].s);
-    free(toks);
-    *out_n = nres;
-    return res;
+/** Appends span @p s (taking ownership) to @p sbuf, growing the buffer if
+ *  needed, and adds @p vis_w to the accumulated line width @p sw. */
+static void ww_push_span(TSpan **sbuf, size_t *sn, size_t *sc2, size_t *sw,
+                          char *s, size_t vis_w, ScTextStyle opts) {
+    if (*sn == *sc2) { *sc2 = *sc2 ? *sc2*2 : 8; *sbuf = realloc(*sbuf, *sc2*sizeof(TSpan)); }
+    (*sbuf)[(*sn)++] = (TSpan){ s, opts };
+    *sw += vis_w;
+}
+
+/** Splits a word token wider than @p wrap_w into chunks that each fit, flushing
+ *  a new TLine via ww_flush_sbuf() after each full chunk. Frees @p tok->s. */
+static void hard_break_word(TLine **res, size_t *nres, size_t *rcap,
+                             TSpan **sbuf, size_t *sc2, size_t *sn, size_t *sw,
+                             WwTok *tok, int wrap_w) {
+    const char *p = tok->s;
+    size_t rem = strlen(tok->s);
+    while (rem > 0) {
+        int avail = wrap_w - (int)*sw;
+        if (avail <= 0) { ww_flush_sbuf(res, nres, rcap, sbuf, sn, sw); avail = wrap_w; }
+        size_t cb = sc_utf8_trim_to_cols(p, avail);
+        if (cb == 0) break;
+        size_t cw2 = sc_utf8_string_length(p, cb);
+        ww_push_span(sbuf, sn, sc2, sw, strndup(p, cb), cw2, tok->opts);
+        p += cb; rem -= cb;
+        if (rem > 0) ww_flush_sbuf(res, nres, rcap, sbuf, sn, sw);
+    }
+    free(tok->s); tok->s = NULL;
 }
 
 /* Wraps all lines of a cell that exceed wrap_w, copying short lines as-is. */
