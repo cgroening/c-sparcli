@@ -22,26 +22,26 @@ typedef struct {
 } WordWrapAccum;
 
 // Forward declarations indented to reflect call hierarchy
-static void   free_tlines  (TLine *lines, size_t line_count);
-static void   flush_tline  (TLine **lines, size_t *line_cap, size_t *line_count, TSpan *buf, size_t buf_count, size_t vis_w);
+static void free_tlines(TLine *lines, size_t line_count);
+static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count, TSpan *buf, size_t buf_count, size_t vis_w);
 
-static TLine *make_cell_lines      (const ScCell *cell, size_t *out_n);
-    static void   resolve_cell_span    (const ScCell *cell, size_t span_idx, const char **out_s, ScTextStyle *out_opts);
-    static void   scan_text_for_newlines(const char *text, ScTextStyle opts, TLine **lines, size_t *line_cap, size_t *line_count, TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width);
-        static void   buf_push_segment (TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width, const char *start, size_t len, ScTextStyle opts);
+static TLine *make_cell_lines(const ScCell *cell, size_t *out_n);
+    static void resolve_cell_span(const ScCell *cell, size_t span_idx, const char **out_s, ScTextStyle *out_opts);
+    static void scan_text_for_newlines(const char *text, ScTextStyle opts, TLine **lines, size_t *line_cap, size_t *line_count, TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width);
+        static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width, const char *start, size_t len, ScTextStyle opts);
 
-static size_t cell_vis_width (const ScCell *cell);
+static size_t cell_vis_width(const ScCell *cell);
 
-static TLine *wrap_cell_lines      (const ScCell *cell, int wrap_w, size_t *out_n);
-    static void   append_tline_copy    (TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src);
-    static void   append_wrapped_lines (TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src, int wrap_w);
-        static TLine *wrap_one_tline       (const TLine *src, int wrap_w, size_t *out_n);
-            static void   tokenize_tline_spans (const TLine *src, WordWrapToken **out_tokens, size_t *out_n);
-            static void   emit_space_tok       (WordWrapAccum *state, WordWrapToken *tok, const WordWrapToken *next, int wrap_w);
-                static void   ww_flush_sbuf    (WordWrapAccum *state);
-                static void   ww_push_span     (WordWrapAccum *state, char *text, size_t vis_w, ScTextStyle opts);
-            static void   emit_word_tok        (WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
-                static void   hard_break_word  (WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
+static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
+    static void append_tline_copy(TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src);
+    static void append_wrapped_lines(TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src, int wrap_w);
+        static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n);
+            static void tokenize_tline_spans(const TLine *src, WordWrapToken **out_tokens, size_t *out_n);
+            static void emit_space_tok(WordWrapAccum *state, WordWrapToken *tok, const WordWrapToken *next, int wrap_w);
+                static void ww_flush_sbuf(WordWrapAccum *state);
+                static void ww_push_span(WordWrapAccum *state, char *text, size_t vis_w, ScTextStyle opts);
+            static void emit_word_tok(WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
+                static void hard_break_word(WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
 
 
 /* ── TLine memory helpers ────────────────────────────────────────────────── */

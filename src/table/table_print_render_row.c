@@ -30,22 +30,22 @@ typedef struct {
 } RowRenderCtx;
 
 // Forward declarations indented to reflect call hierarchy
-static void    render_row              (const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_height_in);
-    static size_t  build_row_cell_lines    (const Table *table, const ScCell *cells, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
-        static void    build_rowspan_cont_col_lines (const Table *table, size_t col, int pad_horiz, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
-        static size_t  build_span_col_lines         (const Table *table, const ScCell *cell, size_t col, int pad_horiz, TLine **col_lines, size_t *col_line_counts);
-            static int     compute_span_w            (const Table *table, size_t col, int span_cols);
-    static void    render_row_visual_line  (const Table *table, const ScCell *cells, TLine **col_lines, size_t *col_line_counts, int visual_line, const RowRenderCtx *rctx);
-        static void    render_row_cell     (const Table *table, const ScCell *cells, TLine **col_lines, size_t *col_line_counts, size_t col, size_t col_iter, int span_cols, int visual_line, const RowRenderCtx *rctx);
-            static ScColor resolve_cell_bg           (const Table *table, size_t col, ScColor row_bg, RowSection row_section);
-            static void    resolve_cell_align        (const Table *table, const ScCell *cells, size_t col, ScHAlign *out_halign, ScVAlign *out_valign);
-            static int     compute_rowspan_cell_cli  (const RowSpan *rowspan, int visual_line, int content_lines);
-            static int     compute_normal_cell_cli   (int visual_line, int content_lines, ScVAlign valign, const RowRenderCtx *rctx);
-            static void    render_cell_line          (const TLine *line, int col_width, ScHAlign halign, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
-                static void    print_cell_line_aligned   (const TLine *line, int align_padding, ScHAlign halign, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
-                    static ScTextStyle apply_hdrftr_style (ScTextStyle span_style, const ScTableOpts *opts, const RowRenderCtx *rctx);
-                static void    print_cell_line_truncated (const TLine *line, int col_width, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
-            static void    render_row_vsep           (const Table *table, size_t col, size_t col_iter, int span_cols);
+static void render_row(const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_height_in);
+    static size_t build_row_cell_lines(const Table *table, const ScCell *cells, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
+        static void build_rowspan_cont_col_lines(const Table *table, size_t col, int pad_horiz, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
+        static size_t build_span_col_lines(const Table *table, const ScCell *cell, size_t col, int pad_horiz, TLine **col_lines, size_t *col_line_counts);
+            static int compute_span_w(const Table *table, size_t col, int span_cols);
+    static void render_row_visual_line(const Table *table, const ScCell *cells, TLine **col_lines, size_t *col_line_counts, int visual_line, const RowRenderCtx *rctx);
+        static void render_row_cell(const Table *table, const ScCell *cells, TLine **col_lines, size_t *col_line_counts, size_t col, size_t col_iter, int span_cols, int visual_line, const RowRenderCtx *rctx);
+            static ScColor resolve_cell_bg(const Table *table, size_t col, ScColor row_bg, RowSection row_section);
+            static void resolve_cell_align(const Table *table, const ScCell *cells, size_t col, ScHAlign *out_halign, ScVAlign *out_valign);
+            static int compute_rowspan_cell_cli(const RowSpan *rowspan, int visual_line, int content_lines);
+            static int compute_normal_cell_cli(int visual_line, int content_lines, ScVAlign valign, const RowRenderCtx *rctx);
+            static void render_cell_line(const TLine *line, int col_width, ScHAlign halign, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
+                static void print_cell_line_aligned(const TLine *line, int align_padding, ScHAlign halign, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
+                    static ScTextStyle apply_hdrftr_style(ScTextStyle span_style, const ScTableOpts *opts, const RowRenderCtx *rctx);
+                static void print_cell_line_truncated(const TLine *line, int col_width, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
+            static void render_row_vsep(const Table *table, size_t col, size_t col_iter, int span_cols);
 
 
 /* ── Row rendering ───────────────────────────────────────────────────────── */
