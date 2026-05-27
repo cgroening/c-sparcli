@@ -50,16 +50,21 @@ static void table_render(Table *table) {
  * (including the title line).
  */
 static void render_top_border(const Table *table) {
-    ScBorderType bs = table->opts.border.style;
-    ScColor oc = table->opts.border.outer_color;
+    ScBorderType border_style = table->opts.border.style;
 
     if (table->opts.border.no_outer) { return; }
 
     if (table->opts.title.text && table->opts.title.pos == SC_POSITION_TOP) {
         render_title_line(table, 1);
-    } else if (bs != SC_BORDER_NONE) {
-        render_horizontal_border(table, tbc[bs].tl, tbc[bs].tr,
-                     tbc[bs].h, oc, tbc[bs].t_top, oc, oc, 0, NULL);
+    } else if (border_style != SC_BORDER_NONE) {
+        render_horizontal_border(table, (HBorderSpec){
+            .left_corner_char  = border_char_sets[border_style].tl,
+            .right_corner_char = border_char_sets[border_style].tr,
+            .fill_char         = border_char_sets[border_style].h,
+            .column_separator  = border_char_sets[border_style].t_top,
+            .color             = table->opts.border.outer_color,
+            .edge_color        = table->opts.border.outer_color,
+        }, NULL);
     }
 }
 
@@ -67,7 +72,6 @@ static void render_top_border(const Table *table) {
 static void render_header_row(const Table *table) {
     const ScTableData *table_data = table->table_data;
     if (!table->opts.header.row) { return; }
-    ScBorderType bs = table->opts.border.style;
 
     ScCell *hcells = malloc(table_data->column_count * sizeof(ScCell));
     for (size_t c = 0; c < table_data->column_count; c++) {
@@ -78,7 +82,7 @@ static void render_header_row(const Table *table) {
     render_row(table, hcells, table->opts.header.row_bg, 1, 0);
     free(hcells);
 
-    if (bs != SC_BORDER_NONE) {
+    if (table->opts.border.style != SC_BORDER_NONE) {
         render_section_sep(table);
     }
 }
@@ -91,8 +95,15 @@ static void render_section_sep(const Table *table) {
     ScColor ic      = table->opts.border.inner_color;
     ScColor hrsc    = table->opts.border.header_row_sep_color;
     ScColor hc      = (hrsc.index != -2) ? hrsc : ic;
-    render_horizontal_border(table, tbc[bs].t_left, tbc[bs].t_right,
-                 tbc[bs].h, hc, tbc[bs].cross, hc, oc, 1, NULL);
+    render_horizontal_border(table, (HBorderSpec){
+        .left_corner_char   = border_char_sets[bs].t_left,
+        .right_corner_char  = border_char_sets[bs].t_right,
+        .fill_char          = border_char_sets[bs].h,
+        .column_separator   = border_char_sets[bs].cross,
+        .color              = hc,
+        .edge_color         = oc,
+        .use_header_col_sep = true,
+    }, NULL);
 }
 
 /** Renders all data rows with rowspan tracking, inner separators, and the
@@ -221,8 +232,12 @@ static void render_footer_rows(const Table *table) {
 
     for (size_t r = 0; r < table_data->footer_row_count; r++) {
         if (r > 0 && bs != SC_BORDER_NONE && !table->opts.border.no_inner_h) {
-            render_horizontal_border(table, tbc[bs].t_left, tbc[bs].t_right,
-                         tbc[bs].h, ic, tbc[bs].cross, ic, oc, 1, NULL);
+            render_horizontal_border(table, (HBorderSpec){
+                .left_corner_char = border_char_sets[bs].t_left, .right_corner_char = border_char_sets[bs].t_right,
+                .fill_char = border_char_sets[bs].h,    .column_separator = border_char_sets[bs].cross,
+                .color = ic,               .edge_color = oc,
+                .use_header_col_sep = true,
+            }, NULL);
         }
         render_row(table, table_data->footer_rows[r].cells, table->opts.footer.row_bg, 2, 0);
     }
@@ -237,7 +252,10 @@ static void render_bottom_border(const Table *table) {
     if (table->opts.title.text && table->opts.title.pos == SC_POSITION_BOTTOM) {
         render_title_line(table, 0);
     } else if (bs != SC_BORDER_NONE) {
-        render_horizontal_border(table, tbc[bs].bl, tbc[bs].br,
-                     tbc[bs].h, oc, tbc[bs].t_bot, oc, oc, 0, NULL);
+        render_horizontal_border(table, (HBorderSpec){
+            .left_corner_char = border_char_sets[bs].bl,    .right_corner_char = border_char_sets[bs].br,
+            .fill_char = border_char_sets[bs].h,   .column_separator = border_char_sets[bs].t_bot,
+            .color = oc,         .edge_color = oc,
+        }, NULL);
     }
 }

@@ -151,7 +151,8 @@ static void panel_cleanup(Panel *panel);
  * `tl`/`tr`/`bl`/`br` = corners; `h` = horizontal char; `v` = vertical char.
  */
 static const struct {
-    const char *tl, *tr, *bl, *br, *h, *v;
+    const char *tl, *tr, *bl, *br;
+    const char *h, *v;
 } border_table[] = {
     [SC_BORDER_NONE]    = { " ", " ", " ", " ", " ", " " },
     [SC_BORDER_ASCII]   = { "+", "+", "+", "+", "-", "|" },

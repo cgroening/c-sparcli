@@ -9,21 +9,35 @@
 
 #include "table_print_render_cell.c"  // IWYU pragma: export
 
-static void print_ch          (const char *s, ScColor fg);
+/* Visual spec for one horizontal border line: corner chars, fill, junction,
+   and colors. fill_color and mid_color are unified into a single `color` field
+   since all callers pass the same value for both. */
+typedef struct {
+    const char *left_corner_char;        /* left  corner char */
+    const char *right_corner_char;        /* right corner char */
+    const char *fill_char;      /* fill (horizontal) char, repeated per column */
+    const char *column_separator;       /* junction char between columns; NULL = no junction */
+    ScColor     color;     /* fill and junction color */
+    ScColor     edge_color;/* left/right corner color */
+
+    /**
+     * Flag for applying `header_col_sep_color` at column junctions.
+     * True for  inner separator lines (header/footer boundaries) where
+     * header_col_sep_color applies at column junctions.
+     * False for outer frame lines (top/bottom border) where it does not.
+     */
+    bool use_header_col_sep;
+} HBorderSpec;
+
+static void print_colored_string          (const char *s, ScColor fg);
 static void print_spaces_bg   (int n, ScColor bg);
 static void print_span_bg     (const char *text, ScTextStyle opts, ScColor cell_bg);
-static void tpre              (const Table *table);
+static void print_left_margin              (const Table *table);
 static void print_empty_lines (int n);
-static void render_horizontal_border(
-    const Table *table,
-    const char *lc,  const char *rc,
-    const char *fill, ScColor fill_color,
-    const char *mid,  ScColor mid_color,
-    ScColor edge_color, int use_hcol, const int *rs
-);
+static void render_horizontal_border(const Table *table, HBorderSpec spec, const int *rs);
 static void adjust_hborder_corners (const Table *table, const int *rs, const char **lc, const char **rc);
-static void render_hborder_col_fill(const Table *table, size_t c, const int *rs, const char *fill, ScColor fill_color);
-static void render_hborder_junction(const Table *table, size_t c, const int *rs, const char *mid, ScColor mid_color, int use_hcol);
+static void render_hborder_col_fill(const Table *table, size_t c, const int *rs, HBorderSpec spec);
+static void render_hborder_junction(const Table *table, size_t c, const int *rs, HBorderSpec spec);
 static void render_inner_sep         (Table *table);
 static void render_isep_span_col     (Table *table, size_t c);
 static void render_isep_span_content (Table *table, size_t c, ScColor col_bg);
@@ -41,7 +55,7 @@ static void render_title_full_fill   (int inner_w, const char *h, ScColor oc);
 /* ── Low-level print helpers ─────────────────────────────────────────────── */
 
 /* Prints a single string `s` in foreground color `fg`, then resets. */
-static void print_ch(const char *s, ScColor fg) {
+static void print_colored_string(const char *s, ScColor fg) {
     sc_apply_colors(fg, SC_ANSI_COLOR_NONE);
     fputs(s, stdout);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
@@ -63,7 +77,7 @@ static void print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg) {
 }
 
 /* Prints the left margin spaces for the table. */
-static void tpre(const Table *table) {
+static void print_left_margin(const Table *table) {
     for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', stdout); }
 }
 
@@ -81,32 +95,31 @@ static void print_empty_lines(int n) {
  *  per-column fill and junction chars, right edge, and newline. */
 static void render_horizontal_border(
     const Table *table,
-    const char *lc,  const char *rc,
-    const char *fill, ScColor fill_color,
-    const char *mid,  ScColor mid_color,
-    ScColor edge_color, int use_hcol,
+    HBorderSpec spec,
     const int *rs   /* rs[c]=1 → col c has active rowspan */
 ) {
     const ScTableData *table_data = table->table_data;
     int rtl      = table->opts.rtl;
     int no_outer = table->opts.border.no_outer;
+    const char *lc = spec.left_corner_char;
+    const char *rc = spec.right_corner_char;
 
     if (rs && !no_outer) {
         adjust_hborder_corners(table, rs, &lc, &rc);
     }
 
-    tpre(table);
-    if (!no_outer) { print_ch(lc, edge_color); }
+    print_left_margin(table);
+    if (!no_outer) { print_colored_string(lc, spec.edge_color); }
 
     for (size_t ci = 0; ci < table_data->column_count; ci++) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
-        render_hborder_col_fill(table, c, rs, fill, fill_color);
-        if (ci < table_data->column_count - 1 && mid) {
-            render_hborder_junction(table, c, rs, mid, mid_color, use_hcol);
+        render_hborder_col_fill(table, c, rs, spec);
+        if (ci < table_data->column_count - 1 && spec.column_separator) {
+            render_hborder_junction(table, c, rs, spec);
         }
     }
 
-    if (!no_outer) { print_ch(rc, edge_color); }
+    if (!no_outer) { print_colored_string(rc, spec.edge_color); }
     fputc('\n', stdout);
 }
 
@@ -121,32 +134,29 @@ static void adjust_hborder_corners(
     int rtl         = table->opts.rtl;
     size_t fc  = rtl ? (table_data->column_count - 1) : 0;
     size_t lcc = rtl ? 0 : (table_data->column_count - 1);
-    if (rs[fc])  { *lc = tbc[bs].v; }
-    if (rs[lcc]) { *rc = tbc[bs].v; }
+    if (rs[fc])  { *lc = border_char_sets[bs].v; }
+    if (rs[lcc]) { *rc = border_char_sets[bs].v; }
 }
 
 /** Prints the fill segment for column @p c: spaces when a rowspan is active,
- *  otherwise the repeated @p fill character in @p fill_color. */
+ *  otherwise the repeated fill character from @p spec in @p spec.color. */
 static void render_hborder_col_fill(
-    const Table *table, size_t c, const int *rs,
-    const char *fill, ScColor fill_color
+    const Table *table, size_t c, const int *rs, HBorderSpec spec
 ) {
     if (rs && rs[c]) {
         for (int i = 0; i < table->column_widths[c]; i++) { fputc(' ', stdout); }
     } else {
-        sc_apply_colors(fill_color, SC_ANSI_COLOR_NONE);
-        for (int i = 0; i < table->column_widths[c]; i++) { fputs(fill, stdout); }
+        sc_apply_colors(spec.color, SC_ANSI_COLOR_NONE);
+        for (int i = 0; i < table->column_widths[c]; i++) { fputs(spec.fill_char, stdout); }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     }
 }
 
 /** Prints the junction character between column @p c and its neighbour.
  *  Selects the glyph based on which side has an active rowspan, and overrides
- *  the color for the header-column separator when @p use_hcol is set. */
+ *  the color for the header-column separator when @p spec.use_header_col_sep is set. */
 static void render_hborder_junction(
-    const Table *table, size_t c,
-    const int *rs,
-    const char *mid, ScColor mid_color, int use_hcol
+    const Table *table, size_t c, const int *rs, HBorderSpec spec
 ) {
     const ScTableData *table_data = table->table_data;
     ScBorderType bs  = table->opts.border.style;
@@ -156,20 +166,20 @@ static void render_hborder_junction(
     int has_vsep     = !table->opts.border.no_inner_v || is_hcol;
     if (!has_vsep) { return; }
 
-    const char *jchar = mid;
+    const char *jchar = spec.column_separator;
     if (rs) {
         size_t nc   = rtl ? (c - 1) : (c + 1);
         int cur_rs  = rs[c];
         int next_rs = rs[nc];
-        if      (cur_rs && next_rs) { jchar = tbc[bs].v; }
-        else if (cur_rs)            { jchar = tbc[bs].t_left; }
-        else if (next_rs)           { jchar = tbc[bs].t_right; }
+        if      (cur_rs && next_rs) { jchar = border_char_sets[bs].v; }
+        else if (cur_rs)            { jchar = border_char_sets[bs].t_left; }
+        else if (next_rs)           { jchar = border_char_sets[bs].t_right; }
     }
-    ScColor jc = mid_color;
-    if (use_hcol && is_hcol && table->opts.border.header_col_sep_color.index != -2) {
+    ScColor jc = spec.color;
+    if (spec.use_header_col_sep && is_hcol && table->opts.border.header_col_sep_color.index != -2) {
         jc = table->opts.border.header_col_sep_color;
     }
-    print_ch(jchar, jc);
+    print_colored_string(jchar, jc);
 }
 
 /* ── Inner row separator ─────────────────────────────────────────────────── */
@@ -184,14 +194,14 @@ static void render_inner_sep(Table *table) {
     int no_outer      = table->opts.border.no_outer;
     int rtl           = table->opts.rtl;
 
-    const char *lc = tbc[bs].t_left;
-    const char *rc = tbc[bs].t_right;
+    const char *lc = border_char_sets[bs].t_left;
+    const char *rc = border_char_sets[bs].t_right;
     if (is_rs && !no_outer) {
         adjust_hborder_corners(table, is_rs, &lc, &rc);
     }
 
-    tpre(table);
-    if (!no_outer) { print_ch(lc, oc); }
+    print_left_margin(table);
+    if (!no_outer) { print_colored_string(lc, oc); }
 
     for (size_t ci = 0; ci < table_data->column_count; ci++) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
@@ -205,7 +215,7 @@ static void render_inner_sep(Table *table) {
         }
     }
 
-    if (!no_outer) { print_ch(rc, oc); }
+    if (!no_outer) { print_colored_string(rc, oc); }
     fputc('\n', stdout);
 }
 
@@ -294,7 +304,7 @@ static void render_isep_border_fill(Table *table, size_t c) {
     ScBorderType bs = table->opts.border.style;
     ScColor ic      = table->opts.border.inner_color;
     sc_apply_colors(ic, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < table->column_widths[c]; i++) { fputs(tbc[bs].h, stdout); }
+    for (int i = 0; i < table->column_widths[c]; i++) { fputs(border_char_sets[bs].h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
@@ -314,15 +324,15 @@ static void render_isep_junction(Table *table, size_t c) {
     size_t nc   = rtl ? (c - 1) : (c + 1);
     int cur_rs  = is_rs ? is_rs[c]       : 0;
     int next_rs = is_rs ? (int)is_rs[nc] : 0;
-    const char *jchar = tbc[bs].cross;
-    if      (cur_rs && next_rs) { jchar = tbc[bs].v; }
-    else if (cur_rs)            { jchar = tbc[bs].t_left; }
-    else if (next_rs)           { jchar = tbc[bs].t_right; }
+    const char *jchar = border_char_sets[bs].cross;
+    if      (cur_rs && next_rs) { jchar = border_char_sets[bs].v; }
+    else if (cur_rs)            { jchar = border_char_sets[bs].t_left; }
+    else if (next_rs)           { jchar = border_char_sets[bs].t_right; }
     ScColor jc = ic;
     if (is_hcol && table->opts.border.header_col_sep_color.index != -2) {
         jc = table->opts.border.header_col_sep_color;
     }
-    print_ch(jchar, jc);
+    print_colored_string(jchar, jc);
 }
 
 /* ── Title line ──────────────────────────────────────────────────────────── */
@@ -333,15 +343,15 @@ static void render_isep_junction(Table *table, size_t c) {
 static void render_title_line(const Table *table, int is_top) {
     ScBorderType bs = table->opts.border.style;
     ScColor oc      = table->opts.border.outer_color;
-    const char *lc  = is_top ? tbc[bs].tl : tbc[bs].bl;
-    const char *rc  = is_top ? tbc[bs].tr : tbc[bs].br;
-    const char *h   = tbc[bs].h;
+    const char *lc  = is_top ? border_char_sets[bs].tl : border_char_sets[bs].bl;
+    const char *rc  = is_top ? border_char_sets[bs].tr : border_char_sets[bs].br;
+    const char *h   = border_char_sets[bs].h;
     int tpad        = table->opts.title.pad > 0 ? table->opts.title.pad : 1;
 
-    tpre(table);
-    print_ch(lc, oc);
+    print_left_margin(table);
+    print_colored_string(lc, oc);
     render_title_inner(table, h, oc, tpad);
-    print_ch(rc, oc);
+    print_colored_string(rc, oc);
     fputc('\n', stdout);
 }
 
@@ -365,9 +375,9 @@ static void render_title_with_fill(const Table *table, const char *h, ScColor oc
     sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < ld; i++) { fputs(h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-    for (int i = 0; i < tpad; i++) { print_ch(" ", oc); }
+    for (int i = 0; i < tpad; i++) { print_colored_string(" ", oc); }
     sc_print(table->opts.title.text, table->opts.title.style);
-    for (int i = 0; i < tpad; i++) { print_ch(" ", oc); }
+    for (int i = 0; i < tpad; i++) { print_colored_string(" ", oc); }
     sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < rd; i++) { fputs(h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);

@@ -18,13 +18,23 @@ typedef struct {
 
 /* ── Border character sets ───────────────────────────────────────────────── */
 
+/**
+ * Box-drawing characters for one border style:
+ *
+ * - corners (`tl`/`tr`/`bl`/`br`),
+ * - fill (`h`/`v`),
+ * - and T-junctions (`cross`/`t_top`/`t_bot`/`t_left`/`t_right`).
+ */
 typedef struct {
     const char *tl, *tr, *bl, *br;
     const char *h, *v;
     const char *cross, *t_top, *t_bot, *t_left, *t_right;
-} TBC;
+} TableBorderCharacter;
 
-static const TBC tbc[] = {
+/**
+ * Look-up table of box-drawing character sets, indexed by `SC_BORDER_*` style.
+ */
+static const TableBorderCharacter border_char_sets[] = {
     [SC_BORDER_NONE]    = { " "," "," "," ", " "," ", " "," "," "," "," " },
     [SC_BORDER_ASCII]   = { "+","+","+","+", "-","|", "+","+","+","+","+" },
     [SC_BORDER_SINGLE]  = { "┌","┐","└","┘", "─","│", "┼","┬","┴","├","┤" },
