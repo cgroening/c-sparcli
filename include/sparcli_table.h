@@ -112,7 +112,7 @@ typedef struct {
     ScEdges        margin;        /* outer table margin (top/right/bottom/left) */
     int            total_width;
     int            max_rows;
-    bool           rtl;
+    bool           right_to_left;
 } ScTableOpts;
 
 typedef struct ScTableData ScTableData;

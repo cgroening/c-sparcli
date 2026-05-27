@@ -502,7 +502,7 @@ void test_tables(void) {
                                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row    = 1, .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.opts   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .rtl         = 1,
+            .right_to_left         = 1,
             .title = {.text = " RTL Column Order ", .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
                       .align = SC_ALIGN_CENTER, .pad = 1, .pos = SC_POSITION_TOP },
             .cell_pad = {0, 1, 0, 1},

@@ -99,8 +99,8 @@ static size_t max_cell_width_in_row_group(
     for (size_t r = 0; r < row_count; r++) {
         if (column_index >= rows[r].ncols) { continue; }
         const ScCell *cell = &rows[r].cells[column_index];
-        if (cell->colspan != 0 && cell->colspan != 1) { continue; }
-        if (cell->rowspan == -1) { continue; }
+        if (cell->col_span != 0 && cell->col_span != 1) { continue; }
+        if (cell->row_span == -1) { continue; }
         size_t w = cell_vis_width(cell);
         if (w > max_width) { max_width = w; }
     }
@@ -276,8 +276,8 @@ static size_t tallest_cell_line_count(
     size_t max_lines = 0;
     for (size_t i = 0; i < td->column_count; i++) {
         const ScCell *cell = &td->rows[row_index].cells[i];
-        if (cell->colspan < 0) { continue; }
-        if (cell->rowspan < 0 || cell->rowspan > 1) { continue; }
+        if (cell->col_span < 0) { continue; }
+        if (cell->row_span < 0 || cell->row_span > 1) { continue; }
         int available_width = table->column_widths[i] - h_padding;
         if (available_width < 0) { available_width = 0; }
         size_t lines = cell_line_count(

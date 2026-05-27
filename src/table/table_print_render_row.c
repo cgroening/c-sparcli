@@ -86,22 +86,22 @@ static void render_row(const Table *table, const ScCell *cells,
 static size_t build_row_cell_lines(const Table *table, const ScCell *cells,
                                     const RowRCtx *rctx, TLine **cl, size_t *cnl) {
     const ScTableData *table_data = table->table_data;
-    int rtl = table->opts.rtl;
+    int rtl = table->opts.right_to_left;
     int cpx = rctx->cpxl + rctx->cpxr;
     size_t max_content = 0;
 
     for (size_t ci = 0; ci < table_data->column_count; ci++) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
 
-        if (cells[c].colspan < 0) { cl[c] = NULL; cnl[c] = 0; continue; }
+        if (cells[c].col_span < 0) { cl[c] = NULL; cnl[c] = 0; continue; }
 
-        if (cells[c].rowspan == -1) {
+        if (cells[c].row_span == -1) {
             build_rowspan_cont_col_lines(table, c, cpx, rctx, cl, cnl);
             continue;
         }
 
         size_t n = build_span_col_lines(table, &cells[c], c, cpx, cl, cnl);
-        int rs_v = cells[c].rowspan;
+        int rs_v = cells[c].row_span;
         if ((rs_v == 0 || rs_v == 1) && n > max_content) {
             max_content = n;
         }
@@ -135,7 +135,7 @@ static void build_rowspan_cont_col_lines(const Table *table, size_t c, int cpx,
 static size_t build_span_col_lines(const Table *table, const ScCell *cell,
                                     size_t c, int cpx, TLine **cl, size_t *cnl) {
     const ScTableData *table_data = table->table_data;
-    int cs  = cell->colspan;
+    int cs  = cell->col_span;
     int ecs = (cs > 1) ? cs : 1;
     if ((int)c + ecs > (int)table_data->column_count) {
         ecs = (int)table_data->column_count - (int)c;
@@ -162,7 +162,7 @@ static void render_row_visual_line(const Table *table, const ScCell *cells,
     ScBorderType bs = table->opts.border.style;
     ScColor oc      = table->opts.border.outer_color;
     int no_outer    = table->opts.border.no_outer;
-    int rtl         = table->opts.rtl;
+    int rtl         = table->opts.right_to_left;
 
     print_left_margin(table);
     if (!no_outer) { print_colored_string(border_char_sets[bs].v, oc); }
@@ -170,7 +170,7 @@ static void render_row_visual_line(const Table *table, const ScCell *cells,
     size_t ci = 0;
     while (ci < table_data->column_count) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
-        int cs_raw = cells[c].colspan;
+        int cs_raw = cells[c].col_span;
         if (cs_raw < 0) { ci++; continue; }
 
         int ecs = (cs_raw > 1) ? cs_raw : 1;
@@ -200,7 +200,7 @@ static void render_row_cell(const Table *table, const ScCell *cells,
     resolve_cell_align(table, cells, c, &ha, &va);
 
     int cn        = cl[c] ? (int)cnl[c] : 0;
-    int rs_render = cells[c].rowspan;
+    int rs_render = cells[c].row_span;
     int cli;
     if ((rs_render > 1 || rs_render == -1) && rctx->row_span && rctx->row_span[c].cell) {
         cli = compute_rowspan_cell_cli(&rctx->row_span[c], li, cn);
@@ -223,7 +223,7 @@ static void render_row_cell(const Table *table, const ScCell *cells,
  *  separator characters into the total. */
 static int compute_span_w(const Table *table, size_t c, int ecs) {
     const ScTableData *table_data = table->table_data;
-    int rtl        = table->opts.rtl;
+    int rtl        = table->opts.right_to_left;
     int no_inner_v = table->opts.border.no_inner_v;
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
 
@@ -244,7 +244,7 @@ static int compute_span_w(const Table *table, size_t c, int ecs) {
 static ScColor resolve_cell_bg(const Table *table, size_t c,
                                 ScColor row_bg, int row_kind) {
     const ScTableData *table_data = table->table_data;
-    int rtl      = table->opts.rtl;
+    int rtl      = table->opts.right_to_left;
     int is_hdr   = (row_kind == 1);
     int is_ftr   = (row_kind == 2);
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
@@ -365,7 +365,7 @@ static void render_row_vsep(const Table *table, size_t c, size_t ci, int ecs) {
     ScBorderType bs  = table->opts.border.style;
     ScColor ic       = table->opts.border.inner_color;
     int no_inner_v   = table->opts.border.no_inner_v;
-    int rtl          = table->opts.rtl;
+    int rtl          = table->opts.right_to_left;
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
 
     size_t end_col = c + (size_t)ecs - 1;
