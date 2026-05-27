@@ -39,11 +39,14 @@
 
 - [ ] tests/test_tables.c
 - [ ] include/sparcli_table.h
-- [ ] src/table.c
-- [ ] src/table_print.c
-- [x] src/table_print_init.c
-- [ ] src/table_print_render.c
-- [ ] src/table_internal.h
+- [ ] src/table/table.c
+- [ ] src/table/table_print.c
+- [x] src/table/table_print_init.c
+- [ ] src/table/table_print_render.c
+- [ ] src/table/table_print_render_cell.c
+- [ ] src/table/table_print_render_border.c
+- [ ] src/table/table_print_render_row.c
+- [ ] src/table/table_internal.h
 
 ## Rules
 

@@ -16,7 +16,7 @@ Compiler: `cc -std=c11 -Wall -Wextra -Iinclude`
 Source files in `SRC` (Makefile):
 ```
 src/text_attributes.c  src/panel.c  src/color.c  src/text.c
-src/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
+src/table/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
 src/progressbar.c  src/spinner.c
 src/kv.c  src/alert.c  src/badge.c  src/util.c  src/pad.c  src/markup.c
 ```
@@ -142,21 +142,30 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
 ## Tables
 
+Table sources live in `src/table/` and are chained via `#include`:
+`table.c` → `table_print.c` → `table_print_init.c` → `table_print_render.c`
+→ `table_print_render_cell.c`, `table_print_render_border.c`, `table_print_render_row.c`.
+Internal types are declared in `src/table/table_internal.h`.
+Only `src/table/table.c` appears in the Makefile `SRC`; the rest are included implicitly.
+
 ```c
-ScTable *sc_table_new(ScTableOpts opts);
-void     sc_table_add_column(ScTable *t, const char *header, ScColOpts col);
-void     sc_table_add_row(ScTable *t, ScCell *cells, size_t n);
-void     sc_table_add_row_bg(ScTable *t, ScCell *cells, size_t n, ScColor bg);
-void     sc_table_add_footer_row(ScTable *t, ScCell *cells, size_t n);
-void     sc_table_print(const ScTable *t);
-void     sc_table_free(ScTable *t);
+ScTableData *sc_table_new(void);
+void         sc_table_add_column(ScTableData *table, const char *header, ScColOpts col);
+void         sc_table_add_row(ScTableData *table, ScCell *cells, size_t n);
+void         sc_table_add_row_bg(ScTableData *table, ScCell *cells, size_t n, ScColor bg);
+void         sc_table_add_footer_row(ScTableData *table, ScCell *cells, size_t n);
+void         sc_table_print(const ScTableData *table, ScTableOpts opts);
+void         sc_table_free(ScTableData *table);
 ```
+
+`ScTableOpts` is passed at **print time**, not at construction — `sc_table_new()` takes
+no arguments. The same `ScTableData *` can be printed multiple times with different opts.
 
 ### ScTableOpts
 
 | Field | Description |
 |-------|-------------|
-| `borders` | `ScTableBorders` — style + color per border segment |
+| `border` | `ScTableBorder` — style + color per border segment |
 | `header` | `ScTableHeader` — grouped header settings (see below) |
 | `header.row` | `bool` — first added row is the header |
 | `header.col` | `bool` — first column is a header column |
@@ -171,6 +180,7 @@ void     sc_table_free(ScTable *t);
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` / `title.align` / `title.pad` / `title.pos` | Title text appearance and position |
 | `cell_pad` | `ScEdges` — inner cell padding |
+| `margin` | `ScEdges` — outer table margin (top/right/bottom/left) |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
 | `rtl` | `bool` — right-to-left column order |
@@ -182,7 +192,7 @@ typedef struct { bool row; bool col; ScColor row_bg; ScColor col_bg; ScTextStyle
 typedef struct { ScColor row_bg; ScColor col_bg; ScTextStyle opts; } ScTableFooter;
 ```
 
-### ScTableBorders
+### ScTableBorder
 
 ```c
 typedef struct {
@@ -194,20 +204,20 @@ typedef struct {
     bool          no_outer;    /* suppress outer frame */
     bool          no_inner_h;  /* suppress inner row separators */
     bool          no_inner_v;  /* suppress inner col separators (except header col) */
-} ScTableBorders;
+} ScTableBorder;
 ```
 
 ### ScColOpts
 
 ```c
 typedef struct {
-    int      min_w;
-    int      max_w;
-    int      fixed_w;
-    ScHAlign  align;
+    int      min_width;
+    int      max_width;
+    int      fixed_width;
+    ScHAlign  halign;
     ScVAlign valign;
-    int      wrap;    // 1 = word-wrap, 0 = truncate
-    ScColor  bg;      // per-column background
+    bool     word_wrap;  /* true = word-wrap, false = truncate */
+    ScColor  bg;         /* SC_ANSI_COLOR_NONE = not set */
 } ScColOpts;
 ```
 
@@ -275,7 +285,7 @@ horizontally.
 
 ```c
 ScColumns *sc_columns_new(ScColumnsOpts opts);
-void sc_columns_add_table     (ScColumns *cl, const ScTable   *t,       ScColItem item);
+void sc_columns_add_table     (ScColumns *cl, const ScTableData *t, ScTableOpts opts, ScColItem item);
 void sc_columns_add_panel_str (ScColumns *cl, const char      *content, ScPanelOpts opts, ScColItem item);
 void sc_columns_add_panel_text(ScColumns *cl, const ScText    *content, ScPanelOpts opts, ScColItem item);
 void sc_columns_add_text      (ScColumns *cl, const ScText    *t,       ScColItem item);
@@ -523,7 +533,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 - The `h` horizontal-line character from `ScBorderType` is used by both
   panel titles, table titles, rules, and column separators — all from the same
   logical table in each file.
-- `ScText` / `ScTable` / `ScColumns` all heap-allocate; always call the
+- `ScText` / `ScTableData` / `ScColumns` all heap-allocate; always call the
   corresponding `_free()` function.
 - `ScColumns` captures widget output at `sc_columns_add_*` time. Modifying a
   table after adding it to a columns layout has no effect.
@@ -638,7 +648,7 @@ Renders any widget into a heap-allocated `ScRendered`. Caller must free with
 ```c
 ScRendered *sc_capture_str        (const char *s);
 ScRendered *sc_capture_text       (const ScText *t);
-ScRendered *sc_capture_table      (const ScTable *t);
+ScRendered *sc_capture_table      (const ScTableData *t, ScTableOpts opts);
 ScRendered *sc_capture_list       (const ScList *l);
 ScRendered *sc_capture_tree       (const ScTree *t);
 ScRendered *sc_capture_kv         (const ScKV *kv);
@@ -672,7 +682,7 @@ prepended and `right` spaces appended, then `bottom` blank lines.
 
 **Usage:**
 ```c
-ScRendered *r = sc_capture_table(t);
+ScRendered *r = sc_capture_table(t, opts);
 sc_pad_print(r, (ScPadOpts){ .top = 1, .bottom = 1, .left = 4 });
 sc_rendered_free(r);
 
@@ -696,7 +706,7 @@ Aligns every line of the rendered output within `width` columns.
 
 **Usage:**
 ```c
-ScRendered *r = sc_capture_table(t);
+ScRendered *r = sc_capture_table(t, opts);
 sc_align_print(r, SC_ALIGN_CENTER, 0);   /* center in terminal */
 sc_rendered_free(r);
 
@@ -714,7 +724,7 @@ Inserts an already-captured `ScRendered` into a `ScColumns` layout.
 The columns layout makes a deep copy, so the caller may free `r` immediately after.
 
 ```c
-ScRendered *r = sc_capture_table(t);
+ScRendered *r = sc_capture_table(t, opts);
 sc_columns_add_rendered(cl, r, (ScColItem){ 0 });
 sc_rendered_free(r);   /* safe: columns owns its own copy */
 ```
