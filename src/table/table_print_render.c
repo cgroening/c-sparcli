@@ -19,7 +19,9 @@ static void table_render(Table *table);
     static void render_data_rows(Table *table);
         static size_t compute_max_rows(const Table *table);
         static void init_rowspan_contexts(Table *table, size_t r);
-            static int compute_rowspan_height(const Table *table, size_t r, int rs, int sep_h);
+            static int compute_rowspan_height(
+                const Table *table, size_t r, int rs, int sep_h
+            );
         static void render_data_row_sep(Table *table, size_t r);
         static ScColor resolve_data_row_bg(const Table *table, size_t r);
         static void advance_rowspan_vis_offsets(Table *table, int row_h);
@@ -62,7 +64,7 @@ static void render_top_border(const Table *table) {
             .right_corner_char = border_char_sets[border_style].tr,
             .fill_char         = border_char_sets[border_style].h,
             .column_separator  = border_char_sets[border_style].t_top,
-            .color             = table->opts.border.outer_color,
+            .inner_color             = table->opts.border.outer_color,
             .edge_color        = table->opts.border.outer_color,
         }, NULL);
     }
@@ -87,103 +89,158 @@ static void render_header_row(const Table *table) {
     }
 }
 
-/** Renders the section-boundary separator used after the header and before the
- *  footer. Uses header_row_sep_color when set, otherwise inner_color. */
+/**
+ * Renders the section-boundary separator used after the header and before the
+ * footer. Uses `header_row_sep_color` when set, otherwise `inner_color`.
+ */
 static void render_section_sep(const Table *table) {
-    ScBorderType bs = table->opts.border.style;
-    ScColor oc      = table->opts.border.outer_color;
-    ScColor ic      = table->opts.border.inner_color;
-    ScColor hrsc    = table->opts.border.header_row_sep_color;
-    ScColor hc      = (hrsc.index != -2) ? hrsc : ic;
+    ScBorderType border_style = table->opts.border.style;
+
+    ScColor inner_color;
+    if (table->opts.border.header_row_sep_color.index != -2) {
+        inner_color = table->opts.border.header_row_sep_color;;
+    } else {
+        inner_color = table->opts.border.inner_color;
+    }
+
     render_horizontal_border(table, (HBorderSpec){
-        .left_corner_char   = border_char_sets[bs].t_left,
-        .right_corner_char  = border_char_sets[bs].t_right,
-        .fill_char          = border_char_sets[bs].h,
-        .column_separator   = border_char_sets[bs].cross,
-        .color              = hc,
-        .edge_color         = oc,
+        .left_corner_char   = border_char_sets[border_style].t_left,
+        .right_corner_char  = border_char_sets[border_style].t_right,
+        .fill_char          = border_char_sets[border_style].h,
+        .column_separator   = border_char_sets[border_style].cross,
+        .inner_color        = inner_color,
+        .edge_color         = table->opts.border.outer_color,
         .use_header_col_sep = true,
     }, NULL);
 }
 
-/** Renders all data rows with rowspan tracking, inner separators, and the
- *  optional truncation indicator when max_rows is exceeded. */
+/**
+ * Renders all data rows with rowspan tracking, inner separators and the
+ *  optional truncation indicator when `max_rows` is exceeded.
+ */
 static void render_data_rows(Table *table) {
     const ScTableData *table_data = table->table_data;
-    size_t max_r = compute_max_rows(table);
+    size_t max_rows = compute_max_rows(table);
 
-    for (size_t r = 0; r < max_r; r++) {
+    for (size_t r = 0; r < max_rows; r++) {
         init_rowspan_contexts(table, r);
         if (r > 0) { render_data_row_sep(table, r); }
         ScColor row_bg = resolve_data_row_bg(table, r);
-        render_row(table, table_data->rows[r].cells, row_bg, 0, table->row_heights[r]);
+        render_row(
+            table, table_data->rows[r].cells, row_bg, 0, table->row_heights[r]
+        );
         advance_rowspan_vis_offsets(table, table->row_heights[r]);
     }
 
-    if (table->opts.max_rows > 0 && table_data->row_count > max_r) {
-        render_truncation_indicator(table, max_r);
+    if (table->opts.max_rows > 0 && table_data->row_count > max_rows) {
+        render_truncation_indicator(table, max_rows);
     }
 }
 
-/** Returns the effective row count, clamped to opts.max_rows when set. */
+/** Returns the effective row count, clamped to `opts.max_rows` when set. */
 static size_t compute_max_rows(const Table *table) {
-    size_t max_r = table->table_data->row_count;
-    if (table->opts.max_rows > 0 && (size_t)table->opts.max_rows < max_r) {
-        max_r = (size_t)table->opts.max_rows;
+    size_t max_rows = table->table_data->row_count;
+
+    if (table->opts.max_rows > 0 && (size_t)table->opts.max_rows < max_rows) {
+        max_rows = (size_t)table->opts.max_rows;
     }
-    return max_r;
+
+    return max_rows;
 }
 
-/** Initialises rsc[] for row @p r: creates an RSCtx for rowspan-starting cells,
- *  clears it for normal cells, and leaves rowspan-continuation entries unchanged. */
-static void init_rowspan_contexts(Table *table, size_t r) {
+/**
+ * Initializes `row_span[]` for the row at the given index:
+ * Creates a `RowSpan` for rowspan-starting cells, clears it for normal cells
+ * and leaves continuation entries unchanged.
+ */
+static void init_rowspan_contexts(Table *table, size_t row_index) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs = table->opts.border.style;
-    int sep_h = (bs != SC_BORDER_NONE && !table->opts.border.no_inner_h) ? 1 : 0;
+    const ScTableBorder border = table->opts.border;
 
-    for (size_t c = 0; c < table_data->column_count; c++) {
-        int rs = table_data->rows[r].cells[c].rowspan;
-        if (rs > 1) {
-            int sh = compute_rowspan_height(table, r, rs, sep_h);
-            ScVAlign va = table_data->columns[c].opts.valign;
-            if (table_data->rows[r].cells[c].valign_set) { va = table_data->rows[r].cells[c].valign; }
-            table->rsc[c] = (RSCtx){ &table_data->rows[r].cells[c], sh, 0, va };
-        } else if (rs != -1) {
-            table->rsc[c] = (RSCtx){ NULL, 0, 0, 0 };
+    // Determine the height of inner separators, which affects the total height
+    // of rowspan cells and thus the vertical alignment of their content.
+    int inner_separator_height;
+    if (border.style != SC_BORDER_NONE && !border.no_inner_h) {
+        inner_separator_height = 1;
+    } else {
+        inner_separator_height = 0;
+    }
+
+    // Initialize rowspan contexts for this row, starting new ones where
+    // rowspan starts
+    for (size_t i = 0; i < table_data->column_count; i++) {
+        int row_span = table_data->rows[row_index].cells[i].row_span;
+        if (row_span > 1) {
+            ScVAlign vertical_align = table_data->columns[i].opts.valign;
+            if (table_data->rows[row_index].cells[i].valign_set) {
+                vertical_align = table_data->rows[row_index].cells[i].valign;
+            }
+            int row_span_height = compute_rowspan_height(
+                table, row_index, row_span, inner_separator_height
+            );
+            table->row_span[i] = (RowSpan){
+                &table_data->rows[row_index].cells[i],
+                row_span_height,
+                0,
+                vertical_align
+            };
+        } else if (row_span != -1) {
+            table->row_span[i] = (RowSpan){ NULL, 0, 0, 0 };
         }
     }
 }
 
-/** Sums the visual heights of @p rs rows starting at @p r, adding @p sep_h for
- *  each internal row boundary. Returns the total span height. */
-static int compute_rowspan_height(const Table *table, size_t r, int rs, int sep_h) {
+/**
+ * Sums the visual heights `row_count` rows starting at the `row_index`,
+ * adding @p separator_height each internal row boundary.
+ * Returns the total span height.
+ */
+static int compute_rowspan_height(
+    const Table *table, size_t row_index, int row_count, int separator_height
+) {
     const ScTableData *table_data = table->table_data;
     int sh = 0;
-    for (int k = 0; k < rs && r + (size_t)k < table_data->row_count; k++) {
-        if (k > 0) { sh += sep_h; }
-        sh += table->row_heights[r + k];
+    for (
+        int k = 0;
+        k < row_count && row_index + (size_t)k < table_data->row_count;
+        k++
+    ) {
+        if (k > 0) { sh += separator_height; }
+        sh += table->row_heights[row_index + k];
     }
     return sh;
 }
 
-/** Marks active rowspan columns in is_rs[], renders the inner separator line,
- *  then advances vis_offset by 1 for each spanning cell that crossed it. */
-static void render_data_row_sep(Table *table, size_t r) {
+/**
+ * Marks active rowspan columns in `has_rowspan[]`, renders the inner separator
+ * line, then advances line_offset by 1 for each spanning cell that crossed it.
+ */
+static void render_data_row_sep(Table *table, size_t row_index) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs = table->opts.border.style;
-    if (bs == SC_BORDER_NONE || table->opts.border.no_inner_h) { return; }
+    if (
+        table->opts.border.style == SC_BORDER_NONE ||
+        table->opts.border.no_inner_h
+    ) {
+        return;
+    }
 
-    for (size_t c = 0; c < table_data->column_count; c++) {
-        table->is_rs[c] = (table_data->rows[r].cells[c].rowspan == -1);
+    for (size_t i = 0; i < table_data->column_count; i++) {
+        table->has_rowspan[i] = (
+            table_data->rows[row_index].cells[i].row_span == -1
+        );
     }
     render_inner_sep(table);
-    for (size_t c = 0; c < table_data->column_count; c++) {
-        if (table->is_rs[c] && table->rsc[c].cell) { table->rsc[c].vis_offset++; }
+    for (size_t i = 0; i < table_data->column_count; i++) {
+        if (table->has_rowspan[i] && table->row_span[i].cell) {
+            table->row_span[i].line_offset++;
+        }
     }
 }
 
-/** Returns the background color for data row @p r: explicit row bg if set,
- *  stripe bg for odd rows when striping is on, otherwise SC_ANSI_COLOR_NONE. */
+/**
+ * Returns the background color for data row `r`: explicit row bg if set,
+ *  stripe bg for odd rows when striping is on, otherwise `SC_ANSI_COLOR_NONE`.
+ */
 static ScColor resolve_data_row_bg(const Table *table, size_t r) {
     ScColor row_bg = table->table_data->rows[r].bg;
     if (row_bg.index == -2) {
@@ -193,12 +250,12 @@ static ScColor resolve_data_row_bg(const Table *table, size_t r) {
     return row_bg;
 }
 
-/** Advances vis_offset by @p row_h for all active rowspan cells after a row
+/** Advances line_offset by @p row_h for all active rowspan cells after a row
  *  has been rendered. */
 static void advance_rowspan_vis_offsets(Table *table, int row_h) {
     const ScTableData *table_data = table->table_data;
     for (size_t c = 0; c < table_data->column_count; c++) {
-        if (table->rsc[c].cell) { table->rsc[c].vis_offset += row_h; }
+        if (table->row_span[c].cell) { table->row_span[c].line_offset += row_h; }
     }
 }
 
@@ -235,7 +292,7 @@ static void render_footer_rows(const Table *table) {
             render_horizontal_border(table, (HBorderSpec){
                 .left_corner_char = border_char_sets[bs].t_left, .right_corner_char = border_char_sets[bs].t_right,
                 .fill_char = border_char_sets[bs].h,    .column_separator = border_char_sets[bs].cross,
-                .color = ic,               .edge_color = oc,
+                .inner_color = ic,               .edge_color = oc,
                 .use_header_col_sep = true,
             }, NULL);
         }
@@ -255,7 +312,7 @@ static void render_bottom_border(const Table *table) {
         render_horizontal_border(table, (HBorderSpec){
             .left_corner_char = border_char_sets[bs].bl,    .right_corner_char = border_char_sets[bs].br,
             .fill_char = border_char_sets[bs].h,   .column_separator = border_char_sets[bs].t_bot,
-            .color = oc,         .edge_color = oc,
+            .inner_color = oc,         .edge_color = oc,
         }, NULL);
     }
 }

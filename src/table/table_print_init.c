@@ -50,12 +50,12 @@ static void table_init(
     table->table_data  = table_data;
     table->opts        = opts;
     table->column_widths  = malloc(table_data->column_count * sizeof(int));
-    table->is_rs       = calloc(table_data->column_count, sizeof(int));
-    table->rsc         = calloc(table_data->column_count, sizeof(RSCtx));
+    table->has_rowspan = calloc(table_data->column_count, sizeof(bool));
+    table->row_span    = calloc(table_data->column_count, sizeof(RowSpan));
 
     compute_column_widths(table);
     apply_total_width(table);
-    table->inner_w     = get_table_inner_width(table);
+    table->inner_width = get_table_inner_width(table);
     table->row_heights = compute_row_heights(table);
 }
 

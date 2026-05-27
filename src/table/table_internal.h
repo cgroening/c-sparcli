@@ -47,10 +47,10 @@ static const TableBorderCharacter border_char_sets[] = {
 
 typedef struct {
     const ScCell *cell;
-    int           span_h;
-    int           vis_offset;
+    int           row_count;
+    int           line_offset;
     ScVAlign      valign;
-} RSCtx;
+} RowSpan;
 
 /* ── Internal storage types ──────────────────────────────────────────────── */
 
@@ -86,8 +86,8 @@ typedef struct {
     const ScTableData *table_data;
     ScTableOpts        opts;
     int               *column_widths;
-    int               *is_rs;
-    RSCtx             *rsc;
-    int                inner_w;
+    bool              *has_rowspan;
+    RowSpan             *row_span;
+    int                inner_width;
     int               *row_heights;
 } Table;

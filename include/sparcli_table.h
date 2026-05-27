@@ -15,8 +15,8 @@ typedef struct {
     ScHAlign     align;
     bool        valign_set; /* overrides row valignment */
     ScVAlign    valign;
-    int         colspan;    /* 0/1=normal, >1=spans N cols, -1=skip */
-    int         rowspan;    /* 0/1=normal, >1=spans N rows, -1=skip */
+    int         col_span;    /* 0/1=normal, >1=spans N cols, -1=skip */
+    int         row_span;    /* 0/1=normal, >1=spans N rows, -1=skip */
 } ScCell;
 
 static inline ScCell sc_cell(const char *s) {
@@ -36,30 +36,30 @@ static inline ScCell sc_cell_ta(ScText *t, ScHAlign ha, ScVAlign va) {
                      .valign_set = true, .valign = va };
 }
 static inline ScCell sc_cell_cs(const char *s, int cs) {
-    return (ScCell){ .kind = SC_CELL_STR, .str = s, .colspan = cs };
+    return (ScCell){ .kind = SC_CELL_STR, .str = s, .col_span = cs };
 }
 static inline ScCell sc_cell_csa(const char *s, int cs, ScHAlign ha) {
     return (ScCell){ .kind = SC_CELL_STR, .str = s,
-                     .align_set = true, .align = ha, .colspan = cs };
+                     .align_set = true, .align = ha, .col_span = cs };
 }
 static inline ScCell sc_cell_tcs(ScText *t, int cs) {
-    return (ScCell){ .kind = SC_CELL_TEXT, .text = t, .colspan = cs };
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t, .col_span = cs };
 }
 static inline ScCell sc_cell_tcsa(ScText *t, int cs, ScHAlign ha) {
     return (ScCell){ .kind = SC_CELL_TEXT, .text = t,
-                     .align_set = true, .align = ha, .colspan = cs };
+                     .align_set = true, .align = ha, .col_span = cs };
 }
 static inline ScCell sc_cell_skip(void) {
-    return (ScCell){ .kind = SC_CELL_STR, .str = "", .colspan = -1 };
+    return (ScCell){ .kind = SC_CELL_STR, .str = "", .col_span = -1 };
 }
 static inline ScCell sc_cell_rs(const char *s, int rs) {
-    return (ScCell){ .kind = SC_CELL_STR, .str = s, .rowspan = rs };
+    return (ScCell){ .kind = SC_CELL_STR, .str = s, .row_span = rs };
 }
 static inline ScCell sc_cell_trs(ScText *t, int rs) {
-    return (ScCell){ .kind = SC_CELL_TEXT, .text = t, .rowspan = rs };
+    return (ScCell){ .kind = SC_CELL_TEXT, .text = t, .row_span = rs };
 }
 static inline ScCell sc_row_skip(void) {
-    return (ScCell){ .kind = SC_CELL_STR, .str = "", .rowspan = -1 };
+    return (ScCell){ .kind = SC_CELL_STR, .str = "", .row_span = -1 };
 }
 /* sc_cell_m: parses markup; cell owns the ScText (freed by sc_table_free) */
 static inline ScCell sc_cell_m(const char *s) {

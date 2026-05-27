@@ -17,7 +17,7 @@ typedef struct {
     const char *right_corner_char;        /* right corner char */
     const char *fill_char;      /* fill (horizontal) char, repeated per column */
     const char *column_separator;       /* junction char between columns; NULL = no junction */
-    ScColor     color;     /* fill and junction color */
+    ScColor     inner_color;     /* fill and junction color */
     ScColor     edge_color;/* left/right corner color */
 
     /**
@@ -34,14 +34,14 @@ static void print_spaces_bg   (int n, ScColor bg);
 static void print_span_bg     (const char *text, ScTextStyle opts, ScColor cell_bg);
 static void print_left_margin              (const Table *table);
 static void print_empty_lines (int n);
-static void render_horizontal_border(const Table *table, HBorderSpec spec, const int *rs);
-static void adjust_hborder_corners (const Table *table, const int *rs, const char **lc, const char **rc);
-static void render_hborder_col_fill(const Table *table, size_t c, const int *rs, HBorderSpec spec);
-static void render_hborder_junction(const Table *table, size_t c, const int *rs, HBorderSpec spec);
+static void render_horizontal_border(const Table *table, HBorderSpec spec, const bool *rs);
+static void adjust_hborder_corners (const Table *table, const bool *rs, const char **lc, const char **rc);
+static void render_hborder_col_fill(const Table *table, size_t c, const bool *rs, HBorderSpec spec);
+static void render_hborder_junction(const Table *table, size_t c, const bool *rs, HBorderSpec spec);
 static void render_inner_sep         (Table *table);
 static void render_isep_span_col     (Table *table, size_t c);
 static void render_isep_span_content (Table *table, size_t c, ScColor col_bg);
-static int  compute_span_cli         (const RSCtx *rsc, int cn);
+static int  compute_span_cli         (const RowSpan *rsc, int cn);
 static void print_tline_in_width     (const TLine *line, int width, ScHAlign ha, ScColor bg);
 static void render_isep_border_fill  (Table *table, size_t c);
 static void render_isep_junction     (Table *table, size_t c);
@@ -96,7 +96,7 @@ static void print_empty_lines(int n) {
 static void render_horizontal_border(
     const Table *table,
     HBorderSpec spec,
-    const int *rs   /* rs[c]=1 → col c has active rowspan */
+    const bool *rs   /* rs[c]=1 → col c has active rowspan */
 ) {
     const ScTableData *table_data = table->table_data;
     int rtl      = table->opts.rtl;
@@ -126,7 +126,7 @@ static void render_horizontal_border(
 /** Replaces @p *lc / @p *rc with the vertical-bar glyph when the first or
  *  last rendered column has an active rowspan. */
 static void adjust_hborder_corners(
-    const Table *table, const int *rs,
+    const Table *table, const bool *rs,
     const char **lc, const char **rc
 ) {
     const ScTableData *table_data = table->table_data;
@@ -141,12 +141,12 @@ static void adjust_hborder_corners(
 /** Prints the fill segment for column @p c: spaces when a rowspan is active,
  *  otherwise the repeated fill character from @p spec in @p spec.color. */
 static void render_hborder_col_fill(
-    const Table *table, size_t c, const int *rs, HBorderSpec spec
+    const Table *table, size_t c, const bool *rs, HBorderSpec spec
 ) {
     if (rs && rs[c]) {
         for (int i = 0; i < table->column_widths[c]; i++) { fputc(' ', stdout); }
     } else {
-        sc_apply_colors(spec.color, SC_ANSI_COLOR_NONE);
+        sc_apply_colors(spec.inner_color, SC_ANSI_COLOR_NONE);
         for (int i = 0; i < table->column_widths[c]; i++) { fputs(spec.fill_char, stdout); }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     }
@@ -156,7 +156,7 @@ static void render_hborder_col_fill(
  *  Selects the glyph based on which side has an active rowspan, and overrides
  *  the color for the header-column separator when @p spec.use_header_col_sep is set. */
 static void render_hborder_junction(
-    const Table *table, size_t c, const int *rs, HBorderSpec spec
+    const Table *table, size_t c, const bool *rs, HBorderSpec spec
 ) {
     const ScTableData *table_data = table->table_data;
     ScBorderType bs  = table->opts.border.style;
@@ -175,7 +175,7 @@ static void render_hborder_junction(
         else if (cur_rs)            { jchar = border_char_sets[bs].t_left; }
         else if (next_rs)           { jchar = border_char_sets[bs].t_right; }
     }
-    ScColor jc = spec.color;
+    ScColor jc = spec.inner_color;
     if (spec.use_header_col_sep && is_hcol && table->opts.border.header_col_sep_color.index != -2) {
         jc = table->opts.border.header_col_sep_color;
     }
@@ -188,7 +188,7 @@ static void render_hborder_junction(
  *  continue their cell content; all others draw the inner border fill character. */
 static void render_inner_sep(Table *table) {
     const ScTableData *table_data = table->table_data;
-    const int *is_rs = table->is_rs;
+    const bool *is_rs = table->has_rowspan;
     ScBorderType bs   = table->opts.border.style;
     ScColor oc        = table->opts.border.outer_color;
     int no_outer      = table->opts.border.no_outer;
@@ -223,7 +223,7 @@ static void render_inner_sep(Table *table) {
  *  content line of the spanning cell, or a blank fill when there is no cell. */
 static void render_isep_span_col(Table *table, size_t c) {
     ScColor col_bg = table->table_data->columns[c].opts.bg;
-    if (table->rsc && table->rsc[c].cell) {
+    if (table->row_span && table->row_span[c].cell) {
         render_isep_span_content(table, c, col_bg);
     } else {
         print_spaces_bg(table->column_widths[c], col_bg);
@@ -241,10 +241,10 @@ static void render_isep_span_content(Table *table, size_t c, ScColor col_bg) {
 
     size_t ncl;
     TLine *cl = (table_data->columns[c].opts.word_wrap && content_w > 0)
-        ? wrap_cell_lines(table->rsc[c].cell, content_w, &ncl)
-        : make_cell_lines(table->rsc[c].cell, &ncl);
+        ? wrap_cell_lines(table->row_span[c].cell, content_w, &ncl)
+        : make_cell_lines(table->row_span[c].cell, &ncl);
 
-    int cli = compute_span_cli(&table->rsc[c], (int)ncl);
+    int cli = compute_span_cli(&table->row_span[c], (int)ncl);
 
     print_spaces_bg(cpxl, col_bg);
     if (cli >= 0 && cli < (int)ncl) {
@@ -259,13 +259,13 @@ static void render_isep_span_content(Table *table, size_t c, ScColor col_bg) {
 
 /** Returns the visual line index to render for a spanning cell at the current
  *  separator row, based on vertical alignment and remaining blank space. */
-static int compute_span_cli(const RSCtx *rsc, int cn) {
-    int extra = rsc->span_h - cn;
+static int compute_span_cli(const RowSpan *rsc, int cn) {
+    int extra = rsc->row_count - cn;
     if (extra < 0) { extra = 0; }
     int top = 0;
     if      (rsc->valign == SC_VALIGN_MIDDLE) { top = extra / 2; }
     else if (rsc->valign == SC_VALIGN_BOTTOM) { top = extra; }
-    return rsc->vis_offset - top;
+    return rsc->line_offset - top;
 }
 
 /** Prints @p line within @p width columns: adds alignment padding when the
@@ -312,9 +312,9 @@ static void render_isep_border_fill(Table *table, size_t c) {
  *  selecting the glyph based on active rowspans on either side. */
 static void render_isep_junction(Table *table, size_t c) {
     const ScTableData *table_data = table->table_data;
-    const int *is_rs = table->is_rs;
-    ScBorderType bs  = table->opts.border.style;
-    ScColor ic       = table->opts.border.inner_color;
+    const bool *is_rs = table->has_rowspan;
+    ScBorderType bs   = table->opts.border.style;
+    ScColor ic        = table->opts.border.inner_color;
     int rtl          = table->opts.rtl;
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
     int is_hcol      = (table->opts.header.col && c == hcol_phys);
@@ -322,8 +322,8 @@ static void render_isep_junction(Table *table, size_t c) {
     if (!has_vsep) { return; }
 
     size_t nc   = rtl ? (c - 1) : (c + 1);
-    int cur_rs  = is_rs ? is_rs[c]       : 0;
-    int next_rs = is_rs ? (int)is_rs[nc] : 0;
+    bool cur_rs  = is_rs && is_rs[c];
+    bool next_rs = is_rs && is_rs[nc];
     const char *jchar = border_char_sets[bs].cross;
     if      (cur_rs && next_rs) { jchar = border_char_sets[bs].v; }
     else if (cur_rs)            { jchar = border_char_sets[bs].t_left; }
@@ -361,7 +361,7 @@ static void render_title_inner(const Table *table, const char *h, ScColor oc, in
     if (table->opts.title.text && *table->opts.title.text) {
         render_title_with_fill(table, h, oc, tpad);
     } else {
-        render_title_full_fill(table->inner_w, h, oc);
+        render_title_full_fill(table->inner_width, h, oc);
     }
 }
 
@@ -370,7 +370,7 @@ static void render_title_inner(const Table *table, const char *h, ScColor oc, in
 static void render_title_with_fill(const Table *table, const char *h, ScColor oc, int tpad) {
     int tlen = (int)strlen(table->opts.title.text);
     int ld, rd;
-    compute_title_fill_split(table->inner_w, tlen, tpad, table->opts.title.align, &ld, &rd);
+    compute_title_fill_split(table->inner_width, tlen, tpad, table->opts.title.align, &ld, &rd);
 
     sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < ld; i++) { fputs(h, stdout); }

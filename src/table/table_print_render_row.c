@@ -13,7 +13,7 @@
 /* Per-row render context: derived once from table + row_kind, passed through
    the rendering stack to avoid recomputing shared state at every call site. */
 typedef struct {
-    const RSCtx *rsc;      /* rowspan contexts; NULL for header/footer */
+    const RowSpan *row_span; /* rowspan contexts; NULL for header/footer */
     ScColor      row_bg;   /* resolved row background */
     int          row_kind; /* 0=data, 1=header, 2=footer */
     int          is_hdr;   /* row_kind == 1 */
@@ -34,7 +34,7 @@ static void    render_row_cell              (const Table *table, const ScCell *c
 static int     compute_span_w               (const Table *table, size_t c, int ecs);
 static ScColor resolve_cell_bg              (const Table *table, size_t c, ScColor row_bg, int row_kind);
 static void    resolve_cell_align           (const Table *table, const ScCell *cells, size_t c, ScHAlign *ha, ScVAlign *va);
-static int     compute_rowspan_cell_cli     (const RSCtx *rsc_c, int li, int cn);
+static int     compute_rowspan_cell_cli     (const RowSpan *rs, int li, int cn);
 static int     compute_normal_cell_cli      (int li, int cn, ScVAlign va, const RowRCtx *rctx);
 static ScTextStyle apply_hdrftr_style       (ScTextStyle so, const ScTableOpts *opts, const RowRCtx *rctx);
 static void    render_cell_line             (const TLine *line, int cw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
@@ -55,7 +55,7 @@ static void render_row(const Table *table, const ScCell *cells,
     size_t *cnl = malloc(table_data->column_count * sizeof(size_t));
 
     RowRCtx rctx = {
-        .rsc      = (row_kind == 0) ? table->rsc : NULL,
+        .row_span = (row_kind == 0) ? table->row_span : NULL,
         .row_bg   = row_bg,
         .row_kind = row_kind,
         .is_hdr   = (row_kind == 1),
@@ -111,18 +111,18 @@ static size_t build_row_cell_lines(const Table *table, const ScCell *cells,
 }
 
 /** Builds the TLine array for column @p c that continues a rowspan from a
- *  previous row. Uses the originating cell from rctx->rsc; sets cl[c]=NULL
+ *  previous row. Uses the originating cell from rctx->row_span; sets cl[c]=NULL
  *  when no active span context exists. */
 static void build_rowspan_cont_col_lines(const Table *table, size_t c, int cpx,
                                           const RowRCtx *rctx, TLine **cl, size_t *cnl) {
-    if (rctx->rsc && rctx->rsc[c].cell) {
+    if (rctx->row_span && rctx->row_span[c].cell) {
         const ScTableData *table_data = table->table_data;
         int span_cw = table->column_widths[c] - cpx;
         if (span_cw < 0) { span_cw = 0; }
         if (table_data->columns[c].opts.word_wrap && span_cw > 0) {
-            cl[c] = wrap_cell_lines(rctx->rsc[c].cell, span_cw, &cnl[c]);
+            cl[c] = wrap_cell_lines(rctx->row_span[c].cell, span_cw, &cnl[c]);
         } else {
-            cl[c] = make_cell_lines(rctx->rsc[c].cell, &cnl[c]);
+            cl[c] = make_cell_lines(rctx->row_span[c].cell, &cnl[c]);
         }
     } else {
         cl[c] = NULL; cnl[c] = 0;
@@ -202,8 +202,8 @@ static void render_row_cell(const Table *table, const ScCell *cells,
     int cn        = cl[c] ? (int)cnl[c] : 0;
     int rs_render = cells[c].rowspan;
     int cli;
-    if ((rs_render > 1 || rs_render == -1) && rctx->rsc && rctx->rsc[c].cell) {
-        cli = compute_rowspan_cell_cli(&rctx->rsc[c], li, cn);
+    if ((rs_render > 1 || rs_render == -1) && rctx->row_span && rctx->row_span[c].cell) {
+        cli = compute_rowspan_cell_cli(&rctx->row_span[c], li, cn);
     } else {
         cli = compute_normal_cell_cli(li, cn, va, rctx);
     }
@@ -276,13 +276,13 @@ static void resolve_cell_align(const Table *table, const ScCell *cells, size_t c
 
 /** Computes the content line index for a rowspan cell at visual line @p li,
  *  distributing lines across the full span height with vertical alignment. */
-static int compute_rowspan_cell_cli(const RSCtx *rsc_c, int li, int cn) {
-    int extra = rsc_c->span_h - cn;
+static int compute_rowspan_cell_cli(const RowSpan *rs, int li, int cn) {
+    int extra = rs->row_count - cn;
     if (extra < 0) { extra = 0; }
     int top = 0;
-    if      (rsc_c->valign == SC_VALIGN_MIDDLE) { top = extra / 2; }
-    else if (rsc_c->valign == SC_VALIGN_BOTTOM) { top = extra; }
-    return rsc_c->vis_offset + li - top;
+    if      (rs->valign == SC_VALIGN_MIDDLE) { top = extra / 2; }
+    else if (rs->valign == SC_VALIGN_BOTTOM) { top = extra; }
+    return rs->line_offset + li - top;
 }
 
 /** Computes the content line index for a normal (non-rowspan) cell at visual
