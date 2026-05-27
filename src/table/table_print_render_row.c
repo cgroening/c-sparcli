@@ -25,22 +25,23 @@ typedef struct {
     int          cpt;      /* cell_pad.top */
 } RowRCtx;
 
-static void    render_row                   (const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_h_in);
-static size_t  build_row_cell_lines         (const Table *table, const ScCell *cells, const RowRCtx *rctx, TLine **cl, size_t *cnl);
-static void    build_rowspan_cont_col_lines (const Table *table, size_t c, int cpx, const RowRCtx *rctx, TLine **cl, size_t *cnl);
-static size_t  build_span_col_lines         (const Table *table, const ScCell *cell, size_t c, int cpx, TLine **cl, size_t *cnl);
-static void    render_row_visual_line       (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, int li, const RowRCtx *rctx);
-static void    render_row_cell              (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, size_t c, size_t ci, int ecs, int li, const RowRCtx *rctx);
-static int     compute_span_w               (const Table *table, size_t c, int ecs);
-static ScColor resolve_cell_bg              (const Table *table, size_t c, ScColor row_bg, int row_kind);
-static void    resolve_cell_align           (const Table *table, const ScCell *cells, size_t c, ScHAlign *ha, ScVAlign *va);
-static int     compute_rowspan_cell_cli     (const RowSpan *rs, int li, int cn);
-static int     compute_normal_cell_cli      (int li, int cn, ScVAlign va, const RowRCtx *rctx);
-static ScTextStyle apply_hdrftr_style       (ScTextStyle so, const ScTableOpts *opts, const RowRCtx *rctx);
-static void    render_cell_line             (const TLine *line, int cw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
-static void    print_cell_line_aligned      (const TLine *line, int rw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
-static void    print_cell_line_truncated    (const TLine *line, int cw, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
-static void    render_row_vsep              (const Table *table, size_t c, size_t ci, int ecs);
+// Forward declarations indented to reflect call hierarchy
+static void    render_row              (const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_h_in);
+    static size_t  build_row_cell_lines    (const Table *table, const ScCell *cells, const RowRCtx *rctx, TLine **cl, size_t *cnl);
+        static void    build_rowspan_cont_col_lines (const Table *table, size_t c, int cpx, const RowRCtx *rctx, TLine **cl, size_t *cnl);
+        static size_t  build_span_col_lines         (const Table *table, const ScCell *cell, size_t c, int cpx, TLine **cl, size_t *cnl);
+            static int     compute_span_w            (const Table *table, size_t c, int ecs);
+    static void    render_row_visual_line  (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, int li, const RowRCtx *rctx);
+        static void    render_row_cell     (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, size_t c, size_t ci, int ecs, int li, const RowRCtx *rctx);
+            static ScColor resolve_cell_bg           (const Table *table, size_t c, ScColor row_bg, int row_kind);
+            static void    resolve_cell_align        (const Table *table, const ScCell *cells, size_t c, ScHAlign *ha, ScVAlign *va);
+            static int     compute_rowspan_cell_cli  (const RowSpan *rs, int li, int cn);
+            static int     compute_normal_cell_cli   (int li, int cn, ScVAlign va, const RowRCtx *rctx);
+            static void    render_cell_line          (const TLine *line, int cw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
+                static void    print_cell_line_aligned   (const TLine *line, int rw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
+                    static ScTextStyle apply_hdrftr_style (ScTextStyle so, const ScTableOpts *opts, const RowRCtx *rctx);
+                static void    print_cell_line_truncated (const TLine *line, int cw, ScColor cell_bg, const ScTableOpts *opts, const RowRCtx *rctx);
+            static void    render_row_vsep           (const Table *table, size_t c, size_t ci, int ecs);
 
 
 /* ── Row rendering ───────────────────────────────────────────────────────── */
@@ -153,6 +154,26 @@ static size_t build_span_col_lines(const Table *table, const ScCell *cell,
     return cnl[c];
 }
 
+/** Computes the raw column width for a colspan span, absorbing inner vertical
+ *  separator characters into the total. */
+static int compute_span_w(const Table *table, size_t c, int ecs) {
+    const ScTableData *table_data = table->table_data;
+    int rtl        = table->opts.right_to_left;
+    int no_inner_v = table->opts.border.no_inner_v;
+    size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
+
+    int span_total = 0;
+    for (int k = 0; k < ecs; k++) {
+        size_t cc = c + (size_t)k;
+        span_total += table->column_widths[cc];
+        if (k < ecs - 1) {
+            int is_hcol_k = (table->opts.header.col && cc == hcol_phys);
+            if (!no_inner_v || is_hcol_k) { span_total++; }
+        }
+    }
+    return span_total;
+}
+
 /** Renders one visual line @p li of the row: prints the left border, loops
  *  over columns via render_row_cell(), then closes with the right border. */
 static void render_row_visual_line(const Table *table, const ScCell *cells,
@@ -219,26 +240,6 @@ static void render_row_cell(const Table *table, const ScCell *cells,
     render_row_vsep(table, c, ci, ecs);
 }
 
-/** Computes the raw column width for a colspan span, absorbing inner vertical
- *  separator characters into the total. */
-static int compute_span_w(const Table *table, size_t c, int ecs) {
-    const ScTableData *table_data = table->table_data;
-    int rtl        = table->opts.right_to_left;
-    int no_inner_v = table->opts.border.no_inner_v;
-    size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
-
-    int span_total = 0;
-    for (int k = 0; k < ecs; k++) {
-        size_t cc = c + (size_t)k;
-        span_total += table->column_widths[cc];
-        if (k < ecs - 1) {
-            int is_hcol_k = (table->opts.header.col && cc == hcol_phys);
-            if (!no_inner_v || is_hcol_k) { span_total++; }
-        }
-    }
-    return span_total;
-}
-
 /** Resolves the effective cell background applying priority:
  *  header/footer row/col bg > explicit row bg > column bg. */
 static ScColor resolve_cell_bg(const Table *table, size_t c,
@@ -296,20 +297,6 @@ static int compute_normal_cell_cli(int li, int cn, ScVAlign va, const RowRCtx *r
     return li - top_pad;
 }
 
-/** Returns @p so with header or footer text style applied to unstyled spans:
- *  only sets attr/fg when the span carries none of its own. */
-static ScTextStyle apply_hdrftr_style(ScTextStyle so, const ScTableOpts *opts,
-                                       const RowRCtx *rctx) {
-    if (rctx->is_hdr) {
-        if (so.attr == 0)      { so.attr = opts->header.opts.attr; }
-        if (so.fg.index == -2) { so.fg   = opts->header.opts.fg; }
-    } else if (rctx->is_ftr) {
-        if (so.attr == 0)      { so.attr = opts->footer.opts.attr; }
-        if (so.fg.index == -2) { so.fg   = opts->footer.opts.fg; }
-    }
-    return so;
-}
-
 /** Dispatches to print_cell_line_aligned() when content fits within @p cw,
  *  or print_cell_line_truncated() when it is wider. */
 static void render_cell_line(const TLine *line, int cw, ScHAlign ha, ScColor cell_bg,
@@ -335,6 +322,20 @@ static void print_cell_line_aligned(const TLine *line, int rw, ScHAlign ha,
         print_span_bg(line->spans[s].text, so, cell_bg);
     }
     print_spaces_bg(rp, cell_bg);
+}
+
+/** Returns @p so with header or footer text style applied to unstyled spans:
+ *  only sets attr/fg when the span carries none of its own. */
+static ScTextStyle apply_hdrftr_style(ScTextStyle so, const ScTableOpts *opts,
+                                       const RowRCtx *rctx) {
+    if (rctx->is_hdr) {
+        if (so.attr == 0)      { so.attr = opts->header.opts.attr; }
+        if (so.fg.index == -2) { so.fg   = opts->header.opts.fg; }
+    } else if (rctx->is_ftr) {
+        if (so.attr == 0)      { so.attr = opts->footer.opts.attr; }
+        if (so.fg.index == -2) { so.fg   = opts->footer.opts.fg; }
+    }
+    return so;
 }
 
 /** Prints as many columns of @p line as fit within @p cw, truncating the last
