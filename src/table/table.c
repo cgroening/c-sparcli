@@ -53,7 +53,7 @@ static TLine  *make_cell_lines(const ScCell *cell, size_t *out_n);
 static size_t  cell_vis_width(const ScCell *cell);
 static TLine  *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n);
 static TLine  *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
-static void    print_ch(const char *s, ScColor fg);
+static void    print_colored_string(const char *s, ScColor fg);
 static void    print_spaces_bg(int n, ScColor bg);
 static void    print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg);
 

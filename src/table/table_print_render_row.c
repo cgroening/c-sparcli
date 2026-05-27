@@ -164,8 +164,8 @@ static void render_row_visual_line(const Table *table, const ScCell *cells,
     int no_outer    = table->opts.border.no_outer;
     int rtl         = table->opts.rtl;
 
-    tpre(table);
-    if (!no_outer) { print_ch(border_char_sets[bs].v, oc); }
+    print_left_margin(table);
+    if (!no_outer) { print_colored_string(border_char_sets[bs].v, oc); }
 
     size_t ci = 0;
     while (ci < table_data->column_count) {
@@ -182,7 +182,7 @@ static void render_row_visual_line(const Table *table, const ScCell *cells,
         ci += (size_t)ecs;
     }
 
-    if (!no_outer) { print_ch(border_char_sets[bs].v, oc); }
+    if (!no_outer) { print_colored_string(border_char_sets[bs].v, oc); }
     fputc('\n', stdout);
 }
 
@@ -376,7 +376,7 @@ static void render_row_vsep(const Table *table, size_t c, size_t ci, int ecs) {
             if (is_hcol_end && table->opts.border.header_col_sep_color.index != -2) {
                 sc_col = table->opts.border.header_col_sep_color;
             }
-            print_ch(border_char_sets[bs].v, sc_col);
+            print_colored_string(border_char_sets[bs].v, sc_col);
         }
     }
 }
