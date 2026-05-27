@@ -10,20 +10,20 @@
 #include "table_print_render_cell.c"  // IWYU pragma: export
 
 /* Visual spec for one horizontal border line: corner chars, fill, junction,
-   and colors. fill_color and mid_color are unified into a single `color` field
-   since all callers pass the same value for both. */
+   and colors. `fill_color` and `mid_color` are unified into a single `color`
+   field since all callers pass the same value for both. */
 typedef struct {
     const char *left_corner_char;        /* left  corner char */
     const char *right_corner_char;        /* right corner char */
     const char *fill_char;      /* fill (horizontal) char, repeated per column */
-    const char *column_separator;       /* junction char between columns; NULL = no junction */
+    const char *column_separator;       /* junction char between columns; `NULL` = no junction */
     ScColor     inner_color;     /* fill and junction color */
     ScColor     edge_color;/* left/right corner color */
 
     /**
      * Flag for applying `header_col_sep_color` at column junctions.
      * True for  inner separator lines (header/footer boundaries) where
-     * header_col_sep_color applies at column junctions.
+     * `header_col_sep_color` applies at column junctions.
      * False for outer frame lines (top/bottom border) where it does not.
      */
     bool use_header_col_sep;
@@ -96,13 +96,15 @@ static void print_empty_lines(int count) {
 
 /* ── Horizontal border rendering ─────────────────────────────────────────── */
 
-/** Renders one horizontal border line (top, bottom, or inner separator).
- *  Adjusts edge corners for active rowspans, then prints margin, left edge,
- *  per-column fill and junction chars, right edge, and newline. */
+/**
+ * Renders one horizontal border line (top, bottom, or inner separator).
+ * Adjusts edge corners for active rowspans, then prints margin, left edge,
+ * per-column fill and junction chars, right edge, and newline.
+ */
 static void render_horizontal_border(
     const Table *table,
     HBorderSpec spec,
-    const bool *rowspan_flags   /* rowspan_flags[col]=1 → col has active rowspan */
+    const bool *rowspan_flags   /* `rowspan_flags[col]`=1 → `col` has active rowspan */
 ) {
     const ScTableData *table_data = table->table_data;
     bool right_to_left = table->opts.right_to_left;
@@ -131,11 +133,15 @@ static void render_horizontal_border(
     fputc('\n', stdout);
 }
 
-/** Replaces @p *lc / @p *rc with the vertical-bar glyph when the first or
- *  last rendered column has an active rowspan. */
+/**
+ * Replaces `*left_corner` / `*right_corner` with the vertical-bar glyph when
+ * the first or last rendered column has an active rowspan.
+ */
 static void adjust_hborder_corners(
-    const Table *table, const bool *rowspan_flags,
-    const char **left_corner, const char **right_corner
+    const Table *table,
+    const bool *rowspan_flags,
+    const char **left_corner,
+    const char **right_corner
 ) {
     const ScTableData *table_data = table->table_data;
     ScBorderType border_style     = table->opts.border.style;
@@ -150,8 +156,10 @@ static void adjust_hborder_corners(
     }
 }
 
-/** Prints the fill segment for column @p c: spaces when a rowspan is active,
- *  otherwise the repeated fill character from @p spec in @p spec.color. */
+/**
+ * Prints the fill segment for `col`: spaces when a rowspan is active, otherwise
+ * the repeated fill character from `spec` in `spec.inner_color`.
+ */
 static void render_hborder_col_fill(
     const Table *table, size_t col, const bool *rowspan_flags, HBorderSpec spec
 ) {
@@ -168,9 +176,11 @@ static void render_hborder_col_fill(
     }
 }
 
-/** Prints the junction character between column @p c and its neighbour.
- *  Selects the glyph based on which side has an active rowspan, and overrides
- *  the color for the header-column separator when @p spec.use_header_col_sep is set. */
+/**
+ * Prints the junction character between `col` and its neighbour.
+ * Selects the glyph based on which side has an active rowspan, and overrides
+ * the color for the header-column separator when `spec.use_header_col_sep` is set.
+ */
 static void render_hborder_junction(
     const Table *table, size_t col, const bool *rowspan_flags, HBorderSpec spec
 ) {
@@ -210,8 +220,10 @@ static void render_hborder_junction(
     print_colored_string(junction_char, junction_color);
 }
 
-/** Renders the horizontal separator line between two data rows. Spanning columns
- *  continue their cell content; all others draw the inner border fill character. */
+/**
+ * Renders the horizontal separator line between two data rows. Spanning columns
+ * continue their cell content; all others draw the inner border fill character.
+ */
 static void render_inner_sep(Table *table) {
     const ScTableData *table_data = table->table_data;
     const bool *has_rowspan       = table->has_rowspan;
@@ -245,8 +257,10 @@ static void render_inner_sep(Table *table) {
     fputc('\n', stdout);
 }
 
-/** Renders one spanning column during an inner separator: either the next
- *  content line of the spanning cell, or a blank fill when there is no cell. */
+/**
+ * Renders one spanning column during an inner separator: either the next
+ * content line of the spanning cell, or a blank fill when there is no cell.
+ */
 static void render_isep_span_col(Table *table, size_t col) {
     ScColor col_bg = table->table_data->columns[col].opts.bg;
     if (table->row_span && table->row_span[col].cell) {
@@ -256,8 +270,10 @@ static void render_isep_span_col(Table *table, size_t col) {
     }
 }
 
-/** Builds the spanning cell's lines, selects the correct visual line for the
- *  current separator row, and prints it between left and right cell padding. */
+/**
+ * Builds the spanning cell's lines, selects the correct visual line for the
+ * current separator row, and prints it between left and right cell padding.
+ */
 static void render_isep_span_content(Table *table, size_t col, ScColor col_bg) {
     const ScTableData *table_data = table->table_data;
     int pad_left  = table->opts.cell_pad.left;
@@ -288,8 +304,10 @@ static void render_isep_span_content(Table *table, size_t col, ScColor col_bg) {
     free_tlines(cell_lines, line_count);
 }
 
-/** Returns the visual line index to render for a spanning cell at the current
- *  separator row, based on vertical alignment and remaining blank space. */
+/**
+ * Returns the visual line index to render for a spanning cell at the current
+ * separator row, based on vertical alignment and remaining blank space.
+ */
 static int compute_span_cli(const RowSpan *span_ctx, int content_lines) {
     int extra = span_ctx->row_count - content_lines;
     if (extra < 0) { extra = 0; }
@@ -300,8 +318,10 @@ static int compute_span_cli(const RowSpan *span_ctx, int content_lines) {
     return span_ctx->line_offset - top;
 }
 
-/** Prints @p line within @p width columns: adds alignment padding when the
- *  content fits, or truncates span by span when it is wider than @p width. */
+/**
+ * Prints `line` within `width` columns: adds alignment padding when the content
+ * fits, or truncates span by span when `line` is wider than `width`.
+ */
 static void print_tline_in_width(
     const TLine *line, int width, ScHAlign halign, ScColor bg
 ) {
@@ -343,7 +363,9 @@ static void print_tline_in_width(
     }
 }
 
-/** Prints the inner border fill for a normal (non-spanning) column. */
+/**
+ * Prints the inner border fill for a normal (non-spanning) column.
+ */
 static void render_isep_border_fill(Table *table, size_t col) {
     ScBorderType border_style = table->opts.border.style;
     ScColor inner_color       = table->opts.border.inner_color;
@@ -354,8 +376,10 @@ static void render_isep_border_fill(Table *table, size_t col) {
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
-/** Prints the junction character between column @p c and its neighbour,
- *  selecting the glyph based on active rowspans on either side. */
+/**
+ * Prints the junction character between `col` and its neighbour,
+ * selecting the glyph based on active rowspans on either side.
+ */
 static void render_isep_junction(Table *table, size_t col) {
     const ScTableData *table_data = table->table_data;
     const bool *has_rowspan = table->has_rowspan;
@@ -388,9 +412,11 @@ static void render_isep_junction(Table *table, size_t col) {
     print_colored_string(junction_char, junction_color);
 }
 
-/** Renders the top or bottom border line with the table title embedded in it.
- *  Prints the left/right corner chars and delegates the inner fill to
- *  render_title_inner(). */
+/**
+ * Renders the top or bottom border line with the table title embedded in it.
+ * Prints the left/right corner chars and delegates the inner fill to
+ * `render_title_inner()`.
+ */
 static void render_title_line(const Table *table, int is_top) {
     ScBorderType border_style = table->opts.border.style;
     ScColor outer_color = table->opts.border.outer_color;
@@ -408,8 +434,10 @@ static void render_title_line(const Table *table, int is_top) {
     fputc('\n', stdout);
 }
 
-/** Dispatches between title-present and no-title rendering for the inner fill
- *  area of a title border line. */
+/**
+ * Dispatches between title-present and no-title rendering for the inner fill
+ * area of a title border line.
+ */
 static void render_title_inner(
     const Table *table, const char *fill_char, ScColor outer_color, int title_pad
 ) {
@@ -420,8 +448,10 @@ static void render_title_inner(
     }
 }
 
-/** Computes the left/right fill counts and prints: fill, padding, title text,
- *  padding, fill — all in the outer-color / title-style combination. */
+/**
+ * Computes the left/right fill counts and prints: fill, padding, title text,
+ * padding, fill — all in the outer-color / title-style combination.
+ */
 static void render_title_with_fill(
     const Table *table, const char *fill_char, ScColor outer_color, int title_pad
 ) {
@@ -447,8 +477,10 @@ static void render_title_with_fill(
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
-/** Computes the number of fill characters to the left (@p ld) and right (@p rd)
- *  of the title text, distributing them according to @p align. */
+/**
+ * Computes the number of fill characters to the left (`left_fill`) and right
+ * (`right_fill`) of the title text, distributing them according to `align`.
+ */
 static void compute_title_fill_split(
     int inner_w,
     int title_len,
@@ -475,8 +507,10 @@ static void compute_title_fill_split(
     if (*right_fill < 0) { *right_fill = 0; }
 }
 
-/** Fills the entire @p inner_w of the title line with the border fill character
- *  when no title text is set. */
+/**
+ * Fills the entire `inner_w` of the title line with the border fill character
+ * when no title text is set.
+ */
 static void render_title_full_fill(
     int inner_w, const char *fill_char, ScColor outer_color
 ) {
