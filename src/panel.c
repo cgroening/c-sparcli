@@ -199,8 +199,9 @@ static void split_text_into_panel_lines(Panel *panel) {
         .lines = malloc(8 * sizeof(PLine)), .line_cap = 8,
     };
 
-    for (size_t si = 0; si < panel->text->count; si++)
+    for (size_t si = 0; si < panel->text->count; si++) {
         scan_source_span(&pb, &panel->text->spans[si]);
+    }
 
     finish_parse_buf(panel, &pb);
 }
@@ -217,14 +218,14 @@ static void scan_source_span(ParseBuf *pb, const ScSpan *span) {
     while (*cursor) {
         if (*cursor == '\n') {
             size_t seglen = (size_t)(cursor - start);
-            if (seglen > 0) append_span(pb, start, seglen);
+            if (seglen > 0) { append_span(pb, start, seglen); }
             flush_line(pb);
             start = cursor + 1;
         }
         cursor++;
     }
     size_t seglen = (size_t)(cursor - start);
-    if (seglen > 0) append_span(pb, start, seglen);
+    if (seglen > 0) { append_span(pb, start, seglen); }
 }
 
 /**
@@ -290,9 +291,11 @@ static void resolve_panel_spacing(Panel *panel) {
  */
 static void compute_max_line_width(Panel *panel) {
     size_t max = 0;
-    for (size_t i = 0; i < panel->line_count; i++)
-        if (panel->lines[i].line_width > max)
+    for (size_t i = 0; i < panel->line_count; i++) {
+        if (panel->lines[i].line_width > max) {
             max = panel->lines[i].line_width;
+        }
+    }
     panel->max_line_width = max;
 }
 
@@ -393,7 +396,7 @@ static void render_panel_border(Panel *panel, ScPosition pos) {
         ? panel->top_border : panel->bottom_border;
     print_spaces(panel->spacing.margin.left);
     ScTitle title = panel->opts.title;
-    if (title.pos != pos) title.text = NULL;
+    if (title.pos != pos) { title.text = NULL; }
     render_horizontal_border(hborder, title);
 }
 
@@ -406,7 +409,7 @@ static void render_panel_border(Panel *panel, ScPosition pos) {
  */
 static void render_horizontal_border(HBorder hborder, ScTitle title) {
     const char *h = border_table[hborder.border_style.type].h;
-    if (title.pad < 0) title.pad = 0;
+    if (title.pad < 0) { title.pad = 0; }
     ScBorderStyle title_pad_style = { 0, SC_ANSI_COLOR_NONE, title.style.bg };
     print_colored(hborder.left_edge_character, hborder.border_style);
 
@@ -414,7 +417,7 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
         int tlen   = (int)sc_utf8_string_length(title.text,
                                                 strlen(title.text));
         int dashes = hborder.inner_width - tlen - 2 * title.pad;
-        if (dashes < 0) dashes = 0;
+        if (dashes < 0) { dashes = 0; }
 
         int left_dashes, right_dashes;
         if (title.align == SC_ALIGN_LEFT) {
@@ -424,15 +427,17 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
         } else {  // CENTER
             left_dashes = dashes / 2; right_dashes = dashes - left_dashes;
         }
-        if (left_dashes < 0) left_dashes = 0;
-        if (right_dashes < 0) right_dashes = 0;
+        if (left_dashes < 0)  { left_dashes = 0; }
+        if (right_dashes < 0) { right_dashes = 0; }
 
         print_repeat(h, left_dashes, hborder.border_style);
-        for (int i = 0; i < title.pad; i++)
+        for (int i = 0; i < title.pad; i++) {
             print_colored(" ", title_pad_style);
+        }
         sc_print(title.text, title.style);
-        for (int i = 0; i < title.pad; i++)
+        for (int i = 0; i < title.pad; i++) {
             print_colored(" ", title_pad_style);
+        }
         print_repeat(h, right_dashes, hborder.border_style);
     } else {
         print_repeat(h, hborder.inner_width, hborder.border_style);
@@ -475,9 +480,9 @@ static bool is_color_active(ScColor color) {
  * then emits a reset.
  */
 static void print_repeat(const char *str_raw, int count, ScBorderStyle style) {
-    if (count <= 0) return;
+    if (count <= 0) { return; }
     sc_apply_colors(style.color, norm_bg(style.bg));
-    for (int i = 0; i < count; i++) fputs(str_raw, stdout);
+    for (int i = 0; i < count; i++) { fputs(str_raw, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
@@ -486,7 +491,8 @@ static void render_body(Panel *panel) {
     ScSpacing sp = panel->spacing;
 
     for (int i = 0; i < sp.padding.top; i++) {
-        print_spaces(sp.margin.left); render_empty_line(panel);
+        print_spaces(sp.margin.left);
+        render_empty_line(panel);
     }
 
     for (size_t i = 0; i < panel->line_count; i++) {
@@ -495,7 +501,8 @@ static void render_body(Panel *panel) {
     }
 
     for (int i = 0; i < sp.padding.bottom; i++) {
-        print_spaces(sp.margin.left); render_empty_line(panel);
+        print_spaces(sp.margin.left);
+        render_empty_line(panel);
     }
 }
 
@@ -508,14 +515,10 @@ static void render_empty_line(Panel *panel) {
     print_colored(border_table[row.border_style.type].v, row.border_style);
     if (is_color_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
-        for (int i = 0; i < row.layout.inner_width; i++) {
-            fputc(' ', stdout);
-        }
+        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', stdout); }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     } else {
-        for (int i = 0; i < row.layout.inner_width; i++) {
-            fputc(' ', stdout);
-        }
+        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', stdout); }
     }
     print_colored(border_table[row.border_style.type].v, row.border_style);
     fputc('\n', stdout);
@@ -534,7 +537,7 @@ static void render_content_line(Panel *panel, PLine *line) {
     // Alignment
     int content_space = layout.inner_width - layout.pad_l - layout.pad_r
                         - (int)line->line_width;
-    if (content_space < 0) content_space = 0;
+    if (content_space < 0) { content_space = 0; }
     int left_padding = 0, right_padding = content_space;
     if (layout.content_align == SC_ALIGN_CENTER) {
         left_padding = content_space / 2;
@@ -566,13 +569,13 @@ static void render_content_line(Panel *panel, PLine *line) {
 static void print_line_spans(PLine *line, ScColor bg) {
     for (size_t i = 0; i < line->count; i++) {
         sc_print(line->spans[i].text, line->spans[i].opts);
-        if (is_color_active(bg)) sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
+        if (is_color_active(bg)) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
     }
 }
 
 /** Prints `n` space characters to stdout. */
 static void print_spaces(int n) {
-    for (int i = 0; i < n; i++) fputc(' ', stdout);
+    for (int i = 0; i < n; i++) { fputc(' ', stdout); }
 }
 
 /** Frees heap-allocated panel content. */
@@ -586,8 +589,9 @@ static void panel_cleanup(Panel *panel) {
  */
 static void free_lines(PLine *lines, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < lines[i].count; j++)
+        for (size_t j = 0; j < lines[i].count; j++) {
             free((char *)lines[i].spans[j].text);
+        }
         free(lines[i].spans);
     }
     free(lines);

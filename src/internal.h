@@ -16,25 +16,25 @@ static inline size_t max_sz(size_t a, size_t b) { return a > b ? a : b; }
 
 static inline int min_i_n(const int *arr, size_t n) {
     int r = arr[0];
-    for (size_t i = 1; i < n; i++) r = min_i(r, arr[i]);
+    for (size_t i = 1; i < n; i++) { r = min_i(r, arr[i]); }
     return r;
 }
 
 static inline int max_i_n(const int *arr, size_t n) {
     int r = arr[0];
-    for (size_t i = 1; i < n; i++) r = max_i(r, arr[i]);
+    for (size_t i = 1; i < n; i++) { r = max_i(r, arr[i]); }
     return r;
 }
 
 static inline size_t min_sz_n(const size_t *arr, size_t n) {
     size_t r = arr[0];
-    for (size_t i = 1; i < n; i++) r = min_sz(r, arr[i]);
+    for (size_t i = 1; i < n; i++) { r = min_sz(r, arr[i]); }
     return r;
 }
 
 static inline size_t max_sz_n(const size_t *arr, size_t n) {
     size_t r = arr[0];
-    for (size_t i = 1; i < n; i++) r = max_sz(r, arr[i]);
+    for (size_t i = 1; i < n; i++) { r = max_sz(r, arr[i]); }
     return r;
 }
 
@@ -75,10 +75,10 @@ static inline size_t sc_utf8_string_length(
     // column per code point
     while (cursor < end) {
         unsigned char current_byte = *cursor;
-        if      ((current_byte & 0x80) == 0x00) cursor += 1;
-        else if ((current_byte & 0xE0) == 0xC0) cursor += 2;
-        else if ((current_byte & 0xF0) == 0xE0) cursor += 3;
-        else                                    cursor += 4;
+        if      ((current_byte & 0x80) == 0x00) { cursor += 1; }
+        else if ((current_byte & 0xE0) == 0xC0) { cursor += 2; }
+        else if ((current_byte & 0xF0) == 0xE0) { cursor += 3; }
+        else                                    { cursor += 4; }
         columns++;
     }
     return columns;

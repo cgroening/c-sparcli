@@ -37,7 +37,7 @@ static int is_recognized_name(const char *s, size_t len) {
     /* hand-coded lengths to avoid strlen at runtime */
     static const size_t slens[] = { 4, 6, 9, 1, 3 };
     for (int i = 0; styles[i].n; i++) {
-        if (slens[i] == len && memcmp(s, styles[i].n, len) == 0) return 1;
+        if (slens[i] == len && memcmp(s, styles[i].n, len) == 0) { return 1; }
     }
     ScColor dummy;
     return lookup_color(s, len, &dummy);
@@ -53,33 +53,33 @@ static int parse_open_tag(const char *content, size_t len,
     const char *end = content + len;
 
     while (p < end) {
-        while (p < end && *p == ' ') p++;
-        if (p >= end) break;
+        while (p < end && *p == ' ') { p++; }
+        if (p >= end) { break; }
 
         int is_bg = 0;
         if ((size_t)(end - p) >= 3 && memcmp(p, "on ", 3) == 0) {
             is_bg = 1;
             p += 3;
-            while (p < end && *p == ' ') p++;
-            if (p >= end) return 0;
+            while (p < end && *p == ' ') { p++; }
+            if (p >= end) { return 0; }
         }
 
         /* rgb(r,g,b) */
         if ((size_t)(end - p) >= 4 && memcmp(p, "rgb(", 4) == 0) {
             const char *paren_end = memchr(p, ')', (size_t)(end - p));
-            if (!paren_end) return 0;
+            if (!paren_end) { return 0; }
             int r, g, b;
-            if (sscanf(p + 4, "%d,%d,%d", &r, &g, &b) != 3) return 0;
-            if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return 0;
+            if (sscanf(p + 4, "%d,%d,%d", &r, &g, &b) != 3) { return 0; }
+            if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) { return 0; }
             ScColor c = sc_ansi_color_from_rgb((uint8_t)r, (uint8_t)g, (uint8_t)b);
-            if (is_bg) out->bg = c; else out->fg = c;
+            if (is_bg) { out->bg = c; } else { out->fg = c; }
             p = paren_end + 1;
             continue;
         }
 
         /* bare token */
         const char *tok = p;
-        while (p < end && *p != ' ') p++;
+        while (p < end && *p != ' ') { p++; }
         size_t tok_len = (size_t)(p - tok);
 
         if (!is_bg) {
@@ -102,7 +102,7 @@ static int parse_open_tag(const char *content, size_t len,
 }
 
 static void append_chunk(ScText *t, const char *s, size_t len, ScTextStyle opts) {
-    if (len == 0) return;
+    if (len == 0) { return; }
     char *chunk = strndup(s, len);
     sc_text_append(t, chunk, opts);
     free(chunk);
@@ -111,7 +111,7 @@ static void append_chunk(ScText *t, const char *s, size_t len, ScTextStyle opts)
 /* ── Core parser ─────────────────────────────────────────────────────────── */
 
 static ScText *parse_internal(const char *s, int strip_unknown) {
-    if (!s) return sc_text_new();
+    if (!s) { return sc_text_new(); }
 
     ScText   *t     = sc_text_new();
     ScTextStyle stack[32];
@@ -144,7 +144,7 @@ static ScText *parse_internal(const char *s, int strip_unknown) {
                 size_t      rest_len = tag_len - 1;
                 if (rest_len == 0 || is_recognized_name(rest, rest_len)) {
                     append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-                    if (depth > 0) depth--;
+                    if (depth > 0) { depth--; }
                     p = end + 1;
                     seg_start = p;
                 } else {
@@ -160,7 +160,7 @@ static ScText *parse_internal(const char *s, int strip_unknown) {
                 ScTextStyle new_opts;
                 if (parse_open_tag(tag_content, tag_len, &stack[depth], &new_opts)) {
                     append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-                    if (depth + 1 < 32) stack[++depth] = new_opts;
+                    if (depth + 1 < 32) { stack[++depth] = new_opts; }
                     p = end + 1;
                     seg_start = p;
                 } else {
@@ -198,15 +198,17 @@ ScText *sc_markup_parse_opts(const char *s, ScMarkupOpts opts) {
 
 void sc_markup_append(ScText *t, const char *markup) {
     ScText *tmp = parse_internal(markup, 0);
-    for (size_t i = 0; i < tmp->count; i++)
+    for (size_t i = 0; i < tmp->count; i++) {
         sc_text_append(t, tmp->spans[i].raw_str, tmp->spans[i].style);
+    }
     sc_text_free(tmp);
 }
 
 void sc_markup_append_opts(ScText *t, const char *markup, ScMarkupOpts opts) {
     ScText *tmp = parse_internal(markup, opts.strip_unknown);
-    for (size_t i = 0; i < tmp->count; i++)
+    for (size_t i = 0; i < tmp->count; i++) {
         sc_text_append(t, tmp->spans[i].raw_str, tmp->spans[i].style);
+    }
     sc_text_free(tmp);
 }
 

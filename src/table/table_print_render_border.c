@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "table_print_render_cell.c"  // IWYU pragma: export
+
 static void print_ch          (const char *s, ScColor fg);
 static void print_spaces_bg   (int n, ScColor bg);
 static void print_span_bg     (const char *text, ScTextStyle opts, ScColor cell_bg);
@@ -47,22 +49,22 @@ static void print_ch(const char *s, ScColor fg) {
 
 /* Prints `n` space characters with background color `bg` applied, then resets. */
 static void print_spaces_bg(int n, ScColor bg) {
-    if (n <= 0) return;
-    if (bg.index != -2) sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
-    for (int i = 0; i < n; i++) fputc(' ', stdout);
-    if (bg.index != -2) fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    if (n <= 0) { return; }
+    if (bg.index != -2) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
+    for (int i = 0; i < n; i++) { fputc(' ', stdout); }
+    if (bg.index != -2) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
 }
 
 /* Prints a styled span, falling back to the cell background when the span
    has no background of its own. */
 static void print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg) {
-    if (opts.bg.index == -2 && cell_bg.index != -2) opts.bg = cell_bg;
+    if (opts.bg.index == -2 && cell_bg.index != -2) { opts.bg = cell_bg; }
     sc_print(text, opts);
 }
 
 /* Prints the left margin spaces for the table. */
 static void tpre(const Table *table) {
-    for (int i = 0; i < table->opts.margin.left; i++) fputc(' ', stdout);
+    for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', stdout); }
 }
 
 /* Prints `n` empty lines to apply vertical margins. */
@@ -89,20 +91,22 @@ static void render_horizontal_border(
     int rtl      = table->opts.rtl;
     int no_outer = table->opts.border.no_outer;
 
-    if (rs && !no_outer)
+    if (rs && !no_outer) {
         adjust_hborder_corners(table, rs, &lc, &rc);
+    }
 
     tpre(table);
-    if (!no_outer) print_ch(lc, edge_color);
+    if (!no_outer) { print_ch(lc, edge_color); }
 
     for (size_t ci = 0; ci < table_data->column_count; ci++) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
         render_hborder_col_fill(table, c, rs, fill, fill_color);
-        if (ci < table_data->column_count - 1 && mid)
+        if (ci < table_data->column_count - 1 && mid) {
             render_hborder_junction(table, c, rs, mid, mid_color, use_hcol);
+        }
     }
 
-    if (!no_outer) print_ch(rc, edge_color);
+    if (!no_outer) { print_ch(rc, edge_color); }
     fputc('\n', stdout);
 }
 
@@ -117,8 +121,8 @@ static void adjust_hborder_corners(
     int rtl         = table->opts.rtl;
     size_t fc  = rtl ? (table_data->column_count - 1) : 0;
     size_t lcc = rtl ? 0 : (table_data->column_count - 1);
-    if (rs[fc])  *lc = tbc[bs].v;
-    if (rs[lcc]) *rc = tbc[bs].v;
+    if (rs[fc])  { *lc = tbc[bs].v; }
+    if (rs[lcc]) { *rc = tbc[bs].v; }
 }
 
 /** Prints the fill segment for column @p c: spaces when a rowspan is active,
@@ -128,10 +132,10 @@ static void render_hborder_col_fill(
     const char *fill, ScColor fill_color
 ) {
     if (rs && rs[c]) {
-        for (int i = 0; i < table->column_widths[c]; i++) fputc(' ', stdout);
+        for (int i = 0; i < table->column_widths[c]; i++) { fputc(' ', stdout); }
     } else {
         sc_apply_colors(fill_color, SC_ANSI_COLOR_NONE);
-        for (int i = 0; i < table->column_widths[c]; i++) fputs(fill, stdout);
+        for (int i = 0; i < table->column_widths[c]; i++) { fputs(fill, stdout); }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     }
 }
@@ -150,20 +154,21 @@ static void render_hborder_junction(
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
     int is_hcol      = (table->opts.header.col && c == hcol_phys);
     int has_vsep     = !table->opts.border.no_inner_v || is_hcol;
-    if (!has_vsep) return;
+    if (!has_vsep) { return; }
 
     const char *jchar = mid;
     if (rs) {
         size_t nc   = rtl ? (c - 1) : (c + 1);
         int cur_rs  = rs[c];
         int next_rs = rs[nc];
-        if      (cur_rs && next_rs) jchar = tbc[bs].v;
-        else if (cur_rs)            jchar = tbc[bs].t_left;
-        else if (next_rs)           jchar = tbc[bs].t_right;
+        if      (cur_rs && next_rs) { jchar = tbc[bs].v; }
+        else if (cur_rs)            { jchar = tbc[bs].t_left; }
+        else if (next_rs)           { jchar = tbc[bs].t_right; }
     }
     ScColor jc = mid_color;
-    if (use_hcol && is_hcol && table->opts.border.header_col_sep_color.index != -2)
+    if (use_hcol && is_hcol && table->opts.border.header_col_sep_color.index != -2) {
         jc = table->opts.border.header_col_sep_color;
+    }
     print_ch(jchar, jc);
 }
 
@@ -181,23 +186,26 @@ static void render_inner_sep(Table *table) {
 
     const char *lc = tbc[bs].t_left;
     const char *rc = tbc[bs].t_right;
-    if (is_rs && !no_outer)
+    if (is_rs && !no_outer) {
         adjust_hborder_corners(table, is_rs, &lc, &rc);
+    }
 
     tpre(table);
-    if (!no_outer) print_ch(lc, oc);
+    if (!no_outer) { print_ch(lc, oc); }
 
     for (size_t ci = 0; ci < table_data->column_count; ci++) {
         size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
-        if (is_rs && is_rs[c])
+        if (is_rs && is_rs[c]) {
             render_isep_span_col(table, c);
-        else
+        } else {
             render_isep_border_fill(table, c);
-        if (ci < table_data->column_count - 1)
+        }
+        if (ci < table_data->column_count - 1) {
             render_isep_junction(table, c);
+        }
     }
 
-    if (!no_outer) print_ch(rc, oc);
+    if (!no_outer) { print_ch(rc, oc); }
     fputc('\n', stdout);
 }
 
@@ -205,10 +213,11 @@ static void render_inner_sep(Table *table) {
  *  content line of the spanning cell, or a blank fill when there is no cell. */
 static void render_isep_span_col(Table *table, size_t c) {
     ScColor col_bg = table->table_data->columns[c].opts.bg;
-    if (table->rsc && table->rsc[c].cell)
+    if (table->rsc && table->rsc[c].cell) {
         render_isep_span_content(table, c, col_bg);
-    else
+    } else {
         print_spaces_bg(table->column_widths[c], col_bg);
+    }
 }
 
 /** Builds the spanning cell's lines, selects the correct visual line for the
@@ -218,7 +227,7 @@ static void render_isep_span_content(Table *table, size_t c, ScColor col_bg) {
     int cpxl      = table->opts.cell_pad.left;
     int cpxr      = table->opts.cell_pad.right;
     int content_w = table->column_widths[c] - cpxl - cpxr;
-    if (content_w < 0) content_w = 0;
+    if (content_w < 0) { content_w = 0; }
 
     size_t ncl;
     TLine *cl = (table_data->columns[c].opts.word_wrap && content_w > 0)
@@ -228,10 +237,11 @@ static void render_isep_span_content(Table *table, size_t c, ScColor col_bg) {
     int cli = compute_span_cli(&table->rsc[c], (int)ncl);
 
     print_spaces_bg(cpxl, col_bg);
-    if (cli >= 0 && cli < (int)ncl)
+    if (cli >= 0 && cli < (int)ncl) {
         print_tline_in_width(&cl[cli], content_w, table_data->columns[c].opts.halign, col_bg);
-    else
+    } else {
         print_spaces_bg(content_w, col_bg);
+    }
     print_spaces_bg(cpxr, col_bg);
 
     free_tlines(cl, ncl);
@@ -241,10 +251,10 @@ static void render_isep_span_content(Table *table, size_t c, ScColor col_bg) {
  *  separator row, based on vertical alignment and remaining blank space. */
 static int compute_span_cli(const RSCtx *rsc, int cn) {
     int extra = rsc->span_h - cn;
-    if (extra < 0) extra = 0;
+    if (extra < 0) { extra = 0; }
     int top = 0;
-    if      (rsc->valign == SC_VALIGN_MIDDLE) top = extra / 2;
-    else if (rsc->valign == SC_VALIGN_BOTTOM) top = extra;
+    if      (rsc->valign == SC_VALIGN_MIDDLE) { top = extra / 2; }
+    else if (rsc->valign == SC_VALIGN_BOTTOM) { top = extra; }
     return rsc->vis_offset - top;
 }
 
@@ -257,8 +267,9 @@ static void print_tline_in_width(const TLine *line, int width, ScHAlign ha, ScCo
         if      (ha == SC_ALIGN_CENTER) { lp = rw/2; rp = rw - lp; }
         else if (ha == SC_ALIGN_RIGHT)  { lp = rw;   rp = 0; }
         print_spaces_bg(lp, bg);
-        for (size_t s = 0; s < line->count; s++)
+        for (size_t s = 0; s < line->count; s++) {
             print_span_bg(line->spans[s].text, line->spans[s].opts, bg);
+        }
         print_spaces_bg(rp, bg);
     } else {
         int rem = width;
@@ -283,7 +294,7 @@ static void render_isep_border_fill(Table *table, size_t c) {
     ScBorderType bs = table->opts.border.style;
     ScColor ic      = table->opts.border.inner_color;
     sc_apply_colors(ic, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < table->column_widths[c]; i++) fputs(tbc[bs].h, stdout);
+    for (int i = 0; i < table->column_widths[c]; i++) { fputs(tbc[bs].h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
@@ -298,18 +309,19 @@ static void render_isep_junction(Table *table, size_t c) {
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
     int is_hcol      = (table->opts.header.col && c == hcol_phys);
     int has_vsep     = !table->opts.border.no_inner_v || is_hcol;
-    if (!has_vsep) return;
+    if (!has_vsep) { return; }
 
     size_t nc   = rtl ? (c - 1) : (c + 1);
     int cur_rs  = is_rs ? is_rs[c]       : 0;
     int next_rs = is_rs ? (int)is_rs[nc] : 0;
     const char *jchar = tbc[bs].cross;
-    if      (cur_rs && next_rs) jchar = tbc[bs].v;
-    else if (cur_rs)            jchar = tbc[bs].t_left;
-    else if (next_rs)           jchar = tbc[bs].t_right;
+    if      (cur_rs && next_rs) { jchar = tbc[bs].v; }
+    else if (cur_rs)            { jchar = tbc[bs].t_left; }
+    else if (next_rs)           { jchar = tbc[bs].t_right; }
     ScColor jc = ic;
-    if (is_hcol && table->opts.border.header_col_sep_color.index != -2)
+    if (is_hcol && table->opts.border.header_col_sep_color.index != -2) {
         jc = table->opts.border.header_col_sep_color;
+    }
     print_ch(jchar, jc);
 }
 
@@ -336,10 +348,11 @@ static void render_title_line(const Table *table, int is_top) {
 /** Dispatches between title-present and no-title rendering for the inner fill
  *  area of a title border line. */
 static void render_title_inner(const Table *table, const char *h, ScColor oc, int tpad) {
-    if (table->opts.title.text && *table->opts.title.text)
+    if (table->opts.title.text && *table->opts.title.text) {
         render_title_with_fill(table, h, oc, tpad);
-    else
+    } else {
         render_title_full_fill(table->inner_w, h, oc);
+    }
 }
 
 /** Computes the left/right fill counts and prints: fill, padding, title text,
@@ -350,13 +363,13 @@ static void render_title_with_fill(const Table *table, const char *h, ScColor oc
     compute_title_fill_split(table->inner_w, tlen, tpad, table->opts.title.align, &ld, &rd);
 
     sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < ld; i++) fputs(h, stdout);
+    for (int i = 0; i < ld; i++) { fputs(h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-    for (int i = 0; i < tpad; i++) print_ch(" ", oc);
+    for (int i = 0; i < tpad; i++) { print_ch(" ", oc); }
     sc_print(table->opts.title.text, table->opts.title.style);
-    for (int i = 0; i < tpad; i++) print_ch(" ", oc);
+    for (int i = 0; i < tpad; i++) { print_ch(" ", oc); }
     sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < rd; i++) fputs(h, stdout);
+    for (int i = 0; i < rd; i++) { fputs(h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
@@ -365,18 +378,18 @@ static void render_title_with_fill(const Table *table, const char *h, ScColor oc
 static void compute_title_fill_split(int inner_w, int tlen, int tpad,
                                       ScHAlign align, int *ld, int *rd) {
     int dashes = inner_w - tlen - 2 * tpad;
-    if (dashes < 0) dashes = 0;
+    if (dashes < 0) { dashes = 0; }
     *ld = 1; *rd = dashes - 1;
     if      (align == SC_ALIGN_CENTER) { *ld = dashes/2; *rd = dashes - *ld; }
     else if (align == SC_ALIGN_RIGHT)  { *ld = dashes - 1; *rd = 1; }
-    if (*ld < 0) *ld = 0;
-    if (*rd < 0) *rd = 0;
+    if (*ld < 0) { *ld = 0; }
+    if (*rd < 0) { *rd = 0; }
 }
 
 /** Fills the entire @p inner_w of the title line with the border fill character
  *  when no title text is set. */
 static void render_title_full_fill(int inner_w, const char *h, ScColor oc) {
     sc_apply_colors(oc, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < inner_w; i++) fputs(h, stdout);
+    for (int i = 0; i < inner_w; i++) { fputs(h, stdout); }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }

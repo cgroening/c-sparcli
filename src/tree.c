@@ -126,11 +126,12 @@ static char *make_child_prefix(const char *prefix, const char *cont,
 
     if (color.index != -2) {
         int n;
-        if (color.index == -1)
+        if (color.index == -1) {
             n = snprintf(buf + pos, 25, "\033[38;2;%d;%d;%dm",
                          color.r, color.g, color.b);
-        else
+        } else {
             n = snprintf(buf + pos, 10, "\033[3%dm", color.index);
+        }
         pos += (size_t)n;
         memcpy(buf + pos, cont, clen); pos += clen;
         memcpy(buf + pos, "\033[0m", 4); pos += 4;
@@ -138,7 +139,7 @@ static char *make_child_prefix(const char *prefix, const char *cont,
         memcpy(buf + pos, cont, clen); pos += clen;
     }
 
-    for (int i = 0; i < indent; i++) buf[pos++] = ' ';
+    for (int i = 0; i < indent; i++) { buf[pos++] = ' '; }
     buf[pos] = '\0';
     return buf;
 }
@@ -154,23 +155,24 @@ static void render_node(const ScTree *t, const ScTreeNode *node,
         fputs(prefix, stdout);
         print_conn(is_last ? tc[style].last : tc[style].branch,
                    t->opts.connector_color);
-        for (int i = 0; i < indent; i++) fputc(' ', stdout);
+        for (int i = 0; i < indent; i++) { fputc(' ', stdout); }
     }
 
     /* ── prefix icon / marker ── */
-    if (node->prefix)
+    if (node->prefix) {
         sc_print(node->prefix, node->prefix_opts);
+    }
 
     /* ── content ── */
     if (node->is_text) {
-        if (node->text) sc_print_text(node->text);
+        if (node->text) { sc_print_text(node->text); }
     } else {
-        if (node->str)  sc_print(node->str, node->opts);
+        if (node->str)  { sc_print(node->str, node->opts); }
     }
 
     fputc('\n', stdout);
 
-    if (node->child_count == 0) return;
+    if (node->child_count == 0) { return; }
 
     /* ── build child prefix ── */
     char *child_prefix;
@@ -183,35 +185,39 @@ static void render_node(const ScTree *t, const ScTreeNode *node,
         child_prefix   = make_child_prefix(prefix, cs, cc, indent);
     }
 
-    for (size_t i = 0; i < node->child_count; i++)
+    for (size_t i = 0; i < node->child_count; i++) {
         render_node(t, node->children[i], child_prefix,
                     depth + 1, i == node->child_count - 1);
+    }
 
     free(child_prefix);
 }
 
 void sc_tree_print(const ScTree *t) {
-    if (!t || !t->root_count) return;
-    for (size_t i = 0; i < t->root_count; i++)
+    if (!t || !t->root_count) { return; }
+    for (size_t i = 0; i < t->root_count; i++) {
         render_node(t, t->roots[i], "", 0, i == t->root_count - 1);
+    }
 }
 
 /* ── Memory management ───────────────────────────────────────────────────── */
 
 static void node_free(ScTreeNode *n) {
-    if (!n) return;
+    if (!n) { return; }
     free(n->str);
     free(n->prefix);
-    for (size_t i = 0; i < n->child_count; i++)
+    for (size_t i = 0; i < n->child_count; i++) {
         node_free(n->children[i]);
+    }
     free(n->children);
     free(n);
 }
 
 void sc_tree_free(ScTree *t) {
-    if (!t) return;
-    for (size_t i = 0; i < t->root_count; i++)
+    if (!t) { return; }
+    for (size_t i = 0; i < t->root_count; i++) {
         node_free(t->roots[i]);
+    }
     free(t->roots);
     free(t);
 }

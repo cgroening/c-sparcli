@@ -97,12 +97,12 @@ static size_t max_cell_width_in_row_group(
 ) {
     size_t max_width = 0;
     for (size_t r = 0; r < row_count; r++) {
-        if (column_index >= rows[r].ncols) continue;
+        if (column_index >= rows[r].ncols) { continue; }
         const ScCell *cell = &rows[r].cells[column_index];
-        if (cell->colspan != 0 && cell->colspan != 1) continue;
-        if (cell->rowspan == -1) continue;
+        if (cell->colspan != 0 && cell->colspan != 1) { continue; }
+        if (cell->rowspan == -1) { continue; }
         size_t w = cell_vis_width(cell);
-        if (w > max_width) max_width = w;
+        if (w > max_width) { max_width = w; }
     }
     return max_width;
 }
@@ -136,13 +136,13 @@ static int apply_column_constraints(
 
 /** Scales flex column widths so the table reaches `opts.total_width`. */
 static void apply_total_width(Table *table) {
-    if (table->opts.total_width <= 0) return;
+    if (table->opts.total_width <= 0) { return; }
 
     int delta = table->opts.total_width - compute_rendered_table_width(table);
-    if (delta == 0) return;
+    if (delta == 0) { return; }
 
     int nflex = count_flex_columns(table->table_data);
-    if (nflex == 0) return;
+    if (nflex == 0) { return; }
 
     distribute_width_delta(table, delta, nflex);
 }
@@ -187,8 +187,9 @@ static int count_inner_separators(const Table *table) {
 /** Returns the number of flex (non-fixed-width) columns. */
 static int count_flex_columns(const ScTableData *td) {
     int count = 0;
-    for (size_t c = 0; c < td->column_count; c++)
-        if (td->columns[c].opts.fixed_width == 0) count++;
+    for (size_t c = 0; c < td->column_count; c++) {
+        if (td->columns[c].opts.fixed_width == 0) { count++; }
+    }
     return count;
 }
 
@@ -210,11 +211,11 @@ static void distribute_width_delta(
 
     const ScTableData *td = table->table_data;
     for (size_t i = 0; i < td->column_count; i++) {
-        if (td->columns[i].opts.fixed_width > 0) continue;
+        if (td->columns[i].opts.fixed_width > 0) { continue; }
         int col_adjustment = base_adjustment + (remaining > 0 ? direction : 0);
-        if (remaining > 0) remaining--;
+        if (remaining > 0) { remaining--; }
         int new_width = table->column_widths[i] + col_adjustment;
-        if (new_width < 2) new_width = 2;
+        if (new_width < 2) { new_width = 2; }
         table->column_widths[i] = new_width;
     }
 }
@@ -234,7 +235,7 @@ static int get_table_inner_width(const Table *table) {
             table->opts.border.style != SC_BORDER_NONE
         ) {
             int is_hcol = (table->opts.header.col && i == 0);
-            if (!table->opts.border.no_inner_v || is_hcol) width++;
+            if (!table->opts.border.no_inner_v || is_hcol) { width++; }
         }
     }
     return width;
@@ -275,14 +276,14 @@ static size_t tallest_cell_line_count(
     size_t max_lines = 0;
     for (size_t i = 0; i < td->column_count; i++) {
         const ScCell *cell = &td->rows[row_index].cells[i];
-        if (cell->colspan < 0) continue;
-        if (cell->rowspan < 0 || cell->rowspan > 1) continue;
+        if (cell->colspan < 0) { continue; }
+        if (cell->rowspan < 0 || cell->rowspan > 1) { continue; }
         int available_width = table->column_widths[i] - h_padding;
-        if (available_width < 0) available_width = 0;
+        if (available_width < 0) { available_width = 0; }
         size_t lines = cell_line_count(
             cell, &td->columns[i].opts, available_width
         );
-        if (lines > max_lines) max_lines = lines;
+        if (lines > max_lines) { max_lines = lines; }
     }
     return max_lines;
 }

@@ -22,9 +22,9 @@ static size_t badge_build(char *buf, const char *lcap, const char *rcap,
 
     size_t pos = 0;
     memcpy(buf + pos, lcap, lcap_len); pos += lcap_len;
-    for (int i = 0; i < pad; i++) buf[pos++] = ' ';
+    for (int i = 0; i < pad; i++) { buf[pos++] = ' '; }
     if (text) { memcpy(buf + pos, text, text_len); pos += text_len; }
-    for (int i = 0; i < pad; i++) buf[pos++] = ' ';
+    for (int i = 0; i < pad; i++) { buf[pos++] = ' '; }
     memcpy(buf + pos, rcap, rcap_len); pos += rcap_len;
     buf[pos] = '\0';
     return pos;
@@ -42,7 +42,7 @@ void sc_print_badge(const char *text, ScBadgeOpts opts) {
 
     char  stack[512];
     char *buf = (total <= sizeof(stack)) ? stack : malloc(total);
-    if (!buf) return;
+    if (!buf) { return; }
 
     badge_build(buf, lcap, rcap, text, pad);
 
@@ -54,7 +54,7 @@ void sc_print_badge(const char *text, ScBadgeOpts opts) {
         fputs(buf, stdout);
     }
 
-    if (buf != stack) free(buf);
+    if (buf != stack) { free(buf); }
 }
 
 void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts) {
@@ -67,10 +67,10 @@ void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts) {
 
     char  stack[512];
     char *buf = (total <= sizeof(stack)) ? stack : malloc(total);
-    if (!buf) return;
+    if (!buf) { return; }
 
     badge_build(buf, lcap, rcap, text, pad);
     sc_text_append(t, buf, opts.text_opts);
 
-    if (buf != stack) free(buf);
+    if (buf != stack) { free(buf); }
 }

@@ -31,8 +31,9 @@ static void to_roman(int n, char *buf, int upper) {
     };
     buf[0] = '\0';
     if (n <= 0) { strcpy(buf, "0"); return; }
-    for (int i = 0; t[i].v; i++)
+    for (int i = 0; t[i].v; i++) {
         while (n >= t[i].v) { strcat(buf, upper ? t[i].u : t[i].l); n -= t[i].v; }
+    }
 }
 
 /* ── Marker helpers ──────────────────────────────────────────────────────── */
@@ -64,7 +65,7 @@ static int max_marker_val_w(const ScList *l) {
     int mw = 0;
     for (size_t i = 0; i < l->count; i++) {
         int w = marker_val_vis_w(l, (int)i);
-        if (w > mw) mw = w;
+        if (w > mw) { mw = w; }
     }
     return mw ? mw : 1;
 }
@@ -102,8 +103,8 @@ static char **word_wrap(const char *text, int max_w, size_t *out_n) {
     const char *p = text;
     while (*p) {
         /* skip leading spaces at each wrapped-line start */
-        while (*p == ' ') p++;
-        if (!*p) break;
+        while (*p == ' ') { p++; }
+        if (!*p) { break; }
 
         const char *start    = p;
         const char *last_sp  = NULL;
@@ -113,7 +114,7 @@ static char **word_wrap(const char *text, int max_w, size_t *out_n) {
         while (*p && *p != '\n') {
             unsigned char c = *(unsigned char *)p;
             int bytes = (c < 0x80) ? 1 : (c < 0xE0) ? 2 : (c < 0xF0) ? 3 : 4;
-            if (vis + 1 > max_w) break;
+            if (vis + 1 > max_w) { break; }
             if (*p == ' ') { last_sp = p; last_sp_e = p + 1; }
             vis++;
             p += bytes;
@@ -122,20 +123,20 @@ static char **word_wrap(const char *text, int max_w, size_t *out_n) {
         const char *end;
         if (!*p || *p == '\n') {
             end = p;
-            if (*p == '\n') p++;
+            if (*p == '\n') { p++; }
         } else if (last_sp) {
             end = last_sp; p = last_sp_e;
         } else {
             end = p; /* hard break */
         }
 
-        while (end > start && *(end-1) == ' ') end--;
+        while (end > start && *(end-1) == ' ') { end--; }
 
         if (n == cap) { cap *= 2; lines = realloc(lines, cap * sizeof(char *)); }
         lines[n++] = strndup(start, (size_t)(end - start));
     }
 
-    if (n == 0) lines[n++] = strdup("");
+    if (n == 0) { lines[n++] = strdup(""); }
     *out_n = n;
     return lines;
 }
@@ -190,7 +191,7 @@ ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts) {
 static void print_list_r(const ScList *l, int base_indent, int term_w);
 
 static void print_list_r(const ScList *l, int base_indent, int term_w) {
-    if (!l || !l->count) return;
+    if (!l || !l->count) { return; }
 
     int mw         = total_marker_w(l);
     int max_vw     = max_marker_val_w(l);
@@ -198,7 +199,7 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
     int text_start = list_left + mw;
 
     int avail_w = term_w - l->opts.margin.left - l->opts.margin.right - text_start;
-    if (avail_w < 4) avail_w = 4;
+    if (avail_w < 4) { avail_w = 4; }
 
     int is_bullet = (l->opts.marker == SC_LIST_BULLET);
     const char *pre = is_bullet ? "" : (l->opts.marker_prefix ? l->opts.marker_prefix : "");
@@ -214,29 +215,32 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
         int pad = max_vw - vw;  /* right-align value within field */
 
         char marker[256];
-        if (is_bullet)
+        if (is_bullet) {
             snprintf(marker, sizeof(marker), "%s ", val);
-        else
+        } else {
             snprintf(marker, sizeof(marker), "%s%*s%s%s ", pre, pad, "", val, suf);
+        }
 
         /* print left margin + list indent */
-        for (int k = 0; k < l->opts.margin.left + list_left; k++) fputc(' ', stdout);
-        if (opts_has_format(l->opts.marker_opts))
+        for (int k = 0; k < l->opts.margin.left + list_left; k++) { fputc(' ', stdout); }
+        if (opts_has_format(l->opts.marker_opts)) {
             sc_print(marker, l->opts.marker_opts);
-        else
+        } else {
             fputs(marker, stdout);
+        }
 
         /* ── text ── */
         if (it->is_text) {
-            if (it->text) sc_print_text(it->text);
+            if (it->text) { sc_print_text(it->text); }
             fputc('\n', stdout);
         } else {
             const char *txt = it->str ? it->str : "";
             size_t nlines;
             char **wrapped = word_wrap(txt, avail_w, &nlines);
             for (size_t li = 0; li < nlines; li++) {
-                if (li > 0)
-                    for (int k = 0; k < l->opts.margin.left + text_start; k++) fputc(' ', stdout);
+                if (li > 0) {
+                    for (int k = 0; k < l->opts.margin.left + text_start; k++) { fputc(' ', stdout); }
+                }
                 sc_print(wrapped[li], it->opts);
                 fputc('\n', stdout);
                 free(wrapped[li]);
@@ -245,34 +249,35 @@ static void print_list_r(const ScList *l, int base_indent, int term_w) {
         }
 
         /* ── sublist ── */
-        if (it->sublist)
+        if (it->sublist) {
             print_list_r(it->sublist, text_start, term_w);
+        }
 
         /* ── item gap ── */
-        for (int g = 0; g < l->opts.item_gap; g++) fputc('\n', stdout);
+        for (int g = 0; g < l->opts.item_gap; g++) { fputc('\n', stdout); }
     }
 }
 
 void sc_list_print(const ScList *l) {
-    if (!l) return;
-    for (int i = 0; i < l->opts.margin.top; i++) fputc('\n', stdout);
+    if (!l) { return; }
+    for (int i = 0; i < l->opts.margin.top; i++) { fputc('\n', stdout); }
     int term_w = l->opts.width > 0 ? l->opts.width : sc_terminal_width();
     print_list_r(l, 0, term_w);
-    for (int i = 0; i < l->opts.margin.bottom; i++) fputc('\n', stdout);
+    for (int i = 0; i < l->opts.margin.bottom; i++) { fputc('\n', stdout); }
 }
 
 /* ── Memory management ───────────────────────────────────────────────────── */
 
 static void item_free(ScListItem *it) {
-    if (!it) return;
+    if (!it) { return; }
     free(it->str);
     sc_list_free(it->sublist);
     free(it);
 }
 
 void sc_list_free(ScList *l) {
-    if (!l) return;
-    for (size_t i = 0; i < l->count; i++) item_free(l->items[i]);
+    if (!l) { return; }
+    for (size_t i = 0; i < l->count; i++) { item_free(l->items[i]); }
     free(l->items);
     free(l);
 }

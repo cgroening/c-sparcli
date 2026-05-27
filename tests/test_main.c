@@ -50,8 +50,8 @@ int main(int argc, char *argv[]) {
     int skip_animated = 0;
 
     for (int i = 1; i < argc; i++) {
-        if      (strcmp(argv[i], "--focus")       == 0) use_focus     = 1;
-        else if (strcmp(argv[i], "--no-animated") == 0) skip_animated = 1;
+        if      (strcmp(argv[i], "--focus")       == 0) { use_focus     = 1; }
+        else if (strcmp(argv[i], "--no-animated") == 0) { skip_animated = 1; }
     }
 
     size_t count;
@@ -125,7 +125,7 @@ static Test *get_focused_tests(size_t *count) {
 static void run_tests(const Test *tests, size_t count, int skip_animated) {
     printf("\n");
     for (size_t i = 0; i < count; i++) {
-        if (skip_animated && tests[i].animated) continue;
+        if (skip_animated && tests[i].animated) { continue; }
         print_rule(tests[i].name);
         tests[i].function();
         print_rule(NULL);

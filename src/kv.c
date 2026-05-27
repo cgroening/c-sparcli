@@ -46,7 +46,7 @@ void sc_kv_add(ScKV *kv, const char *key, const char *value) {
 static void kv_print_wrapped(const char *text, int avail, int indent,
                               ScTextStyle opts, int fmt) {
     if (!text || !*text) { fputc('\n', stdout); return; }
-    if (avail < 1) avail = 1;
+    if (avail < 1) { avail = 1; }
 
     char pad[256];
     int  pad_len = indent < (int)sizeof(pad) - 1 ? indent : (int)sizeof(pad) - 1;
@@ -62,37 +62,37 @@ static void kv_print_wrapped(const char *text, int avail, int indent,
 
         while (*p) {
             const char *w = p;
-            while (*w && *w != ' ') w++;
+            while (*w && *w != ' ') { w++; }
             int wbytes = (int)(w - p);
             int wvis   = (int)sc_utf8_string_length(p, (size_t)wbytes);
             int gap    = (bvis > 0) ? 1 : 0;
 
             /* flush line if next word won't fit (keep at least one word per line) */
-            if (gap > 0 && bvis + gap + wvis > avail) break;
+            if (gap > 0 && bvis + gap + wvis > avail) { break; }
 
-            if (gap) buf[blen++] = ' ';
+            if (gap) { buf[blen++] = ' '; }
             memcpy(buf + blen, p, (size_t)wbytes);
             blen += wbytes;
             bvis += gap + wvis;
 
             p = w;
-            while (*p == ' ') p++;
+            while (*p == ' ') { p++; }
         }
 
         buf[blen] = '\0';
-        if (!first) fputs(pad, stdout);
+        if (!first) { fputs(pad, stdout); }
         first = 0;
 
-        if (fmt) sc_print(buf, opts);
-        else     fputs(buf, stdout);
+        if (fmt) { sc_print(buf, opts); }
+        else     { fputs(buf, stdout); }
         fputc('\n', stdout);
     }
 }
 
 void sc_kv_print(const ScKV *kv) {
-    if (!kv || kv->count == 0) return;
+    if (!kv || kv->count == 0) { return; }
 
-    for (int i = 0; i < kv->opts.margin.top; i++) fputc('\n', stdout);
+    for (int i = 0; i < kv->opts.margin.top; i++) { fputc('\n', stdout); }
     int total_w = kv->opts.width > 0 ? kv->opts.width : sc_terminal_width();
     int margin  = kv->opts.margin.left > 0 ? kv->opts.margin.left : 0;
 
@@ -103,7 +103,7 @@ void sc_kv_print(const ScKV *kv) {
         for (size_t i = 0; i < kv->count; i++) {
             int w = (int)sc_utf8_string_length(kv->entries[i].key,
                                         strlen(kv->entries[i].key));
-            if (w > key_w) key_w = w;
+            if (w > key_w) { key_w = w; }
         }
     }
 
@@ -111,7 +111,7 @@ void sc_kv_print(const ScKV *kv) {
     int         sep_w = (int)sc_utf8_string_length(sep, strlen(sep));
 
     int avail = total_w - margin - key_w - sep_w - margin;
-    if (avail < 1) avail = 1;
+    if (avail < 1) { avail = 1; }
 
     int key_fmt = opts_has_format(kv->opts.key_opts);
     int val_fmt = opts_has_format(kv->opts.val_opts);
@@ -145,7 +145,7 @@ void sc_kv_print(const ScKV *kv) {
         } else {
             fwrite(key, 1, (size_t)kbytes, stdout);
         }
-        for (int s = kprinted; s < key_w; s++) fputc(' ', stdout);
+        for (int s = kprinted; s < key_w; s++) { fputc(' ', stdout); }
 
         fputs(sep, stdout);
 
@@ -168,16 +168,17 @@ void sc_kv_print(const ScKV *kv) {
             fputc('\n', stdout);
         }
 
-        if (kv->opts.item_gap > 0 && i + 1 < kv->count)
-            for (int g = 0; g < kv->opts.item_gap; g++) fputc('\n', stdout);
+        if (kv->opts.item_gap > 0 && i + 1 < kv->count) {
+            for (int g = 0; g < kv->opts.item_gap; g++) { fputc('\n', stdout); }
+        }
     }
-    for (int i = 0; i < kv->opts.margin.bottom; i++) fputc('\n', stdout);
+    for (int i = 0; i < kv->opts.margin.bottom; i++) { fputc('\n', stdout); }
 }
 
 /* ── Memory management ───────────────────────────────────────────────────── */
 
 void sc_kv_free(ScKV *kv) {
-    if (!kv) return;
+    if (!kv) { return; }
     for (size_t i = 0; i < kv->count; i++) {
         free(kv->entries[i].key);
         free(kv->entries[i].value);

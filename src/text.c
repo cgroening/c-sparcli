@@ -4,7 +4,7 @@
 
 ScText *sc_text_new(void) {
     ScText *sc_text = malloc(sizeof(ScText));
-    if (!sc_text) return NULL;
+    if (!sc_text) { return NULL; }
     sc_text->spans = NULL;
     sc_text->count = 0;
     sc_text->cap   = 0;
@@ -24,7 +24,7 @@ void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
     if (sc_text->count == sc_text->cap) {
         size_t new_cap = sc_text->cap ? sc_text->cap * 2 : 4;
         ScSpan *span = realloc(sc_text->spans, new_cap * sizeof(ScSpan));
-        if (!span) return;
+        if (!span) { return; }
         sc_text->spans = span;
         sc_text->cap   = new_cap;
     }
@@ -34,8 +34,9 @@ void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
 }
 
 void sc_text_free(ScText *sc_text) {
-    for (size_t i = 0; i < sc_text->count; i++)
+    for (size_t i = 0; i < sc_text->count; i++) {
         free(sc_text->spans[i].raw_str);
+    }
     free(sc_text->spans);
     free(sc_text);
 }
@@ -58,8 +59,9 @@ void sc_print_text(const ScText *sc_text) {
             }
             raw_str++;
         }
-        if (*start)
+        if (*start) {
             sc_print(start, style);
+        }
     }
 }
 
@@ -70,7 +72,7 @@ size_t sc_text_visible_width(const ScText *sc_text) {
             (const unsigned char *)sc_text->spans[i].raw_str;
         for (; *current_byte; current_byte++) {
             if (*current_byte == '\n') {
-                if (current_width > max_width) max_width = current_width;
+                if (current_width > max_width) { max_width = current_width; }
                 current_width = 0;
             } else if ((*current_byte & 0xC0) != 0x80) {
                 // Skip UTF-8 continuation bytes

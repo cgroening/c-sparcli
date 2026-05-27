@@ -170,8 +170,9 @@ static void add_row(
 
     // Copy provided cells into the new row, filling remaining cells with
     // empty content
-    for (size_t i = 0; i < table_data->column_count; i++)
+    for (size_t i = 0; i < table_data->column_count; i++) {
         row->cells[i] = (i < cell_count) ? cells[i] : sc_cell("");
+    }
 }
 
 /**

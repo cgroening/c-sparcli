@@ -71,9 +71,9 @@ void sc_spinner_tick(ScSpinner *s) {
 
     /* spinner character */
     int colored = color_is_set(s->opts.color);
-    if (colored) sc_apply_colors(s->opts.color, SC_ANSI_COLOR_NONE);
+    if (colored) { sc_apply_colors(s->opts.color, SC_ANSI_COLOR_NONE); }
     fputs(frame, stdout);
-    if (colored) fputs("\033[0m", stdout);
+    if (colored) { fputs("\033[0m", stdout); }
 
     int vis = 1;  /* spinner char = 1 visible column */
 
@@ -81,15 +81,16 @@ void sc_spinner_tick(ScSpinner *s) {
     if (s->label) {
         fputc(' ', stdout); vis++;
         int lw = (int)sc_utf8_string_length(s->label, strlen(s->label));
-        if (!opts_no_fmt(s->opts.label_opts))
+        if (!opts_no_fmt(s->opts.label_opts)) {
             sc_print(s->label, s->opts.label_opts);
-        else
+        } else {
             fputs(s->label, stdout);
+        }
         vis += lw;
     }
 
     /* pad to terminal width to overwrite any longer previous line */
-    for (int i = vis; i < tw; i++) fputc(' ', stdout);
+    for (int i = vis; i < tw; i++) { fputc(' ', stdout); }
 
     fputc('\r', stdout);
     fflush(stdout);
@@ -100,7 +101,7 @@ void sc_spinner_tick(ScSpinner *s) {
 void sc_spinner_finish(ScSpinner *s, bool success, const char *label) {
     /* clear the current line */
     int tw = sc_terminal_width();
-    for (int i = 0; i < tw; i++) fputc(' ', stdout);
+    for (int i = 0; i < tw; i++) { fputc(' ', stdout); }
     fputc('\r', stdout);
 
     /* ✔ (green) or ✖ (red) */
@@ -113,6 +114,7 @@ void sc_spinner_finish(ScSpinner *s, bool success, const char *label) {
         fputc(' ', stdout);
         fputs(label, stdout);
     }
+
     fputc('\n', stdout);
     (void)s;  /* s->opts could be used for label_opts in the future */
 }
@@ -120,7 +122,7 @@ void sc_spinner_finish(ScSpinner *s, bool success, const char *label) {
 /* ── Memory management ───────────────────────────────────────────────────── */
 
 void sc_spinner_free(ScSpinner *s) {
-    if (!s) return;
+    if (!s) { return; }
     free(s->label);
     free(s);
 }

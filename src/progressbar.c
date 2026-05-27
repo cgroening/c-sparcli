@@ -40,11 +40,11 @@ static int color_is_set(ScColor c) {
 }
 
 static void print_n(const char *ch, int n, ScColor col) {
-    if (n <= 0) return;
+    if (n <= 0) { return; }
     int colored = color_is_set(col);
-    if (colored) sc_apply_colors(col, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < n; i++) fputs(ch, stdout);
-    if (colored) fputs("\033[0m", stdout);
+    if (colored) { sc_apply_colors(col, SC_ANSI_COLOR_NONE); }
+    for (int i = 0; i < n; i++) { fputs(ch, stdout); }
+    if (colored) { fputs("\033[0m", stdout); }
 }
 
 /* ── Public API ──────────────────────────────────────────────────────────── */
@@ -64,8 +64,8 @@ void sc_progressbar_set_label(ScProgressBar *b, const char *label) {
 
 static void render_bar(ScProgressBar *b, double value, double max, int final) {
     double ratio = (max > 0.0) ? value / max : value;
-    if (ratio < 0.0) ratio = 0.0;
-    if (ratio > 1.0) ratio = 1.0;
+    if (ratio < 0.0) { ratio = 0.0; }
+    if (ratio > 1.0) { ratio = 1.0; }
 
     /* ── caps ── */
     const char *lcap  = b->opts.left_cap;
@@ -75,8 +75,9 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
 
     /* ── percent string ── */
     char pct_buf[16] = "";
-    if (b->opts.show_percent)
+    if (b->opts.show_percent) {
         snprintf(pct_buf, sizeof(pct_buf), " %3.0f%%", ratio * 100.0);
+    }
     int pct_w = (int)sc_utf8_string_length(pct_buf, strlen(pct_buf));
 
     /* ── value string ── */
@@ -108,7 +109,7 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
     int bw = b->opts.bar_width > 0
         ? b->opts.bar_width
         : total_w - label_field_w - lcap_w - rcap_w - pct_w - val_reserve;
-    if (bw < 1) bw = 1;
+    if (bw < 1) { bw = 1; }
 
     /* ── fill color (with optional thresholds) ── */
     ScColor fill_col  = b->opts.fill_color;
@@ -116,13 +117,13 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
         double tmid  = b->opts.thresholds.mid  > 0.0 ? b->opts.thresholds.mid  : 0.5;
         double thigh = b->opts.thresholds.high > 0.0 ? b->opts.thresholds.high : 0.75;
         fill_col = b->opts.thresholds.color_low;
-        if (ratio >= tmid)  fill_col = b->opts.thresholds.color_mid;
-        if (ratio >= thigh) fill_col = b->opts.thresholds.color_high;
+        if (ratio >= tmid)  { fill_col = b->opts.thresholds.color_mid; }
+        if (ratio >= thigh) { fill_col = b->opts.thresholds.color_high; }
     }
     ScColor empty_col = b->opts.empty_color;
 
     int filled = (int)(ratio * bw);
-    if (filled > bw) filled = bw;
+    if (filled > bw) { filled = bw; }
     int style = (int)b->opts.style;
 
     /* ── print label ── */
@@ -143,12 +144,12 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
         } else {
             fwrite(b->label, 1, (size_t)bytes, stdout);
         }
-        for (int i = printed_w; i < field_w; i++) fputc(' ', stdout);
+        for (int i = printed_w; i < field_w; i++) { fputc(' ', stdout); }
         fputs("  ", stdout);
     }
 
     /* ── left cap ── */
-    if (lcap) fputs(lcap, stdout);
+    if (lcap) { fputs(lcap, stdout); }
 
     /* ── bar body ── */
     const char *fill_ch  = pc[style].fill;
@@ -162,9 +163,9 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
         print_n(fill_ch, solid, fill_col);
         if (has_head) {
             int colored = color_is_set(fill_col);
-            if (colored) sc_apply_colors(fill_col, SC_ANSI_COLOR_NONE);
+            if (colored) { sc_apply_colors(fill_col, SC_ANSI_COLOR_NONE); }
             fputs(head_ch, stdout);
-            if (colored) fputs("\033[0m", stdout);
+            if (colored) { fputs("\033[0m", stdout); }
         }
         print_n(empty_ch, empty_n, empty_col);
     } else {
@@ -173,16 +174,16 @@ static void render_bar(ScProgressBar *b, double value, double max, int final) {
     }
 
     /* ── right cap ── */
-    if (rcap) fputs(rcap, stdout);
+    if (rcap) { fputs(rcap, stdout); }
 
     /* ── percent ── */
-    if (b->opts.show_percent) fputs(pct_buf, stdout);
+    if (b->opts.show_percent) { fputs(pct_buf, stdout); }
 
     /* ── value ── */
     if (b->opts.show_value && max > 0.0) {
         fputs(val_buf, stdout);
         int actual_w = (int)sc_utf8_string_length(val_buf, strlen(val_buf));
-        for (int i = actual_w; i < val_reserve; i++) fputc(' ', stdout);
+        for (int i = actual_w; i < val_reserve; i++) { fputc(' ', stdout); }
     }
 
     if (final) {
@@ -204,7 +205,7 @@ void sc_progressbar_finish(ScProgressBar *b, double value, double max) {
 /* ── Memory management ───────────────────────────────────────────────────── */
 
 void sc_progressbar_free(ScProgressBar *b) {
-    if (!b) return;
+    if (!b) { return; }
     free(b->label);
     free(b);
 }

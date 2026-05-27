@@ -46,8 +46,9 @@ static void   append_wrapped_lines (TLine **res, size_t *nres, size_t *rcap, con
    lines array itself. */
 static void free_tlines(TLine *lines, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < lines[i].count; j++)
+        for (size_t j = 0; j < lines[i].count; j++) {
             free((char *)lines[i].spans[j].text);
+        }
         free(lines[i].spans);
     }
     free(lines);
@@ -64,7 +65,7 @@ static void flush_tline(TLine **lines, size_t *cap, size_t *n,
     }
     /* --- copy the span buffer into a new owned TLine --- */
     TSpan *ls = malloc((buf_n + 1) * sizeof(TSpan));
-    if (buf_n) memcpy(ls, buf, buf_n * sizeof(TSpan));
+    if (buf_n) { memcpy(ls, buf, buf_n * sizeof(TSpan)); }
     (*lines)[(*n)++] = (TLine){ ls, buf_n, vis_w };
 }
 
@@ -119,8 +120,9 @@ static void scan_text_for_newlines(const char *s, ScTextStyle opts,
     while (*s) {
         if (*s == '\n') {
             size_t len = (size_t)(s - start);
-            if (len > 0)
+            if (len > 0) {
                 buf_push_segment(buf, buf_cap, buf_n, buf_w, start, len, opts);
+            }
             flush_tline(lines, lines_cap, nlines, *buf, *buf_n, *buf_w);
             *buf_n = 0; *buf_w = 0;
             start = s + 1;
@@ -128,8 +130,9 @@ static void scan_text_for_newlines(const char *s, ScTextStyle opts,
         s++;
     }
     size_t len = (size_t)(s - start);
-    if (len > 0)
+    if (len > 0) {
         buf_push_segment(buf, buf_cap, buf_n, buf_w, start, len, opts);
+    }
 }
 
 /** Appends the text segment [@p start, @p start+@p len) with style @p opts to
@@ -149,8 +152,9 @@ static size_t cell_vis_width(const ScCell *cell) {
     size_t n;
     TLine *lines = make_cell_lines(cell, &n);
     size_t max_w = 0;
-    for (size_t i = 0; i < n; i++)
-        if (lines[i].vis_w > max_w) max_w = lines[i].vis_w;
+    for (size_t i = 0; i < n; i++) {
+        if (lines[i].vis_w > max_w) { max_w = lines[i].vis_w; }
+    }
     free_tlines(lines, n);
     return max_w;
 }
@@ -167,16 +171,17 @@ static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
     WwAccum acc = {0};
     for (size_t ti = 0; ti < ntok; ti++) {
         const WwTok *next = (ti + 1 < ntok) ? &toks[ti + 1] : NULL;
-        if (toks[ti].is_space)
+        if (toks[ti].is_space) {
             emit_space_tok(&acc, &toks[ti], next, wrap_w);
-        else
+        } else {
             emit_word_tok(&acc, &toks[ti], wrap_w);
+        }
     }
     ww_flush_sbuf(&acc);
 
     TLine *res = acc.res;
     free(acc.sbuf);
-    for (size_t ti = 0; ti < ntok; ti++) if (toks[ti].s) free(toks[ti].s);
+    for (size_t ti = 0; ti < ntok; ti++) { if (toks[ti].s) { free(toks[ti].s); } }
     free(toks);
     *out_n = acc.nres;
     return res;
@@ -192,7 +197,7 @@ static void tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out
         while (*p) {
             const char *seg = p;
             int is_sp = (*p == ' ');
-            while (*p && ((*p == ' ') == is_sp)) p++;
+            while (*p && ((*p == ' ') == is_sp)) { p++; }
             size_t len = (size_t)(p - seg);
             size_t vw  = is_sp ? len : sc_utf8_string_length(seg, len);
             if (ntok == tcap) { tcap = tcap ? tcap*2 : 16; toks = realloc(toks, tcap*sizeof(WwTok)); }
@@ -220,11 +225,10 @@ static void emit_space_tok(WwAccum *a, WwTok *tok, const WwTok *next, int wrap_w
 /** Emits a word token: flushes the current line first if the word doesn't fit,
  *  then hard-breaks it when it exceeds @p wrap_w, otherwise appends it. */
 static void emit_word_tok(WwAccum *a, WwTok *tok, int wrap_w) {
-    if (a->sn > 0 && (int)(a->sw + tok->vis_w) > wrap_w)
-        ww_flush_sbuf(a);
-    if ((int)tok->vis_w > wrap_w)
+    if (a->sn > 0 && (int)(a->sw + tok->vis_w) > wrap_w) { ww_flush_sbuf(a); }
+    if ((int)tok->vis_w > wrap_w) {
         hard_break_word(a, tok, wrap_w);
-    else {
+    } else {
         ww_push_span(a, tok->s, tok->vis_w, tok->opts);
         tok->s = NULL;
     }
@@ -239,11 +243,11 @@ static void hard_break_word(WwAccum *a, WwTok *tok, int wrap_w) {
         int avail = wrap_w - (int)a->sw;
         if (avail <= 0) { ww_flush_sbuf(a); avail = wrap_w; }
         size_t cb = sc_utf8_trim_to_cols(p, avail);
-        if (cb == 0) break;
+        if (cb == 0) { break; }
         size_t cw2 = sc_utf8_string_length(p, cb);
         ww_push_span(a, strndup(p, cb), cw2, tok->opts);
         p += cb; rem -= cb;
-        if (rem > 0) ww_flush_sbuf(a);
+        if (rem > 0) { ww_flush_sbuf(a); }
     }
     free(tok->s); tok->s = NULL;
 }
@@ -277,10 +281,11 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n) {
 
     TLine *res = NULL; size_t nres = 0, rcap = 0;
     for (size_t li = 0; li < nraw; li++) {
-        if ((int)raw[li].vis_w <= wrap_w)
+        if ((int)raw[li].vis_w <= wrap_w) {
             append_tline_copy(&res, &nres, &rcap, &raw[li]);
-        else
+        } else {
             append_wrapped_lines(&res, &nres, &rcap, &raw[li], wrap_w);
+        }
     }
     free_tlines(raw, nraw);
     *out_n = nres;
@@ -292,8 +297,9 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n) {
 static void append_tline_copy(TLine **res, size_t *nres, size_t *rcap, const TLine *src) {
     if (*nres == *rcap) { *rcap = *rcap ? *rcap*2 : 4; *res = realloc(*res, *rcap*sizeof(TLine)); }
     TSpan *ls = malloc((src->count + 1) * sizeof(TSpan));
-    for (size_t j = 0; j < src->count; j++)
+    for (size_t j = 0; j < src->count; j++) {
         ls[j] = (TSpan){ strdup(src->spans[j].text), src->spans[j].opts };
+    }
     (*res)[(*nres)++] = (TLine){ ls, src->count, src->vis_w };
 }
 
@@ -305,7 +311,7 @@ static void append_wrapped_lines(TLine **res, size_t *nres, size_t *rcap,
     size_t nw;
     TLine *wrapped = wrap_one_tline(src, wrap_w, &nw);
     if (*nres + nw > *rcap) {
-        while (*rcap < *nres + nw) *rcap = *rcap ? *rcap*2 : 4;
+        while (*rcap < *nres + nw) { *rcap = *rcap ? *rcap*2 : 4; }
         *res = realloc(*res, *rcap * sizeof(TLine));
     }
     memcpy(*res + *nres, wrapped, nw * sizeof(TLine));

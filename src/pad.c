@@ -5,30 +5,30 @@
 /* ── sc_pad_print ────────────────────────────────────────────────────────── */
 
 void sc_pad_print(const ScRendered *r, ScPadOpts opts) {
-    if (!r) return;
-    for (int i = 0; i < opts.top; i++) fputc('\n', stdout);
+    if (!r) { return; }
+    for (int i = 0; i < opts.top; i++) { fputc('\n', stdout); }
     for (size_t i = 0; i < r->line_count; i++) {
-        for (int k = 0; k < opts.left;  k++) fputc(' ', stdout);
+        for (int k = 0; k < opts.left;  k++) { fputc(' ', stdout); }
         fputs(r->lines[i], stdout);
-        for (int k = 0; k < opts.right; k++) fputc(' ', stdout);
+        for (int k = 0; k < opts.right; k++) { fputc(' ', stdout); }
         fputc('\n', stdout);
     }
-    for (int i = 0; i < opts.bottom; i++) fputc('\n', stdout);
+    for (int i = 0; i < opts.bottom; i++) { fputc('\n', stdout); }
 }
 
 /* ── sc_align_print ──────────────────────────────────────────────────────── */
 
 void sc_align_print(const ScRendered *r, ScHAlign align, int width) {
-    if (!r) return;
-    if (width <= 0) width = sc_terminal_width();
+    if (!r) { return; }
+    if (width <= 0) { width = sc_terminal_width(); }
     for (size_t i = 0; i < r->line_count; i++) {
         int vw    = r->column_widths[i];
         int spare = width - vw;
-        if (spare < 0) spare = 0;
+        if (spare < 0) { spare = 0; }
         int lp = 0;
-        if      (align == SC_ALIGN_CENTER) lp = spare / 2;
-        else if (align == SC_ALIGN_RIGHT)  lp = spare;
-        for (int k = 0; k < lp; k++) fputc(' ', stdout);
+        if      (align == SC_ALIGN_CENTER) { lp = spare / 2; }
+        else if (align == SC_ALIGN_RIGHT)  { lp = spare; }
+        for (int k = 0; k < lp; k++) { fputc(' ', stdout); }
         fputs(r->lines[i], stdout);
         fputc('\n', stdout);
     }

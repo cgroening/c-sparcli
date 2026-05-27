@@ -170,10 +170,11 @@ ScText *get_sample_text(const char *prefix, ScTextStyle opts, size_t lines) {
 
     char buf[128];
     for (size_t i = 1; i <= lines; i++) {
-        if (lines > 1)
+        if (lines > 1) {
             snprintf(buf, sizeof(buf), "%s%zu\n", prefix, i);
-        else
+        } else {
             snprintf(buf, sizeof(buf), "%s\n", prefix);
+        }
         sc_text_append(t, buf, opts);
     }
 
