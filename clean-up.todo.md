@@ -42,7 +42,7 @@
 - [ ] src/table/table.c
 - [ ] src/table/table_print.c
 - [x] src/table/table_print_init.c
-- [ ] src/table/table_print_render.c
+- [x] src/table/table_print_render.c
 - [ ] src/table/table_print_render_cell.c
 - [ ] src/table/table_print_render_border.c
 - [ ] src/table/table_print_render_row.c

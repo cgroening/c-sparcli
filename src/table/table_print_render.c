@@ -238,81 +238,121 @@ static void render_data_row_sep(Table *table, size_t row_index) {
 }
 
 /**
- * Returns the background color for data row `r`: explicit row bg if set,
- *  stripe bg for odd rows when striping is on, otherwise `SC_ANSI_COLOR_NONE`.
+ * Returns the background color for data row `row_index`: explicit row bg if set,
+ * stripe bg for odd rows when striping is on, otherwise `SC_ANSI_COLOR_NONE`.
  */
-static ScColor resolve_data_row_bg(const Table *table, size_t r) {
-    ScColor row_bg = table->table_data->rows[r].bg;
+static ScColor resolve_data_row_bg(const Table *table, size_t row_index) {
+    ScColor row_bg = table->table_data->rows[row_index].bg;
     if (row_bg.index == -2) {
         row_bg = SC_ANSI_COLOR_NONE;
-        if (table->opts.striped && (r % 2 == 1)) { row_bg = table->opts.stripe_bg; }
+        if (table->opts.striped && (row_index % 2 == 1)) {
+            row_bg = table->opts.stripe_bg;
+        }
     }
     return row_bg;
 }
 
-/** Advances line_offset by @p row_h for all active rowspan cells after a row
- *  has been rendered. */
-static void advance_rowspan_vis_offsets(Table *table, int row_h) {
+/**
+ * Advances line_offset by `row_height` for all active rowspan cells after a row
+ * has been rendered.
+ */
+static void advance_rowspan_vis_offsets(Table *table, int row_height) {
     const ScTableData *table_data = table->table_data;
-    for (size_t c = 0; c < table_data->column_count; c++) {
-        if (table->row_span[c].cell) { table->row_span[c].line_offset += row_h; }
+    for (size_t i = 0; i < table_data->column_count; i++) {
+        if (table->row_span[i].cell) {
+            table->row_span[i].line_offset += row_height;
+        }
     }
 }
 
-/** Renders a single dimmed full-width row showing how many rows were omitted
- *  due to opts.max_rows. */
-static void render_truncation_indicator(Table *table, size_t max_r) {
+/**
+ * Renders a single dimmed full-width row showing how many rows were omitted
+ *  due to `opts.max_rows`.
+ */
+static void render_truncation_indicator(Table *table, size_t max_rows) {
     const ScTableData *table_data = table->table_data;
-    char msg[64];
-    snprintf(msg, sizeof(msg), "… %zu more rows", table_data->row_count - max_r);
-    ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    ScCell *ind = malloc(table_data->column_count * sizeof(ScCell));
-    ind[0] = sc_cell_cs(msg, (int)table_data->column_count);
-    for (size_t c = 1; c < table_data->column_count; c++) { ind[c] = sc_cell_skip(); }
+    char truncation_message[64];
+    snprintf(
+        truncation_message,
+        sizeof(truncation_message),
+        "… %zu more rows",
+        table_data->row_count - max_rows
+    );
+
+    ScTextStyle dim_style = {
+        SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
+    ScCell *indicator_cells = malloc(table_data->column_count * sizeof(ScCell));
+    indicator_cells[0] = sc_cell_cs(
+        truncation_message, (int)table_data->column_count
+    );
+
+    for (size_t i = 1; i < table_data->column_count; i++) {
+        indicator_cells[i] = sc_cell_skip();
+    }
+
     ScTextStyle saved = table->opts.header.opts;
-    table->opts.header.opts = dim;
-    render_row(table, ind, SC_ANSI_COLOR_NONE, 1, 0);
+    table->opts.header.opts = dim_style;
+    render_row(table, indicator_cells, SC_ANSI_COLOR_NONE, 1, 0);
     table->opts.header.opts = saved;
-    free(ind);
+    free(indicator_cells);
 }
 
 /** Renders footer rows, preceded by a section separator. */
 static void render_footer_rows(const Table *table) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs = table->opts.border.style;
-    ScColor oc      = table->opts.border.outer_color;
-    ScColor ic      = table->opts.border.inner_color;
+    ScBorderType border_style = table->opts.border.style;
 
-    if (table_data->footer_row_count > 0 && bs != SC_BORDER_NONE) {
+    if (table_data->footer_row_count > 0 && border_style != SC_BORDER_NONE) {
         render_section_sep(table);
     }
 
-    for (size_t r = 0; r < table_data->footer_row_count; r++) {
-        if (r > 0 && bs != SC_BORDER_NONE && !table->opts.border.no_inner_h) {
+    for (size_t i = 0; i < table_data->footer_row_count; i++) {
+        if (
+            i > 0 &&
+            border_style != SC_BORDER_NONE &&
+            !table->opts.border.no_inner_h
+        ) {
             render_horizontal_border(table, (HBorderSpec){
-                .left_corner_char = border_char_sets[bs].t_left, .right_corner_char = border_char_sets[bs].t_right,
-                .fill_char = border_char_sets[bs].h,    .column_separator = border_char_sets[bs].cross,
-                .inner_color = ic,               .edge_color = oc,
+                .left_corner_char   = border_char_sets[border_style].t_left,
+                .right_corner_char  = border_char_sets[border_style].t_right,
+                .fill_char          = border_char_sets[border_style].h,
+                .column_separator   = border_char_sets[border_style].cross,
+                .inner_color        = table->opts.border.inner_color,
+                .edge_color         = table->opts.border.outer_color,
                 .use_header_col_sep = true,
             }, NULL);
         }
-        render_row(table, table_data->footer_rows[r].cells, table->opts.footer.row_bg, 2, 0);
+        render_row(
+            table,
+            table_data->footer_rows[i].cells,
+            table->opts.footer.row_bg,
+            2,
+            0
+        );
     }
 }
 
-/* Renders the bottom border: title line if a bottom title is set, otherwise a
-   plain horizontal border. No-op when no_outer is set. */
+/**
+ * Renders the bottom border: title line if a bottom title is set, otherwise a
+ * plain horizontal border. No-op when no_outer is set.
+ */
 static void render_bottom_border(const Table *table) {
-    ScBorderType bs = table->opts.border.style;
-    ScColor oc = table->opts.border.outer_color;
-    if (table->opts.border.no_outer) { return; }
+    ScBorderType border_style = table->opts.border.style;
+    if (table->opts.border.no_outer) {
+        return;
+    }
+
     if (table->opts.title.text && table->opts.title.pos == SC_POSITION_BOTTOM) {
         render_title_line(table, 0);
-    } else if (bs != SC_BORDER_NONE) {
+    } else if (border_style != SC_BORDER_NONE) {
         render_horizontal_border(table, (HBorderSpec){
-            .left_corner_char = border_char_sets[bs].bl,    .right_corner_char = border_char_sets[bs].br,
-            .fill_char = border_char_sets[bs].h,   .column_separator = border_char_sets[bs].t_bot,
-            .inner_color = oc,         .edge_color = oc,
+            .left_corner_char  = border_char_sets[border_style].bl,
+            .right_corner_char = border_char_sets[border_style].br,
+            .fill_char         = border_char_sets[border_style].h,
+            .column_separator  = border_char_sets[border_style].t_bot,
+            .inner_color       = table->opts.border.outer_color,
+            .edge_color        = table->opts.border.outer_color,
         }, NULL);
     }
 }
