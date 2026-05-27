@@ -30,22 +30,22 @@ typedef struct {
 } RowRenderCtx;
 
 // Forward declarations indented to reflect call hierarchy
-static void    render_row              (const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_h_in);
-    static size_t  build_row_cell_lines    (const Table *table, const ScCell *cells, const RowRenderCtx *rctx, TLine **cl, size_t *cnl);
-        static void    build_rowspan_cont_col_lines (const Table *table, size_t c, int cpx, const RowRenderCtx *rctx, TLine **cl, size_t *cnl);
-        static size_t  build_span_col_lines         (const Table *table, const ScCell *cell, size_t c, int cpx, TLine **cl, size_t *cnl);
-            static int     compute_span_w            (const Table *table, size_t c, int ecs);
-    static void    render_row_visual_line  (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, int li, const RowRenderCtx *rctx);
-        static void    render_row_cell     (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, size_t c, size_t ci, int ecs, int li, const RowRenderCtx *rctx);
-            static ScColor resolve_cell_bg           (const Table *table, size_t c, ScColor row_bg, RowSection row_section);
-            static void    resolve_cell_align        (const Table *table, const ScCell *cells, size_t c, ScHAlign *ha, ScVAlign *va);
-            static int     compute_rowspan_cell_cli  (const RowSpan *rs, int li, int cn);
-            static int     compute_normal_cell_cli   (int li, int cn, ScVAlign va, const RowRenderCtx *rctx);
-            static void    render_cell_line          (const TLine *line, int cw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
-                static void    print_cell_line_aligned   (const TLine *line, int rw, ScHAlign ha, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
-                    static ScTextStyle apply_hdrftr_style (ScTextStyle so, const ScTableOpts *opts, const RowRenderCtx *rctx);
-                static void    print_cell_line_truncated (const TLine *line, int cw, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
-            static void    render_row_vsep           (const Table *table, size_t c, size_t ci, int ecs);
+static void    render_row              (const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_height_in);
+    static size_t  build_row_cell_lines    (const Table *table, const ScCell *cells, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
+        static void    build_rowspan_cont_col_lines (const Table *table, size_t col, int pad_horiz, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
+        static size_t  build_span_col_lines         (const Table *table, const ScCell *cell, size_t col, int pad_horiz, TLine **col_lines, size_t *col_line_counts);
+            static int     compute_span_w            (const Table *table, size_t col, int span_cols);
+    static void    render_row_visual_line  (const Table *table, const ScCell *cells, TLine **col_lines, size_t *col_line_counts, int visual_line, const RowRenderCtx *rctx);
+        static void    render_row_cell     (const Table *table, const ScCell *cells, TLine **col_lines, size_t *col_line_counts, size_t col, size_t col_iter, int span_cols, int visual_line, const RowRenderCtx *rctx);
+            static ScColor resolve_cell_bg           (const Table *table, size_t col, ScColor row_bg, RowSection row_section);
+            static void    resolve_cell_align        (const Table *table, const ScCell *cells, size_t col, ScHAlign *out_halign, ScVAlign *out_valign);
+            static int     compute_rowspan_cell_cli  (const RowSpan *rowspan, int visual_line, int content_lines);
+            static int     compute_normal_cell_cli   (int visual_line, int content_lines, ScVAlign valign, const RowRenderCtx *rctx);
+            static void    render_cell_line          (const TLine *line, int col_width, ScHAlign halign, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
+                static void    print_cell_line_aligned   (const TLine *line, int align_padding, ScHAlign halign, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
+                    static ScTextStyle apply_hdrftr_style (ScTextStyle span_style, const ScTableOpts *opts, const RowRenderCtx *rctx);
+                static void    print_cell_line_truncated (const TLine *line, int col_width, ScColor cell_bg, const ScTableOpts *opts, const RowRenderCtx *rctx);
+            static void    render_row_vsep           (const Table *table, size_t col, size_t col_iter, int span_cols);
 
 
 /* ── Row rendering ───────────────────────────────────────────────────────── */
@@ -53,11 +53,11 @@ static void    render_row              (const Table *table, const ScCell *cells,
 /** Initialises a `RowRenderCtx`, builds per-column TLine arrays, dispatches each
  *  visual line to `render_row_visual_line()`, then frees the arrays. */
 static void render_row(const Table *table, const ScCell *cells,
-                        ScColor row_bg, int row_kind, int row_h_in) {
+                        ScColor row_bg, int row_kind, int row_height_in) {
     const ScTableData *table_data = table->table_data;
 
-    TLine **cl  = malloc(table_data->column_count * sizeof(TLine *));
-    size_t *cnl = malloc(table_data->column_count * sizeof(size_t));
+    TLine **col_lines       = malloc(table_data->column_count * sizeof(TLine *));
+    size_t *col_line_counts = malloc(table_data->column_count * sizeof(size_t));
 
     RowRenderCtx rctx = {
         .row_span    = (row_kind == 0) ? table->row_span : NULL,
@@ -69,317 +69,325 @@ static void render_row(const Table *table, const ScCell *cells,
         .pad_top      = table->opts.cell_pad.top,
     };
 
-    size_t max_content = build_row_cell_lines(table, cells, &rctx, cl, cnl);
-    rctx.row_height = row_h_in > 0 ? row_h_in : (int)max_content + rctx.pad_vertical;
+    size_t max_content_lines = build_row_cell_lines(table, cells, &rctx, col_lines, col_line_counts);
+    rctx.row_height = row_height_in > 0 ? row_height_in : (int)max_content_lines + rctx.pad_vertical;
     if (rctx.row_height < 1) { rctx.row_height = 1; }
 
-    for (int li = 0; li < rctx.row_height; li++) {
-        render_row_visual_line(table, cells, cl, cnl, li, &rctx);
+    for (int visual_line = 0; visual_line < rctx.row_height; visual_line++) {
+        render_row_visual_line(table, cells, col_lines, col_line_counts, visual_line, &rctx);
     }
 
-    for (size_t c = 0; c < table_data->column_count; c++) {
-        if (cl[c]) { free_tlines(cl[c], cnl[c]); }
+    for (size_t col = 0; col < table_data->column_count; col++) {
+        if (col_lines[col]) { free_tlines(col_lines[col], col_line_counts[col]); }
     }
-    free(cl);
-    free(cnl);
+    free(col_lines);
+    free(col_line_counts);
 }
 
-/** Loops over every column, dispatching to build_rowspan_cont_col_lines() or
- *  build_span_col_lines(). Returns the tallest non-rowspan-starting line count. */
+/** Loops over every column, dispatching to `build_rowspan_cont_col_lines()` or
+ *  `build_span_col_lines()`. Returns the tallest non-rowspan-starting line count. */
 static size_t build_row_cell_lines(const Table *table, const ScCell *cells,
-                                    const RowRenderCtx *rctx, TLine **cl, size_t *cnl) {
+                                    const RowRenderCtx *rctx,
+                                    TLine **col_lines, size_t *col_line_counts) {
     const ScTableData *table_data = table->table_data;
-    int rtl = table->opts.right_to_left;
-    int cpx = rctx->pad_left + rctx->pad_right;
-    size_t max_content = 0;
+    int right_to_left = table->opts.right_to_left;
+    int pad_horiz     = rctx->pad_left + rctx->pad_right;
+    size_t max_content_lines = 0;
 
-    for (size_t ci = 0; ci < table_data->column_count; ci++) {
-        size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
+    for (size_t col_iter = 0; col_iter < table_data->column_count; col_iter++) {
+        size_t col = right_to_left ? (table_data->column_count - 1 - col_iter) : col_iter;
 
-        if (cells[c].col_span < 0) { cl[c] = NULL; cnl[c] = 0; continue; }
+        if (cells[col].col_span < 0) {
+            col_lines[col] = NULL; col_line_counts[col] = 0; continue;
+        }
 
-        if (cells[c].row_span == -1) {
-            build_rowspan_cont_col_lines(table, c, cpx, rctx, cl, cnl);
+        if (cells[col].row_span == -1) {
+            build_rowspan_cont_col_lines(table, col, pad_horiz, rctx, col_lines, col_line_counts);
             continue;
         }
 
-        size_t n = build_span_col_lines(table, &cells[c], c, cpx, cl, cnl);
-        int rs_v = cells[c].row_span;
-        if ((rs_v == 0 || rs_v == 1) && n > max_content) {
-            max_content = n;
+        size_t line_count  = build_span_col_lines(table, &cells[col], col, pad_horiz, col_lines, col_line_counts);
+        int    row_span_val = cells[col].row_span;
+        if ((row_span_val == 0 || row_span_val == 1) && line_count > max_content_lines) {
+            max_content_lines = line_count;
         }
     }
 
-    return max_content;
+    return max_content_lines;
 }
 
-/** Builds the TLine array for column @p c that continues a rowspan from a
- *  previous row. Uses the originating cell from rctx->row_span; sets cl[c]=NULL
- *  when no active span context exists. */
-static void build_rowspan_cont_col_lines(const Table *table, size_t c, int cpx,
-                                          const RowRenderCtx *rctx, TLine **cl, size_t *cnl) {
-    if (rctx->row_span && rctx->row_span[c].cell) {
-        const ScTableData *table_data = table->table_data;
-        int span_cw = table->column_widths[c] - cpx;
-        if (span_cw < 0) { span_cw = 0; }
-        if (table_data->columns[c].opts.word_wrap && span_cw > 0) {
-            cl[c] = wrap_cell_lines(rctx->row_span[c].cell, span_cw, &cnl[c]);
+/** Builds the TLine array for column `col` that continues a rowspan from a
+ *  previous row. Uses the originating cell from `rctx->row_span`; sets
+ *  `col_lines[col]=NULL` when no active span context exists. */
+static void build_rowspan_cont_col_lines(const Table *table, size_t col, int pad_horiz,
+                                          const RowRenderCtx *rctx,
+                                          TLine **col_lines, size_t *col_line_counts) {
+    if (rctx->row_span && rctx->row_span[col].cell) {
+        const ScTableData *table_data  = table->table_data;
+        int span_content_width = table->column_widths[col] - pad_horiz;
+        if (span_content_width < 0) { span_content_width = 0; }
+        if (table_data->columns[col].opts.word_wrap && span_content_width > 0) {
+            col_lines[col] = wrap_cell_lines(rctx->row_span[col].cell, span_content_width, &col_line_counts[col]);
         } else {
-            cl[c] = make_cell_lines(rctx->row_span[c].cell, &cnl[c]);
+            col_lines[col] = make_cell_lines(rctx->row_span[col].cell, &col_line_counts[col]);
         }
     } else {
-        cl[c] = NULL; cnl[c] = 0;
+        col_lines[col] = NULL; col_line_counts[col] = 0;
     }
 }
 
-/** Builds the TLine array for a normal or colspan-initiating cell at column @p c.
+/** Builds the TLine array for a normal or colspan-initiating cell at column `col`.
  *  Selects word-wrap or plain building based on column settings.
- *  Returns the content line count written to cnl[c]. */
+ *  Returns the content line count written to `col_line_counts[col]`. */
 static size_t build_span_col_lines(const Table *table, const ScCell *cell,
-                                    size_t c, int cpx, TLine **cl, size_t *cnl) {
+                                    size_t col, int pad_horiz,
+                                    TLine **col_lines, size_t *col_line_counts) {
     const ScTableData *table_data = table->table_data;
-    int cs  = cell->col_span;
-    int ecs = (cs > 1) ? cs : 1;
-    if ((int)c + ecs > (int)table_data->column_count) {
-        ecs = (int)table_data->column_count - (int)c;
+    int col_span  = cell->col_span;
+    int span_cols = (col_span > 1) ? col_span : 1;
+    if ((int)col + span_cols > (int)table_data->column_count) {
+        span_cols = (int)table_data->column_count - (int)col;
     }
 
-    int cw = compute_span_w(table, c, ecs) - cpx;
-    if (cw < 0) { cw = 0; }
+    int content_width = compute_span_w(table, col, span_cols) - pad_horiz;
+    if (content_width < 0) { content_width = 0; }
 
-    if (table_data->columns[c].opts.word_wrap && cw > 0) {
-        cl[c] = wrap_cell_lines(cell, cw, &cnl[c]);
+    if (table_data->columns[col].opts.word_wrap && content_width > 0) {
+        col_lines[col] = wrap_cell_lines(cell, content_width, &col_line_counts[col]);
     } else {
-        cl[c] = make_cell_lines(cell, &cnl[c]);
+        col_lines[col] = make_cell_lines(cell, &col_line_counts[col]);
     }
 
-    return cnl[c];
+    return col_line_counts[col];
 }
 
 /** Computes the raw column width for a colspan span, absorbing inner vertical
  *  separator characters into the total. */
-static int compute_span_w(const Table *table, size_t c, int ecs) {
-    const ScTableData *table_data = table->table_data;
-    int rtl        = table->opts.right_to_left;
-    int no_inner_v = table->opts.border.no_inner_v;
-    size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
+static int compute_span_w(const Table *table, size_t col, int span_cols) {
+    const ScTableData *table_data  = table->table_data;
+    int right_to_left              = table->opts.right_to_left;
+    int no_inner_v                 = table->opts.border.no_inner_v;
+    size_t header_col_phys = right_to_left ? (table_data->column_count - 1) : 0;
 
     int span_total = 0;
-    for (int k = 0; k < ecs; k++) {
-        size_t cc = c + (size_t)k;
-        span_total += table->column_widths[cc];
-        if (k < ecs - 1) {
-            int is_hcol_k = (table->opts.header.col && cc == hcol_phys);
-            if (!no_inner_v || is_hcol_k) { span_total++; }
+    for (int i = 0; i < span_cols; i++) {
+        size_t span_col = col + (size_t)i;
+        span_total += table->column_widths[span_col];
+        if (i < span_cols - 1) {
+            bool is_header_col = (table->opts.header.col && span_col == header_col_phys);
+            if (!no_inner_v || is_header_col) { span_total++; }
         }
     }
     return span_total;
 }
 
-/** Renders one visual line @p li of the row: prints the left border, loops
- *  over columns via render_row_cell(), then closes with the right border. */
+/** Renders one visual line `visual_line` of the row: prints the left border, loops
+ *  over columns via `render_row_cell()`, then closes with the right border. */
 static void render_row_visual_line(const Table *table, const ScCell *cells,
-                                    TLine **cl, size_t *cnl,
-                                    int li, const RowRenderCtx *rctx) {
+                                    TLine **col_lines, size_t *col_line_counts,
+                                    int visual_line, const RowRenderCtx *rctx) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs = table->opts.border.style;
-    ScColor oc      = table->opts.border.outer_color;
-    int no_outer    = table->opts.border.no_outer;
-    int rtl         = table->opts.right_to_left;
+    ScBorderType border_style = table->opts.border.style;
+    ScColor outer_color       = table->opts.border.outer_color;
+    int no_outer              = table->opts.border.no_outer;
+    int right_to_left         = table->opts.right_to_left;
 
     print_left_margin(table);
-    if (!no_outer) { print_colored_string(border_char_sets[bs].v, oc); }
+    if (!no_outer) { print_colored_string(border_char_sets[border_style].v, outer_color); }
 
-    size_t ci = 0;
-    while (ci < table_data->column_count) {
-        size_t c = rtl ? (table_data->column_count - 1 - ci) : ci;
-        int cs_raw = cells[c].col_span;
-        if (cs_raw < 0) { ci++; continue; }
+    size_t col_iter = 0;
+    while (col_iter < table_data->column_count) {
+        size_t col   = right_to_left ? (table_data->column_count - 1 - col_iter) : col_iter;
+        int col_span = cells[col].col_span;
+        if (col_span < 0) { col_iter++; continue; }
 
-        int ecs = (cs_raw > 1) ? cs_raw : 1;
-        if ((int)c + ecs > (int)table_data->column_count) {
-            ecs = (int)table_data->column_count - (int)c;
+        int span_cols = (col_span > 1) ? col_span : 1;
+        if ((int)col + span_cols > (int)table_data->column_count) {
+            span_cols = (int)table_data->column_count - (int)col;
         }
 
-        render_row_cell(table, cells, cl, cnl, c, ci, ecs, li, rctx);
-        ci += (size_t)ecs;
+        render_row_cell(table, cells, col_lines, col_line_counts, col, col_iter, span_cols, visual_line, rctx);
+        col_iter += (size_t)span_cols;
     }
 
-    if (!no_outer) { print_colored_string(border_char_sets[bs].v, oc); }
+    if (!no_outer) { print_colored_string(border_char_sets[border_style].v, outer_color); }
     fputc('\n', stdout);
 }
 
-/** Renders one cell (padding + content + separator) at visual line @p li.
+/** Renders one cell (padding + content + separator) at visual line `visual_line`.
  *  Resolves background, alignment, and content line index, then delegates. */
 static void render_row_cell(const Table *table, const ScCell *cells,
-                             TLine **cl, size_t *cnl,
-                             size_t c, size_t ci, int ecs, int li,
+                             TLine **col_lines, size_t *col_line_counts,
+                             size_t col, size_t col_iter, int span_cols, int visual_line,
                              const RowRenderCtx *rctx) {
-    int cw = compute_span_w(table, c, ecs) - (rctx->pad_left + rctx->pad_right);
-    if (cw < 0) { cw = 0; }
+    int content_width = compute_span_w(table, col, span_cols) - (rctx->pad_left + rctx->pad_right);
+    if (content_width < 0) { content_width = 0; }
 
-    ScColor  cell_bg = resolve_cell_bg(table, c, rctx->row_bg, rctx->row_section);
-    ScHAlign ha; ScVAlign va;
-    resolve_cell_align(table, cells, c, &ha, &va);
+    ScColor  cell_bg = resolve_cell_bg(table, col, rctx->row_bg, rctx->row_section);
+    ScHAlign halign; ScVAlign valign;
+    resolve_cell_align(table, cells, col, &halign, &valign);
 
-    int cn        = cl[c] ? (int)cnl[c] : 0;
-    int rs_render = cells[c].row_span;
-    int cli;
-    if ((rs_render > 1 || rs_render == -1) && rctx->row_span && rctx->row_span[c].cell) {
-        cli = compute_rowspan_cell_cli(&rctx->row_span[c], li, cn);
+    int content_line_count = col_lines[col] ? (int)col_line_counts[col] : 0;
+    int row_span_val       = cells[col].row_span;
+    int content_line_idx;
+    if ((row_span_val > 1 || row_span_val == -1) && rctx->row_span && rctx->row_span[col].cell) {
+        content_line_idx = compute_rowspan_cell_cli(&rctx->row_span[col], visual_line, content_line_count);
     } else {
-        cli = compute_normal_cell_cli(li, cn, va, rctx);
+        content_line_idx = compute_normal_cell_cli(visual_line, content_line_count, valign, rctx);
     }
 
     print_spaces_bg(rctx->pad_left, cell_bg);
-    if (cli >= 0 && cli < cn && cl[c]) {
-        render_cell_line(&cl[c][cli], cw, ha, cell_bg, &table->opts, rctx);
+    if (content_line_idx >= 0 && content_line_idx < content_line_count && col_lines[col]) {
+        render_cell_line(&col_lines[col][content_line_idx], content_width, halign, cell_bg, &table->opts, rctx);
     } else {
-        print_spaces_bg(cw, cell_bg);
+        print_spaces_bg(content_width, cell_bg);
     }
     print_spaces_bg(rctx->pad_right, cell_bg);
 
-    render_row_vsep(table, c, ci, ecs);
+    render_row_vsep(table, col, col_iter, span_cols);
 }
 
 /** Resolves the effective cell background applying priority:
  *  header/footer row/col bg > explicit row bg > column bg. */
-static ScColor resolve_cell_bg(const Table *table, size_t c,
+static ScColor resolve_cell_bg(const Table *table, size_t col,
                                 ScColor row_bg, RowSection row_section) {
-    const ScTableData *table_data = table->table_data;
-    int rtl      = table->opts.right_to_left;
-    bool is_hdr  = (row_section == ROW_SECTION_HEADER);
-    bool is_ftr  = (row_section == ROW_SECTION_FOOTER);
-    size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
+    const ScTableData *table_data  = table->table_data;
+    int right_to_left              = table->opts.right_to_left;
+    bool is_header                 = (row_section == ROW_SECTION_HEADER);
+    bool is_footer                 = (row_section == ROW_SECTION_FOOTER);
+    size_t header_col_phys = right_to_left ? (table_data->column_count - 1) : 0;
 
-    ScColor col_bg  = table_data->columns[c].opts.bg;
+    ScColor col_bg  = table_data->columns[col].opts.bg;
     ScColor cell_bg = (row_bg.index != -2) ? row_bg : col_bg;
-    bool is_hcol_c  = (table->opts.header.col && c == hcol_phys);
+    bool is_header_col = (table->opts.header.col && col == header_col_phys);
 
-    if (is_hcol_c && !is_hdr) {
-        cell_bg = is_ftr ? table->opts.footer.col_bg : table->opts.header.col_bg;
+    if (is_header_col && !is_header) {
+        cell_bg = is_footer ? table->opts.footer.col_bg : table->opts.header.col_bg;
     }
-    if (is_hdr)               { cell_bg = table->opts.header.row_bg; }
-    if (is_ftr && !is_hcol_c) { cell_bg = table->opts.footer.row_bg; }
-    if (is_ftr &&  is_hcol_c) { cell_bg = table->opts.footer.col_bg; }
+    if (is_header)                   { cell_bg = table->opts.header.row_bg; }
+    if (is_footer && !is_header_col) { cell_bg = table->opts.footer.row_bg; }
+    if (is_footer &&  is_header_col) { cell_bg = table->opts.footer.col_bg; }
 
     return cell_bg;
 }
 
-/** Resolves the horizontal and vertical alignment for column @p c,
+/** Resolves the horizontal and vertical alignment for column `col`,
  *  applying per-cell overrides on top of the column defaults. */
-static void resolve_cell_align(const Table *table, const ScCell *cells, size_t c,
-                                ScHAlign *ha, ScVAlign *va) {
+static void resolve_cell_align(const Table *table, const ScCell *cells, size_t col,
+                                ScHAlign *out_halign, ScVAlign *out_valign) {
     const ScTableData *table_data = table->table_data;
-    *ha = table_data->columns[c].opts.halign;
-    *va = table_data->columns[c].opts.valign;
-    if (cells[c].align_set)  { *ha = cells[c].align; }
-    if (cells[c].valign_set) { *va = cells[c].valign; }
+    *out_halign = table_data->columns[col].opts.halign;
+    *out_valign = table_data->columns[col].opts.valign;
+    if (cells[col].align_set)  { *out_halign = cells[col].align; }
+    if (cells[col].valign_set) { *out_valign = cells[col].valign; }
 }
 
-/** Computes the content line index for a rowspan cell at visual line @p li,
+/** Computes the content line index for a rowspan cell at visual line `visual_line`,
  *  distributing lines across the full span height with vertical alignment. */
-static int compute_rowspan_cell_cli(const RowSpan *rs, int li, int cn) {
-    int extra = rs->row_count - cn;
-    if (extra < 0) { extra = 0; }
-    int top = 0;
-    if      (rs->valign == SC_VALIGN_MIDDLE) { top = extra / 2; }
-    else if (rs->valign == SC_VALIGN_BOTTOM) { top = extra; }
-    return rs->line_offset + li - top;
+static int compute_rowspan_cell_cli(const RowSpan *rowspan, int visual_line, int content_lines) {
+    int extra_lines = rowspan->row_count - content_lines;
+    if (extra_lines < 0) { extra_lines = 0; }
+    int top_offset = 0;
+    if      (rowspan->valign == SC_VALIGN_MIDDLE) { top_offset = extra_lines / 2; }
+    else if (rowspan->valign == SC_VALIGN_BOTTOM) { top_offset = extra_lines; }
+    return rowspan->line_offset + visual_line - top_offset;
 }
 
-/** Computes the content line index for a normal (non-rowspan) cell at visual
- *  line @p li, applying vertical alignment within the row height. */
-static int compute_normal_cell_cli(int li, int cn, ScVAlign va, const RowRenderCtx *rctx) {
-    int extra = rctx->row_height - cn - rctx->pad_vertical;
-    if (extra < 0) { extra = 0; }
+/** Computes the content line index for a normal (non-rowspan) cell at visual line
+ *  `visual_line`, applying vertical alignment within the row height. */
+static int compute_normal_cell_cli(int visual_line, int content_lines, ScVAlign valign,
+                                    const RowRenderCtx *rctx) {
+    int extra_lines = rctx->row_height - content_lines - rctx->pad_vertical;
+    if (extra_lines < 0) { extra_lines = 0; }
     int top_pad = rctx->pad_top;
-    if      (va == SC_VALIGN_MIDDLE) { top_pad += extra / 2; }
-    else if (va == SC_VALIGN_BOTTOM) { top_pad += extra; }
-    return li - top_pad;
+    if      (valign == SC_VALIGN_MIDDLE) { top_pad += extra_lines / 2; }
+    else if (valign == SC_VALIGN_BOTTOM) { top_pad += extra_lines; }
+    return visual_line - top_pad;
 }
 
-/** Dispatches to print_cell_line_aligned() when content fits within @p cw,
- *  or print_cell_line_truncated() when it is wider. */
-static void render_cell_line(const TLine *line, int cw, ScHAlign ha, ScColor cell_bg,
-                              const ScTableOpts *opts, const RowRenderCtx *rctx) {
-    int rw = cw - (int)line->vis_w;
-    if (rw >= 0) {
-        print_cell_line_aligned(line, rw, ha, cell_bg, opts, rctx);
+/** Dispatches to `print_cell_line_aligned()` when content fits within `col_width`,
+ *  or `print_cell_line_truncated()` when it is wider. */
+static void render_cell_line(const TLine *line, int col_width, ScHAlign halign,
+                              ScColor cell_bg, const ScTableOpts *opts,
+                              const RowRenderCtx *rctx) {
+    int align_padding = col_width - (int)line->vis_w;
+    if (align_padding >= 0) {
+        print_cell_line_aligned(line, align_padding, halign, cell_bg, opts, rctx);
     } else {
-        print_cell_line_truncated(line, cw, cell_bg, opts, rctx);
+        print_cell_line_truncated(line, col_width, cell_bg, opts, rctx);
     }
 }
 
-/** Prints all spans of @p line with left/right alignment padding totalling @p rw. */
-static void print_cell_line_aligned(const TLine *line, int rw, ScHAlign ha,
+/** Prints all spans of `line` with left/right alignment padding totalling `align_padding`. */
+static void print_cell_line_aligned(const TLine *line, int align_padding, ScHAlign halign,
                                      ScColor cell_bg, const ScTableOpts *opts,
                                      const RowRenderCtx *rctx) {
-    int lp = 0, rp = rw;
-    if      (ha == SC_ALIGN_CENTER) { lp = rw/2; rp = rw - lp; }
-    else if (ha == SC_ALIGN_RIGHT)  { lp = rw;   rp = 0;       }
-    print_spaces_bg(lp, cell_bg);
-    for (size_t s = 0; s < line->count; s++) {
-        ScTextStyle so = apply_hdrftr_style(line->spans[s].opts, opts, rctx);
-        print_span_bg(line->spans[s].text, so, cell_bg);
+    int left_pad  = 0;
+    int right_pad = align_padding;
+    if      (halign == SC_ALIGN_CENTER) { left_pad = align_padding / 2; right_pad = align_padding - left_pad; }
+    else if (halign == SC_ALIGN_RIGHT)  { left_pad = align_padding;     right_pad = 0;                        }
+    print_spaces_bg(left_pad, cell_bg);
+    for (size_t i = 0; i < line->count; i++) {
+        ScTextStyle span_style = apply_hdrftr_style(line->spans[i].opts, opts, rctx);
+        print_span_bg(line->spans[i].text, span_style, cell_bg);
     }
-    print_spaces_bg(rp, cell_bg);
+    print_spaces_bg(right_pad, cell_bg);
 }
 
-/** Returns @p so with header or footer text style applied to unstyled spans:
- *  only sets attr/fg when the span carries none of its own. */
-static ScTextStyle apply_hdrftr_style(ScTextStyle so, const ScTableOpts *opts,
+/** Returns `span_style` with header or footer text style applied to unstyled spans:
+ *  only sets `attr`/`fg` when the span carries none of its own. */
+static ScTextStyle apply_hdrftr_style(ScTextStyle span_style, const ScTableOpts *opts,
                                        const RowRenderCtx *rctx) {
     if (rctx->row_section == ROW_SECTION_HEADER) {
-        if (so.attr == 0)      { so.attr = opts->header.opts.attr; }
-        if (so.fg.index == -2) { so.fg   = opts->header.opts.fg; }
+        if (span_style.attr == 0)      { span_style.attr = opts->header.opts.attr; }
+        if (span_style.fg.index == -2) { span_style.fg   = opts->header.opts.fg; }
     } else if (rctx->row_section == ROW_SECTION_FOOTER) {
-        if (so.attr == 0)      { so.attr = opts->footer.opts.attr; }
-        if (so.fg.index == -2) { so.fg   = opts->footer.opts.fg; }
+        if (span_style.attr == 0)      { span_style.attr = opts->footer.opts.attr; }
+        if (span_style.fg.index == -2) { span_style.fg   = opts->footer.opts.fg; }
     }
-    return so;
+    return span_style;
 }
 
-/** Prints as many columns of @p line as fit within @p cw, truncating the last
+/** Prints as many columns of `line` as fit within `col_width`, truncating the last
  *  span at the exact column boundary when needed. */
-static void print_cell_line_truncated(const TLine *line, int cw, ScColor cell_bg,
+static void print_cell_line_truncated(const TLine *line, int col_width, ScColor cell_bg,
                                        const ScTableOpts *opts, const RowRenderCtx *rctx) {
-    int remaining = cw;
-    for (size_t s = 0; s < line->count && remaining > 0; s++) {
-        ScTextStyle so  = apply_hdrftr_style(line->spans[s].opts, opts, rctx);
-        const char *txt = line->spans[s].text;
-        int sw = (int)sc_utf8_string_length(txt, strlen(txt));
-        if (sw <= remaining) {
-            print_span_bg(txt, so, cell_bg);
-            remaining -= sw;
+    int cols_remaining = col_width;
+    for (size_t i = 0; i < line->count && cols_remaining > 0; i++) {
+        ScTextStyle span_style = apply_hdrftr_style(line->spans[i].opts, opts, rctx);
+        const char *span_text  = line->spans[i].text;
+        int span_width = (int)sc_utf8_string_length(span_text, strlen(span_text));
+        if (span_width <= cols_remaining) {
+            print_span_bg(span_text, span_style, cell_bg);
+            cols_remaining -= span_width;
         } else {
-            size_t bytes = sc_utf8_trim_to_cols(txt, remaining);
-            char *part = strndup(txt, bytes);
-            print_span_bg(part, so, cell_bg);
-            free(part); remaining = 0;
+            size_t trimmed_bytes = sc_utf8_trim_to_cols(span_text, cols_remaining);
+            char  *trimmed_text  = strndup(span_text, trimmed_bytes);
+            print_span_bg(trimmed_text, span_style, cell_bg);
+            free(trimmed_text); cols_remaining = 0;
         }
     }
 }
 
-/** Prints the vertical separator after the cell at column @p c, selecting
+/** Prints the vertical separator after the cell at column `col`, selecting
  *  the header-column separator color when applicable. */
-static void render_row_vsep(const Table *table, size_t c, size_t ci, int ecs) {
+static void render_row_vsep(const Table *table, size_t col, size_t col_iter, int span_cols) {
     const ScTableData *table_data = table->table_data;
-    ScBorderType bs  = table->opts.border.style;
-    ScColor ic       = table->opts.border.inner_color;
-    int no_inner_v   = table->opts.border.no_inner_v;
-    int rtl          = table->opts.right_to_left;
-    size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
+    ScBorderType border_style  = table->opts.border.style;
+    ScColor inner_color        = table->opts.border.inner_color;
+    int no_inner_v             = table->opts.border.no_inner_v;
+    int right_to_left          = table->opts.right_to_left;
+    size_t header_col_phys     = right_to_left ? (table_data->column_count - 1) : 0;
 
-    size_t end_col = c + (size_t)ecs - 1;
-    if (ci + (size_t)ecs < table_data->column_count && bs != SC_BORDER_NONE) {
-        int is_hcol_end = (table->opts.header.col && end_col == hcol_phys);
-        if (!no_inner_v || is_hcol_end) {
-            ScColor sc_col = ic;
-            if (is_hcol_end && table->opts.border.header_col_sep_color.index != -2) {
-                sc_col = table->opts.border.header_col_sep_color;
+    size_t end_col = col + (size_t)span_cols - 1;
+    if (col_iter + (size_t)span_cols < table_data->column_count && border_style != SC_BORDER_NONE) {
+        bool is_header_col_end = (table->opts.header.col && end_col == header_col_phys);
+        if (!no_inner_v || is_header_col_end) {
+            ScColor sep_color = inner_color;
+            if (is_header_col_end && table->opts.border.header_col_sep_color.index != -2) {
+                sep_color = table->opts.border.header_col_sep_color;
             }
-            print_colored_string(border_char_sets[bs].v, sc_col);
+            print_colored_string(border_char_sets[border_style].v, sep_color);
         }
     }
 }
