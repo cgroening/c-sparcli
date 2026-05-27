@@ -8,18 +8,18 @@
 
 /* Token type for the word-wrap subsystem: one contiguous run of spaces or
    non-spaces extracted from a TLine span. */
-typedef struct { char *s; size_t vis_w; ScTextStyle opts; bool is_space; } WwTok;
+typedef struct { char *s; size_t vis_w; ScTextStyle opts; bool is_space; } WordWrapToken;
 
 /* Mutable accumulator for the word-wrap line-building loop. */
 typedef struct {
-    TLine  *res;   /* completed output lines */
-    size_t  nres;
-    size_t  rcap;
-    TSpan  *sbuf;  /* spans accumulating for the current output line */
-    size_t  sn;    /* span count */
-    size_t  sc2;   /* span buffer capacity */
-    size_t  sw;    /* visible width of the current output line */
-} WwAccum;
+    TLine  *lines;   /* completed output lines */
+    size_t  line_count;
+    size_t  line_capacity;
+    TSpan  *spans;  /* spans accumulating for the current output line */
+    size_t  span_count;    /* span count */
+    size_t  span_capacity;   /* span buffer capacity */
+    size_t  span_width;    /* visible width of the current output line */
+} WordWrapAccum;
 
 // Forward declarations indented to reflect call hierarchy
 static void   free_tlines  (TLine *lines, size_t n);
@@ -36,15 +36,14 @@ static TLine *wrap_cell_lines      (const ScCell *cell, int wrap_w, size_t *out_
     static void   append_tline_copy    (TLine **res, size_t *nres, size_t *rcap, const TLine *src);
     static void   append_wrapped_lines (TLine **res, size_t *nres, size_t *rcap, const TLine *src, int wrap_w);
         static TLine *wrap_one_tline       (const TLine *src, int wrap_w, size_t *out_n);
-            static void   tokenize_tline_spans (const TLine *src, WwTok **out_toks, size_t *out_n);
-            static void   emit_space_tok       (WwAccum *a, WwTok *tok, const WwTok *next, int wrap_w);
-                static void   ww_flush_sbuf    (WwAccum *a);
-                static void   ww_push_span     (WwAccum *a, char *s, size_t vis_w, ScTextStyle opts);
-            static void   emit_word_tok        (WwAccum *a, WwTok *tok, int wrap_w);
-                static void   hard_break_word  (WwAccum *a, WwTok *tok, int wrap_w);
+            static void   tokenize_tline_spans (const TLine *src, WordWrapToken **out_toks, size_t *out_n);
+            static void   emit_space_tok       (WordWrapAccum *a, WordWrapToken *tok, const WordWrapToken *next, int wrap_w);
+                static void   ww_flush_sbuf    (WordWrapAccum *a);
+                static void   ww_push_span     (WordWrapAccum *a, char *s, size_t vis_w, ScTextStyle opts);
+            static void   emit_word_tok        (WordWrapAccum *a, WordWrapToken *tok, int wrap_w);
+                static void   hard_break_word  (WordWrapAccum *a, WordWrapToken *tok, int wrap_w);
 
 
-/* ── TLine memory helpers ────────────────────────────────────────────────── */
 
 /* Frees all span strings inside each TLine, then the spans array and the
    lines array itself. */
@@ -73,7 +72,6 @@ static void flush_tline(TLine **lines, size_t *cap, size_t *n,
     (*lines)[(*n)++] = (TLine){ ls, buf_n, vis_w };
 }
 
-/* ── Cell line building ───────────────────────────────────────────────────── */
 
 /** Splits the content of @p cell on '\n' into an array of TLines. Each TLine
  *  owns heap copies of its span strings. Delegates span resolution and newline
@@ -163,7 +161,6 @@ static size_t cell_vis_width(const ScCell *cell) {
     return max_w;
 }
 
-/* ── Word-wrap ───────────────────────────────────────────────────────────── */
 
 /** Wraps all lines of @p cell that exceed @p wrap_w columns, copying lines
  *  that fit via append_tline_copy() and wrapping wider ones via
@@ -217,12 +214,12 @@ static void append_wrapped_lines(TLine **res, size_t *nres, size_t *rcap,
  *  Tokenizes the line, dispatches each token to emit_space_tok() or
  *  emit_word_tok(), then flushes the final accumulated line. */
 static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
-    WwTok *toks; size_t ntok;
+    WordWrapToken *toks; size_t ntok;
     tokenize_tline_spans(src, &toks, &ntok);
 
-    WwAccum acc = {0};
+    WordWrapAccum acc = {0};
     for (size_t ti = 0; ti < ntok; ti++) {
-        const WwTok *next = (ti + 1 < ntok) ? &toks[ti + 1] : NULL;
+        const WordWrapToken *next = (ti + 1 < ntok) ? &toks[ti + 1] : NULL;
         if (toks[ti].is_space) {
             emit_space_tok(&acc, &toks[ti], next, wrap_w);
         } else {
@@ -231,18 +228,18 @@ static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
     }
     ww_flush_sbuf(&acc);
 
-    TLine *res = acc.res;
-    free(acc.sbuf);
+    TLine *res = acc.lines;
+    free(acc.spans);
     for (size_t ti = 0; ti < ntok; ti++) { if (toks[ti].s) { free(toks[ti].s); } }
     free(toks);
-    *out_n = acc.nres;
+    *out_n = acc.line_count;
     return res;
 }
 
 /** Splits each span of @p src into alternating non-space/space-run WwTok tokens.
  *  The caller owns the returned array and must free each token's @c s field. */
-static void tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out_n) {
-    WwTok *toks = NULL; size_t ntok = 0, tcap = 0;
+static void tokenize_tline_spans(const TLine *src, WordWrapToken **out_toks, size_t *out_n) {
+    WordWrapToken *toks = NULL; size_t ntok = 0, tcap = 0;
     for (size_t si = 0; si < src->count; si++) {
         const char *p = src->spans[si].text;
         ScTextStyle opts = src->spans[si].opts;
@@ -252,8 +249,8 @@ static void tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out
             while (*p && ((*p == ' ') == is_sp)) { p++; }
             size_t len = (size_t)(p - seg);
             size_t vw  = is_sp ? len : sc_utf8_string_length(seg, len);
-            if (ntok == tcap) { tcap = tcap ? tcap*2 : 16; toks = realloc(toks, tcap*sizeof(WwTok)); }
-            toks[ntok++] = (WwTok){ strndup(seg, len), vw, opts, is_sp };
+            if (ntok == tcap) { tcap = tcap ? tcap*2 : 16; toks = realloc(toks, tcap*sizeof(WordWrapToken)); }
+            toks[ntok++] = (WordWrapToken){ strndup(seg, len), vw, opts, is_sp };
         }
     }
     *out_toks = toks;
@@ -262,10 +259,10 @@ static void tokenize_tline_spans(const TLine *src, WwTok **out_toks, size_t *out
 
 /** Emits a space token: drops it when at line start, flushes and wraps when
  *  the following word won't fit after it, otherwise appends it to the line. */
-static void emit_space_tok(WwAccum *a, WwTok *tok, const WwTok *next, int wrap_w) {
-    if (a->sn == 0) { free(tok->s); tok->s = NULL; return; }
+static void emit_space_tok(WordWrapAccum *a, WordWrapToken *tok, const WordWrapToken *next, int wrap_w) {
+    if (a->span_count == 0) { free(tok->s); tok->s = NULL; return; }
     if (next && !next->is_space
-            && (int)(a->sw + tok->vis_w + next->vis_w) > wrap_w) {
+            && (int)(a->span_width + tok->vis_w + next->vis_w) > wrap_w) {
         free(tok->s); tok->s = NULL;
         ww_flush_sbuf(a);
         return;
@@ -276,27 +273,27 @@ static void emit_space_tok(WwAccum *a, WwTok *tok, const WwTok *next, int wrap_w
 
 /** Trims trailing space spans from the current line, flushes it as a new TLine
  *  into @p a->res via flush_tline(), then resets the span count and width. */
-static void ww_flush_sbuf(WwAccum *a) {
-    while (a->sn > 0 && a->sbuf[a->sn - 1].text[0] == ' ') {
-        a->sw -= strlen(a->sbuf[a->sn - 1].text);
-        free((char *)a->sbuf[--a->sn].text);
+static void ww_flush_sbuf(WordWrapAccum *a) {
+    while (a->span_count > 0 && a->spans[a->span_count - 1].text[0] == ' ') {
+        a->span_width -= strlen(a->spans[a->span_count - 1].text);
+        free((char *)a->spans[--a->span_count].text);
     }
-    flush_tline(&a->res, &a->rcap, &a->nres, a->sbuf, a->sn, a->sw);
-    a->sn = 0; a->sw = 0;
+    flush_tline(&a->lines, &a->line_capacity, &a->line_count, a->spans, a->span_count, a->span_width);
+    a->span_count = 0; a->span_width = 0;
 }
 
 /** Appends span @p s (taking ownership) to the current-line accumulator,
  *  growing the span buffer if needed, and adds @p vis_w to the line width. */
-static void ww_push_span(WwAccum *a, char *s, size_t vis_w, ScTextStyle opts) {
-    if (a->sn == a->sc2) { a->sc2 = a->sc2 ? a->sc2*2 : 8; a->sbuf = realloc(a->sbuf, a->sc2*sizeof(TSpan)); }
-    a->sbuf[a->sn++] = (TSpan){ s, opts };
-    a->sw += vis_w;
+static void ww_push_span(WordWrapAccum *a, char *s, size_t vis_w, ScTextStyle opts) {
+    if (a->span_count == a->span_capacity) { a->span_capacity = a->span_capacity ? a->span_capacity*2 : 8; a->spans = realloc(a->spans, a->span_capacity*sizeof(TSpan)); }
+    a->spans[a->span_count++] = (TSpan){ s, opts };
+    a->span_width += vis_w;
 }
 
 /** Emits a word token: flushes the current line first if the word doesn't fit,
  *  then hard-breaks it when it exceeds @p wrap_w, otherwise appends it. */
-static void emit_word_tok(WwAccum *a, WwTok *tok, int wrap_w) {
-    if (a->sn > 0 && (int)(a->sw + tok->vis_w) > wrap_w) { ww_flush_sbuf(a); }
+static void emit_word_tok(WordWrapAccum *a, WordWrapToken *tok, int wrap_w) {
+    if (a->span_count > 0 && (int)(a->span_width + tok->vis_w) > wrap_w) { ww_flush_sbuf(a); }
     if ((int)tok->vis_w > wrap_w) {
         hard_break_word(a, tok, wrap_w);
     } else {
@@ -307,11 +304,11 @@ static void emit_word_tok(WwAccum *a, WwTok *tok, int wrap_w) {
 
 /** Splits a word token wider than @p wrap_w into fit-sized chunks, flushing
  *  a new output line after each full chunk. Frees @p tok->s when done. */
-static void hard_break_word(WwAccum *a, WwTok *tok, int wrap_w) {
+static void hard_break_word(WordWrapAccum *a, WordWrapToken *tok, int wrap_w) {
     const char *p = tok->s;
     size_t rem = strlen(tok->s);
     while (rem > 0) {
-        int avail = wrap_w - (int)a->sw;
+        int avail = wrap_w - (int)a->span_width;
         if (avail <= 0) { ww_flush_sbuf(a); avail = wrap_w; }
         size_t cb = sc_utf8_trim_to_cols(p, avail);
         if (cb == 0) { break; }
