@@ -10,19 +10,23 @@
 #include "table_print_render_cell.c"
 #include "table_print_render_border.c"
 
-/* Per-row render context: derived once from table + row_kind, passed through
+typedef enum {
+    ROW_SECTION_DATA   = 0,
+    ROW_SECTION_HEADER = 1,
+    ROW_SECTION_FOOTER = 2,
+} RowSection;
+
+/* Per-row render context: derived once from table + row_section, passed through
    the rendering stack to avoid recomputing shared state at every call site. */
 typedef struct {
-    const RowSpan *row_span; /* rowspan contexts; NULL for header/footer */
-    ScColor      row_bg;   /* resolved row background */
-    int          row_kind; /* 0=data, 1=header, 2=footer */
-    int          is_header;   /* row_kind == 1 */
-    int          is_footer;   /* row_kind == 2 */
-    int          row_height;    /* total visual height of this row */
-    int          pad_left;     /* cell_pad.left */
-    int          pad_right;     /* cell_pad.right */
-    int          pad_vertical;      /* cell_pad.top + cell_pad.bottom */
-    int          pad_top;      /* cell_pad.top */
+    const RowSpan *row_span;     /* rowspan contexts; NULL for header/footer */
+    ScColor        row_bg;       /* resolved row background */
+    RowSection     row_section;  /* which table section this row belongs to */
+    int            row_height;   /* total visual height of this row */
+    int            pad_left;     /* cell_pad.left */
+    int            pad_right;    /* cell_pad.right */
+    int            pad_vertical; /* cell_pad.top + cell_pad.bottom */
+    int            pad_top;      /* cell_pad.top */
 } RowRenderCtx;
 
 // Forward declarations indented to reflect call hierarchy
@@ -33,7 +37,7 @@ static void    render_row              (const Table *table, const ScCell *cells,
             static int     compute_span_w            (const Table *table, size_t c, int ecs);
     static void    render_row_visual_line  (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, int li, const RowRenderCtx *rctx);
         static void    render_row_cell     (const Table *table, const ScCell *cells, TLine **cl, size_t *cnl, size_t c, size_t ci, int ecs, int li, const RowRenderCtx *rctx);
-            static ScColor resolve_cell_bg           (const Table *table, size_t c, ScColor row_bg, int row_kind);
+            static ScColor resolve_cell_bg           (const Table *table, size_t c, ScColor row_bg, RowSection row_section);
             static void    resolve_cell_align        (const Table *table, const ScCell *cells, size_t c, ScHAlign *ha, ScVAlign *va);
             static int     compute_rowspan_cell_cli  (const RowSpan *rs, int li, int cn);
             static int     compute_normal_cell_cli   (int li, int cn, ScVAlign va, const RowRenderCtx *rctx);
@@ -46,8 +50,8 @@ static void    render_row              (const Table *table, const ScCell *cells,
 
 /* ── Row rendering ───────────────────────────────────────────────────────── */
 
-/** Initialises a RowRCtx, builds per-column TLine arrays, dispatches each
- *  visual line to render_row_visual_line(), then frees the arrays. */
+/** Initialises a `RowRenderCtx`, builds per-column TLine arrays, dispatches each
+ *  visual line to `render_row_visual_line()`, then frees the arrays. */
 static void render_row(const Table *table, const ScCell *cells,
                         ScColor row_bg, int row_kind, int row_h_in) {
     const ScTableData *table_data = table->table_data;
@@ -56,14 +60,12 @@ static void render_row(const Table *table, const ScCell *cells,
     size_t *cnl = malloc(table_data->column_count * sizeof(size_t));
 
     RowRenderCtx rctx = {
-        .row_span = (row_kind == 0) ? table->row_span : NULL,
-        .row_bg   = row_bg,
-        .row_kind = row_kind,
-        .is_header   = (row_kind == 1),
-        .is_footer   = (row_kind == 2),
+        .row_span    = (row_kind == 0) ? table->row_span : NULL,
+        .row_bg      = row_bg,
+        .row_section = (RowSection)row_kind,
         .pad_left     = table->opts.cell_pad.left,
-        .pad_right     = table->opts.cell_pad.right,
-        .pad_vertical      = table->opts.cell_pad.top + table->opts.cell_pad.bottom,
+        .pad_right    = table->opts.cell_pad.right,
+        .pad_vertical = table->opts.cell_pad.top + table->opts.cell_pad.bottom,
         .pad_top      = table->opts.cell_pad.top,
     };
 
@@ -216,7 +218,7 @@ static void render_row_cell(const Table *table, const ScCell *cells,
     int cw = compute_span_w(table, c, ecs) - (rctx->pad_left + rctx->pad_right);
     if (cw < 0) { cw = 0; }
 
-    ScColor  cell_bg = resolve_cell_bg(table, c, rctx->row_bg, rctx->row_kind);
+    ScColor  cell_bg = resolve_cell_bg(table, c, rctx->row_bg, rctx->row_section);
     ScHAlign ha; ScVAlign va;
     resolve_cell_align(table, cells, c, &ha, &va);
 
@@ -243,16 +245,16 @@ static void render_row_cell(const Table *table, const ScCell *cells,
 /** Resolves the effective cell background applying priority:
  *  header/footer row/col bg > explicit row bg > column bg. */
 static ScColor resolve_cell_bg(const Table *table, size_t c,
-                                ScColor row_bg, int row_kind) {
+                                ScColor row_bg, RowSection row_section) {
     const ScTableData *table_data = table->table_data;
     int rtl      = table->opts.right_to_left;
-    int is_hdr   = (row_kind == 1);
-    int is_ftr   = (row_kind == 2);
+    bool is_hdr  = (row_section == ROW_SECTION_HEADER);
+    bool is_ftr  = (row_section == ROW_SECTION_FOOTER);
     size_t hcol_phys = rtl ? (table_data->column_count - 1) : 0;
 
     ScColor col_bg  = table_data->columns[c].opts.bg;
     ScColor cell_bg = (row_bg.index != -2) ? row_bg : col_bg;
-    int is_hcol_c   = (table->opts.header.col && c == hcol_phys);
+    bool is_hcol_c  = (table->opts.header.col && c == hcol_phys);
 
     if (is_hcol_c && !is_hdr) {
         cell_bg = is_ftr ? table->opts.footer.col_bg : table->opts.header.col_bg;
@@ -328,10 +330,10 @@ static void print_cell_line_aligned(const TLine *line, int rw, ScHAlign ha,
  *  only sets attr/fg when the span carries none of its own. */
 static ScTextStyle apply_hdrftr_style(ScTextStyle so, const ScTableOpts *opts,
                                        const RowRenderCtx *rctx) {
-    if (rctx->is_header) {
+    if (rctx->row_section == ROW_SECTION_HEADER) {
         if (so.attr == 0)      { so.attr = opts->header.opts.attr; }
         if (so.fg.index == -2) { so.fg   = opts->header.opts.fg; }
-    } else if (rctx->is_footer) {
+    } else if (rctx->row_section == ROW_SECTION_FOOTER) {
         if (so.attr == 0)      { so.attr = opts->footer.opts.attr; }
         if (so.fg.index == -2) { so.fg   = opts->footer.opts.fg; }
     }
