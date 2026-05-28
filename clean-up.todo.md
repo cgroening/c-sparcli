@@ -98,14 +98,14 @@
 
 ## Padding
 
-- [ ] tests/test_pad.c
-- [ ] include/sparcli_pad.h
-- [ ] src/pad.c
+- [x] tests/test_pad.c
+- [x] include/sparcli_pad.h
+- [x] src/pad.c
 
 ## Alignment
 
-- [ ] tests/test_align.c
-- [ ] include/sparcli_align.h
+- [x] tests/test_align.c
+- [x] include/sparcli_align.h
 
 ## Markup
 

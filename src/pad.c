@@ -1,61 +1,101 @@
 #include "sparcli.h"
 #include "internal.h"
+
 #include <stdio.h>
 
-/* ── sc_pad_print ────────────────────────────────────────────────────────── */
 
-void sc_pad_print(const ScRendered *r, ScPadOpts opts) {
-    if (!r) { return; }
-    for (int i = 0; i < opts.top; i++) { fputc('\n', stdout); }
-    for (size_t i = 0; i < r->line_count; i++) {
-        for (int k = 0; k < opts.left;  k++) { fputc(' ', stdout); }
-        fputs(r->lines[i], stdout);
-        for (int k = 0; k < opts.right; k++) { fputc(' ', stdout); }
-        fputc('\n', stdout);
+// Forward declarations indented to reflect call hierarchy
+static void print_newlines(int count);
+static void print_padded_line(
+    const char *line, int left_pad, int right_pad
+);
+    static void print_spaces(int count);
+
+static int get_align_left_pad(ScHAlign align, int spare);
+
+
+/* ── Padding ─────────────────────────────────────────────────────────────── */
+
+void sc_pad_print(const ScRendered *rendered, ScPadOpts opts) {
+    if (!rendered) { return; }
+
+    print_newlines(opts.top);
+    for (size_t i = 0; i < rendered->line_count; i++) {
+        print_padded_line(rendered->lines[i], opts.left, opts.right);
     }
-    for (int i = 0; i < opts.bottom; i++) { fputc('\n', stdout); }
+    print_newlines(opts.bottom);
 }
 
-/* ── sc_align_print ──────────────────────────────────────────────────────── */
+void sc_pad_str(const char *str, ScPadOpts opts) {
+    ScRendered *rendered = sc_capture_str(str);
+    sc_pad_print(rendered, opts);
+    sc_rendered_free(rendered);
+}
 
-void sc_align_print(const ScRendered *r, ScHAlign align, int width) {
-    if (!r) { return; }
+void sc_pad_text(const ScText *text, ScPadOpts opts) {
+    ScRendered *rendered = sc_capture_text(text);
+    sc_pad_print(rendered, opts);
+    sc_rendered_free(rendered);
+}
+
+
+/* ── Alignment ───────────────────────────────────────────────────────────── */
+
+void sc_align_print(const ScRendered *rendered, ScHAlign align, int width) {
+    if (!rendered) { return; }
     if (width <= 0) { width = sc_terminal_width(); }
-    for (size_t i = 0; i < r->line_count; i++) {
-        int vw    = r->column_widths[i];
-        int spare = width - vw;
+
+    for (size_t i = 0; i < rendered->line_count; i++) {
+        int spare = width - rendered->column_widths[i];
         if (spare < 0) { spare = 0; }
-        int lp = 0;
-        if      (align == SC_ALIGN_CENTER) { lp = spare / 2; }
-        else if (align == SC_ALIGN_RIGHT)  { lp = spare; }
-        for (int k = 0; k < lp; k++) { fputc(' ', stdout); }
-        fputs(r->lines[i], stdout);
+        int left_pad = get_align_left_pad(align, spare);
+
+        print_spaces(left_pad);
+        fputs(rendered->lines[i], stdout);
         fputc('\n', stdout);
     }
 }
 
-/* ── Convenience wrappers ────────────────────────────────────────────────── */
-
-void sc_pad_str(const char *s, ScPadOpts opts) {
-    ScRendered *r = sc_capture_str(s);
-    sc_pad_print(r, opts);
-    sc_rendered_free(r);
+void sc_align_str(const char *str, ScHAlign align, int width) {
+    ScRendered *rendered = sc_capture_str(str);
+    sc_align_print(rendered, align, width);
+    sc_rendered_free(rendered);
 }
 
-void sc_pad_text(const ScText *t, ScPadOpts opts) {
-    ScRendered *r = sc_capture_text(t);
-    sc_pad_print(r, opts);
-    sc_rendered_free(r);
+void sc_align_text(const ScText *text, ScHAlign align, int width) {
+    ScRendered *rendered = sc_capture_text(text);
+    sc_align_print(rendered, align, width);
+    sc_rendered_free(rendered);
 }
 
-void sc_align_str(const char *s, ScHAlign align, int width) {
-    ScRendered *r = sc_capture_str(s);
-    sc_align_print(r, align, width);
-    sc_rendered_free(r);
+
+/** Prints one content line with `left_pad` spaces before and `right_pad` after. */
+static void print_padded_line(
+    const char *line, int left_pad, int right_pad
+) {
+    print_spaces(left_pad);
+    fputs(line, stdout);
+    print_spaces(right_pad);
+    fputc('\n', stdout);
 }
 
-void sc_align_text(const ScText *t, ScHAlign align, int width) {
-    ScRendered *r = sc_capture_text(t);
-    sc_align_print(r, align, width);
-    sc_rendered_free(r);
+/** Prints `count` newline characters to stdout. */
+static void print_newlines(int count) {
+    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
+}
+
+/** Prints `count` space characters to stdout. */
+static void print_spaces(int count) {
+    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+}
+
+/**
+ * Returns the number of left-padding spaces needed to align content of
+ * width `(width - spare)` within `width` columns: `spare` for RIGHT,
+ * `spare / 2` for CENTER, `0` for LEFT.
+ */
+static int get_align_left_pad(ScHAlign align, int spare) {
+    if (align == SC_ALIGN_RIGHT)  { return spare; }
+    if (align == SC_ALIGN_CENTER) { return spare / 2; }
+    return 0;
 }
