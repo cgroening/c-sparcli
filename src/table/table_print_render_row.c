@@ -462,17 +462,17 @@ static ScTextStyle apply_section_default_style(
 ) {
     if (self->section == ROW_SECTION_HEADER) {
         if (span_style.attr == 0) {
-            span_style.attr = self->table->opts.header.opts.attr;
+            span_style.attr = self->table->opts.header.style.attr;
         }
         if (span_style.fg.index == -2) {
-            span_style.fg = self->table->opts.header.opts.fg;
+            span_style.fg = self->table->opts.header.style.fg;
         }
     } else if (self->section == ROW_SECTION_FOOTER) {
         if (span_style.attr == 0) {
-            span_style.attr = self->table->opts.footer.opts.attr;
+            span_style.attr = self->table->opts.footer.style.attr;
         }
         if (span_style.fg.index == -2) {
-            span_style.fg = self->table->opts.footer.opts.fg;
+            span_style.fg = self->table->opts.footer.style.fg;
         }
     }
     return span_style;

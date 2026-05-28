@@ -63,7 +63,7 @@ void test_align(void) {
                 0, 0, 0
             },
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .title = {
                 .text = " Summary ",
                 .style = bold_magenta,
@@ -146,7 +146,7 @@ void test_align(void) {
                     0, 0, 0
                 },
                 .header.row = true,
-                .header.opts = bold,
+                .header.style = bold,
                 .title = {
                     .text = " Left (padded) ",
                     .style = bold_cyan,
@@ -167,7 +167,7 @@ void test_align(void) {
                     0, 0, 0
                 },
                 .header.row = true,
-                .header.opts = bold,
+                .header.style = bold,
                 .title = {
                     .text = " Right (captured) ",
                     .style = bold_green,

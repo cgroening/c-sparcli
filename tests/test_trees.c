@@ -404,7 +404,7 @@ void test_trees(void) {
                 0, 0, 0
             },
             .header.row = true,
-            .header.opts = {
+            .header.style = {
                 SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
             },
             .title = {

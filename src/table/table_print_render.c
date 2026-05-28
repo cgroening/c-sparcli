@@ -326,10 +326,10 @@ static void render_truncation_indicator(Table *table, size_t max_rows) {
         cells[col] = sc_cell_skip();
     }
 
-    ScTextStyle saved_header_style = table->opts.header.opts;
-    table->opts.header.opts = dim_style;
+    ScTextStyle saved_header_style = table->opts.header.style;
+    table->opts.header.style = dim_style;
     render_row(table, cells, SC_ANSI_COLOR_NONE, ROW_SECTION_HEADER, 0);
-    table->opts.header.opts = saved_header_style;
+    table->opts.header.style = saved_header_style;
     free(cells);
 }
 

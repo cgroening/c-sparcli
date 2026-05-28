@@ -161,7 +161,7 @@ void test_markup(void) {
                 0, 0, 0
             },
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .cell_pad = { 0, 1, 0, 1 },
         });
         sc_table_free(table);

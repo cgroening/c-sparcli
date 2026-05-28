@@ -82,14 +82,14 @@ void test_columns(void) {
         ScTableOpts team_a_opts = {
             .border = default_table_border(),
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .title = title_centered_top(" Team A ", bold_cyan),
             .cell_pad = { 0, 1, 0, 1 },
         };
         ScTableOpts team_b_opts = {
             .border = default_table_border(),
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .title = title_centered_top(" Team B ", bold_magenta),
             .cell_pad = { 0, 1, 0, 1 },
         };
@@ -150,7 +150,7 @@ void test_columns(void) {
                 0, 0, 0
             },
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .cell_pad = { 0, 1, 0, 1 },
         }, (ScColItem){ 0 });
         sc_columns_print(columns);
@@ -296,7 +296,7 @@ void test_columns(void) {
         sc_columns_add_table(outer, config, (ScTableOpts){
             .border = default_table_border(),
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .cell_pad = { 0, 1, 0, 1 },
         }, (ScColItem){ 0 });
         sc_columns_add_columns(outer, inner, (ScColItem){ 0 });
@@ -386,21 +386,21 @@ void test_columns(void) {
         ScTableOpts revenue_opts = {
             .border = default_table_border(),
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .title = title_centered_top(" Revenue ", bold_cyan),
             .cell_pad = { 0, 1, 0, 1 },
         };
         ScTableOpts costs_opts = {
             .border = default_table_border(),
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .title = title_centered_top(" Costs ", bold_yellow),
             .cell_pad = { 0, 1, 0, 1 },
         };
         ScTableOpts profit_opts = {
             .border = default_table_border(),
             .header.row = true,
-            .header.opts = bold,
+            .header.style = bold,
             .title = title_centered_top(" Profit ", bold_green),
             .cell_pad = { 0, 1, 0, 1 },
         };

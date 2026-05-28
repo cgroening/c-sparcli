@@ -226,7 +226,7 @@ typedef struct ScTableHeader {
     ScColor col_bg;
 
     /** Text style applied to all header cells. */
-    ScTextStyle opts;
+    ScTextStyle style;
 } ScTableHeader;
 
 /** Footer row and column settings. */
@@ -238,7 +238,7 @@ typedef struct ScTableFooter {
     ScColor col_bg;
 
     /** Text style applied to all footer cells. */
-    ScTextStyle opts;
+    ScTextStyle style;
 } ScTableFooter;
 
 /** Rendering options passed to `sc_table_print()`. */
@@ -283,11 +283,17 @@ typedef struct ScTableOpts {
 typedef struct ScTableData ScTableData;
 
 ScTableData *sc_table_new(void);
-void sc_table_add_column(ScTableData *table, const char *header, ScColOpts col);
-void sc_table_add_row(ScTableData *table, ScCell *cells, size_t n);
-void sc_table_add_row_bg(
-    ScTableData *table, ScCell *cells, size_t n, ScColor bg
+void sc_table_add_column(
+    ScTableData *table, const char *header, ScColOpts col_opts
 );
-void sc_table_add_footer_row(ScTableData *table, ScCell *cells, size_t n);
+void sc_table_add_row(
+    ScTableData *table, ScCell *cells, size_t cell_count
+);
+void sc_table_add_row_bg(
+    ScTableData *table, ScCell *cells, size_t cell_count, ScColor bg
+);
+void sc_table_add_footer_row(
+    ScTableData *table, ScCell *cells, size_t cell_count
+);
 void sc_table_print(const ScTableData *table, ScTableOpts opts);
 void sc_table_free(ScTableData *table);
