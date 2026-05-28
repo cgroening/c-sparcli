@@ -30,6 +30,7 @@ typedef struct {
 } RowRenderCtx;
 
 // Forward declarations indented to reflect call hierarchy
+
 static void render_row(const Table *table, const ScCell *cells, ScColor row_bg, int row_kind, int row_height_in);
     static size_t build_row_cell_lines(const Table *table, const ScCell *cells, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);
         static void build_rowspan_cont_col_lines(const Table *table, size_t col, int pad_horiz, const RowRenderCtx *rctx, TLine **col_lines, size_t *col_line_counts);

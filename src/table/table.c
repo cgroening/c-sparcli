@@ -11,11 +11,11 @@ typedef struct {
     TRow **rows;
     size_t *count;
     size_t *capacity;
-} RowBlock;  // TODO: More meaningful name for this
+} RowBlock;
 
 
 
-/* ── Forward declarations ────────────────────────────────────────────────── */
+// Forward declarations indented to reflect call hierarchy
 
 ScTableData *sc_table_new(void);
 
@@ -46,9 +46,15 @@ void sc_table_free(ScTableData *table_data);
 
 
 
-static void    free_tlines(TLine *lines, size_t n);
-static void    flush_tline(TLine **lines, size_t *cap, size_t *n,
-                            TSpan *buf, size_t buf_n, size_t vis_w);
+static void free_tlines(TLine *lines, size_t n);
+static void flush_tline(
+    TLine **lines,
+    size_t *cap,
+    size_t *n,
+    TSpan *buf,
+    size_t buf_n,
+    size_t vis_w
+);
 static TLine  *make_cell_lines(const ScCell *cell, size_t *out_n);
 static size_t  cell_vis_width(const ScCell *cell);
 static TLine  *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n);
@@ -85,7 +91,8 @@ void sc_table_add_column(
     }
 
     // Add the new column with the provided header and options
-    table_data->columns[table_data->column_count].header = header ? strdup(header) : NULL;
+    table_data->columns[table_data->column_count].header =
+        header ? strdup(header) : NULL;
     table_data->columns[table_data->column_count].opts   = col;
     table_data->columns[table_data->column_count].width  = 0;
     table_data->column_count++;

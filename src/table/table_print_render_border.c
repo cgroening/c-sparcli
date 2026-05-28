@@ -9,92 +9,109 @@
 
 #include "table_print_render_cell.c"  // IWYU pragma: export
 
-/* Visual spec for one horizontal border line: corner chars, fill, junction,
-   and colors. `fill_color` and `mid_color` are unified into a single `color`
-   field since all callers pass the same value for both. */
-typedef struct {
-    const char *left_corner_char;        /* left  corner char */
-    const char *right_corner_char;        /* right corner char */
-    const char *fill_char;      /* fill (horizontal) char, repeated per column */
-    const char *column_separator;       /* junction char between columns; `NULL` = no junction */
-    ScColor     inner_color;     /* fill and junction color */
-    ScColor     edge_color;/* left/right corner color */
+/**
+ * Visual specification for one horizontal border line:
+ * corner chars, fill, junction and colors. `fill_color` and `mid_color` are
+ * unified into a single `color` field since all callers pass the same value
+ * for both.
+ */
+typedef struct HBorderSpec {
+    /** Left corner char. */
+    const char *left_corner_char;
+
+    /** Right corner char. */
+    const char *right_corner_char;
+
+    /** Fill (horizontal) char, repeated per column. */
+    const char *fill_char;
+
+    /** Junction char between columns; `NULL` = no junction. */
+    const char *column_separator;
+
+    /** Fill and junction color. */
+    ScColor     inner_color;
+
+    /** Left/right corner color. */
+    ScColor     edge_color;
 
     /**
      * Flag for applying `header_col_sep_color` at column junctions.
-     * True for  inner separator lines (header/footer boundaries) where
+     * `true` for inner separator lines (header/footer boundaries) where
      * `header_col_sep_color` applies at column junctions.
-     * False for outer frame lines (top/bottom border) where it does not.
+     * `false` for outer frame lines (top/bottom border) where it does not.
      */
     bool use_header_col_sep;
 } HBorderSpec;
 
-// Forward declarations indented to reflect call hierarchy
-static void print_colored_string(const char *str, ScColor fg);
-static void print_spaces_bg(int count, ScColor bg);
-static void print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg);
-static void print_left_margin(const Table *table);
-static void print_empty_lines(int count);
 
-static void render_horizontal_border(const Table *table, HBorderSpec spec, const bool *rowspan_flags);
-    static void adjust_hborder_corners(const Table *table, const bool *rowspan_flags, const char **left_corner, const char **right_corner);
-    static void render_hborder_col_fill(const Table *table, size_t col, const bool *rowspan_flags, HBorderSpec spec);
-    static void render_hborder_junction(const Table *table, size_t col, const bool *rowspan_flags, HBorderSpec spec);
+// Forward declarations indented to reflect call hierarchy
+
+static void render_horizontal_border(
+    const Table *table, HBorderSpec spec, const bool *rowspan_flags
+);
+    static void adjust_hborder_corners(
+        const Table *table,
+        const bool *rowspan_flags,
+        const char **left_corner,
+        const char **right_corner
+    );
+    static void render_hborder_col_fill(
+        const Table *table,
+        size_t col,
+        const bool *rowspan_flags,
+        HBorderSpec spec
+    );
+    static void render_hborder_junction(
+        const Table *table,
+        size_t col,
+        const bool *rowspan_flags,
+        HBorderSpec spec
+    );
+    static void print_left_margin(const Table *table);
+    static void print_colored_string(const char *str, ScColor fg);
 
 static void render_inner_sep(Table *table);
     static void render_isep_span_col(Table *table, size_t col);
-        static void render_isep_span_content(Table *table, size_t col, ScColor col_bg);
-            static int  compute_span_cli(const RowSpan *span_ctx, int content_lines);
-            static void print_tline_in_width(const TLine *line, int width, ScHAlign halign, ScColor bg);
+        static void render_isep_span_content(
+            Table *table, size_t col, ScColor col_bg
+        );
+            static int  compute_span_cli(
+                const RowSpan *span_ctx, int content_lines
+            );
+            static void print_tline_in_width(
+                const TLine *line, int width, ScHAlign halign, ScColor bg
+            );
+                static void print_span_bg(
+                    const char *text, ScTextStyle opts, ScColor cell_bg
+                );
+        static void print_spaces_bg(int count, ScColor bg);
     static void render_isep_border_fill(Table *table, size_t col);
     static void render_isep_junction(Table *table, size_t col);
 
 static void render_title_line(const Table *table, int is_top);
-    static void render_title_inner(const Table *table, const char *fill_char, ScColor outer_color, int title_pad);
-        static void render_title_with_fill(const Table *table, const char *fill_char, ScColor outer_color, int title_pad);
-            static void compute_title_fill_split(int inner_w, int title_len, int title_pad, ScHAlign align, int *left_fill, int *right_fill);
-        static void render_title_full_fill(int inner_w, const char *fill_char, ScColor outer_color);
-
-
-/* ── Low-level print helpers ─────────────────────────────────────────────── */
-
-/**
- * Prints a single string `str` in foreground color `fg`, then resets.
- */
-static void print_colored_string(const char *str, ScColor fg) {
-    sc_apply_colors(fg, SC_ANSI_COLOR_NONE);
-    fputs(str, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-}
-
-/* Prints `count` space characters with background color `bg` applied, then resets. */
-static void print_spaces_bg(int count, ScColor bg) {
-    if (count <= 0) { return; }
-    if (bg.index != -2) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
-    if (bg.index != -2) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
-}
-
-/* Prints a styled span, falling back to the cell background when the span
-   has no background of its own. */
-static void print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg) {
-    if (opts.bg.index == -2 && cell_bg.index != -2) { opts.bg = cell_bg; }
-    sc_print(text, opts);
-}
-
-/* Prints the left margin spaces for the table. */
-static void print_left_margin(const Table *table) {
-    for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', stdout); }
-}
-
-/* Prints `count` empty lines to apply vertical margins. */
-static void print_empty_lines(int count) {
-    for (int i = 0; i < count; i++) {
-        fputc('\n', stdout);
-    }
-}
-
-/* ── Horizontal border rendering ─────────────────────────────────────────── */
+    static void render_title_inner(
+        const Table *table,
+        const char *fill_char,
+        ScColor outer_color,
+        int title_pad
+    );
+        static void render_title_with_fill(
+            const Table *table,
+            const char *fill_char,
+            ScColor outer_color,
+            int title_pad
+        );
+            static void compute_title_fill_split(
+                int inner_width,
+                int title_len,
+                int title_pad,
+                ScHAlign align,
+                int *left_fill,
+                int *right_fill
+            );
+        static void render_title_full_fill(
+            int inner_w, const char *fill_char, ScColor outer_color
+        );
 
 /**
  * Renders one horizontal border line (top, bottom, or inner separator).
@@ -218,6 +235,20 @@ static void render_hborder_junction(
         junction_color = table->opts.border.header_col_sep_color;
     }
     print_colored_string(junction_char, junction_color);
+}
+
+/** Prints the left margin spaces for the table. */
+static void print_left_margin(const Table *table) {
+    for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', stdout); }
+}
+
+/**
+ * Prints a single string `str` in foreground color `fg`, then resets.
+ */
+static void print_colored_string(const char *str, ScColor fg) {
+    sc_apply_colors(fg, SC_ANSI_COLOR_NONE);
+    fputs(str, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 
 /**
@@ -361,6 +392,26 @@ static void print_tline_in_width(
             }
         }
     }
+}
+
+/**
+ * Prints a styled span, falling back to the cell background when the span
+ * has no background of its own.
+ */
+static void print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg) {
+    if (opts.bg.index == -2 && cell_bg.index != -2) { opts.bg = cell_bg; }
+    sc_print(text, opts);
+}
+
+/**
+ * Prints `count` space characters with background color `bg` applied,
+ * then resets.
+ */
+static void print_spaces_bg(int count, ScColor bg) {
+    if (count <= 0) { return; }
+    if (bg.index != -2) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
+    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    if (bg.index != -2) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
 }
 
 /**

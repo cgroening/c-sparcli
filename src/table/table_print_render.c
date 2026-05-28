@@ -12,7 +12,10 @@
 #include "table_print_render_border.c"  // IWYU pragma: export
 #include "table_print_render_row.c"     // IWYU pragma: export
 
+// Forward declarations indented to reflect call hierarchy
+
 static void table_render(Table *table);
+    static void print_empty_lines(int count);
     static void render_top_border(const Table *table);
     static void render_header_row(const Table *table);
         static void render_section_sep(const Table *table);
@@ -44,6 +47,13 @@ static void table_render(Table *table) {
     render_footer_rows(table);
     render_bottom_border(table);
     print_empty_lines(table->opts.margin.bottom);
+}
+
+/** Prints `count` empty lines to apply vertical margins. */
+static void print_empty_lines(int count) {
+    for (int i = 0; i < count; i++) {
+        fputc('\n', stdout);
+    }
 }
 
 /**

@@ -22,15 +22,15 @@ typedef struct {
 } WordWrapAccum;
 
 // Forward declarations indented to reflect call hierarchy
-static void free_tlines(TLine *lines, size_t line_count);
-static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count, TSpan *buf, size_t buf_count, size_t vis_w);
 
 static TLine *make_cell_lines(const ScCell *cell, size_t *out_n);
     static void resolve_cell_span(const ScCell *cell, size_t span_idx, const char **out_s, ScTextStyle *out_opts);
     static void scan_text_for_newlines(const char *text, ScTextStyle opts, TLine **lines, size_t *line_cap, size_t *line_count, TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width);
         static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width, const char *start, size_t len, ScTextStyle opts);
+    static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count, TSpan *buf, size_t buf_count, size_t vis_w);
 
 static size_t cell_vis_width(const ScCell *cell);
+    static void free_tlines(TLine *lines, size_t line_count);
 
 static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
     static void append_tline_copy(TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src);
@@ -43,37 +43,6 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
             static void emit_word_tok(WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
                 static void hard_break_word(WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
 
-
-/* ── TLine memory helpers ────────────────────────────────────────────────── */
-
-/* Frees all span strings inside each TLine, then the spans array and the
-   lines array itself. */
-static void free_tlines(TLine *lines, size_t line_count) {
-    for (size_t line_idx = 0; line_idx < line_count; line_idx++) {
-        for (size_t span_idx = 0; span_idx < lines[line_idx].count; span_idx++) {
-            free((char *)lines[line_idx].spans[span_idx].text);
-        }
-        free(lines[line_idx].spans);
-    }
-    free(lines);
-}
-
-/* Copies the span buffer into a new TLine entry and appends it to the lines
-   array, growing the array if needed. */
-static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count,
-                         TSpan *buf, size_t buf_count, size_t vis_w) {
-    /* --- grow the lines array if full --- */
-    if (*line_count == *line_cap) {
-        *line_cap = *line_cap ? *line_cap * 2 : 4;
-        *lines = realloc(*lines, *line_cap * sizeof(TLine));
-    }
-    /* --- copy the span buffer into a new owned TLine --- */
-    TSpan *span_copy = malloc((buf_count + 1) * sizeof(TSpan));
-    if (buf_count) { memcpy(span_copy, buf, buf_count * sizeof(TSpan)); }
-    (*lines)[(*line_count)++] = (TLine){ span_copy, buf_count, vis_w };
-}
-
-/* ── Cell line building ───────────────────────────────────────────────────── */
 
 /**
  * Splits the content of `cell` on '\n' into an array of TLines. Each TLine
@@ -163,6 +132,21 @@ static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, si
     *buf_width += sc_utf8_string_length(start, len);
 }
 
+/* Copies the span buffer into a new TLine entry and appends it to the lines
+   array, growing the array if needed. */
+static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count,
+                         TSpan *buf, size_t buf_count, size_t vis_w) {
+    /* --- grow the lines array if full --- */
+    if (*line_count == *line_cap) {
+        *line_cap = *line_cap ? *line_cap * 2 : 4;
+        *lines = realloc(*lines, *line_cap * sizeof(TLine));
+    }
+    /* --- copy the span buffer into a new owned TLine --- */
+    TSpan *span_copy = malloc((buf_count + 1) * sizeof(TSpan));
+    if (buf_count) { memcpy(span_copy, buf, buf_count * sizeof(TSpan)); }
+    (*lines)[(*line_count)++] = (TLine){ span_copy, buf_count, vis_w };
+}
+
 /* Returns the visible column width of the widest line in a cell. */
 static size_t cell_vis_width(const ScCell *cell) {
     size_t line_count;
@@ -173,6 +157,18 @@ static size_t cell_vis_width(const ScCell *cell) {
     }
     free_tlines(lines, line_count);
     return max_width;
+}
+
+/* Frees all span strings inside each TLine, then the spans array and the
+   lines array itself. */
+static void free_tlines(TLine *lines, size_t line_count) {
+    for (size_t line_idx = 0; line_idx < line_count; line_idx++) {
+        for (size_t span_idx = 0; span_idx < lines[line_idx].count; span_idx++) {
+            free((char *)lines[line_idx].spans[span_idx].text);
+        }
+        free(lines[line_idx].spans);
+    }
+    free(lines);
 }
 
 /* ── Word-wrap ───────────────────────────────────────────────────────────── */

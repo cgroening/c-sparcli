@@ -9,6 +9,8 @@
 #include <stdio.h>
 
 
+// Forward declarations indented to reflect call hierarchy
+
 static void compute_column_widths(Table *table);
     static size_t get_max_content_width(const ScTableData *td, size_t c);
         static size_t get_header_width(const TCol *col);
