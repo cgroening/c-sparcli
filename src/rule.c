@@ -6,6 +6,26 @@
 #include <stdlib.h>
 
 
+/** Left and right fill character counts for a titled rule line. */
+typedef struct {
+    int left;
+    int right;
+} FillSplit;
+
+/** Render-time context for printing a rule line with an embedded title. */
+typedef struct {
+    ScRuleOpts    opts;
+    const ScText *title;
+    const char   *fill_char;
+    int terminal_width;
+    int effective_width;
+    int title_width;
+    int title_padding;
+    int margin_left;
+    int margin_right;
+} Rule;
+
+
 static const char *rule_h[] = {
     [SC_BORDER_NONE]    = " ",
     [SC_BORDER_ASCII]   = "-",
@@ -16,66 +36,46 @@ static const char *rule_h[] = {
 };
 
 
+// sc_rule_str
+//     sc_rule_text
 static int get_left_margin(ScRuleOpts opts);
 static int get_right_margin(ScRuleOpts opts);
-static int get_effective_width(
-    ScRuleOpts opts, int terminal_width, int margin_left, int margin_right
-);
+static int get_effective_width(ScRuleOpts opts, int terminal_width, int margin_left, int margin_right);
 static int get_style(ScRuleOpts opts);
 static int get_title_width(const ScText *title);
 static int get_title_padding(ScRuleOpts opts);
 static int get_left_pad(ScRuleOpts opts, int terminal_width, int margin_left, int margin_right, int effective_width);
-static void print_rule_fill(
-    const char *fill_char, int fill_char_count, ScColor color
-);
+static void print_rule_line_with_title(Rule ctx);
+    static FillSplit get_fill_split(Rule ctx);
+    static void print_rule_fill(const char *fill_char, int fill_char_count, ScColor color);
 
 
 void sc_rule_text(const ScText *title, ScRuleOpts opts) {
     int terminal_width  = sc_terminal_width();
     int margin_left     = get_left_margin(opts);
     int margin_right    = get_right_margin(opts);
-    int effective_width = get_effective_width(
-        opts, terminal_width, margin_left, margin_right
-    );
-    int style             = get_style(opts);
-    const char *fill_char = rule_h[style];
+    int effective_width = get_effective_width(opts, terminal_width, margin_left, margin_right);
 
-    int has_title   = title && title->count > 0;
-    int title_width = get_title_width(title);
-    int title_padding = get_title_padding(opts);
+    Rule ctx = {
+        .title           = title,
+        .fill_char       = rule_h[get_style(opts)],
+        .effective_width = effective_width,
+        .title_width     = get_title_width(title),
+        .title_padding   = get_title_padding(opts),
+        .opts            = opts,
+    };
 
-    int left_pad = get_left_pad(opts, terminal_width, margin_left, margin_right, effective_width);
+    int left_pad  = get_left_pad(opts, terminal_width, margin_left, margin_right, effective_width);
+    int has_title = title && title->count > 0;
 
     for (int i = 0; i < opts.margin.top; i++) { fputc('\n', stdout); }
 
     for (int i = 0; i < left_pad; i++) { fputc(' ', stdout); }
 
     if (has_title) {
-        int dashes = effective_width - title_width - 2 * title_padding;
-        if (dashes < 0) { dashes = 0; }
-        int ld, rd;
-        if (opts.title.align == SC_ALIGN_LEFT) {
-            ld = 1; rd = dashes - 1;
-        } else if (opts.title.align == SC_ALIGN_RIGHT) {
-            ld = dashes - 1; rd = 1;
-        } else {
-            ld = dashes / 2; rd = dashes - ld;
-        }
-        if (ld < 0) { ld = 0; }
-        if (rd < 0) { rd = 0; }
-
-        int colored = (opts.color.index != -2);
-        print_rule_fill(fill_char, ld, opts.color);
-        if (colored) { sc_apply_colors(opts.color, SC_ANSI_COLOR_NONE); }
-        for (int i = 0; i < title_padding; i++) { fputc(' ', stdout); }
-        if (colored) { fputs("\033[0m", stdout); }
-        sc_print_text(title);
-        if (colored) { sc_apply_colors(opts.color, SC_ANSI_COLOR_NONE); }
-        for (int i = 0; i < title_padding; i++) { fputc(' ', stdout); }
-        if (colored) { fputs("\033[0m", stdout); }
-        print_rule_fill(fill_char, rd, opts.color);
+        print_rule_line_with_title(ctx);
     } else {
-        print_rule_fill(fill_char, effective_width, opts.color);
+        print_rule_fill(ctx.fill_char, ctx.effective_width, ctx.opts.color);
     }
 
     fputc('\n', stdout);
@@ -162,6 +162,47 @@ static int get_left_pad(
 }
 
 /**
+ * Prints one rule line with `ctx.title` embedded: fill chars on both sides,
+ * separated from the title by `ctx.title_padding` spaces on each side.
+ * The left/right fill counts are split according to `ctx.opts.title.align`.
+ */
+static void print_rule_line_with_title(Rule ctx) {
+    FillSplit fs = get_fill_split(ctx);
+    int colored  = (ctx.opts.color.index != -2);
+
+    print_rule_fill(ctx.fill_char, fs.left, ctx.opts.color);
+    if (colored) { sc_apply_colors(ctx.opts.color, SC_ANSI_COLOR_NONE); }
+    for (int i = 0; i < ctx.title_padding; i++) { fputc(' ', stdout); }
+    if (colored) { fputs("\033[0m", stdout); }
+    sc_print_text(ctx.title);
+    if (colored) { sc_apply_colors(ctx.opts.color, SC_ANSI_COLOR_NONE); }
+    for (int i = 0; i < ctx.title_padding; i++) { fputc(' ', stdout); }
+    if (colored) { fputs("\033[0m", stdout); }
+    print_rule_fill(ctx.fill_char, fs.right, ctx.opts.color);
+}
+
+/**
+ * Splits fill characters into left and right counts according to
+ * `ctx.opts.title.align`; both values are clamped to `>= 0`.
+ */
+static FillSplit get_fill_split(Rule ctx) {
+    int fill_total = ctx.effective_width - ctx.title_width - 2 * ctx.title_padding;
+    if (fill_total < 0) { fill_total = 0; }
+
+    FillSplit fs;
+    if (ctx.opts.title.align == SC_ALIGN_LEFT) {
+        fs.left = 1; fs.right = fill_total - 1;
+    } else if (ctx.opts.title.align == SC_ALIGN_RIGHT) {
+        fs.left = fill_total - 1; fs.right = 1;
+    } else {
+        fs.left = fill_total / 2; fs.right = fill_total - fs.left;
+    }
+    if (fs.left  < 0) { fs.left  = 0; }
+    if (fs.right < 0) { fs.right = 0; }
+    return fs;
+}
+
+/**
  * Prints the horizontal `fill_char` exactly `fill_char_count` times,
  * wrapped in ANSI color escapes when `color` is set.
  *
@@ -187,8 +228,6 @@ static void print_rule_fill(
         fputs("\033[0m", stdout);
     }
 }
-
-
 
 
 void sc_rule_str(const char *title, ScRuleOpts opts) {
