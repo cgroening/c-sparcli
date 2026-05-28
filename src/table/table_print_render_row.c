@@ -278,7 +278,7 @@ static void render_visual_line(const Row *self, int visual_line) {
     if (!no_outer) {
         print_colored_string(border_char_sets[style].v, outer_color);
     }
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /**

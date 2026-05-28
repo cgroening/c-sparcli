@@ -59,8 +59,8 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
     self.title_padding   = get_title_padding(&self);
 
     // Print top margin and left padding
-    for (int i = 0; i < opts.margin.top; i++) { fputc('\n', stdout); }
-    for (int i = 0; i < get_indentation(&self); i++) { fputc(' ', stdout); }
+    for (int i = 0; i < opts.margin.top; i++) { fputc('\n', sc_output_stream()); }
+    for (int i = 0; i < get_indentation(&self); i++) { fputc(' ', sc_output_stream()); }
 
     // Print rule line with or without title
     int has_title = title && title->count > 0;
@@ -69,10 +69,10 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts) {
     } else {
         print_rule_fill(&self, self.effective_width);
     }
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 
     // Print bottom margin
-    for (int i = 0; i < opts.margin.bottom; i++) { fputc('\n', stdout); }
+    for (int i = 0; i < opts.margin.bottom; i++) { fputc('\n', sc_output_stream()); }
 }
 
 
@@ -174,14 +174,14 @@ static void print_rule_line_with_title(Rule *self) {
     print_rule_fill(self, fill_split.left);
 
     if (is_colored) { sc_apply_colors(self->opts.color, SC_ANSI_COLOR_NONE); }
-    for (int i = 0; i < self->title_padding; i++) { fputc(' ', stdout); }
-    if (is_colored) { fputs("\033[0m", stdout); }
+    for (int i = 0; i < self->title_padding; i++) { fputc(' ', sc_output_stream()); }
+    if (is_colored) { fputs("\033[0m", sc_output_stream()); }
 
     sc_print_text(self->title);
 
     if (is_colored) { sc_apply_colors(self->opts.color, SC_ANSI_COLOR_NONE); }
-    for (int i = 0; i < self->title_padding; i++) { fputc(' ', stdout); }
-    if (is_colored) { fputs("\033[0m", stdout); }
+    for (int i = 0; i < self->title_padding; i++) { fputc(' ', sc_output_stream()); }
+    if (is_colored) { fputs("\033[0m", sc_output_stream()); }
 
     print_rule_fill(self, fill_split.right);
 }
@@ -234,10 +234,10 @@ static void print_rule_fill(Rule *self, int count) {
         sc_apply_colors(self->opts.color, SC_ANSI_COLOR_NONE);
     }
     for (int i = 0; i < count; i++) {
-        fputs(self->fill_char, stdout);
+        fputs(self->fill_char, sc_output_stream());
     }
     if (is_colored) {
-        fputs("\033[0m", stdout);
+        fputs("\033[0m", sc_output_stream());
     }
 }
 

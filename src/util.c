@@ -75,10 +75,10 @@ char *sc_truncate(const char *str, int max_cols, const char *ellipsis) {
 
 void sc_clear_line(void) {
     int terminal_width = sc_terminal_width();
-    fputc('\r', stdout);
+    fputc('\r', sc_output_stream());
     print_spaces(terminal_width);
-    fputc('\r', stdout);
-    fflush(stdout);
+    fputc('\r', sc_output_stream());
+    fflush(sc_output_stream());
 }
 
 
@@ -103,5 +103,5 @@ static bool is_csi_final_byte(unsigned char byte) {
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }

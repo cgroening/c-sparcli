@@ -51,8 +51,8 @@ void sc_align_print(const ScRendered *rendered, ScHAlign align, int width) {
         int left_pad = get_align_left_pad(align, spare);
 
         print_spaces(left_pad);
-        fputs(rendered->lines[i], stdout);
-        fputc('\n', stdout);
+        fputs(rendered->lines[i], sc_output_stream());
+        fputc('\n', sc_output_stream());
     }
 }
 
@@ -74,19 +74,19 @@ static void print_padded_line(
     const char *line, int left_pad, int right_pad
 ) {
     print_spaces(left_pad);
-    fputs(line, stdout);
+    fputs(line, sc_output_stream());
     print_spaces(right_pad);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /** Prints `count` newline characters to stdout. */
 static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
+    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
 }
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /**

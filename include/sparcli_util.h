@@ -1,5 +1,11 @@
 #pragma once
 
+#include "sparcli_export.h"
+
+
+SPARCLI_BEGIN_DECLS
+
+
 
 /**
  * Returns a heap-allocated copy of `str` with all ANSI CSI escape sequences
@@ -34,4 +40,6 @@ char *sc_truncate(const char *str, int max_cols, const char *ellipsis);
  * Overwrites the current terminal line with spaces and returns the cursor
  * to column 0, then flushes stdout.
  */
-void sc_clear_line(void);
+SPARCLI_EXPORT void sc_clear_line(void);
+
+SPARCLI_END_DECLS

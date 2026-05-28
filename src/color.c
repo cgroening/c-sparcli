@@ -58,8 +58,8 @@ static void apply_color_escape(ScColor clr, ColorLayer layer) {
     if(clr.index == -2) {
         return;
     } else if(clr.index == -1) {
-        fprintf(stdout, "\033[%d;2;%d;%d;%dm", rgb_prefix, clr.r, clr.g, clr.b);
+        fprintf(sc_output_stream(), "\033[%d;2;%d;%d;%dm", rgb_prefix, clr.r, clr.g, clr.b);
     } else {
-        fprintf(stdout, "\033[%d%dm", named, clr.index);
+        fprintf(sc_output_stream(), "\033[%d%dm", named, clr.index);
     }
 }

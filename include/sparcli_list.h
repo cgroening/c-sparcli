@@ -3,6 +3,8 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Marker style used in front of each list item.
@@ -102,11 +104,13 @@ ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts);
  *
  * @param list  List to render; no output when `list` is `NULL`.
  */
-void sc_list_print(const ScList *list);
+SPARCLI_EXPORT void sc_list_print(const ScList *list);
 
 /**
  * Frees `list`, all its items and any attached sub-lists.
  *
  * @param list  List to free; safe to pass `NULL`.
  */
-void sc_list_free(ScList *list);
+SPARCLI_EXPORT void sc_list_free(ScList *list);
+
+SPARCLI_END_DECLS

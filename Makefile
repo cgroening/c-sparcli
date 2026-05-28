@@ -1,7 +1,7 @@
 CC      = cc
 CFLAGS  = -std=c11 -Wall -Wextra -Iinclude -Isrc
 
-SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c \
+SRC     = src/output.c src/version.c src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c \
           src/table/table.c \
           src/table/table_print.c \
           src/table/table_print_init.c \

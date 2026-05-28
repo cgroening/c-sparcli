@@ -3,6 +3,8 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Rendering options for an inline badge token.
@@ -33,7 +35,7 @@ typedef struct ScBadgeOpts {
  * @param text  Badge text; may be `NULL` to print just the caps and padding.
  * @param opts  Rendering options.
  */
-void sc_print_badge(const char *text, ScBadgeOpts opts);
+SPARCLI_EXPORT void sc_print_badge(const char *text, ScBadgeOpts opts);
 
 /**
  * Appends the composed badge string as a single span to `text_obj`.
@@ -46,6 +48,8 @@ void sc_print_badge(const char *text, ScBadgeOpts opts);
  * @param text      Badge text; may be `NULL`.
  * @param opts      Rendering options.
  */
-void sc_text_append_badge(
+SPARCLI_EXPORT void sc_text_append_badge(
     ScText *text_obj, const char *text, ScBadgeOpts opts
 );
+
+SPARCLI_END_DECLS

@@ -2,6 +2,8 @@
 
 #include "sparcli_core.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Rendering options for a key-value list.
@@ -56,7 +58,7 @@ ScKV *sc_kv_new(ScKVOpts opts);
  * @param key    Key string; copied internally; `NULL` is treated as `""`.
  * @param value  Value string; copied internally; `NULL` is treated as `""`.
  */
-void sc_kv_add(ScKV *kv, const char *key, const char *value);
+SPARCLI_EXPORT void sc_kv_add(ScKV *kv, const char *key, const char *value);
 
 /**
  * Renders `kv` to stdout.
@@ -67,11 +69,13 @@ void sc_kv_add(ScKV *kv, const char *key, const char *value);
  *
  * @param kv  List to render; no output when `kv` is `NULL` or empty.
  */
-void sc_kv_print(const ScKV *kv);
+SPARCLI_EXPORT void sc_kv_print(const ScKV *kv);
 
 /**
  * Frees `kv`, all its entries and their owned strings.
  *
  * @param kv  List to free; safe to pass `NULL`.
  */
-void sc_kv_free(ScKV *kv);
+SPARCLI_EXPORT void sc_kv_free(ScKV *kv);
+
+SPARCLI_END_DECLS

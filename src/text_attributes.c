@@ -31,7 +31,7 @@ void sc_apply_style(ScTextAttribute attr) {
     size_t attr_count = sizeof(text_attr_map) / sizeof(text_attr_map[0]);
     for (size_t i = 0; i < attr_count; i++) {
         if (attr & text_attr_map[i].flag) {
-            fputs(text_attr_map[i].code, stdout);
+            fputs(text_attr_map[i].code, sc_output_stream());
         }
     }
 }

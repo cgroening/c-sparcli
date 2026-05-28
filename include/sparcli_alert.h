@@ -3,6 +3,8 @@
 #include "sparcli_core.h"  // IWYU pragma: export
 #include "sparcli_text.h"  // IWYU pragma: export
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * ScAlertType – Visual style preset for an alert panel.
@@ -24,7 +26,7 @@ typedef enum {
  * @param type    Visual preset (icon, label, color).
  * @param content Body text; may contain `\n` for multi-line output.
  */
-void sc_alert_str(ScAlertType type, const char *content);
+SPARCLI_EXPORT void sc_alert_str(ScAlertType type, const char *content);
 
 /**
  * Renders a full-width alert panel with a rich-text body.
@@ -32,19 +34,21 @@ void sc_alert_str(ScAlertType type, const char *content);
  * @param type    Visual preset (icon, label, color).
  * @param content Rich text body; not freed by this function.
  */
-void sc_alert_text(ScAlertType type, const ScText *content);
+SPARCLI_EXPORT void sc_alert_text(ScAlertType type, const ScText *content);
 
 /** Renders an info alert (ℹ, blue) with a plain-text body. */
-void sc_alert_info   (const char *content);
+SPARCLI_EXPORT void sc_alert_info   (const char *content);
 
 /** Renders a debug alert (⚙, magenta) with a plain-text body. */
-void sc_alert_debug  (const char *content);
+SPARCLI_EXPORT void sc_alert_debug  (const char *content);
 
 /** Renders a warning alert (⚠, yellow) with a plain-text body. */
-void sc_alert_warning(const char *content);
+SPARCLI_EXPORT void sc_alert_warning(const char *content);
 
 /** Renders an error alert (✖, red) with a plain-text body. */
-void sc_alert_error  (const char *content);
+SPARCLI_EXPORT void sc_alert_error  (const char *content);
 
 /** Renders a success alert (✔, green) with a plain-text body. */
-void sc_alert_success(const char *content);
+SPARCLI_EXPORT void sc_alert_success(const char *content);
+
+SPARCLI_END_DECLS

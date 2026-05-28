@@ -3,6 +3,8 @@
 #include "sparcli_rendered.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Padding values applied around a captured widget.
@@ -26,7 +28,7 @@ typedef struct ScPadOpts {
  * @param rendered  Captured widget; no output when `NULL`.
  * @param opts      Padding values; negative values are treated as zero.
  */
-void sc_pad_print(const ScRendered *rendered, ScPadOpts opts);
+SPARCLI_EXPORT void sc_pad_print(const ScRendered *rendered, ScPadOpts opts);
 
 /**
  * Convenience wrapper: captures `str` and prints it with the given padding.
@@ -34,7 +36,7 @@ void sc_pad_print(const ScRendered *rendered, ScPadOpts opts);
  * @param str   Plain string to render.
  * @param opts  Padding values.
  */
-void sc_pad_str(const char *str, ScPadOpts opts);
+SPARCLI_EXPORT void sc_pad_str(const char *str, ScPadOpts opts);
 
 /**
  * Convenience wrapper: captures `text` and prints it with the given padding.
@@ -42,4 +44,6 @@ void sc_pad_str(const char *str, ScPadOpts opts);
  * @param text  Rich-text object to render.
  * @param opts  Padding values.
  */
-void sc_pad_text(const ScText *text, ScPadOpts opts);
+SPARCLI_EXPORT void sc_pad_text(const ScText *text, ScPadOpts opts);
+
+SPARCLI_END_DECLS

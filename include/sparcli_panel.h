@@ -3,6 +3,8 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * ScPanelOpts Struct - Layout and visual options for a bordered content panel.
@@ -55,7 +57,7 @@ typedef struct {
  *                 Must not be `NULL`.
  * @param opts     Layout and visual options; see `ScPanelOpts`.
  */
-void sc_panel_str (const char *content, ScPanelOpts opts);
+SPARCLI_EXPORT void sc_panel_str (const char *content, ScPanelOpts opts);
 
 /**
  * Renders a multi-span `ScText` object inside a styled, bordered panel.
@@ -67,4 +69,6 @@ void sc_panel_str (const char *content, ScPanelOpts opts);
  * @param content  Rich-text content to display. Must not be `NULL`.
  * @param opts     Layout and visual options; see `ScPanelOpts`.
  */
-void sc_panel_text(const ScText *content, ScPanelOpts opts);
+SPARCLI_EXPORT void sc_panel_text(const ScText *content, ScPanelOpts opts);
+
+SPARCLI_END_DECLS

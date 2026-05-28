@@ -21,6 +21,7 @@ ScText *sc_text_from_str(const char *s) {
 }
 
 void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
+    if (!sc_text || !raw_str) { return; }
     if (sc_text->count == sc_text->capacity) {
         size_t new_capacity = sc_text->capacity ? sc_text->capacity * 2 : 4;
         ScSpan *spans = realloc(
@@ -36,6 +37,7 @@ void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
 }
 
 void sc_text_free(ScText *sc_text) {
+    if (!sc_text) { return; }
     for (size_t i = 0; i < sc_text->count; i++) {
         free(sc_text->spans[i].raw_str);
     }
@@ -44,6 +46,7 @@ void sc_text_free(ScText *sc_text) {
 }
 
 void sc_print_text(const ScText *sc_text) {
+    if (!sc_text) { return; }
     for (size_t i = 0; i < sc_text->count; i++) {
         const char *raw_str = sc_text->spans[i].raw_str;
         ScTextStyle style = sc_text->spans[i].style;
@@ -56,7 +59,7 @@ void sc_print_text(const ScText *sc_text) {
                     sc_print(seg, style);
                     free(seg);
                 }
-                fputc('\n', stdout);
+                fputc('\n', sc_output_stream());
                 start = raw_str + 1;
             }
             raw_str++;
@@ -68,6 +71,7 @@ void sc_print_text(const ScText *sc_text) {
 }
 
 size_t sc_text_visible_width(const ScText *sc_text) {
+    if (!sc_text) { return 0; }
     size_t max_width = 0, current_width = 0;
     for (size_t i = 0; i < sc_text->count; i++) {
         const unsigned char *current_byte =

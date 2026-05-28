@@ -140,6 +140,7 @@ ScTreeNode *sc_tree_add_str(
     const char *str, ScTextStyle style,
     const char *prefix, ScTextStyle prefix_style
 ) {
+    if (!tree) { return NULL; }
     ScTreeNode *node = new_node(
         false, str, style, NULL, prefix, prefix_style
     );
@@ -151,6 +152,7 @@ ScTreeNode *sc_tree_add_text(
     const ScText *text,
     const char *prefix, ScTextStyle prefix_style
 ) {
+    if (!tree) { return NULL; }
     ScTextStyle no_style = {
         SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
     };
@@ -279,7 +281,7 @@ static void render_node(Tree *self, NodeFrame frame) {
         print_connector(self, frame);
     }
     print_node_content(frame.node);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 
     if (frame.node->child_count == 0) { return; }
 
@@ -301,7 +303,7 @@ static void render_node(Tree *self, NodeFrame frame) {
  * node and the configured spaces after it.
  */
 static void print_connector(Tree *self, NodeFrame frame) {
-    fputs(frame.prefix, stdout);
+    fputs(frame.prefix, sc_output_stream());
     const char *connector = frame.is_last_sibling
         ? self->connectors.last_child : self->connectors.branch;
     print_colored(connector, self->tree->opts.connector_color);
@@ -314,17 +316,17 @@ static void print_connector(Tree *self, NodeFrame frame) {
  */
 static void print_colored(const char *str, ScColor color) {
     if (color.index == -2) {
-        fputs(str, stdout);
+        fputs(str, sc_output_stream());
         return;
     }
     sc_apply_colors(color, SC_ANSI_COLOR_NONE);
-    fputs(str, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(str, sc_output_stream());
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /**

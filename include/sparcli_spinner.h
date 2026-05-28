@@ -2,6 +2,8 @@
 
 #include "sparcli_core.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Animation style of the spinner character.
@@ -46,7 +48,7 @@ ScSpinner *sc_spinner_new(const char *label, ScSpinnerOpts opts);
  * @param spinner  Spinner to update.
  * @param label    New label; copied internally; `NULL` removes the label.
  */
-void sc_spinner_set_label(ScSpinner *spinner, const char *label);
+SPARCLI_EXPORT void sc_spinner_set_label(ScSpinner *spinner, const char *label);
 
 /**
  * Advances to the next animation frame and prints `frame label\r`.
@@ -56,7 +58,7 @@ void sc_spinner_set_label(ScSpinner *spinner, const char *label);
  *
  * @param spinner  Spinner to advance.
  */
-void sc_spinner_tick(ScSpinner *spinner);
+SPARCLI_EXPORT void sc_spinner_tick(ScSpinner *spinner);
 
 /**
  * Clears the spinner line and prints a final status: `✔ label` (green) on
@@ -66,11 +68,13 @@ void sc_spinner_tick(ScSpinner *spinner);
  * @param success  `true` = print `✔` in green; `false` = print `✖` in red.
  * @param label    Optional label printed after the symbol; may be `NULL`.
  */
-void sc_spinner_finish(ScSpinner *spinner, bool success, const char *label);
+SPARCLI_EXPORT void sc_spinner_finish(ScSpinner *spinner, bool success, const char *label);
 
 /**
  * Frees `spinner` and the owned label string.
  *
  * @param spinner  Spinner to free; safe to pass `NULL`.
  */
-void sc_spinner_free(ScSpinner *spinner);
+SPARCLI_EXPORT void sc_spinner_free(ScSpinner *spinner);
+
+SPARCLI_END_DECLS

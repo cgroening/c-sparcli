@@ -82,17 +82,19 @@ ScSpinner *sc_spinner_new(const char *label, ScSpinnerOpts opts) {
 }
 
 void sc_spinner_set_label(ScSpinner *spinner, const char *label) {
+    if (!spinner) { return; }
     free(spinner->label);
     spinner->label = label ? strdup(label) : NULL;
 }
 
 void sc_spinner_tick(ScSpinner *spinner) {
+    if (!spinner) { return; }
     render_spinner_char(spinner);
     int visible_width = SPINNER_CHAR_WIDTH + render_label(spinner);
     pad_to_terminal_width(visible_width);
 
-    fputc('\r', stdout);
-    fflush(stdout);
+    fputc('\r', sc_output_stream());
+    fflush(sc_output_stream());
 
     int frame_count = spinner_frame_count[spinner->opts.style];
     spinner->frame_index = (spinner->frame_index + 1) % frame_count;
@@ -101,16 +103,17 @@ void sc_spinner_tick(ScSpinner *spinner) {
 void sc_spinner_finish(
     ScSpinner *spinner, bool success, const char *label
 ) {
+    if (!spinner) { return; }
     (void)spinner;
 
     clear_current_line();
     render_status_symbol(success);
 
     if (label) {
-        fputc(' ', stdout);
-        fputs(label, stdout);
+        fputc(' ', sc_output_stream());
+        fputs(label, sc_output_stream());
     }
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 void sc_spinner_free(ScSpinner *spinner) {
@@ -133,12 +136,12 @@ static void render_spinner_char(const ScSpinner *spinner) {
  */
 static void print_colored(const char *str, ScColor color) {
     if (!color_is_active(color)) {
-        fputs(str, stdout);
+        fputs(str, sc_output_stream());
         return;
     }
     sc_apply_colors(color, SC_ANSI_COLOR_NONE);
-    fputs(str, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(str, sc_output_stream());
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /**
@@ -160,7 +163,7 @@ static bool color_is_active(ScColor color) {
 static int render_label(const ScSpinner *spinner) {
     if (!spinner->label) { return 0; }
 
-    fputc(' ', stdout);
+    fputc(' ', sc_output_stream());
 
     ScTextStyle style = spinner->opts.label_style;
     bool style_has_format = style.attr != 0
@@ -168,7 +171,7 @@ static int render_label(const ScSpinner *spinner) {
     if (style_has_format) {
         sc_print(spinner->label, style);
     } else {
-        fputs(spinner->label, stdout);
+        fputs(spinner->label, sc_output_stream());
     }
 
     int label_width = (int)sc_utf8_string_length(
@@ -188,14 +191,14 @@ static void pad_to_terminal_width(int already_printed) {
 
 /** Prints `count` space characters to stdout; no-op when `count <= 0`. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /** Overwrites the current terminal line with spaces, then returns to col 0. */
 static void clear_current_line(void) {
     int terminal_width = sc_terminal_width();
     print_spaces(terminal_width);
-    fputc('\r', stdout);
+    fputc('\r', sc_output_stream());
 }
 
 /** Prints `✔` in green (success) or `✖` in red (failure). */

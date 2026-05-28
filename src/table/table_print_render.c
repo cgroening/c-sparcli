@@ -45,7 +45,7 @@ void table_render(Table *table) {
 
 /** Prints `count` blank lines for vertical margins. */
 static void print_blank_lines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
+    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
 }
 
 

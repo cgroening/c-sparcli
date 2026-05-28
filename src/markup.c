@@ -119,6 +119,7 @@ ScText *sc_markup_parse_opts(const char *markup, ScMarkupOpts opts) {
 }
 
 void sc_markup_append(ScText *text, const char *markup) {
+    if (!text) { return; }
     ScText *parsed = parse_internal(markup, false);
     append_parsed_spans(text, parsed);
     sc_text_free(parsed);
@@ -127,6 +128,7 @@ void sc_markup_append(ScText *text, const char *markup) {
 void sc_markup_append_opts(
     ScText *text, const char *markup, ScMarkupOpts opts
 ) {
+    if (!text) { return; }
     ScText *parsed = parse_internal(markup, opts.strip_unknown);
     append_parsed_spans(text, parsed);
     sc_text_free(parsed);
@@ -146,12 +148,12 @@ void sc_markup_print_opts(const char *markup, ScMarkupOpts opts) {
 
 void sc_markup_println(const char *markup) {
     sc_markup_print(markup);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 void sc_markup_println_opts(const char *markup, ScMarkupOpts opts) {
     sc_markup_print_opts(markup, opts);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 
@@ -399,31 +401,54 @@ static const char *skip_spaces(const char *cursor, const char *end) {
 }
 
 /**
+ * Parses a single non-negative integer with `strtol`, advancing `*cursor`
+ * past the digits. Returns `false` when no digit was consumed, when the
+ * value would overflow `int`, or when the parsed value is out of the
+ * `[0, 255]` channel range.
+ *
+ * Locale-independent (`strtol` is `LC_NUMERIC`-safe for plain decimal
+ * integers — unlike `sscanf("%d", …)` which can be affected on some
+ * implementations).
+ */
+static bool parse_rgb_channel(const char **cursor, int *out_value) {
+    const char *start = *cursor;
+    long value = 0;
+    bool any_digit = false;
+    while (**cursor >= '0' && **cursor <= '9') {
+        value = value * 10 + (**cursor - '0');
+        if (value > 255) { return false; }
+        (*cursor)++;
+        any_digit = true;
+    }
+    if (!any_digit) { return false; }
+    (void)start;
+    *out_value = (int)value;
+    return true;
+}
+
+/**
  * Parses `rgb(r,g,b)` at `*cursor_ref`, validates the channel ranges and
  * advances `*cursor_ref` past the closing `)`. Returns `true` on success.
  */
 static bool consume_rgb_value(
     const char **cursor_ref, const char *end, ScColor *out
 ) {
-    const char *cursor = *cursor_ref;
-    const char *paren_end = memchr(cursor, ')', (size_t)(end - cursor));
-    if (!paren_end) { return false; }
-
+    const char *cursor = *cursor_ref + RGB_PREFIX_LENGTH;
     int red, green, blue;
-    if (sscanf(cursor + RGB_PREFIX_LENGTH, "%d,%d,%d",
-               &red, &green, &blue) != 3) {
-        return false;
-    }
-    if (red < 0 || red > 255
-        || green < 0 || green > 255
-        || blue < 0 || blue > 255) {
-        return false;
-    }
+
+    if (!parse_rgb_channel(&cursor, &red)) { return false; }
+    if (*cursor != ',') { return false; }
+    cursor++;
+    if (!parse_rgb_channel(&cursor, &green)) { return false; }
+    if (*cursor != ',') { return false; }
+    cursor++;
+    if (!parse_rgb_channel(&cursor, &blue)) { return false; }
+    if (cursor >= end || *cursor != ')') { return false; }
 
     *out = sc_ansi_color_from_rgb(
         (uint8_t)red, (uint8_t)green, (uint8_t)blue
     );
-    *cursor_ref = paren_end + 1;
+    *cursor_ref = cursor + 1;
     return true;
 }
 

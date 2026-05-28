@@ -95,7 +95,7 @@ void render_horizontal_border(
     }
 
     if (!no_outer) { print_colored_string(right_corner, spec.edge_color); }
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /**
@@ -131,15 +131,15 @@ static void render_border_column_fill(
 ) {
     if (rowspan_flags && rowspan_flags[col]) {
         for (int i = 0; i < table->column_widths[col]; i++) {
-            fputc(' ', stdout);
+            fputc(' ', sc_output_stream());
         }
         return;
     }
     sc_apply_colors(spec.inner_color, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < table->column_widths[col]; i++) {
-        fputs(spec.fill_char, stdout);
+        fputs(spec.fill_char, sc_output_stream());
     }
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /**
@@ -207,14 +207,14 @@ static ScColor select_junction_color(
 
 /** Prints the left margin spaces for the table. */
 void print_left_margin(const Table *table) {
-    for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /** Prints `str` with foreground color `color`, then emits a reset. */
 void print_colored_string(const char *str, ScColor color) {
     sc_apply_colors(color, SC_ANSI_COLOR_NONE);
-    fputs(str, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(str, sc_output_stream());
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 
@@ -255,7 +255,7 @@ void render_inner_separator(Table *table) {
     }
 
     if (!no_outer) { print_colored_string(right_corner, outer_color); }
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /**
@@ -331,9 +331,9 @@ static void render_inner_sep_fill(Table *table, size_t col) {
     ScBorderType style = table->opts.border.style;
     sc_apply_colors(table->opts.border.inner_color, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < table->column_widths[col]; i++) {
-        fputs(border_char_sets[style].h, stdout);
+        fputs(border_char_sets[style].h, sc_output_stream());
     }
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /**
@@ -390,7 +390,7 @@ void render_title_line(const Table *table, bool is_top) {
     print_colored_string(left_corner, outer_color);
     render_title_inner(table, fill_char, outer_color, title_pad);
     print_colored_string(right_corner, outer_color);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /** Dispatches between title-present and no-title inner rendering. */
@@ -423,8 +423,8 @@ static void render_title_with_fill(
     );
 
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < left_fill; i++) { fputs(fill_char, stdout); }
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    for (int i = 0; i < left_fill; i++) { fputs(fill_char, sc_output_stream()); }
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 
     for (int i = 0; i < title_pad; i++) {
         print_colored_string(" ", outer_color);
@@ -435,8 +435,8 @@ static void render_title_with_fill(
     }
 
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < right_fill; i++) { fputs(fill_char, stdout); }
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    for (int i = 0; i < right_fill; i++) { fputs(fill_char, sc_output_stream()); }
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /**
@@ -468,8 +468,8 @@ static void render_title_plain_fill(
     int inner_width, const char *fill_char, ScColor outer_color
 ) {
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < inner_width; i++) { fputs(fill_char, stdout); }
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    for (int i = 0; i < inner_width; i++) { fputs(fill_char, sc_output_stream()); }
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 
@@ -542,6 +542,6 @@ void print_spaces_with_bg(int count, ScColor bg) {
     if (count <= 0) { return; }
     bool has_bg = color_is_active(bg);
     if (has_bg) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
-    if (has_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
+    if (has_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
 }

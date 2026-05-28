@@ -10,6 +10,8 @@
 #include "sparcli_panel.h"
 #include "sparcli_rule.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Captures a plain string as a heap-allocated `ScRendered`.
@@ -53,3 +55,5 @@ ScRendered *sc_capture_rule_str(const char *title, ScRuleOpts opts);
 
 /** Captures a horizontal rule with a rich-text title. */
 ScRendered *sc_capture_rule_text(const ScText *title, ScRuleOpts opts);
+
+SPARCLI_END_DECLS

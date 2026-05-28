@@ -136,15 +136,18 @@ ScProgressBar *sc_progressbar_new(ScProgressBarOpts opts) {
 }
 
 void sc_progressbar_set_label(ScProgressBar *bar, const char *label) {
+    if (!bar) { return; }
     free(bar->label);
     bar->label = label ? strdup(label) : NULL;
 }
 
 void sc_progressbar_draw(ScProgressBar *bar, double value, double max) {
+    if (!bar) { return; }
     render(bar, value, max, false);
 }
 
 void sc_progressbar_finish(ScProgressBar *bar, double value, double max) {
+    if (!bar) { return; }
     render(bar, value, max, true);
 }
 
@@ -351,7 +354,7 @@ static void print_label_text(const ScProgressBar *bar, int byte_count) {
         || color_is_active(style.fg) || color_is_active(style.bg);
 
     if (!has_format) {
-        fwrite(bar->label, 1, (size_t)byte_count, stdout);
+        fwrite(bar->label, 1, (size_t)byte_count, sc_output_stream());
         return;
     }
     if (byte_count >= LABEL_PRINT_BUFFER) { return; }
@@ -364,12 +367,12 @@ static void print_label_text(const ScProgressBar *bar, int byte_count) {
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /** Prints `cap` when non-NULL; otherwise no output. */
 static void render_cap(const char *cap) {
-    if (cap) { fputs(cap, stdout); }
+    if (cap) { fputs(cap, sc_output_stream()); }
 }
 
 /**
@@ -405,8 +408,8 @@ static void print_repeat(const char *str, int count, ScColor color) {
     if (count <= 0) { return; }
     bool styled = color_is_active(color);
     if (styled) { sc_apply_colors(color, SC_ANSI_COLOR_NONE); }
-    for (int i = 0; i < count; i++) { fputs(str, stdout); }
-    if (styled) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
+    for (int i = 0; i < count; i++) { fputs(str, sc_output_stream()); }
+    if (styled) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
 }
 
 /**
@@ -423,7 +426,7 @@ static bool color_is_active(ScColor color) {
 /** Prints `frame->percent_text` when `show_percent` is enabled. */
 static void render_percent(const Frame *frame) {
     if (!frame->bar->opts.show_percent) { return; }
-    fputs(frame->percent_text, stdout);
+    fputs(frame->percent_text, sc_output_stream());
 }
 
 /**
@@ -432,7 +435,7 @@ static void render_percent(const Frame *frame) {
  */
 static void render_value(const Frame *frame) {
     if (!frame->bar->opts.show_value || !frame->has_max) { return; }
-    fputs(frame->value_text, stdout);
+    fputs(frame->value_text, sc_output_stream());
     int actual_width = (int)sc_utf8_string_length(
         frame->value_text, strlen(frame->value_text)
     );
@@ -442,9 +445,9 @@ static void render_value(const Frame *frame) {
 /** Emits the final line break (`\n` or `\r` + flush). */
 static void terminate_line(bool final) {
     if (final) {
-        fputc('\n', stdout);
+        fputc('\n', sc_output_stream());
         return;
     }
-    fputc('\r', stdout);
-    fflush(stdout);
+    fputc('\r', sc_output_stream());
+    fflush(sc_output_stream());
 }

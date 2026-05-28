@@ -4,6 +4,8 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Aligns each line of `rendered` within `width` columns and prints them.
@@ -17,7 +19,7 @@
  * @param align     Horizontal alignment (LEFT / CENTER / RIGHT).
  * @param width     Target width in columns; `0` = current terminal width.
  */
-void sc_align_print(const ScRendered *rendered, ScHAlign align, int width);
+SPARCLI_EXPORT void sc_align_print(const ScRendered *rendered, ScHAlign align, int width);
 
 /**
  * Convenience wrapper: captures `str` and aligns it via `sc_align_print`.
@@ -26,7 +28,7 @@ void sc_align_print(const ScRendered *rendered, ScHAlign align, int width);
  * @param align  Horizontal alignment.
  * @param width  Target width in columns; `0` = current terminal width.
  */
-void sc_align_str(const char *str, ScHAlign align, int width);
+SPARCLI_EXPORT void sc_align_str(const char *str, ScHAlign align, int width);
 
 /**
  * Convenience wrapper: captures `text` and aligns it via `sc_align_print`.
@@ -35,4 +37,6 @@ void sc_align_str(const char *str, ScHAlign align, int width);
  * @param align  Horizontal alignment.
  * @param width  Target width in columns; `0` = current terminal width.
  */
-void sc_align_text(const ScText *text, ScHAlign align, int width);
+SPARCLI_EXPORT void sc_align_text(const ScText *text, ScHAlign align, int width);
+
+SPARCLI_END_DECLS

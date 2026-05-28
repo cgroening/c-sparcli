@@ -1,7 +1,12 @@
 #pragma once
 
+#include "sparcli_export.h"
+
 #include <stdbool.h>
 #include <stdint.h>
+
+
+SPARCLI_BEGIN_DECLS
 
 /**
  * @defgroup sc_ansi_codes ANSI Escape Codes
@@ -215,7 +220,7 @@ typedef struct {
  * @param b  Blue channel (0-255).
  * @return   An `ScColor` with `index = -1` and the given RGB values.
  */
-ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
+SPARCLI_EXPORT ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 
 /**
  * Prints `text` to stdout with ANSI styling applied.
@@ -238,7 +243,7 @@ ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
  * });
  * @endcode
  */
-void sc_print(const char *raw_str, ScTextStyle style);
+SPARCLI_EXPORT void sc_print(const char *raw_str, ScTextStyle style);
 
 /**
  * Prints text to stdout with ANSI styling applied, followed by a newline.
@@ -248,4 +253,6 @@ void sc_print(const char *raw_str, ScTextStyle style);
  * @param text  Null-terminated string to print. Must not be `NULL`.
  * @param opts  Style and color options. See @ref sc_print for details.
  */
-void sc_println(const char *raw_str, ScTextStyle style);
+SPARCLI_EXPORT void sc_println(const char *raw_str, ScTextStyle style);
+
+SPARCLI_END_DECLS

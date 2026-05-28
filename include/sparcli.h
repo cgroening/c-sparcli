@@ -4,6 +4,7 @@
 #include <stdint.h>               // IWYU pragma: export
 #include <stdio.h>                // IWYU pragma: export
 
+#include "sparcli_export.h"       // IWYU pragma: export
 #include "sparcli_core.h"         // IWYU pragma: export
 #include "sparcli_text.h"         // IWYU pragma: export
 #include "sparcli_markup.h"       // IWYU pragma: export
@@ -23,3 +24,4 @@
 #include "sparcli_capture.h"      // IWYU pragma: export
 #include "sparcli_pad.h"          // IWYU pragma: export
 #include "sparcli_align.h"        // IWYU pragma: export
+#include "sparcli_output.h"       // IWYU pragma: export

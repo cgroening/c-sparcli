@@ -8,6 +8,8 @@
 #include "sparcli_tree.h"
 #include "sparcli_list.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Per-column options passed alongside a captured widget.
@@ -88,7 +90,7 @@ ScColumns *sc_columns_new(ScColumnsOpts opts);
  * @param opts     Table rendering options.
  * @param item     Per-column options.
  */
-void sc_columns_add_table(
+SPARCLI_EXPORT void sc_columns_add_table(
     ScColumns *columns, const ScTableData *table,
     ScTableOpts opts, ScColItem item
 );
@@ -96,7 +98,7 @@ void sc_columns_add_table(
 /**
  * Captures a plain-string panel and appends it as a column.
  */
-void sc_columns_add_panel_str(
+SPARCLI_EXPORT void sc_columns_add_panel_str(
     ScColumns *columns, const char *content,
     ScPanelOpts opts, ScColItem item
 );
@@ -104,7 +106,7 @@ void sc_columns_add_panel_str(
 /**
  * Captures a rich-text panel and appends it as a column.
  */
-void sc_columns_add_panel_text(
+SPARCLI_EXPORT void sc_columns_add_panel_text(
     ScColumns *columns, const ScText *content,
     ScPanelOpts opts, ScColItem item
 );
@@ -112,14 +114,14 @@ void sc_columns_add_panel_text(
 /**
  * Captures rich text and appends it as a column.
  */
-void sc_columns_add_text(
+SPARCLI_EXPORT void sc_columns_add_text(
     ScColumns *columns, const ScText *text, ScColItem item
 );
 
 /**
  * Captures a plain string and appends it as a column.
  */
-void sc_columns_add_str(
+SPARCLI_EXPORT void sc_columns_add_str(
     ScColumns *columns, const char *str, ScColItem item
 );
 
@@ -129,21 +131,21 @@ void sc_columns_add_str(
  * The nested layout is captured at call time; later modifications to
  * `nested` have no effect.
  */
-void sc_columns_add_columns(
+SPARCLI_EXPORT void sc_columns_add_columns(
     ScColumns *columns, const ScColumns *nested, ScColItem item
 );
 
 /**
  * Captures a tree and appends it as a column.
  */
-void sc_columns_add_tree(
+SPARCLI_EXPORT void sc_columns_add_tree(
     ScColumns *columns, const ScTree *tree, ScColItem item
 );
 
 /**
  * Captures a list and appends it as a column.
  */
-void sc_columns_add_list(
+SPARCLI_EXPORT void sc_columns_add_list(
     ScColumns *columns, const ScList *list, ScColItem item
 );
 
@@ -153,18 +155,20 @@ void sc_columns_add_list(
  * The columns layout makes a deep copy, so the caller may free `rendered`
  * immediately after.
  */
-void sc_columns_add_rendered(
+SPARCLI_EXPORT void sc_columns_add_rendered(
     ScColumns *columns, const ScRendered *rendered, ScColItem item
 );
 
 /**
  * Renders the columns layout to stdout.
  */
-void sc_columns_print(const ScColumns *columns);
+SPARCLI_EXPORT void sc_columns_print(const ScColumns *columns);
 
 /**
  * Frees `columns`, all its captured entries and any owned strings.
  *
  * @param columns  Layout to free; safe to pass `NULL`.
  */
-void sc_columns_free(ScColumns *columns);
+SPARCLI_EXPORT void sc_columns_free(ScColumns *columns);
+
+SPARCLI_END_DECLS

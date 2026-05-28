@@ -181,12 +181,12 @@ static bool color_is_active(ScColor color) {
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /** Prints `count` newline characters to stdout. */
 static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
+    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
 }
 
 
@@ -251,33 +251,33 @@ static ScRendered *buffer_to_rendered(const char *buffer, size_t size) {
 /* ── Capture-and-replay ──────────────────────────────────────────────────── */
 
 /**
- * Redirects stdout to a `tmpfile()`, invokes `render_fn(ctx)`, restores
- * stdout, and returns the captured output as an `ScRendered`.
+ * Captures the output of `render_fn(ctx)` into a freshly-allocated
+ * `ScRendered`.
+ *
+ * Uses POSIX `open_memstream` to back the capture stream with a memory
+ * buffer, then swaps `sc_set_output()` around the call. Because all
+ * sparcli print paths go through `sc_output_stream()`, this leaves
+ * `stdout` untouched — no `dup2(STDOUT_FILENO)` is needed. The previous
+ * implementation hijacked the process-wide stdout file descriptor, which
+ * made concurrent captures unsafe across threads. This version is
+ * thread-safe **as long as no other thread modifies the sparcli output
+ * stream while the capture is in flight** — the same constraint that
+ * applies to any non-reentrant sparcli call.
  */
 static ScRendered *capture_render(void (*render_fn)(void *), void *ctx) {
-    fflush(stdout);
+    char *buffer = NULL;
+    size_t size = 0;
+    FILE *mem = open_memstream(&buffer, &size);
+    if (!mem) { return NULL; }
 
-    FILE *tmp = tmpfile();
-    if (!tmp) { return NULL; }
-
-    int saved_stdout = dup(STDOUT_FILENO);
-    dup2(fileno(tmp), STDOUT_FILENO);
-
+    FILE *saved = sc_output_stream();
+    sc_set_output(mem);
     render_fn(ctx);
+    fflush(mem);
+    sc_set_output(saved);
+    fclose(mem);
 
-    fflush(stdout);
-    dup2(saved_stdout, STDOUT_FILENO);
-    close(saved_stdout);
-
-    fseek(tmp, 0, SEEK_END);
-    long size = ftell(tmp);
-    rewind(tmp);
-    char *buffer = malloc((size_t)size + 1);
-    fread(buffer, 1, (size_t)size, tmp);
-    buffer[size] = '\0';
-    fclose(tmp);
-
-    ScRendered *rendered = buffer_to_rendered(buffer, (size_t)size);
+    ScRendered *rendered = buffer_to_rendered(buffer ? buffer : "", size);
     free(buffer);
     return rendered;
 }
@@ -311,8 +311,8 @@ static void render_text_ctx(void *p) {
 typedef struct { const char *str; } CtxStr;
 static void render_str_ctx(void *p) {
     const char *str = ((CtxStr *)p)->str;
-    fputs(str, stdout);
-    if (str[0] && str[strlen(str) - 1] != '\n') { fputc('\n', stdout); }
+    fputs(str, sc_output_stream());
+    if (str[0] && str[strlen(str) - 1] != '\n') { fputc('\n', sc_output_stream()); }
 }
 
 typedef struct { const ScColumns *columns; } CtxColumns;
@@ -396,6 +396,7 @@ void sc_columns_add_table(
     ScColumns *columns, const ScTableData *table,
     ScTableOpts opts, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxTable ctx = { table, opts };
     push_entry(columns, capture_render(render_table_ctx, &ctx), item);
 }
@@ -404,6 +405,7 @@ void sc_columns_add_panel_str(
     ScColumns *columns, const char *content,
     ScPanelOpts opts, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxPanelStr ctx = { content, opts };
     push_panel_entry(
         columns, capture_render(render_panel_str_ctx, &ctx), item, opts
@@ -414,6 +416,7 @@ void sc_columns_add_panel_text(
     ScColumns *columns, const ScText *content,
     ScPanelOpts opts, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxPanelText ctx = { content, opts };
     push_panel_entry(
         columns, capture_render(render_panel_text_ctx, &ctx), item, opts
@@ -423,6 +426,7 @@ void sc_columns_add_panel_text(
 void sc_columns_add_text(
     ScColumns *columns, const ScText *text, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxText ctx = { text };
     push_entry(columns, capture_render(render_text_ctx, &ctx), item);
 }
@@ -430,6 +434,7 @@ void sc_columns_add_text(
 void sc_columns_add_str(
     ScColumns *columns, const char *str, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxStr ctx = { str };
     push_entry(columns, capture_render(render_str_ctx, &ctx), item);
 }
@@ -437,6 +442,7 @@ void sc_columns_add_str(
 void sc_columns_add_columns(
     ScColumns *columns, const ScColumns *nested, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxColumns ctx = { nested };
     push_entry(columns, capture_render(render_columns_ctx, &ctx), item);
 }
@@ -444,6 +450,7 @@ void sc_columns_add_columns(
 void sc_columns_add_tree(
     ScColumns *columns, const ScTree *tree, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxTree ctx = { tree };
     push_entry(columns, capture_render(render_tree_ctx, &ctx), item);
 }
@@ -451,6 +458,7 @@ void sc_columns_add_tree(
 void sc_columns_add_list(
     ScColumns *columns, const ScList *list, ScColItem item
 ) {
+    if (!columns) { return; }
     CtxList ctx = { list };
     push_entry(columns, capture_render(render_list_ctx, &ctx), item);
 }
@@ -554,39 +562,34 @@ static char *make_empty_panel_line(
         && separator_chars[opts->border.type])
         ? separator_chars[opts->border.type] : " ";
 
-    fflush(stdout);
-    FILE *tmp = tmpfile();
-    int saved_stdout = dup(STDOUT_FILENO);
-    dup2(fileno(tmp), STDOUT_FILENO);
+    char *buffer = NULL;
+    size_t size = 0;
+    FILE *mem = open_memstream(&buffer, &size);
+    if (!mem) { return NULL; }
+
+    FILE *saved = sc_output_stream();
+    sc_set_output(mem);
 
     sc_apply_colors(opts->border.color, opts->border.bg);
-    fputs(vertical, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(vertical, mem);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, mem);
 
     if (color_is_active(opts->bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, opts->bg);
         print_spaces(inner_width);
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, mem);
     } else {
         print_spaces(inner_width);
     }
 
     sc_apply_colors(opts->border.color, opts->border.bg);
-    fputs(vertical, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(vertical, mem);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, mem);
 
-    fflush(stdout);
-    dup2(saved_stdout, STDOUT_FILENO);
-    close(saved_stdout);
-
-    fseek(tmp, 0, SEEK_END);
-    long size = ftell(tmp);
-    rewind(tmp);
-    char *line = malloc((size_t)size + 1);
-    fread(line, 1, (size_t)size, tmp);
-    line[size] = '\0';
-    fclose(tmp);
-    return line;
+    fflush(mem);
+    sc_set_output(saved);
+    fclose(mem);
+    return buffer ? buffer : strdup("");
 }
 
 /**
@@ -817,7 +820,7 @@ static void render_line(const ColumnsRender *self, size_t line_index) {
             render_separator_or_gap(self);
         }
     }
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /**
@@ -884,10 +887,10 @@ static void render_content_cell(
         print_spaces(left_pad);
         print_line_with_bg(line, item.bg);
         print_spaces(right_pad);
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
         print_spaces(left_pad);
-        fputs(line, stdout);
+        fputs(line, sc_output_stream());
         print_spaces(right_pad);
     }
 }
@@ -902,11 +905,11 @@ static void print_line_with_bg(const char *line, ScColor bg) {
         bool is_reset = cursor[0] == '\033' && cursor[1] == '['
             && cursor[2] == '0' && cursor[3] == 'm';
         if (is_reset) {
-            fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+            fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
             cursor += 4;
             if (*cursor) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
         } else {
-            fputc(*cursor++, stdout);
+            fputc(*cursor++, sc_output_stream());
         }
     }
 }
@@ -916,7 +919,7 @@ static void render_empty_cell(int column_width, ScColor bg) {
     if (color_is_active(bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
         print_spaces(column_width);
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
         print_spaces(column_width);
     }
@@ -948,18 +951,18 @@ static void render_separator(
 
     if (color_is_active(self->columns->opts.sep.color)) {
         sc_apply_colors(self->columns->opts.sep.color, sep_bg);
-        fputs(separator, stdout);
+        fputs(separator, sc_output_stream());
         if (has_sep_bg) {
             sc_apply_colors(SC_ANSI_COLOR_NONE, sep_bg);
         } else {
-            fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+            fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
         }
     } else {
-        fputs(separator, stdout);
+        fputs(separator, sc_output_stream());
     }
 
     print_spaces(self->gap);
-    if (has_sep_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
+    if (has_sep_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
 }
 
 /** Prints `gap` spaces between columns when no separator is configured. */
@@ -969,7 +972,7 @@ static void render_gap_spaces(const ColumnsRender *self) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, self->columns->opts.sep.bg);
     }
     print_spaces(self->gap);
-    if (has_sep_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
+    if (has_sep_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
 }
 
 /** Frees stretched copies and per-print buffers. */

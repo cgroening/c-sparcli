@@ -1,6 +1,10 @@
 #pragma once
+#include "sparcli_export.h"
+
 
 #include <stddef.h>
+
+SPARCLI_BEGIN_DECLS
 
 /**
  * ScRendered Struct - A captured, line-split rendering of any widget.
@@ -20,4 +24,6 @@ typedef struct {
     int      max_column_width;  /**< Maximum visible width across all lines. */
 } ScRendered;
 
-void sc_rendered_free(ScRendered *r);
+SPARCLI_EXPORT void sc_rendered_free(ScRendered *r);
+
+SPARCLI_END_DECLS

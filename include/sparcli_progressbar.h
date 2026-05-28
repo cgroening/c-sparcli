@@ -2,6 +2,8 @@
 
 #include "sparcli_core.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Visual style of the progress bar's fill and empty cells.
@@ -99,7 +101,7 @@ ScProgressBar *sc_progressbar_new(ScProgressBarOpts opts);
  * @param bar    Bar to update.
  * @param label  New label; copied internally; `NULL` removes the label.
  */
-void sc_progressbar_set_label(ScProgressBar *bar, const char *label);
+SPARCLI_EXPORT void sc_progressbar_set_label(ScProgressBar *bar, const char *label);
 
 /**
  * Renders one frame of the bar followed by `\\r` so the next call
@@ -109,7 +111,7 @@ void sc_progressbar_set_label(ScProgressBar *bar, const char *label);
  * @param value  Current value; treated as a `0.0`–`1.0` ratio when `max == 0`.
  * @param max    Maximum value; `0` switches to ratio mode.
  */
-void sc_progressbar_draw(ScProgressBar *bar, double value, double max);
+SPARCLI_EXPORT void sc_progressbar_draw(ScProgressBar *bar, double value, double max);
 
 /**
  * Renders the final bar frame followed by `\\n`, ending the animation.
@@ -118,11 +120,13 @@ void sc_progressbar_draw(ScProgressBar *bar, double value, double max);
  * @param value  Current value; see `sc_progressbar_draw`.
  * @param max    Maximum value; see `sc_progressbar_draw`.
  */
-void sc_progressbar_finish(ScProgressBar *bar, double value, double max);
+SPARCLI_EXPORT void sc_progressbar_finish(ScProgressBar *bar, double value, double max);
 
 /**
  * Frees `bar` and the owned label string.
  *
  * @param bar  Bar to free; safe to pass `NULL`.
  */
-void sc_progressbar_free(ScProgressBar *bar);
+SPARCLI_EXPORT void sc_progressbar_free(ScProgressBar *bar);
+
+SPARCLI_END_DECLS

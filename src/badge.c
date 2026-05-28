@@ -58,10 +58,10 @@ void sc_print_badge(const char *text, ScBadgeOpts opts) {
 
     if (style_has_format(self.style)) {
         sc_apply_colors(self.style.fg, self.style.bg);
-        fputs(buffer, stdout);
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+        fputs(buffer, sc_output_stream());
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
-        fputs(buffer, stdout);
+        fputs(buffer, sc_output_stream());
     }
 
     if (buffer != stack_buffer) { free(buffer); }

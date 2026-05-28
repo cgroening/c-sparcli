@@ -36,7 +36,7 @@ static void add_row(
     ScColor bg, bool to_footer
 );
     static RowBlock get_row_block(ScTableData *table_data, bool to_footer);
-    static void grow_row_block(RowBlock *block);
+    static bool grow_row_block(RowBlock *block);
 
 static void free_row(TRow *row);
     static void free_row_array(TRow *rows, size_t count);
@@ -59,11 +59,15 @@ ScTableData *sc_table_new(void) {
 void sc_table_add_column(
     ScTableData *table_data, const char *header, ScColOpts col_opts
 ) {
+    if (!table_data) { return; }
+
     if (table_data->column_count == table_data->column_capacity) {
-        table_data->columns = dynarray_grow(
+        void *grown = dynarray_grow(
             table_data->columns, &table_data->column_capacity,
             sizeof(TCol), INITIAL_COLUMN_CAPACITY
         );
+        if (!grown) { return; }
+        table_data->columns = grown;
     }
 
     size_t slot = table_data->column_count;
@@ -102,21 +106,22 @@ void sc_table_free(ScTableData *table_data) {
 
 /**
  * Doubles the capacity of a dynamic array (or sets it to `initial_capacity`
- * when currently zero) and reallocates the storage. Aborts on allocation
- * failure.
+ * when currently zero) and reallocates the storage.
+ *
+ * Returns the reallocated array, or `NULL` on allocation failure (the
+ * existing storage is left untouched in that case, and `*capacity_in_out`
+ * is not modified). Callers should treat a `NULL` return as "operation
+ * failed; the table is unchanged".
  */
 static void *dynarray_grow(
     void *array, size_t *capacity_in_out,
     size_t element_size, size_t initial_capacity
 ) {
-    if (*capacity_in_out == 0) {
-        *capacity_in_out = initial_capacity;
-    } else {
-        *capacity_in_out *= 2;
-    }
-
-    void *tmp = realloc(array, *capacity_in_out * element_size);
-    if (!tmp) { abort(); }
+    size_t new_capacity = *capacity_in_out == 0
+        ? initial_capacity : *capacity_in_out * 2;
+    void *tmp = realloc(array, new_capacity * element_size);
+    if (!tmp) { return NULL; }
+    *capacity_in_out = new_capacity;
     return tmp;
 }
 
@@ -138,13 +143,18 @@ static void add_row(
     ScTableData *table_data, ScCell *cells, size_t cell_count,
     ScColor bg, bool to_footer
 ) {
+    if (!table_data) { return; }
+
     RowBlock block = get_row_block(table_data, to_footer);
-    grow_row_block(&block);
+    if (!grow_row_block(&block)) { return; }
+
+    ScCell *row_cells = malloc(table_data->column_count * sizeof(ScCell));
+    if (!row_cells) { return; }
 
     TRow *row = &(*block.rows)[(*block.count)++];
     row->ncols = table_data->column_count;
     row->bg = bg;
-    row->cells = malloc(table_data->column_count * sizeof(ScCell));
+    row->cells = row_cells;
 
     for (size_t i = 0; i < table_data->column_count; i++) {
         row->cells[i] = (i < cell_count) ? cells[i] : sc_cell("");
@@ -170,14 +180,20 @@ static RowBlock get_row_block(ScTableData *table_data, bool to_footer) {
     };
 }
 
-/** Grows the row array referenced by `block` when it has reached capacity. */
-static void grow_row_block(RowBlock *block) {
-    if (*block->count == *block->capacity) {
-        *block->rows = dynarray_grow(
-            *block->rows, block->capacity,
-            sizeof(TRow), INITIAL_ROW_CAPACITY
-        );
-    }
+/**
+ * Grows the row array referenced by `block` when it has reached capacity.
+ * Returns `true` on success; on allocation failure leaves `block` unchanged
+ * and returns `false`.
+ */
+static bool grow_row_block(RowBlock *block) {
+    if (*block->count != *block->capacity) { return true; }
+    void *grown = dynarray_grow(
+        *block->rows, block->capacity,
+        sizeof(TRow), INITIAL_ROW_CAPACITY
+    );
+    if (!grown) { return false; }
+    *block->rows = grown;
+    return true;
 }
 
 /**

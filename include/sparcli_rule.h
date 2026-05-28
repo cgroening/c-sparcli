@@ -3,6 +3,8 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
 * Rendering options for a horizontal rule.
@@ -37,7 +39,7 @@ typedef struct ScRuleOpts {
  * @param title  Title text embedded in the line; `NULL` = no title.
  * @param opts   Rendering options (style, color, width, alignment, margin).
  */
-void sc_rule_str(const char *title, ScRuleOpts opts);
+SPARCLI_EXPORT void sc_rule_str(const char *title, ScRuleOpts opts);
 
 /**
  * Renders a horizontal rule with an optional rich-text title.
@@ -45,4 +47,6 @@ void sc_rule_str(const char *title, ScRuleOpts opts);
  * @param title  Rich-text title embedded in the line; `NULL` = no title.
  * @param opts   Rendering options (style, color, width, alignment, margin).
  */
-void sc_rule_text(const ScText *title, ScRuleOpts opts);
+SPARCLI_EXPORT void sc_rule_text(const ScText *title, ScRuleOpts opts);
+
+SPARCLI_END_DECLS

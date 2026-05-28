@@ -164,6 +164,7 @@ static const struct {
 
 
 void sc_panel_text(const ScText *text, ScPanelOpts opts) {
+    if (!text) { return; }
     Panel panel;
     panel_init(&panel, text, opts);
     panel_render(&panel);
@@ -171,6 +172,7 @@ void sc_panel_text(const ScText *text, ScPanelOpts opts) {
 }
 
 void sc_panel_str(const char *raw_str, ScPanelOpts opts) {
+    if (!raw_str) { return; }
     ScText *t = sc_text_from_str(raw_str);
     sc_panel_text(t, opts);
     sc_text_free(t);
@@ -385,7 +387,7 @@ static void panel_render(Panel *panel) {
 /** Emits `count` blank lines to stdout. */
 static void add_vertical_margin(int count) {
     for (int i = 0; i < count; i++) {
-        fputc('\n', stdout);
+        fputc('\n', sc_output_stream());
     }
 }
 
@@ -445,7 +447,7 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
     }
 
     print_colored(hborder.right_edge_character, hborder.border_style);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /**
@@ -453,8 +455,8 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
  */
 static void print_colored(const char *s, ScBorderStyle style) {
     sc_apply_colors(style.color, norm_bg(style.bg));
-    fputs(s, stdout);
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    fputs(s, sc_output_stream());
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /** Returns `SC_ANSI_COLOR_NONE` for the zero-init sentinel; else `color`. */
@@ -483,8 +485,8 @@ static bool is_color_active(ScColor color) {
 static void print_repeat(const char *str_raw, int count, ScBorderStyle style) {
     if (count <= 0) { return; }
     sc_apply_colors(style.color, norm_bg(style.bg));
-    for (int i = 0; i < count; i++) { fputs(str_raw, stdout); }
-    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+    for (int i = 0; i < count; i++) { fputs(str_raw, sc_output_stream()); }
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 /** Renders top padding rows, all content lines, and bottom padding rows. */
@@ -516,13 +518,13 @@ static void render_empty_line(Panel *panel) {
     print_colored(border_table[row.border_style.type].v, row.border_style);
     if (is_color_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
-        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', stdout); }
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', sc_output_stream()); }
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
-        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', stdout); }
+        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', sc_output_stream()); }
     }
     print_colored(border_table[row.border_style.type].v, row.border_style);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /**
@@ -560,10 +562,10 @@ static void render_content_line(Panel *panel, PLine *line) {
     print_spaces(right_padding);
     print_spaces(layout.pad_right);
     if (is_color_active(row.content_bg)) {
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     }
     print_colored(border_table[row.border_style.type].v, row.border_style);
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 /** Prints each span of `line`, re-applying `bg` after each reset if active. */
@@ -576,7 +578,7 @@ static void print_line_spans(PLine *line, ScColor bg) {
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /** Frees heap-allocated panel content. */

@@ -3,6 +3,8 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
+SPARCLI_BEGIN_DECLS
+
 
 /**
  * Rendering options for a tree layout.
@@ -75,11 +77,13 @@ ScTreeNode *sc_tree_add_text(
  *
  * @param tree  Tree to render; no output when `tree` is `NULL` or empty.
  */
-void sc_tree_print(const ScTree *tree);
+SPARCLI_EXPORT void sc_tree_print(const ScTree *tree);
 
 /**
  * Frees `tree`, all its nodes, and any owned strings.
  *
  * @param tree  Tree to free; safe to pass `NULL`.
  */
-void sc_tree_free(ScTree *tree);
+SPARCLI_EXPORT void sc_tree_free(ScTree *tree);
+
+SPARCLI_END_DECLS

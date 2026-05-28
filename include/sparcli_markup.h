@@ -1,7 +1,10 @@
 #pragma once
 
+#include "sparcli_export.h"
 #include "sparcli_text.h"
 
+
+SPARCLI_BEGIN_DECLS
 
 /**
  * Parser options that change how unrecognized tags are handled.
@@ -23,7 +26,7 @@ typedef struct ScMarkupOpts {
  *                Pass `NULL` to get an empty `ScText`.
  * @return        Heap-allocated `ScText`; free with `sc_text_free`.
  */
-ScText *sc_markup_parse(const char *markup);
+SPARCLI_EXPORT ScText *sc_markup_parse(const char *markup);
 
 /**
  * Parses `markup` into a new `ScText` honoring `opts`.
@@ -32,7 +35,9 @@ ScText *sc_markup_parse(const char *markup);
  * @param opts    Parser options (e.g. `strip_unknown`).
  * @return        Heap-allocated `ScText`; free with `sc_text_free`.
  */
-ScText *sc_markup_parse_opts(const char *markup, ScMarkupOpts opts);
+SPARCLI_EXPORT ScText *sc_markup_parse_opts(
+    const char *markup, ScMarkupOpts opts
+);
 
 /**
  * Parses `markup` and appends each resulting span to `text`.

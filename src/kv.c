@@ -108,11 +108,13 @@ static void print_newlines(int count);
 
 ScKV *sc_kv_new(ScKVOpts opts) {
     ScKV *kv = calloc(1, sizeof(ScKV));
+    if (!kv) { return NULL; }
     kv->opts = opts;
     return kv;
 }
 
 void sc_kv_add(ScKV *kv, const char *key, const char *value) {
+    if (!kv) { return; }
     append_entry(kv, key, value);
 }
 
@@ -228,7 +230,7 @@ static void render_entry(const KV *self, size_t entry_index) {
 
     print_spaces(self->left_margin);
     render_key(self, entry->key);
-    fputs(self->separator, stdout);
+    fputs(self->separator, sc_output_stream());
     render_value(self, entry->value);
 
     bool is_last = entry_index + 1 == self->kv->entry_count;
@@ -239,7 +241,7 @@ static void render_entry(const KV *self, size_t entry_index) {
 
 /** Prints `count` space characters to stdout. */
 static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
 }
 
 /**
@@ -270,7 +272,7 @@ static void print_text_slice(
     const char *text, int byte_count, ScTextStyle style, bool styled
 ) {
     if (!styled) {
-        fwrite(text, 1, (size_t)byte_count, stdout);
+        fwrite(text, 1, (size_t)byte_count, sc_output_stream());
         return;
     }
     if (byte_count >= PRINT_SLICE_BUFFER) { return; }
@@ -297,7 +299,7 @@ static void render_value(const KV *self, const char *value) {
  */
 static void render_wrapped_value(const KV *self, const char *value) {
     if (!value || !*value) {
-        fputc('\n', stdout);
+        fputc('\n', sc_output_stream());
         return;
     }
 
@@ -337,9 +339,9 @@ static void render_wrapped_value(const KV *self, const char *value) {
         if (self->val_has_format) {
             sc_print(line_buffer, self->kv->opts.val_style);
         } else {
-            fputs(line_buffer, stdout);
+            fputs(line_buffer, sc_output_stream());
         }
-        fputc('\n', stdout);
+        fputc('\n', sc_output_stream());
     }
 }
 
@@ -353,11 +355,11 @@ static void render_truncated_value(const KV *self, const char *value) {
         value, byte_count,
         self->kv->opts.val_style, self->val_has_format
     );
-    fputc('\n', stdout);
+    fputc('\n', sc_output_stream());
 }
 
 
 /** Prints `count` newline characters to stdout. */
 static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
+    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
 }
