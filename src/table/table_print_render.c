@@ -189,13 +189,13 @@ static void init_rowspan_contexts(Table *table, size_t row_index) {
                 table, row_index, row_span, inner_separator_height
             );
             table->row_span[i] = (RowSpan){
-                &table_data->rows[row_index].cells[i],
-                row_span_height,
-                0,
-                vertical_align
+                .cell        = &table_data->rows[row_index].cells[i],
+                .row_count   = row_span_height,
+                .line_offset = 0,
+                .valign      = vertical_align,
             };
         } else if (row_span != -1) {
-            table->row_span[i] = (RowSpan){ NULL, 0, 0, 0 };
+            table->row_span[i] = (RowSpan){ .cell = NULL, .row_count = 0, .line_offset = 0, .valign = 0 };
         }
     }
 }
@@ -290,7 +290,9 @@ static void render_truncation_indicator(Table *table, size_t max_rows) {
     );
 
     ScTextStyle dim_style = {
-        SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+        .attr = SC_TEXT_ATTR_DIM,
+        .fg   = SC_ANSI_COLOR_NONE,
+        .bg   = SC_ANSI_COLOR_NONE,
     };
     ScCell *indicator_cells = malloc(table_data->column_count * sizeof(ScCell));
     indicator_cells[0] = sc_cell_cs(

@@ -344,7 +344,7 @@ static void append_tline_copy(TLineBuf *out, const TLine *src) {
     for (size_t i = 0; i < src->count; i++) {
         span_copy[i] = (TSpan){ .text = strdup(src->spans[i].text), .opts = src->spans[i].opts };
     }
-    (*out->lines)[(*out->count)++] = (TLine){ span_copy, src->count, src->vis_w };
+    (*out->lines)[(*out->count)++] = (TLine){ .spans = span_copy, .count = src->count, .vis_w = src->vis_w };
 }
 
 /**
