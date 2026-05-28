@@ -95,8 +95,8 @@ static Test *get_focused_tests(size_t *count) {
         { "Colors",                    &test_colors,               0 },
         // { "Panels",                    &test_panels,               0 },
         // { "Alerts",                    &test_alert,                0 },
-        { "Tables",                    &test_tables,               0 },
-        // { "Rules",                     &test_rules,                0 },
+        // { "Tables",                    &test_tables,               0 },
+        { "Rules",                     &test_rules,                0 },
         // { "Trees",                     &test_trees,                0 },
         // { "Lists",                     &test_lists,                0 },
         // { "Progress Bar",              &test_progressbar,          0 },
@@ -141,9 +141,9 @@ static void print_rule(const char *title) {
     sc_rule_str(
         title,
         (ScRuleOpts) {
-            .style       = SC_BORDER_DOUBLE,
+            .border_type = SC_BORDER_DOUBLE,
             .color       = SC_ANSI_COLOR_NONE,
-            .title.style  = {
+            .title.style = {
                 SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
             },
             .title.align = SC_ALIGN_CENTER,

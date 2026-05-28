@@ -3,14 +3,46 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
-typedef struct {
-    ScBorderType  style;
-    ScColor        color;
-    ScTitle   title;   /* title label (text, style, align, pad; pos ignored) */
-    int            width;   /* 0 = full terminal width */
-    ScHAlign        align;   /* placement of rule when width > 0 */
-    ScEdges        margin;  /* top/bottom = blank lines; left/right = indent */
+
+/**
+* Rendering options for a horizontal rule.
+*/
+typedef struct ScRuleOpts {
+    /** Border style; determines which `h` character is used for the line. */
+    ScBorderType border_type;
+
+    /** Line color; `SC_ANSI_COLOR_NONE` = no escape codes. */
+    ScColor color;
+
+    /**
+     * Title label embedded in the line; `title.text = NULL` = no title.
+     * `pos` is ignored.
+     */
+    ScTitle title;
+
+    /** `0` = full terminal width; `>0` = fixed character width. */
+    int width;
+
+    /** Horizontal placement of the rule when `width > 0`. */
+    ScHAlign align;
+
+    /** Outer margin; top/bottom = blank lines, left/right = indent spaces. */
+    ScEdges margin;
 } ScRuleOpts;
 
-void sc_rule_str (const char *title, ScRuleOpts opts);
+
+/**
+ * Renders a horizontal rule with an optional plain-string title.
+ *
+ * @param title  Title text embedded in the line; `NULL` = no title.
+ * @param opts   Rendering options (style, color, width, alignment, margin).
+ */
+void sc_rule_str(const char *title, ScRuleOpts opts);
+
+/**
+ * Renders a horizontal rule with an optional rich-text title.
+ *
+ * @param title  Rich-text title embedded in the line; `NULL` = no title.
+ * @param opts   Rendering options (style, color, width, alignment, margin).
+ */
 void sc_rule_text(const ScText *title, ScRuleOpts opts);

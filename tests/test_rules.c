@@ -6,34 +6,34 @@ void test_rules(void) {
     printf("\n");
 
     /* ── 1. Line styles without color ── */
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_ASCII,   .color = SC_ANSI_COLOR_NONE });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_SINGLE,  .color = SC_ANSI_COLOR_NONE });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_DOUBLE,  .color = SC_ANSI_COLOR_NONE });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_THICK,   .color = SC_ANSI_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_ASCII,   .color = SC_ANSI_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_SINGLE,  .color = SC_ANSI_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_DOUBLE,  .color = SC_ANSI_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_THICK,   .color = SC_ANSI_COLOR_NONE });
 
     printf("\n");
 
     /* ── 2. Line styles with color ── */
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_CYAN    });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_YELLOW  });
-    sc_rule_str(NULL, (ScRuleOpts){ .style = SC_BORDER_THICK,  .color = sc_ansi_color_from_rgb(180,60,60) });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_CYAN    });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_YELLOW  });
+    sc_rule_str(NULL, (ScRuleOpts){ .border_type = SC_BORDER_THICK,  .color = sc_ansi_color_from_rgb(180,60,60) });
 
     printf("\n");
 
     /* ── 3. Title: left / center / right alignment ── */
-    sc_rule_str("Links",  (ScRuleOpts){
-        .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
+    sc_rule_str("Left",  (ScRuleOpts){
+        .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_LEFT,
     });
-    sc_rule_str("Mitte",  (ScRuleOpts){
-        .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
+    sc_rule_str("Middle",  (ScRuleOpts){
+        .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
     });
-    sc_rule_str("Rechts", (ScRuleOpts){
-        .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
+    sc_rule_str("Right", (ScRuleOpts){
+        .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_RIGHT,
     });
@@ -42,20 +42,20 @@ void test_rules(void) {
 
     /* ── 4. Title with line and text color ── */
     sc_rule_str("Section A", (ScRuleOpts){
-        .style       = SC_BORDER_SINGLE,
+        .border_type       = SC_BORDER_SINGLE,
         .color       = SC_ANSI_COLOR_CYAN,
         .title.style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
         .title.pad   = 2,
     });
     sc_rule_str("Warning", (ScRuleOpts){
-        .style       = SC_BORDER_DOUBLE,
+        .border_type       = SC_BORDER_DOUBLE,
         .color       = SC_ANSI_COLOR_YELLOW,
         .title.style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
     });
     sc_rule_str("Error", (ScRuleOpts){
-        .style       = SC_BORDER_THICK,
+        .border_type       = SC_BORDER_THICK,
         .color       = sc_ansi_color_from_rgb(200, 50, 50),
         .title.style  = { SC_TEXT_ATTR_BOLD, sc_ansi_color_from_rgb(200, 50, 50), SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
@@ -66,19 +66,19 @@ void test_rules(void) {
 
     /* ── 5. Fixed width with terminal placement ── */
     sc_rule_str("left-aligned rule", (ScRuleOpts){
-        .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
+        .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
         .width = 40, .align = SC_ALIGN_LEFT,
     });
     sc_rule_str("centered rule", (ScRuleOpts){
-        .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
+        .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
         .width = 40, .align = SC_ALIGN_CENTER,
     });
     sc_rule_str("right-aligned rule", (ScRuleOpts){
-        .style = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
+        .border_type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
         .width = 40, .align = SC_ALIGN_RIGHT,
@@ -87,8 +87,8 @@ void test_rules(void) {
     printf("\n");
 
     /* ── 6. Margin and pad_y ── */
-    sc_rule_str("mit Margin und pad_y", (ScRuleOpts){
-        .style       = SC_BORDER_ROUNDED,
+    sc_rule_str("With Margin and Padding", (ScRuleOpts){
+        .border_type       = SC_BORDER_ROUNDED,
         .color       = SC_ANSI_COLOR_GREEN,
         .title.style  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
         .title.align = SC_ALIGN_CENTER,
@@ -101,7 +101,7 @@ void test_rules(void) {
         sc_text_append(t, "Status: ", (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,  SC_ANSI_COLOR_NONE });
         sc_text_append(t, "OK",       (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE });
         sc_rule_text(t, (ScRuleOpts){
-            .style       = SC_BORDER_SINGLE,
+            .border_type       = SC_BORDER_SINGLE,
             .color       = SC_ANSI_COLOR_NONE,
             .title.align = SC_ALIGN_CENTER,
         });
