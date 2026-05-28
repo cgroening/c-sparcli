@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: sparcli
+Description: C11 library for styled terminal output (panels, tables, columns, lists, …)
+Version: @VERSION@
+Libs: -L${libdir} -lsparcli
+Cflags: -I${includedir}
