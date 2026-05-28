@@ -41,7 +41,7 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 
 **Critical:** Zero-initializing a `ScColor` struct gives `index=0` = `SC_ANSI_COLOR_BLACK`,
 NOT "no color". Always set `.color = SC_ANSI_COLOR_NONE` explicitly when you don't want
-a color, especially in `ScColumnsOpts.sep_color`, `ScRuleOpts.color`, etc.
+a color, especially in `ScColumnsOpts.sep.color`, `ScRuleOpts.color`, etc.
 
 ```c
 ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
@@ -61,7 +61,7 @@ SC_TEXT_ATTR_NONE | SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_ITALIC |
 ### ScTextStyle
 
 ```c
-typedef struct { ScTextAttribute style; ScColor fg; ScColor bg; } ScTextStyle;
+typedef struct { ScTextAttribute attr; ScColor fg; ScColor bg; } ScTextStyle;
 ```
 
 Used everywhere a styled text span is needed (cell headers, titles, rule labels, …).
@@ -170,12 +170,12 @@ no arguments. The same `ScTableData *` can be printed multiple times with differ
 | `header.row` | `bool` — first added row is the header |
 | `header.col` | `bool` — first column is a header column |
 | `header.row_bg` / `header.col_bg` | Background for header areas |
-| `header.opts` | `ScTextStyle` applied to all header cells |
+| `header.style` | `ScTextStyle` applied to all header cells |
 | `striped` | `bool` — alternating row backgrounds |
 | `stripe_bg` | Background for odd data rows (0-indexed) |
 | `footer` | `ScTableFooter` — grouped footer settings (see below) |
 | `footer.row_bg` / `footer.col_bg` | Background for footer rows/column |
-| `footer.opts` | `ScTextStyle` for footer cells |
+| `footer.style` | `ScTextStyle` for footer cells |
 | `title` | `ScTitle` — table title |
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` / `title.align` / `title.pad` / `title.pos` | Title text appearance and position |
@@ -188,15 +188,15 @@ no arguments. The same `ScTableData *` can be printed multiple times with differ
 ### ScTableHeader / ScTableFooter
 
 ```c
-typedef struct { bool row; bool col; ScColor row_bg; ScColor col_bg; ScTextStyle opts; } ScTableHeader;
-typedef struct { ScColor row_bg; ScColor col_bg; ScTextStyle opts; } ScTableFooter;
+typedef struct { bool row; bool col; ScColor row_bg; ScColor col_bg; ScTextStyle style; } ScTableHeader;
+typedef struct { ScColor row_bg; ScColor col_bg; ScTextStyle style; } ScTableFooter;
 ```
 
 ### ScTableBorder
 
 ```c
 typedef struct {
-    ScBorderType style;
+    ScBorderType type;
     ScColor       outer_color;
     ScColor       inner_color;
     ScColor       header_row_sep_color;
@@ -261,7 +261,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 
 | Field | Description |
 |-------|-------------|
-| `style` | `ScBorderType` — which `h` character to use |
+| `type` | `ScBorderType` — which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
 | `title` | `ScTitle` — title label (text, style, align, pad; pos ignored) |
 | `title.text` | Title string; `NULL` = no title |
@@ -304,14 +304,15 @@ Nested columns are captured eagerly at `sc_columns_add_columns` call time.
 | Field | Description |
 |-------|-------------|
 | `gap` | Space between columns. **Without separator:** gap spaces total. **With separator:** gap spaces on each side of the separator (total: 2×gap+1). Default: 3 (no sep) or 2 (with sep). |
-| `sep_style` | `ScBorderType` for the vertical separator; `SC_BORDER_NONE` = no separator |
-| `sep_color` | Separator foreground color; **must be set to `SC_ANSI_COLOR_NONE`** if no color desired |
-| `sep_bg` | Background color applied to gap spaces and the separator char; zero-init = none |
+| `sep` | `ScBorderStyle` — vertical separator bundle (`type`, `color`, `bg`); `sep.type = SC_BORDER_NONE` = no separator |
+| `sep.type` | `ScBorderType` for the separator character |
+| `sep.color` | Separator foreground color; **must be set to `SC_ANSI_COLOR_NONE`** if no color desired |
+| `sep.bg` | Background color applied to gap spaces and the separator char; zero-init = none |
 | `valign` | `SC_VALIGN_TOP` / `SC_VALIGN_MIDDLE` / `SC_VALIGN_BOTTOM` |
 | `total_width` | 0 = auto; >0 = distribute across flex columns |
 
-**Zero-init pitfall:** `sep_color` defaults to `SC_ANSI_COLOR_BLACK`. Always set
-`.sep_color = SC_ANSI_COLOR_NONE` when using a separator without a color.
+**Zero-init pitfall:** `sep.color` defaults to `SC_ANSI_COLOR_BLACK`. Always set
+`.sep.color = SC_ANSI_COLOR_NONE` when using a separator without a color.
 
 ### ScColItem
 
@@ -385,16 +386,16 @@ and freed when the parent list is freed.
 | `bullet` | `SC_LIST_BULLET` only; `NULL` = default `•` |
 | `marker_prefix` | Text before the value, e.g. `"("` → `(1`; default `""` |
 | `marker_suffix` | Text after the value, e.g. `"."` → `1.`; default `"."` |
-| `marker_opts` | Style/color for the marker; **zero-init = no formatting** (see below) |
+| `marker_style` | Style/color for the marker; **zero-init = no formatting** (see below) |
 | `indent` | Left indent relative to parent, in columns |
 | `item_gap` | Blank lines between items |
 | `width` | 0 = terminal width |
 | `margin` | Symmetric left+right outer margin |
 
-**Zero-init of `marker_opts`:** Unlike other `ScTextStyle` fields, a zero-initialized
-`marker_opts` in `ScListOpts` is explicitly treated as "no formatting" by the renderer.
+**Zero-init of `marker_style`:** Unlike other `ScTextStyle` fields, a zero-initialized
+`marker_style` in `ScListOpts` is explicitly treated as "no formatting" by the renderer.
 You can safely write `(ScListOpts){ .marker = SC_LIST_NUMBER }` without specifying
-`marker_opts` and no color escape codes will be emitted for the marker.
+`marker_style` and no color escape codes will be emitted for the marker.
 
 **Alignment:** Numbered/alpha/roman markers are right-aligned within a field sized to
 the widest marker value in the list (e.g. `VIII.` sets the field width for all items).
@@ -424,7 +425,7 @@ void           sc_progressbar_free     (ScProgressBar *b);
 `value`/`max` convention: if `max > 0`, ratio = value/max; if `max == 0`, value is already a 0.0–1.0 ratio.
 `show_value` only takes effect when `max > 0`.
 
-### ScProgressStyle
+### ScProgressType
 
 | Constant | Appearance |
 |----------|-----------|
@@ -437,9 +438,9 @@ void           sc_progressbar_free     (ScProgressBar *b);
 
 | Field | Description |
 |-------|-------------|
-| `style` | Fill style (see above) |
+| `type` | Fill style (see above) |
 | `left_cap` / `right_cap` | Border strings; `NULL` = no bracket; pass `"["` / `"]"` for defaults |
-| `fill_color` / `empty_color` | Colors; zero-init = no color (same sentinel as `marker_opts`) |
+| `fill_color` / `empty_color` | Colors; zero-init = no color (same sentinel as `marker_style`) |
 | `thresholds` | `ScProgressThresholds` — grouped threshold settings (see below) |
 | `thresholds.enabled` | `bool` — switch fill color based on ratio |
 | `thresholds.mid` / `thresholds.high` | Ratio thresholds (default 0.5 / 0.75) |
@@ -449,7 +450,7 @@ void           sc_progressbar_free     (ScProgressBar *b);
 | `bar_width` | Inner bar char count; 0 = auto from `width` |
 | `width` | Total line width; 0 = terminal width |
 | `label_width` | Fixed label column width; 0 = natural width |
-| `label_opts` | Style for label text |
+| `label_style` | Style for label text |
 
 **Zero-init of `fill_color`/`empty_color`:** Same as other color fields — zero-initialized `ScColor` (index=0, rgb=0) is treated as "no color" by the renderer. Use `sc_ansi_color_from_rgb(0,0,0)` for explicit black.
 
@@ -482,7 +483,7 @@ void       sc_spinner_free     (ScSpinner *s);
 `sc_spinner_tick` advances to the next frame, prints `frame label\r`, and calls `fflush`.
 `sc_spinner_finish` clears the line, then prints `✔ label\n` (success=true) or `✖ label\n` (success=false) in green/red.
 
-### ScSpinnerStyle
+### ScSpinnerType
 
 | Constant | Frames |
 |----------|--------|
@@ -495,9 +496,9 @@ void       sc_spinner_free     (ScSpinner *s);
 
 | Field | Description |
 |-------|-------------|
-| `style` | Frame style (see above) |
+| `type` | Frame style (see above) |
 | `color` | Spinner character color; zero-init = no color |
-| `label_opts` | Style for label text; zero-init = no formatting |
+| `label_style` | Style for label text; zero-init = no formatting |
 
 **Animation pattern:**
 ```c
@@ -539,8 +540,8 @@ Not part of the public API. Used by all source files that include `internal.h`:
   table after adding it to a columns layout has no effect.
 - Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no
   space fits in the column width, the line is truncated.
-- **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_opts`, `ScKVOpts.val_opts`,
-  `ScListOpts.marker_opts`, `ScBadgeOpts.text_opts`): zero-init = no formatting.
+- **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`,
+  `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting.
   Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
 
 ---
@@ -564,8 +565,8 @@ void  sc_kv_free (ScKV *kv);
 | `margin` | Symmetric left+right outer margin in characters |
 | `item_gap` | Blank lines between items; default 0 |
 | `wrap_val` | `1` = word-wrap long values with hanging indent; `0` = truncate |
-| `key_opts` | Style for key text; **zero-init = no formatting** |
-| `val_opts` | Style for value text; **zero-init = no formatting** |
+| `key_style` | Style for key text; **zero-init = no formatting** |
+| `val_style` | Style for value text; **zero-init = no formatting** |
 
 **Layout:** `margin + key (padded to key_w) + sep + value + margin`
 
@@ -614,7 +615,7 @@ void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts);
 |-------|-------------|
 | `left_cap` | `NULL` = `"["` |
 | `right_cap` | `NULL` = `"]"` |
-| `text_opts` | Style for the full badge (caps + padding + text); **zero-init = no formatting** |
+| `text_style` | Style for the full badge (caps + padding + text); **zero-init = no formatting** |
 | `pad` | Spaces inside each cap; default 0 |
 
 Badge string: `left_cap + pad×' ' + text + pad×' ' + right_cap`

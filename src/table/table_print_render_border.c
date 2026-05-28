@@ -107,7 +107,7 @@ static void adjust_corner_chars_for_rowspan(
     const char **left_corner, const char **right_corner
 ) {
     const ScTableData *data = table->table_data;
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     bool right_to_left = table->opts.right_to_left;
 
     size_t first_col = right_to_left ? (data->column_count - 1) : 0;
@@ -171,7 +171,7 @@ static const char *select_junction_char(
 ) {
     if (!rowspan_flags) { return spec.column_separator; }
 
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     bool right_to_left = table->opts.right_to_left;
     size_t neighbor_col = right_to_left ? (col - 1) : (col + 1);
     bool col_in_span = rowspan_flags[col];
@@ -226,7 +226,7 @@ void print_colored_string(const char *str, ScColor color) {
  */
 void render_inner_separator(Table *table) {
     const ScTableData *data = table->table_data;
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     ScColor outer_color = table->opts.border.outer_color;
     bool no_outer = table->opts.border.no_outer;
     bool right_to_left = table->opts.right_to_left;
@@ -328,7 +328,7 @@ static int rowspan_separator_line_index(
 
 /** Prints the inner border fill for a normal (non-spanning) column. */
 static void render_inner_sep_fill(Table *table, size_t col) {
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     sc_apply_colors(table->opts.border.inner_color, SC_ANSI_COLOR_NONE);
     for (int i = 0; i < table->column_widths[col]; i++) {
         fputs(border_char_sets[style].h, sc_output_stream());
@@ -345,7 +345,7 @@ static void render_inner_sep_junction(Table *table, size_t col) {
 
     const bool *flags = table->has_rowspan;
     bool right_to_left = table->opts.right_to_left;
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     size_t neighbor_col = right_to_left ? (col - 1) : (col + 1);
     bool col_in_span = flags && flags[col];
     bool neighbor_in_span = flags && flags[neighbor_col];
@@ -376,7 +376,7 @@ static void render_inner_sep_junction(Table *table, size_t col) {
  * `render_title_inner`.
  */
 void render_title_line(const Table *table, bool is_top) {
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     ScColor outer_color = table->opts.border.outer_color;
     const char *left_corner = is_top
         ? border_char_sets[style].tl : border_char_sets[style].bl;

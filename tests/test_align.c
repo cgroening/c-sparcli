@@ -86,7 +86,7 @@ void test_align(void) {
         ScRendered *rendered = sc_capture_rule_str(
             "Section Header",
             (ScRuleOpts){
-                .border_type = SC_BORDER_SINGLE,
+                .type = SC_BORDER_SINGLE,
                 .color = SC_ANSI_COLOR_YELLOW,
                 .title.style = bold_yellow,
                 .title.align = SC_ALIGN_CENTER,

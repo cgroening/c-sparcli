@@ -374,14 +374,14 @@ static void render_cap(const char *cap) {
  * the empty cells.
  */
 static void render_bar_body(const Frame *frame) {
-    const StyleChars *chars = &style_chars[frame->bar->opts.style];
+    const StyleChars *chars = &style_chars[frame->bar->opts.type];
     const char *fill_char = chars->fill;
     const char *empty_char = chars->empty;
     const char *head_char = chars->head ? chars->head : chars->fill;
 
     int empty_count = frame->bar_width - frame->filled_cells;
-    bool styled_has_edge = (frame->bar->opts.style == SC_PROGRESS_ASCII
-        || frame->bar->opts.style == SC_PROGRESS_SHADED);
+    bool styled_has_edge = (frame->bar->opts.type == SC_PROGRESS_ASCII
+        || frame->bar->opts.type == SC_PROGRESS_SHADED);
     bool draw_head = styled_has_edge
         && frame->filled_cells > 0
         && frame->filled_cells < frame->bar_width;

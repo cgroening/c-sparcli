@@ -94,7 +94,7 @@ void sc_spinner_tick(ScSpinner *spinner) {
     fputc('\r', sc_output_stream());
     fflush(sc_output_stream());
 
-    int frame_count = spinner_frame_count[spinner->opts.style];
+    int frame_count = spinner_frame_count[spinner->opts.type];
     spinner->frame_index = (spinner->frame_index + 1) % frame_count;
 }
 
@@ -124,7 +124,7 @@ void sc_spinner_free(ScSpinner *spinner) {
 /** Prints the current animation frame in the configured spinner color. */
 static void render_spinner_char(const ScSpinner *spinner) {
     const char *frame =
-        spinner_frames[spinner->opts.style][spinner->frame_index];
+        spinner_frames[spinner->opts.type][spinner->frame_index];
     print_colored(frame, spinner->opts.color);
 }
 

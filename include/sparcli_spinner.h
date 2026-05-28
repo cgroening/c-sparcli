@@ -13,14 +13,14 @@ typedef enum {
     SC_SPINNER_PIPE,    /**< `|/-\` (4 frames, ASCII) */
     SC_SPINNER_DOTS,    /**< `⣾⣽⣻⢿⡿⣟⣯⣷` (8 frames, dense Braille) */
     SC_SPINNER_ARROW,   /**< `←↖↑↗→↘↓↙` (8 frames, rotating arrow) */
-} ScSpinnerStyle;
+} ScSpinnerType;
 
 /**
  * Rendering options for a spinner.
  */
 typedef struct ScSpinnerOpts {
     /** Animation frames used for the spinner character. */
-    ScSpinnerStyle style;
+    ScSpinnerType type;
 
     /** Color applied to the spinner character; zero-init = no color. */
     ScColor color;

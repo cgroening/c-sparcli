@@ -53,7 +53,7 @@ void table_render(Table *table) {
  * `border.no_outer` is set.
  */
 static void render_top_border(const Table *table) {
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     if (table->opts.border.no_outer) { return; }
 
     bool has_top_title = table->opts.title.text
@@ -79,7 +79,7 @@ static void render_top_border(const Table *table) {
  * otherwise a plain horizontal border. Suppressed when `border.no_outer`.
  */
 static void render_bottom_border(const Table *table) {
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
     if (table->opts.border.no_outer) { return; }
 
     bool has_bottom_title = table->opts.title.text
@@ -120,7 +120,7 @@ static void render_header_row(const Table *table) {
     );
     free(header_cells);
 
-    if (table->opts.border.style != SC_BORDER_NONE) {
+    if (table->opts.border.type != SC_BORDER_NONE) {
         render_section_separator(table);
     }
 }
@@ -130,7 +130,7 @@ static void render_header_row(const Table *table) {
  * the footer. Uses `header_row_sep_color` when set, otherwise `inner_color`.
  */
 static void render_section_separator(const Table *table) {
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
 
     ScColor separator_color = table->opts.border.inner_color;
     if (table->opts.border.header_row_sep_color.index != -2) {
@@ -197,7 +197,7 @@ static void init_rowspan_contexts(Table *table, size_t row_index) {
     const ScTableBorder border = table->opts.border;
 
     int separator_height = 0;
-    if (border.style != SC_BORDER_NONE && !border.no_inner_h) {
+    if (border.type != SC_BORDER_NONE && !border.no_inner_h) {
         separator_height = 1;
     }
 
@@ -254,7 +254,7 @@ static int compute_rowspan_total_height(
  */
 static void render_data_row_separator(Table *table, size_t row_index) {
     const ScTableData *data = table->table_data;
-    if (table->opts.border.style == SC_BORDER_NONE
+    if (table->opts.border.type == SC_BORDER_NONE
         || table->opts.border.no_inner_h) {
         return;
     }
@@ -335,7 +335,7 @@ static void render_truncation_indicator(Table *table, size_t max_rows) {
 /** Renders footer rows, preceded by a section separator. */
 static void render_footer_rows(const Table *table) {
     const ScTableData *data = table->table_data;
-    ScBorderType style = table->opts.border.style;
+    ScBorderType style = table->opts.border.type;
 
     if (data->footer_row_count > 0 && style != SC_BORDER_NONE) {
         render_section_separator(table);

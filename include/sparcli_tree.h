@@ -11,7 +11,7 @@ SPARCLI_BEGIN_DECLS
  */
 typedef struct ScTreeOpts {
     /** Connector style; selects the box-drawing set for branches and guides. */
-    ScBorderType border_type;
+    ScBorderType type;
 
     /** Connector color; `SC_ANSI_COLOR_NONE` = no escape codes. */
     ScColor connector_color;

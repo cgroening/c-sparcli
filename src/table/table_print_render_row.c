@@ -249,7 +249,7 @@ static int colspan_total_width(
  */
 static void render_visual_line(const Row *self, int visual_line) {
     const ScTableData *data = self->table->table_data;
-    ScBorderType style = self->table->opts.border.style;
+    ScBorderType style = self->table->opts.border.type;
     ScColor outer_color = self->table->opts.border.outer_color;
     bool no_outer = self->table->opts.border.no_outer;
     bool right_to_left = self->table->opts.right_to_left;
@@ -517,7 +517,7 @@ static void render_cell_vertical_separator(
     bool is_last_in_row =
         col_iter + (size_t)span_cols >= data->column_count;
     if (is_last_in_row) { return; }
-    if (self->table->opts.border.style == SC_BORDER_NONE) { return; }
+    if (self->table->opts.border.type == SC_BORDER_NONE) { return; }
 
     size_t end_col = col + (size_t)span_cols - 1;
     if (!table_has_vertical_separator_after(self->table, end_col)) {
@@ -531,7 +531,7 @@ static void render_cell_vertical_separator(
         sep_color = self->table->opts.border.header_col_sep_color;
     }
     print_colored_string(
-        border_char_sets[self->table->opts.border.style].v, sep_color
+        border_char_sets[self->table->opts.border.type].v, sep_color
     );
 }
 

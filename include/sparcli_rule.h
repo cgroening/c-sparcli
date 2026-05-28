@@ -11,7 +11,7 @@ SPARCLI_BEGIN_DECLS
 */
 typedef struct ScRuleOpts {
     /** Border style; determines which `h` character is used for the line. */
-    ScBorderType border_type;
+    ScBorderType type;
 
     /** Line color; `SC_ANSI_COLOR_NONE` = no escape codes. */
     ScColor color;

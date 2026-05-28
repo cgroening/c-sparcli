@@ -141,7 +141,7 @@ static void print_rule(const char *title) {
     sc_rule_str(
         title,
         (ScRuleOpts) {
-            .border_type = SC_BORDER_DOUBLE,
+            .type = SC_BORDER_DOUBLE,
             .color       = SC_ANSI_COLOR_NONE,
             .title.style = {
                 SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE

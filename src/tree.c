@@ -253,12 +253,12 @@ static void init_tree(Tree *self, const ScTree *tree) {
 
 /**
  * Returns the validated border type for connector lookup; falls back to
- * `SC_BORDER_SINGLE` when `opts->border_type` is out of range.
+ * `SC_BORDER_SINGLE` when `opts->type` is out of range.
  */
 static int get_border_type(const ScTreeOpts *opts) {
-    if (opts->border_type >= SC_BORDER_NONE
-        && opts->border_type <= SC_BORDER_THICK) {
-        return opts->border_type;
+    if (opts->type >= SC_BORDER_NONE
+        && opts->type <= SC_BORDER_THICK) {
+        return opts->type;
     }
     return SC_BORDER_SINGLE;
 }

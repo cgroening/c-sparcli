@@ -13,7 +13,7 @@ typedef enum {
     SC_PROGRESS_ASCII,  /**< `=` fill with `>` edge, space empty */
     SC_PROGRESS_LINE,   /**< `━` fill, `╌` empty (heavy horizontal) */
     SC_PROGRESS_SHADED, /**< `▓` fill with `▒` edge, `░` empty (shaded blocks) */
-} ScProgressStyle;
+} ScProgressType;
 
 /**
  * Optional color thresholds for the bar's fill.
@@ -47,7 +47,7 @@ typedef struct ScProgressThresholds {
  */
 typedef struct ScProgressBarOpts {
     /** Fill style (block, ascii, line, shaded). */
-    ScProgressStyle style;
+    ScProgressType type;
 
     /** Left bracket string; `NULL` = no left cap. */
     const char *left_cap;

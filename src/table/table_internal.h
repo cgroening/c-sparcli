@@ -162,7 +162,7 @@ static inline bool table_is_header_column(const Table *table, size_t col) {
 static inline bool table_has_vertical_separator_after(
     const Table *table, size_t col
 ) {
-    if (table->opts.border.style == SC_BORDER_NONE) { return false; }
+    if (table->opts.border.type == SC_BORDER_NONE) { return false; }
     return !table->opts.border.no_inner_v
         || table_is_header_column(table, col);
 }

@@ -12,7 +12,7 @@ void test_progressbar(void) {
     /* ── 1. All 4 styles at 60% ── */
     {
         printf("--- 1. Alle 4 Stile (60%%) ---\n");
-        ScProgressStyle styles[] = {
+        ScProgressType types[] = {
             SC_PROGRESS_BLOCK,
             SC_PROGRESS_ASCII,
             SC_PROGRESS_LINE,
@@ -21,7 +21,7 @@ void test_progressbar(void) {
         const char *labels[] = { "Block ", "ASCII ", "Line  ", "Shaded" };
         for (int i = 0; i < 4; i++) {
             ScProgressBar *bar = sc_progressbar_new((ScProgressBarOpts){
-                .style = styles[i],
+                .type = types[i],
                 .left_cap = "[",
                 .right_cap = "]",
                 .show_percent = true,
@@ -40,7 +40,7 @@ void test_progressbar(void) {
         double ratios[] = { 0.0, 0.25, 0.5, 0.75, 1.0 };
         for (int i = 0; i < 5; i++) {
             ScProgressBar *bar = sc_progressbar_new((ScProgressBarOpts){
-                .style = SC_PROGRESS_BLOCK,
+                .type = SC_PROGRESS_BLOCK,
                 .left_cap = "[",
                 .right_cap = "]",
                 .show_percent = true,
@@ -60,7 +60,7 @@ void test_progressbar(void) {
         double ratios[] = { 0.3, 0.6, 0.85 };
         for (int i = 0; i < 3; i++) {
             ScProgressBar *bar = sc_progressbar_new((ScProgressBarOpts){
-                .style = SC_PROGRESS_BLOCK,
+                .type = SC_PROGRESS_BLOCK,
                 .left_cap = "[",
                 .right_cap = "]",
                 .show_percent = true,
@@ -83,7 +83,7 @@ void test_progressbar(void) {
         double values[] = { 0.0, 52.0, 105.0, 189.0, 250.0 };
         for (int i = 0; i < 5; i++) {
             ScProgressBar *bar = sc_progressbar_new((ScProgressBarOpts){
-                .style = SC_PROGRESS_BLOCK,
+                .type = SC_PROGRESS_BLOCK,
                 .left_cap = "[",
                 .right_cap = "]",
                 .show_percent = true,
@@ -102,7 +102,7 @@ void test_progressbar(void) {
         printf("\n--- 5. Benutzerdefinierte Klammern ---\n");
         /* ❮ = U+276E = \xe2\x9d\xae, ❯ = U+276F = \xe2\x9d\xaf */
         ScProgressBar *upload_bar = sc_progressbar_new((ScProgressBarOpts){
-            .style = SC_PROGRESS_SHADED,
+            .type = SC_PROGRESS_SHADED,
             .left_cap = "\xe2\x9d\xae",
             .right_cap = "\xe2\x9d\xaf",
             .show_percent = true,
@@ -114,7 +114,7 @@ void test_progressbar(void) {
         sc_progressbar_free(upload_bar);
 
         ScProgressBar *build_bar = sc_progressbar_new((ScProgressBarOpts){
-            .style = SC_PROGRESS_LINE,
+            .type = SC_PROGRESS_LINE,
             .left_cap = NULL,
             .right_cap = NULL,
             .show_percent = true,
@@ -126,7 +126,7 @@ void test_progressbar(void) {
         sc_progressbar_free(build_bar);
 
         ScProgressBar *deploy_bar = sc_progressbar_new((ScProgressBarOpts){
-            .style = SC_PROGRESS_ASCII,
+            .type = SC_PROGRESS_ASCII,
             .left_cap = "|",
             .right_cap = "|",
             .show_percent = true,
@@ -142,7 +142,7 @@ void test_progressbar(void) {
 void test_progressbar_animated(void) {
     printf("\n--- Progressbar animated (~3s) ---\n");
     ScProgressBar *bar = sc_progressbar_new((ScProgressBarOpts){
-        .style = SC_PROGRESS_BLOCK,
+        .type = SC_PROGRESS_BLOCK,
         .left_cap = "[",
         .right_cap = "]",
         .show_percent = true,

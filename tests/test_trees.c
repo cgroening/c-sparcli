@@ -16,7 +16,7 @@ void test_trees(void) {
     /* ── 1. Directory structure (SINGLE, colored connectors) ── */
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_SINGLE,
+            .type = SC_BORDER_SINGLE,
             .connector_color = SC_ANSI_COLOR_NONE,
         });
         ScTextStyle dir_text = {
@@ -71,7 +71,7 @@ void test_trees(void) {
     /* ── 2. Category tree, multiple roots (ROUNDED) ── */
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_ROUNDED,
+            .type = SC_BORDER_ROUNDED,
             .connector_color = sc_ansi_color_from_rgb(100, 100, 100),
         });
         ScTextStyle root_style = {
@@ -125,7 +125,7 @@ void test_trees(void) {
     /* ── 3. Prefix icons with color (status tree) ── */
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_SINGLE,
+            .type = SC_BORDER_SINGLE,
             .connector_color = sc_ansi_color_from_rgb(80, 80, 80),
         });
         ScTextStyle ok_icon = {
@@ -185,7 +185,7 @@ void test_trees(void) {
     /* ── 4. Different line styles ── */
     {
         ScTree *ascii_tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_ASCII,
+            .type = SC_BORDER_ASCII,
             .connector_color = SC_ANSI_COLOR_NONE,
         });
         ScTreeNode *ascii_root = sc_tree_add_str(
@@ -205,7 +205,7 @@ void test_trees(void) {
         printf("\n");
 
         ScTree *double_tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_DOUBLE,
+            .type = SC_BORDER_DOUBLE,
             .connector_color = SC_ANSI_COLOR_NONE,
         });
         ScTreeNode *double_root = sc_tree_add_str(
@@ -225,7 +225,7 @@ void test_trees(void) {
         printf("\n");
 
         ScTree *thick_tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_THICK,
+            .type = SC_BORDER_THICK,
             .connector_color = sc_ansi_color_from_rgb(120, 80, 200),
         });
         ScTreeNode *thick_root = sc_tree_add_str(
@@ -249,7 +249,7 @@ void test_trees(void) {
     /* ── 5. no_guide = true ── */
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_SINGLE,
+            .type = SC_BORDER_SINGLE,
             .no_guide = true,
             .connector_color = SC_ANSI_COLOR_NONE,
         });
@@ -275,7 +275,7 @@ void test_trees(void) {
     /* ── 6. ScText variant with mixed spans ── */
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_SINGLE,
+            .type = SC_BORDER_SINGLE,
             .connector_color = SC_ANSI_COLOR_CYAN,
         });
 
@@ -329,7 +329,7 @@ void test_trees(void) {
     /* ── 7. Tree next to table in columns ── */
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
-            .border_type = SC_BORDER_SINGLE,
+            .type = SC_BORDER_SINGLE,
             .connector_color = sc_ansi_color_from_rgb(80, 140, 80),
         });
         ScTextStyle dir_style = {

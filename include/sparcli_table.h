@@ -205,7 +205,7 @@ typedef struct ScColOpts {
 /** Border style and color settings for a table. */
 typedef struct ScTableBorder {
     /** Border style (none, ascii, single, double, rounded, thick). */
-    ScBorderType style;
+    ScBorderType type;
 
     /** Color of the outer frame. */
     ScColor outer_color;

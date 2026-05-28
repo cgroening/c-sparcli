@@ -169,7 +169,7 @@ static int current_rendered_width(const Table *table) {
     ScTableBorder border = table->opts.border;
 
     int outer_frame_width = 0;
-    if (border.style != SC_BORDER_NONE && !border.no_outer) {
+    if (border.type != SC_BORDER_NONE && !border.no_outer) {
         outer_frame_width = 2;
     }
 

@@ -104,12 +104,12 @@ static int get_effective_width(Rule *self) {
 
 /**
  * Returns the validated border style index; falls back to `SC_BORDER_SINGLE`
- * when `opts.border_type` is out of range.
+ * when `opts.type` is out of range.
  */
 static int get_style(Rule *self) {
-    if (self->opts.border_type >= SC_BORDER_NONE &&
-        self->opts.border_type <= SC_BORDER_THICK) {
-        return self->opts.border_type;
+    if (self->opts.type >= SC_BORDER_NONE &&
+        self->opts.type <= SC_BORDER_THICK) {
+        return self->opts.type;
     }
     return SC_BORDER_SINGLE;
 }
