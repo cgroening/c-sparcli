@@ -14,7 +14,6 @@ typedef struct {
 } RowBlock;
 
 
-
 // Forward declarations indented to reflect call hierarchy
 
 ScTableData *sc_table_new(void);
@@ -28,10 +27,16 @@ void sc_table_add_column(ScTableData *table_data, const char *header, ScColOpts 
     );
 
 void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t n);
-void sc_table_add_row_bg(ScTableData *table_data, ScCell *cells, size_t n, ScColor bg);
+void sc_table_add_row_bg(
+    ScTableData *table_data, ScCell *cells, size_t n, ScColor bg
+);
 void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n);
     static void add_row(
-        ScTableData *table_data, ScCell *cells, size_t ncell, ScColor bg, bool to_footer
+        ScTableData *table_data,
+        ScCell *cells,
+        size_t cell_count,
+        ScColor bg,
+        bool to_footer
     );
         static RowBlock get_row_block(ScTableData *table_data, bool to_footer);
         static void grow_rows_array(RowBlock *row_block);
@@ -42,28 +47,6 @@ void sc_table_print(const ScTableData *table_data, ScTableOpts opts);
 void sc_table_free(ScTableData *table_data);
     static void free_row(TRow *row);
     static void free_row_array(TRow *rows, size_t count);
-
-
-
-
-static void free_tlines(TLine *lines, size_t n);
-static void flush_tline(
-    TLine **lines,
-    size_t *cap,
-    size_t *n,
-    TSpan *buf,
-    size_t buf_n,
-    size_t vis_w
-);
-static TLine  *make_cell_lines(const ScCell *cell, size_t *out_n);
-static size_t  cell_vis_width(const ScCell *cell);
-static TLine  *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n);
-static TLine  *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
-static void    print_colored_string(const char *s, ScColor fg);
-static void    print_spaces_bg(int n, ScColor bg);
-static void    print_span_bg(const char *text, ScTextStyle opts, ScColor cell_bg);
-
-
 
 
 ScTableData *sc_table_new(void) {

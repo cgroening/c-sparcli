@@ -117,11 +117,11 @@ static void render_title_line(const Table *table, int is_top);
  * Renders one horizontal border line (top, bottom, or inner separator).
  * Adjusts edge corners for active rowspans, then prints margin, left edge,
  * per-column fill and junction chars, right edge, and newline.
+ *
+ * `rowspan_flags[col]`=1 → `col` has active rowspan.
  */
 static void render_horizontal_border(
-    const Table *table,
-    HBorderSpec spec,
-    const bool *rowspan_flags   /* `rowspan_flags[col]`=1 → `col` has active rowspan */
+    const Table *table, HBorderSpec spec, const bool *rowspan_flags
 ) {
     const ScTableData *table_data = table->table_data;
     bool right_to_left = table->opts.right_to_left;
@@ -196,7 +196,8 @@ static void render_hborder_col_fill(
 /**
  * Prints the junction character between `col` and its neighbour.
  * Selects the glyph based on which side has an active rowspan, and overrides
- * the color for the header-column separator when `spec.use_header_col_sep` is set.
+ * the color for the header-column separator when `spec.use_header_col_sep`
+ * is set.
  */
 static void render_hborder_junction(
     const Table *table, size_t col, const bool *rowspan_flags, HBorderSpec spec
@@ -313,7 +314,8 @@ static void render_isep_span_content(Table *table, size_t col, ScColor col_bg) {
     if (content_w < 0) { content_w = 0; }
 
     size_t line_count;
-    TLine *cell_lines = (table_data->columns[col].opts.word_wrap && content_w > 0)
+    TLine *cell_lines =
+        (table_data->columns[col].opts.word_wrap && content_w > 0)
         ? wrap_cell_lines(table->row_span[col].cell, content_w, &line_count)
         : make_cell_lines(table->row_span[col].cell, &line_count);
 
@@ -490,7 +492,10 @@ static void render_title_line(const Table *table, int is_top) {
  * area of a title border line.
  */
 static void render_title_inner(
-    const Table *table, const char *fill_char, ScColor outer_color, int title_pad
+    const Table *table,
+    const char *fill_char,
+    ScColor outer_color,
+    int title_pad
 ) {
     if (table->opts.title.text && *table->opts.title.text) {
         render_title_with_fill(table, fill_char, outer_color, title_pad);
@@ -504,7 +509,10 @@ static void render_title_inner(
  * padding, fill — all in the outer-color / title-style combination.
  */
 static void render_title_with_fill(
-    const Table *table, const char *fill_char, ScColor outer_color, int title_pad
+    const Table *table,
+    const char *fill_char,
+    ScColor outer_color,
+    int title_pad
 ) {
     int title_len = (int)strlen(table->opts.title.text);
     int left_fill, right_fill;
@@ -518,13 +526,24 @@ static void render_title_with_fill(
     );
 
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < left_fill; i++) { fputs(fill_char, stdout); }
+    for (int i = 0; i < left_fill; i++) {
+        fputs(fill_char, stdout);
+    }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-    for (int i = 0; i < title_pad; i++) { print_colored_string(" ", outer_color); }
+
+    for (int i = 0; i < title_pad; i++) {
+        print_colored_string(" ", outer_color);
+    }
     sc_print(table->opts.title.text, table->opts.title.style);
-    for (int i = 0; i < title_pad; i++) { print_colored_string(" ", outer_color); }
+
+    for (int i = 0; i < title_pad; i++) {
+        print_colored_string(" ", outer_color);
+    }
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < right_fill; i++) { fputs(fill_char, stdout); }
+
+    for (int i = 0; i < right_fill; i++) {
+        fputs(fill_char, stdout);
+    }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
 }
 

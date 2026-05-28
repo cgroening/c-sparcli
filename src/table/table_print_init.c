@@ -4,6 +4,7 @@
 #include "internal.h"            // IWYU pragma: export
 #include "table_internal.h"      // IWYU pragma: export
 #include "table_print_render.c"  // IWYU pragma: export
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

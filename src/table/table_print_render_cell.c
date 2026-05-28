@@ -21,13 +21,23 @@ typedef struct {
     size_t  span_width;    /* visible width of the current output line */
 } WordWrapAccum;
 
+/* Arguments for flush_tline(): the destination line array and the line data to append. */
+typedef struct {
+    TLine  **out_lines;     /* pointer to the growing output array */
+    size_t  *out_capacity;  /* allocated slot count in *out_lines */
+    size_t  *out_count;     /* number of completed lines written */
+    TSpan   *spans;         /* span buffer for the line being appended */
+    size_t   span_count;    /* number of spans in the buffer */
+    size_t   visible_width; /* visible column width of the line */
+} TLineFlush;
+
 // Forward declarations indented to reflect call hierarchy
 
 static TLine *make_cell_lines(const ScCell *cell, size_t *out_n);
     static void resolve_cell_span(const ScCell *cell, size_t span_idx, const char **out_s, ScTextStyle *out_opts);
     static void scan_text_for_newlines(const char *text, ScTextStyle opts, TLine **lines, size_t *line_cap, size_t *line_count, TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width);
         static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width, const char *start, size_t len, ScTextStyle opts);
-    static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count, TSpan *buf, size_t buf_count, size_t vis_w);
+    static void flush_tline(TLineFlush args);
 
 static size_t cell_vis_width(const ScCell *cell);
     static void free_tlines(TLine *lines, size_t line_count);
@@ -69,7 +79,7 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
         );
     }
 
-    flush_tline(&lines, &line_cap, &line_count, buf, buf_count, buf_width);
+    flush_tline((TLineFlush){ &lines, &line_cap, &line_count, buf, buf_count, buf_width });
     free(buf);
     *out_n = line_count;
     return lines;
@@ -106,7 +116,7 @@ static void scan_text_for_newlines(const char *text, ScTextStyle opts,
             if (len > 0) {
                 buf_push_segment(buf, buf_cap, buf_count, buf_width, start, len, opts);
             }
-            flush_tline(lines, line_cap, line_count, *buf, *buf_count, *buf_width);
+            flush_tline((TLineFlush){ lines, line_cap, line_count, *buf, *buf_count, *buf_width });
             *buf_count = 0; *buf_width = 0;
             start = text + 1;
         }
@@ -134,17 +144,14 @@ static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, si
 
 /* Copies the span buffer into a new TLine entry and appends it to the lines
    array, growing the array if needed. */
-static void flush_tline(TLine **lines, size_t *line_cap, size_t *line_count,
-                         TSpan *buf, size_t buf_count, size_t vis_w) {
-    /* --- grow the lines array if full --- */
-    if (*line_count == *line_cap) {
-        *line_cap = *line_cap ? *line_cap * 2 : 4;
-        *lines = realloc(*lines, *line_cap * sizeof(TLine));
+static void flush_tline(TLineFlush args) {
+    if (*args.out_count == *args.out_capacity) {
+        *args.out_capacity = *args.out_capacity ? *args.out_capacity * 2 : 4;
+        *args.out_lines = realloc(*args.out_lines, *args.out_capacity * sizeof(TLine));
     }
-    /* --- copy the span buffer into a new owned TLine --- */
-    TSpan *span_copy = malloc((buf_count + 1) * sizeof(TSpan));
-    if (buf_count) { memcpy(span_copy, buf, buf_count * sizeof(TSpan)); }
-    (*lines)[(*line_count)++] = (TLine){ span_copy, buf_count, vis_w };
+    TSpan *span_copy = malloc((args.span_count + 1) * sizeof(TSpan));
+    if (args.span_count) { memcpy(span_copy, args.spans, args.span_count * sizeof(TSpan)); }
+    (*args.out_lines)[(*args.out_count)++] = (TLine){ span_copy, args.span_count, args.visible_width };
 }
 
 /* Returns the visible column width of the widest line in a cell. */
@@ -313,10 +320,10 @@ static void ww_flush_sbuf(WordWrapAccum *state) {
         state->span_width -= strlen(state->spans[state->span_count - 1].text);
         free((char *)state->spans[--state->span_count].text);
     }
-    flush_tline(
+    flush_tline((TLineFlush){
         &state->lines, &state->line_capacity, &state->line_count,
         state->spans, state->span_count, state->span_width
-    );
+    });
     state->span_count = 0; state->span_width = 0;
 }
 
