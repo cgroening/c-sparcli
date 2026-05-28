@@ -6,35 +6,74 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Token type for the word-wrap subsystem: one contiguous run of spaces or
-   non-spaces extracted from a TLine span. */
-typedef struct { char *s; size_t vis_w; ScTextStyle opts; bool is_space; } WordWrapToken;
-
-/* Mutable accumulator for the word-wrap line-building loop. */
+/**
+ * Token type for the word-wrap subsystem: one contiguous run of spaces or
+ * non-spaces extracted from a `TLine` span.
+ */
 typedef struct {
-    TLine  *lines;         /* completed output lines */
+    char *string;
+    size_t visible_width;
+    ScTextStyle opts;
+    bool is_space;
+} WordWrapToken;
+
+/** Mutable accumulator for the word-wrap line-building loop. */
+typedef struct WordWrapAccum {
+    /** Completed output lines. */
+    TLine  *lines;
+
+    /** Number of completed lines in `lines`. */
     size_t  line_count;
+
+    /** Allocated slot count in `lines`. */
     size_t  line_capacity;
-    TSpan  *spans;         /* spans accumulating for the current output line */
+
+    /** Spans accumulating for the current output line. */
+    TSpan  *spans;
+
+    /** Number of spans in the current line buffer. */
     size_t  span_count;
+
+    /** Allocated slot count in `spans`. */
     size_t  span_capacity;
-    size_t  span_width;    /* visible width of the current output line */
+
+    /** Visible column width of the current output line. */
+    size_t  span_width;
 } WordWrapAccum;
 
-/* Arguments for flush_tline(): the destination line array and the line data to append. */
-typedef struct {
-    TLine  **out_lines;     /* pointer to the growing output array */
-    size_t  *out_capacity;  /* allocated slot count in *out_lines */
-    size_t  *out_count;     /* number of completed lines written */
-    TSpan   *spans;         /* span buffer for the line being appended */
-    size_t   span_count;    /* number of spans in the buffer */
-    size_t   visible_width; /* visible column width of the line */
+/**
+ * Arguments for `flush_tline()`:
+ * the destination line array and the line data to append.
+ */
+typedef struct TLineFlush {
+    /** Pointer to the growing output array. */
+    TLine  **out_lines;
+
+    /** Allocated slot count in `*out_lines`. */
+    size_t  *out_capacity;
+
+    /** Number of completed lines written into `*out_lines`. */
+    size_t  *out_count;
+
+    /** Span buffer for the line being appended. */
+    TSpan   *spans;
+
+    /** Number of spans in `spans`. */
+    size_t   span_count;
+
+    /** Visible column width of the line being appended. */
+    size_t   visible_width;
 } TLineFlush;
 
 // Forward declarations indented to reflect call hierarchy
 
-static TLine *make_cell_lines(const ScCell *cell, size_t *out_n);
-    static void resolve_cell_span(const ScCell *cell, size_t span_idx, const char **out_s, ScTextStyle *out_opts);
+static TLine *make_cell_lines(const ScCell *cell, size_t *out_count);
+    static void resolve_cell_span(
+        const ScCell *cell,
+        size_t span_idx,
+        const char **out_string,
+        ScTextStyle *out_opts
+    );
     static void scan_text_for_newlines(const char *text, ScTextStyle opts, TLine **lines, size_t *line_cap, size_t *line_count, TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width);
         static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width, const char *start, size_t len, ScTextStyle opts);
     static void flush_tline(TLineFlush args);
@@ -261,7 +300,7 @@ static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n) {
 
     TLine *result_lines = state.lines;
     free(state.spans);
-    for (size_t i = 0; i < token_count; i++) { if (tokens[i].s) { free(tokens[i].s); } }
+    for (size_t i = 0; i < token_count; i++) { if (tokens[i].string) { free(tokens[i].string); } }
     free(tokens);
     *out_n = state.line_count;
     return result_lines;
@@ -299,15 +338,15 @@ static void tokenize_tline_spans(const TLine *src, WordWrapToken **out_tokens, s
  * the following word won't fit after it, otherwise appends it to the line.
  */
 static void emit_space_tok(WordWrapAccum *state, WordWrapToken *tok, const WordWrapToken *next, int wrap_w) {
-    if (state->span_count == 0) { free(tok->s); tok->s = NULL; return; }
+    if (state->span_count == 0) { free(tok->string); tok->string = NULL; return; }
     if (next && !next->is_space
-            && (int)(state->span_width + tok->vis_w + next->vis_w) > wrap_w) {
-        free(tok->s); tok->s = NULL;
+            && (int)(state->span_width + tok->visible_width + next->visible_width) > wrap_w) {
+        free(tok->string); tok->string = NULL;
         ww_flush_sbuf(state);
         return;
     }
-    ww_push_span(state, tok->s, tok->vis_w, tok->opts);
-    tok->s = NULL;
+    ww_push_span(state, tok->string, tok->visible_width, tok->opts);
+    tok->string = NULL;
 }
 
 /**
@@ -345,14 +384,14 @@ static void ww_push_span(WordWrapAccum *state, char *text, size_t vis_w, ScTextS
  * then hard-breaks it when it exceeds `wrap_w`, otherwise appends it.
  */
 static void emit_word_tok(WordWrapAccum *state, WordWrapToken *tok, int wrap_w) {
-    if (state->span_count > 0 && (int)(state->span_width + tok->vis_w) > wrap_w) {
+    if (state->span_count > 0 && (int)(state->span_width + tok->visible_width) > wrap_w) {
         ww_flush_sbuf(state);
     }
-    if ((int)tok->vis_w > wrap_w) {
+    if ((int)tok->visible_width > wrap_w) {
         hard_break_word(state, tok, wrap_w);
     } else {
-        ww_push_span(state, tok->s, tok->vis_w, tok->opts);
-        tok->s = NULL;
+        ww_push_span(state, tok->string, tok->visible_width, tok->opts);
+        tok->string = NULL;
     }
 }
 
@@ -361,8 +400,8 @@ static void emit_word_tok(WordWrapAccum *state, WordWrapToken *tok, int wrap_w) 
  * a new output line after each full chunk. Frees `tok->s` when done.
  */
 static void hard_break_word(WordWrapAccum *state, WordWrapToken *tok, int wrap_w) {
-    const char *text_ptr = tok->s;
-    size_t remaining_bytes = strlen(tok->s);
+    const char *text_ptr = tok->string;
+    size_t remaining_bytes = strlen(tok->string);
     while (remaining_bytes > 0) {
         int avail_cols = wrap_w - (int)state->span_width;
         if (avail_cols <= 0) { ww_flush_sbuf(state); avail_cols = wrap_w; }
@@ -373,5 +412,5 @@ static void hard_break_word(WordWrapAccum *state, WordWrapToken *tok, int wrap_w
         text_ptr += chunk_bytes; remaining_bytes -= chunk_bytes;
         if (remaining_bytes > 0) { ww_flush_sbuf(state); }
     }
-    free(tok->s); tok->s = NULL;
+    free(tok->string); tok->string = NULL;
 }
