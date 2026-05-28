@@ -44,7 +44,7 @@
 - [x] src/table/table_print_init.c
 - [x] src/table/table_print_render.c
 - [x] src/table/table_print_render_border.c
-- [ ] src/table/table_print_render_cell.c
+- [x] src/table/table_print_render_cell.c
 - [ ] src/table/table_print_render_row.c
 - [ ] src/table/table_internal.h
 

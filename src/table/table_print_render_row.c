@@ -335,7 +335,7 @@ static int compute_normal_cell_cli(int visual_line, int content_lines, ScVAlign 
 static void render_cell_line(const TLine *line, int col_width, ScHAlign halign,
                               ScColor cell_bg, const ScTableOpts *opts,
                               const RowRenderCtx *rctx) {
-    int align_padding = col_width - (int)line->vis_w;
+    int align_padding = col_width - (int)line->visible_width;
     if (align_padding >= 0) {
         print_cell_line_aligned(line, align_padding, halign, cell_bg, opts, rctx);
     } else {

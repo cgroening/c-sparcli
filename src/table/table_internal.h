@@ -13,7 +13,7 @@ typedef struct {
 typedef struct {
     TSpan *spans;
     size_t count;
-    size_t vis_w;
+    size_t visible_width;
 } TLine;
 
 /* ── Border character sets ───────────────────────────────────────────────── */

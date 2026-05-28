@@ -358,7 +358,7 @@ static int compute_span_cli(const RowSpan *span_ctx, int content_lines) {
 static void print_tline_in_width(
     const TLine *line, int width, ScHAlign halign, ScColor bg
 ) {
-    int remaining_width = width - (int)line->vis_w;
+    int remaining_width = width - (int)line->visible_width;
     if (remaining_width >= 0) {
         int left_pad = 0, right_pad = remaining_width;
         if(halign == SC_ALIGN_CENTER) {
