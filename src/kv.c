@@ -1,27 +1,110 @@
 #include "sparcli.h"
 #include "internal.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-/* ── Internal structure ──────────────────────────────────────────────────── */
 
-typedef struct { char *key; char *value; } ScKVEntry;
+/** Default separator between key and value (two spaces). */
+#define DEFAULT_SEPARATOR "  "
 
+/** Minimum width preserved for the value column on narrow terminals. */
+#define MIN_VALUE_WIDTH 1
+
+/** Buffer size used when emitting a slice of text through `sc_print`. */
+#define PRINT_SLICE_BUFFER 512
+
+/** Word-wrap line buffer (covers any reasonable terminal width). */
+#define WRAP_LINE_BUFFER 4096
+
+
+/** One key-value pair. */
+typedef struct ScKVEntry {
+    /** Heap-allocated key string. */
+    char *key;
+
+    /** Heap-allocated value string. */
+    char *value;
+} ScKVEntry;
+
+/** Key-value list container. */
 struct ScKV {
-    ScKVOpts   opts;
+    /** Heap-allocated array of entries. */
     ScKVEntry *entries;
-    size_t     count;
-    size_t     cap;
+
+    /** Number of valid entries. */
+    size_t entry_count;
+
+    /** Allocated capacity of `entries`. */
+    size_t entry_capacity;
+
+    /** Rendering options captured at construction. */
+    ScKVOpts opts;
 };
 
-/* zero-initialised ScTextStyle = "no formatting" sentinel (same as list.c) */
-static int opts_has_format(ScTextStyle o) {
-    return o.attr != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
-                        || o.bg.index != 0 || o.bg.r || o.bg.g || o.bg.b;
-}
+/** Render-time context for a single print call. */
+typedef struct KV {
+    /** List being rendered; not owned. */
+    const ScKV *kv;
 
-/* ── Public API ──────────────────────────────────────────────────────────── */
+    /** Left outer margin in columns. */
+    int left_margin;
+
+    /** Right outer margin in columns. */
+    int right_margin;
+
+    /** Total line width in columns. */
+    int total_width;
+
+    /** Resolved key column width. */
+    int key_column_width;
+
+    /** Resolved separator string (never `NULL`). */
+    const char *separator;
+
+    /** Visible width of `separator`. */
+    int separator_width;
+
+    /** Width in columns available for the value field. */
+    int value_width;
+
+    /**
+     * Column at which continuation lines of a wrapped value start
+     * (left margin + key column + separator).
+     */
+    int continuation_indent;
+
+    /** `true` when `opts.key_style` carries formatting. */
+    bool key_has_format;
+
+    /** `true` when `opts.val_style` carries formatting. */
+    bool val_has_format;
+} KV;
+
+
+// Forward declarations indented to reflect call hierarchy
+static void append_entry(ScKV *kv, const char *key, const char *value);
+
+static void init_kv(KV *self, const ScKV *kv);
+    static int get_horizontal_margin(int configured);
+    static int get_total_width(const ScKVOpts *opts);
+    static int get_key_column_width(const ScKV *kv, int configured);
+    static int get_value_width(const KV *self);
+    static bool style_has_format(ScTextStyle style);
+
+static void render_entry(const KV *self, size_t entry_index);
+    static void print_spaces(int count);
+    static void render_key(const KV *self, const char *key);
+        static void print_text_slice(
+            const char *text, int byte_count, ScTextStyle style, bool styled
+        );
+    static void render_value(const KV *self, const char *value);
+        static void render_wrapped_value(const KV *self, const char *value);
+        static void render_truncated_value(const KV *self, const char *value);
+
+static void print_newlines(int count);
+
 
 ScKV *sc_kv_new(ScKVOpts opts) {
     ScKV *kv = calloc(1, sizeof(ScKV));
@@ -30,159 +113,251 @@ ScKV *sc_kv_new(ScKVOpts opts) {
 }
 
 void sc_kv_add(ScKV *kv, const char *key, const char *value) {
-    if (kv->count == kv->cap) {
-        kv->cap = kv->cap ? kv->cap * 2 : 8;
-        kv->entries = realloc(kv->entries, kv->cap * sizeof(ScKVEntry));
-    }
-    kv->entries[kv->count].key   = strdup(key   ? key   : "");
-    kv->entries[kv->count].value = strdup(value ? value : "");
-    kv->count++;
-}
-
-/* ── Rendering ───────────────────────────────────────────────────────────── */
-
-/* Word-wrap text into lines of at most avail visible columns; continuation
-   lines are indented by `indent` spaces. */
-static void kv_print_wrapped(const char *text, int avail, int indent,
-                              ScTextStyle opts, int fmt) {
-    if (!text || !*text) { fputc('\n', stdout); return; }
-    if (avail < 1) { avail = 1; }
-
-    char pad[256];
-    int  pad_len = indent < (int)sizeof(pad) - 1 ? indent : (int)sizeof(pad) - 1;
-    memset(pad, ' ', (size_t)pad_len);
-    pad[pad_len] = '\0';
-
-    const char *p = text;
-    int first = 1;
-
-    while (*p) {
-        char buf[4096];
-        int  blen = 0, bvis = 0;
-
-        while (*p) {
-            const char *w = p;
-            while (*w && *w != ' ') { w++; }
-            int wbytes = (int)(w - p);
-            int wvis   = (int)sc_utf8_string_length(p, (size_t)wbytes);
-            int gap    = (bvis > 0) ? 1 : 0;
-
-            /* flush line if next word won't fit (keep at least one word per line) */
-            if (gap > 0 && bvis + gap + wvis > avail) { break; }
-
-            if (gap) { buf[blen++] = ' '; }
-            memcpy(buf + blen, p, (size_t)wbytes);
-            blen += wbytes;
-            bvis += gap + wvis;
-
-            p = w;
-            while (*p == ' ') { p++; }
-        }
-
-        buf[blen] = '\0';
-        if (!first) { fputs(pad, stdout); }
-        first = 0;
-
-        if (fmt) { sc_print(buf, opts); }
-        else     { fputs(buf, stdout); }
-        fputc('\n', stdout);
-    }
+    append_entry(kv, key, value);
 }
 
 void sc_kv_print(const ScKV *kv) {
-    if (!kv || kv->count == 0) { return; }
+    if (!kv || kv->entry_count == 0) { return; }
 
-    for (int i = 0; i < kv->opts.margin.top; i++) { fputc('\n', stdout); }
-    int total_w = kv->opts.width > 0 ? kv->opts.width : sc_terminal_width();
-    int margin  = kv->opts.margin.left > 0 ? kv->opts.margin.left : 0;
+    KV self;
+    init_kv(&self, kv);
 
-    /* auto key-column width */
-    int key_w = kv->opts.key_width;
-    if (key_w <= 0) {
-        key_w = 0;
-        for (size_t i = 0; i < kv->count; i++) {
-            int w = (int)sc_utf8_string_length(kv->entries[i].key,
-                                        strlen(kv->entries[i].key));
-            if (w > key_w) { key_w = w; }
-        }
+    print_newlines(kv->opts.margin.top);
+    for (size_t i = 0; i < kv->entry_count; i++) {
+        render_entry(&self, i);
     }
-
-    const char *sep   = kv->opts.sep ? kv->opts.sep : "  ";
-    int         sep_w = (int)sc_utf8_string_length(sep, strlen(sep));
-
-    int avail = total_w - margin - key_w - sep_w - margin;
-    if (avail < 1) { avail = 1; }
-
-    int key_fmt = opts_has_format(kv->opts.key_opts);
-    int val_fmt = opts_has_format(kv->opts.val_opts);
-
-    char margin_buf[128] = {0};
-    int  margin_len = margin < (int)sizeof(margin_buf) - 1
-                      ? margin : (int)sizeof(margin_buf) - 1;
-    memset(margin_buf, ' ', (size_t)margin_len);
-    margin_buf[margin_len] = '\0';
-
-    for (size_t i = 0; i < kv->count; i++) {
-        const char *key = kv->entries[i].key;
-        const char *val = kv->entries[i].value;
-
-        fputs(margin_buf, stdout);
-
-        /* print key, padded to key_w */
-        int natural_kw = (int)sc_utf8_string_length(key, strlen(key));
-        int kbytes = (natural_kw > key_w)
-                     ? (int)sc_utf8_trim_to_cols(key, key_w)
-                     : (int)strlen(key);
-        int kprinted = natural_kw < key_w ? natural_kw : key_w;
-
-        if (key_fmt) {
-            char tmp[512];
-            if (kbytes < (int)sizeof(tmp) - 1) {
-                memcpy(tmp, key, (size_t)kbytes);
-                tmp[kbytes] = '\0';
-                sc_print(tmp, kv->opts.key_opts);
-            }
-        } else {
-            fwrite(key, 1, (size_t)kbytes, stdout);
-        }
-        for (int s = kprinted; s < key_w; s++) { fputc(' ', stdout); }
-
-        fputs(sep, stdout);
-
-        /* print value */
-        int continuation = margin_len + key_w + sep_w;
-        if (kv->opts.wrap_val) {
-            kv_print_wrapped(val, avail, continuation, kv->opts.val_opts, val_fmt);
-        } else {
-            int vbytes = (int)sc_utf8_trim_to_cols(val, avail);
-            if (val_fmt) {
-                char tmp[512];
-                if (vbytes < (int)sizeof(tmp) - 1) {
-                    memcpy(tmp, val, (size_t)vbytes);
-                    tmp[vbytes] = '\0';
-                    sc_print(tmp, kv->opts.val_opts);
-                }
-            } else {
-                fwrite(val, 1, (size_t)vbytes, stdout);
-            }
-            fputc('\n', stdout);
-        }
-
-        if (kv->opts.item_gap > 0 && i + 1 < kv->count) {
-            for (int g = 0; g < kv->opts.item_gap; g++) { fputc('\n', stdout); }
-        }
-    }
-    for (int i = 0; i < kv->opts.margin.bottom; i++) { fputc('\n', stdout); }
+    print_newlines(kv->opts.margin.bottom);
 }
-
-/* ── Memory management ───────────────────────────────────────────────────── */
 
 void sc_kv_free(ScKV *kv) {
     if (!kv) { return; }
-    for (size_t i = 0; i < kv->count; i++) {
+    for (size_t i = 0; i < kv->entry_count; i++) {
         free(kv->entries[i].key);
         free(kv->entries[i].value);
     }
     free(kv->entries);
     free(kv);
+}
+
+
+/** Appends an entry to `kv`, growing the array as needed. */
+static void append_entry(ScKV *kv, const char *key, const char *value) {
+    if (kv->entry_count == kv->entry_capacity) {
+        kv->entry_capacity = kv->entry_capacity ? kv->entry_capacity * 2 : 8;
+        kv->entries = realloc(
+            kv->entries, kv->entry_capacity * sizeof(ScKVEntry)
+        );
+    }
+    kv->entries[kv->entry_count].key = strdup(key ? key : "");
+    kv->entries[kv->entry_count].value = strdup(value ? value : "");
+    kv->entry_count++;
+}
+
+
+/** Populates `self` with all derived layout values for one print call. */
+static void init_kv(KV *self, const ScKV *kv) {
+    self->kv = kv;
+    self->left_margin = get_horizontal_margin(kv->opts.margin.left);
+    self->right_margin = get_horizontal_margin(kv->opts.margin.right);
+    self->total_width = get_total_width(&kv->opts);
+    self->key_column_width = get_key_column_width(kv, kv->opts.key_width);
+
+    self->separator = kv->opts.sep ? kv->opts.sep : DEFAULT_SEPARATOR;
+    self->separator_width = (int)sc_utf8_string_length(
+        self->separator, strlen(self->separator)
+    );
+
+    self->value_width = get_value_width(self);
+    self->continuation_indent = self->left_margin
+        + self->key_column_width + self->separator_width;
+
+    self->key_has_format = style_has_format(kv->opts.key_style);
+    self->val_has_format = style_has_format(kv->opts.val_style);
+}
+
+/** Returns `configured` clamped to `>= 0`. */
+static int get_horizontal_margin(int configured) {
+    return configured > 0 ? configured : 0;
+}
+
+/** Returns `opts.width` when set, otherwise the current terminal width. */
+static int get_total_width(const ScKVOpts *opts) {
+    return opts->width > 0 ? opts->width : sc_terminal_width();
+}
+
+/**
+ * Returns the configured key column width, or the visible width of the
+ * widest key when `configured <= 0`.
+ */
+static int get_key_column_width(const ScKV *kv, int configured) {
+    if (configured > 0) { return configured; }
+
+    int widest = 0;
+    for (size_t i = 0; i < kv->entry_count; i++) {
+        const char *key = kv->entries[i].key;
+        int width = (int)sc_utf8_string_length(key, strlen(key));
+        if (width > widest) { widest = width; }
+    }
+    return widest;
+}
+
+/**
+ * Returns the value-field width: total width minus margins, key column and
+ * separator. Clamped to at least `MIN_VALUE_WIDTH`.
+ */
+static int get_value_width(const KV *self) {
+    int available = self->total_width - self->left_margin - self->right_margin
+                    - self->key_column_width - self->separator_width;
+    return available < MIN_VALUE_WIDTH ? MIN_VALUE_WIDTH : available;
+}
+
+/**
+ * Returns `true` when `style` carries any formatting; zero-initialized
+ * `ScTextStyle` returns `false`.
+ */
+static bool style_has_format(ScTextStyle style) {
+    return style.attr != 0
+        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
+        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
+}
+
+
+/** Renders one entry and the trailing item gap (when not the last entry). */
+static void render_entry(const KV *self, size_t entry_index) {
+    const ScKVEntry *entry = &self->kv->entries[entry_index];
+
+    print_spaces(self->left_margin);
+    render_key(self, entry->key);
+    fputs(self->separator, stdout);
+    render_value(self, entry->value);
+
+    bool is_last = entry_index + 1 == self->kv->entry_count;
+    if (!is_last) {
+        print_newlines(self->kv->opts.item_gap);
+    }
+}
+
+/** Prints `count` space characters to stdout. */
+static void print_spaces(int count) {
+    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+}
+
+/**
+ * Prints `key` padded or truncated to `self->key_column_width`, applying
+ * `opts.key_style` when it carries formatting.
+ */
+static void render_key(const KV *self, const char *key) {
+    int field_width = self->key_column_width;
+    int natural_width = (int)sc_utf8_string_length(key, strlen(key));
+    int print_byte_count = (natural_width > field_width)
+        ? (int)sc_utf8_trim_to_cols(key, field_width)
+        : (int)strlen(key);
+    int printed_width = natural_width < field_width
+        ? natural_width : field_width;
+
+    print_text_slice(
+        key, print_byte_count,
+        self->kv->opts.key_style, self->key_has_format
+    );
+    print_spaces(field_width - printed_width);
+}
+
+/**
+ * Prints the first `byte_count` bytes of `text`; applies `style` through
+ * `sc_print` when `styled` is `true`, otherwise writes the slice directly.
+ */
+static void print_text_slice(
+    const char *text, int byte_count, ScTextStyle style, bool styled
+) {
+    if (!styled) {
+        fwrite(text, 1, (size_t)byte_count, stdout);
+        return;
+    }
+    if (byte_count >= PRINT_SLICE_BUFFER) { return; }
+
+    char buffer[PRINT_SLICE_BUFFER];
+    memcpy(buffer, text, (size_t)byte_count);
+    buffer[byte_count] = '\0';
+    sc_print(buffer, style);
+}
+
+/** Dispatches to the wrapped or truncated value renderer. */
+static void render_value(const KV *self, const char *value) {
+    if (self->kv->opts.wrap_val) {
+        render_wrapped_value(self, value);
+    } else {
+        render_truncated_value(self, value);
+    }
+}
+
+/**
+ * Word-wraps `value` into lines of at most `self->value_width` columns and
+ * prints each line; continuation lines are indented to align under the
+ * value column.
+ */
+static void render_wrapped_value(const KV *self, const char *value) {
+    if (!value || !*value) {
+        fputc('\n', stdout);
+        return;
+    }
+
+    const char *cursor = value;
+    bool is_first_line = true;
+
+    while (*cursor) {
+        char line_buffer[WRAP_LINE_BUFFER];
+        int byte_count = 0;
+        int visible_count = 0;
+
+        while (*cursor) {
+            const char *word_end = cursor;
+            while (*word_end && *word_end != ' ') { word_end++; }
+            int word_bytes = (int)(word_end - cursor);
+            int word_width = (int)sc_utf8_string_length(
+                cursor, (size_t)word_bytes
+            );
+            int gap = (visible_count > 0) ? 1 : 0;
+
+            bool fits = visible_count + gap + word_width <= self->value_width;
+            if (gap > 0 && !fits) { break; }
+
+            if (gap) { line_buffer[byte_count++] = ' '; }
+            memcpy(line_buffer + byte_count, cursor, (size_t)word_bytes);
+            byte_count += word_bytes;
+            visible_count += gap + word_width;
+
+            cursor = word_end;
+            while (*cursor == ' ') { cursor++; }
+        }
+
+        line_buffer[byte_count] = '\0';
+        if (!is_first_line) { print_spaces(self->continuation_indent); }
+        is_first_line = false;
+
+        if (self->val_has_format) {
+            sc_print(line_buffer, self->kv->opts.val_style);
+        } else {
+            fputs(line_buffer, stdout);
+        }
+        fputc('\n', stdout);
+    }
+}
+
+/**
+ * Prints `value` truncated to `self->value_width` columns; no continuation
+ * lines.
+ */
+static void render_truncated_value(const KV *self, const char *value) {
+    int byte_count = (int)sc_utf8_trim_to_cols(value, self->value_width);
+    print_text_slice(
+        value, byte_count,
+        self->kv->opts.val_style, self->val_has_format
+    );
+    fputc('\n', stdout);
+}
+
+
+/** Prints `count` newline characters to stdout. */
+static void print_newlines(int count) {
+    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
 }

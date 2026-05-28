@@ -2,6 +2,17 @@
 #include <stdio.h>
 
 
+static const ScTextStyle bold = {
+    SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+};
+static const ScTextStyle bold_cyan = {
+    SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE
+};
+static const ScTextStyle green = {
+    SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE
+};
+
+
 void test_kv(void) {
     printf("\n");
 
@@ -9,11 +20,11 @@ void test_kv(void) {
     printf("--- KV 1. Plain ---\n");
     {
         ScKV *kv = sc_kv_new((ScKVOpts){ 0 });
-        sc_kv_add(kv, "Host",     "localhost");
-        sc_kv_add(kv, "Port",     "8080");
+        sc_kv_add(kv, "Host", "localhost");
+        sc_kv_add(kv, "Port", "8080");
         sc_kv_add(kv, "Database", "myapp_db");
-        sc_kv_add(kv, "User",     "admin");
-        sc_kv_add(kv, "Status",   "running");
+        sc_kv_add(kv, "User", "admin");
+        sc_kv_add(kv, "Status", "running");
         sc_kv_print(kv);
         sc_kv_free(kv);
     }
@@ -24,13 +35,13 @@ void test_kv(void) {
     printf("--- KV 2. Styled with ': ' separator ---\n");
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
-            .sep      = ": ",
-            .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .val_opts = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+            .sep = ": ",
+            .key_style = bold,
+            .val_style = green,
         });
-        sc_kv_add(kv, "Version",  "2.4.1");
-        sc_kv_add(kv, "License",  "MIT");
-        sc_kv_add(kv, "Author",   "sparcli contributors");
+        sc_kv_add(kv, "Version", "2.4.1");
+        sc_kv_add(kv, "License", "MIT");
+        sc_kv_add(kv, "Author", "sparcli contributors");
         sc_kv_add(kv, "Language", "C11");
         sc_kv_print(kv);
         sc_kv_free(kv);
@@ -43,15 +54,16 @@ void test_kv(void) {
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
             .key_width = 18,
-            .sep       = ": ",
-            .wrap_val  = 1,
-            .key_opts  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+            .sep = ": ",
+            .wrap_val = true,
+            .key_style = bold_cyan,
         });
-        sc_kv_add(kv, "Name",        "sparcli");
-        sc_kv_add(kv, "Description", "A C11 terminal UI library for styled output "
-                                     "with colored text, panels, tables, lists, trees, "
-                                     "progress bars and spinners.");
-        sc_kv_add(kv, "Build",       "make && make test");
+        sc_kv_add(kv, "Name", "sparcli");
+        sc_kv_add(kv, "Description",
+            "A C11 terminal UI library for styled output with colored text, "
+            "panels, tables, lists, trees, progress bars and spinners."
+        );
+        sc_kv_add(kv, "Build", "make && make test");
         sc_kv_print(kv);
         sc_kv_free(kv);
     }
@@ -62,12 +74,12 @@ void test_kv(void) {
     printf("--- KV 4. Margin=4, item_gap=1 ---\n");
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
-            .margin = {0, 4, 0, 4},
+            .margin = { 0, 4, 0, 4 },
             .item_gap = 1,
-            .sep      = "  \xe2\x86\x92  ", /* →  */
-            .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .sep = "  \xe2\x86\x92  ", /* →  */
+            .key_style = bold,
         });
-        sc_kv_add(kv, "Input",  "raw_data.csv");
+        sc_kv_add(kv, "Input", "raw_data.csv");
         sc_kv_add(kv, "Output", "processed.json");
         sc_kv_add(kv, "Format", "JSON Lines");
         sc_kv_print(kv);

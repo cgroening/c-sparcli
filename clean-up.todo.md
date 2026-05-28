@@ -80,9 +80,9 @@
 
 ## Key-Value Pairs
 
-- [ ] tests/test_kv.c
-- [ ] include/sparcli_kv.h
-- [ ] src/kv.c
+- [x] tests/test_kv.c
+- [x] include/sparcli_kv.h
+- [x] src/kv.c
 
 ## Badges
 

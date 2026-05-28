@@ -38,7 +38,7 @@ void test_pad(void) {
     {
         ScKV *kv = sc_kv_new((ScKVOpts){
             .sep      = ": ",
-            .key_opts = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+            .key_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
         });
         sc_kv_add(kv, "Host", "localhost");
         sc_kv_add(kv, "Port", "5432");
