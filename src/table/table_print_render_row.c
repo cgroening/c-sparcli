@@ -28,10 +28,10 @@ typedef struct Row {
     /** Total visual height of the row in terminal lines. */
     int row_height;
 
-    /** Per-column TLine arrays; `NULL` for skip/continuation columns. */
-    TLine **column_lines;
+    /** Per-column ScRenderLine arrays; `NULL` for skip/continuation columns. */
+    ScRenderLine **column_lines;
 
-    /** Per-column TLine counts (parallel to `column_lines`). */
+    /** Per-column ScRenderLine counts (parallel to `column_lines`). */
     size_t *column_line_counts;
 } Row;
 
@@ -64,18 +64,18 @@ static void render_visual_line(const Row *self, int visual_line);
             int content_lines, ScVAlign valign
         );
         static void render_cell_line(
-            const Row *self, const TLine *line, ScColor cell_bg,
+            const Row *self, const ScRenderLine *line, ScColor cell_bg,
             int content_width, ScHAlign halign
         );
             static void render_cell_line_aligned(
-                const Row *self, const TLine *line, ScColor cell_bg,
+                const Row *self, const ScRenderLine *line, ScColor cell_bg,
                 int align_padding, ScHAlign halign
             );
                 static ScTextStyle apply_section_default_style(
                     const Row *self, ScTextStyle span_style
                 );
             static void render_cell_line_truncated(
-                const Row *self, const TLine *line,
+                const Row *self, const ScRenderLine *line,
                 ScColor cell_bg, int col_width
             );
         static void render_cell_vertical_separator(
@@ -109,7 +109,7 @@ void render_row(
         .cells = cells,
         .row_bg = row_bg,
         .section = section,
-        .column_lines = malloc(column_count * sizeof(TLine *)),
+        .column_lines = malloc(column_count * sizeof(ScRenderLine *)),
         .column_line_counts = malloc(column_count * sizeof(size_t)),
     };
 
@@ -130,7 +130,7 @@ void render_row(
 /* ── Building the per-column TLines ─────────────────────────────────────── */
 
 /**
- * Builds the `TLine` array for every column of the row, handling skip
+ * Builds the `ScRenderLine` array for every column of the row, handling skip
  * cells, rowspan continuations, and colspan-initiating cells.
  * Returns the tallest non-rowspan-starting line count for height purposes.
  */
@@ -344,7 +344,7 @@ static ScColor resolve_cell_bg(const Row *self, size_t col) {
     bool is_header_col = table_is_header_column(self->table, col);
 
     ScColor col_bg = data->columns[col].opts.bg;
-    ScColor cell_bg = color_is_active(self->row_bg) ? self->row_bg : col_bg;
+    ScColor cell_bg = sc_color_is_active(self->row_bg) ? self->row_bg : col_bg;
 
     if (is_header_col && !is_header) {
         cell_bg = is_footer
@@ -409,11 +409,11 @@ static int normal_cell_content_line(
 }
 
 
-/* ── Drawing one TLine inside a cell ────────────────────────────────────── */
+/* ── Drawing one ScRenderLine inside a cell ────────────────────────────────────── */
 
 /** Dispatches to aligned or truncated rendering based on line vs width. */
 static void render_cell_line(
-    const Row *self, const TLine *line, ScColor cell_bg,
+    const Row *self, const ScRenderLine *line, ScColor cell_bg,
     int content_width, ScHAlign halign
 ) {
     int padding = content_width - (int)line->visible_width;
@@ -429,7 +429,7 @@ static void render_cell_line(
  * applying section default styling to unstyled spans.
  */
 static void render_cell_line_aligned(
-    const Row *self, const TLine *line, ScColor cell_bg,
+    const Row *self, const ScRenderLine *line, ScColor cell_bg,
     int align_padding, ScHAlign halign
 ) {
     int left_pad = 0;
@@ -483,7 +483,7 @@ static ScTextStyle apply_section_default_style(
  * the last span at the exact column boundary when needed.
  */
 static void render_cell_line_truncated(
-    const Row *self, const TLine *line, ScColor cell_bg, int col_width
+    const Row *self, const ScRenderLine *line, ScColor cell_bg, int col_width
 ) {
     int remaining = col_width;
     for (size_t i = 0; i < line->count && remaining > 0; i++) {
@@ -538,7 +538,7 @@ static void render_cell_vertical_separator(
 
 /* ── Cleanup ────────────────────────────────────────────────────────────── */
 
-/** Frees the per-column TLine arrays built for this row. */
+/** Frees the per-column ScRenderLine arrays built for this row. */
 static void free_column_lines(Row *self) {
     size_t column_count = self->table->table_data->column_count;
     for (size_t col = 0; col < column_count; col++) {

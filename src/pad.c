@@ -5,11 +5,9 @@
 
 
 // Forward declarations indented to reflect call hierarchy
-static void print_newlines(int count);
 static void print_padded_line(
     const char *line, int left_pad, int right_pad
 );
-    static void print_spaces(int count);
 
 static int get_align_left_pad(ScHAlign align, int spare);
 
@@ -19,11 +17,11 @@ static int get_align_left_pad(ScHAlign align, int spare);
 void sc_pad_print(const ScRendered *rendered, ScPadOpts opts) {
     if (!rendered) { return; }
 
-    print_newlines(opts.top);
+    sc_print_newlines(opts.top);
     for (size_t i = 0; i < rendered->line_count; i++) {
         print_padded_line(rendered->lines[i], opts.left, opts.right);
     }
-    print_newlines(opts.bottom);
+    sc_print_newlines(opts.bottom);
 }
 
 void sc_pad_str(const char *str, ScPadOpts opts) {
@@ -50,7 +48,7 @@ void sc_align_print(const ScRendered *rendered, ScHAlign align, int width) {
         if (spare < 0) { spare = 0; }
         int left_pad = get_align_left_pad(align, spare);
 
-        print_spaces(left_pad);
+        sc_print_spaces(left_pad);
         fputs(rendered->lines[i], sc_output_stream());
         fputc('\n', sc_output_stream());
     }
@@ -73,21 +71,13 @@ void sc_align_text(const ScText *text, ScHAlign align, int width) {
 static void print_padded_line(
     const char *line, int left_pad, int right_pad
 ) {
-    print_spaces(left_pad);
+    sc_print_spaces(left_pad);
     fputs(line, sc_output_stream());
-    print_spaces(right_pad);
+    sc_print_spaces(right_pad);
     fputc('\n', sc_output_stream());
 }
 
-/** Prints `count` newline characters to stdout. */
-static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
-}
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /**
  * Returns the number of left-padding spaces needed to align content of

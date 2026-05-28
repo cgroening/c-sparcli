@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "text_internal.h"
 #include "internal.h"
 #include "table/table_internal.h"
 
@@ -21,15 +22,15 @@
 
 
 /**
- * Accumulator that builds an array of `TLine` values one span at a time.
+ * Accumulator that builds an array of `ScRenderLine` values one span at a time.
  *
  * Used by both `make_cell_lines` (splitting on `\n`) and `wrap_one_line`
  * (word-wrapping). The two former helper structs `LineScanCtx` /
  * `WordWrapAccum` collapse into this single type.
  */
 typedef struct LineBuilder {
-    /** Completed `TLine` array; ownership transfers to the caller. */
-    TLine *lines;
+    /** Completed `ScRenderLine` array; ownership transfers to the caller. */
+    ScRenderLine *lines;
 
     /** Number of completed lines. */
     size_t line_count;
@@ -38,7 +39,7 @@ typedef struct LineBuilder {
     size_t line_capacity;
 
     /** Span buffer of the line currently being built. */
-    TSpan *spans;
+    ScRenderSpan *spans;
 
     /** Number of spans in the current-line buffer. */
     size_t span_count;
@@ -51,7 +52,7 @@ typedef struct LineBuilder {
 } LineBuilder;
 
 /**
- * One contiguous run of spaces or non-spaces extracted from a `TLine` for
+ * One contiguous run of spaces or non-spaces extracted from a `ScRenderLine` for
  * the word-wrap engine. The string is heap-owned by the token.
  */
 typedef struct WordWrapToken {
@@ -76,9 +77,9 @@ static void lb_push_span(
     size_t visible_width, ScTextStyle style
 );
 static void lb_finalize_line(LineBuilder *builder);
-static void lb_append_line_copy(LineBuilder *builder, const TLine *line);
+static void lb_append_line_copy(LineBuilder *builder, const ScRenderLine *line);
 static void lb_append_lines_move(
-    LineBuilder *builder, TLine *source, size_t count
+    LineBuilder *builder, ScRenderLine *source, size_t count
 );
 static void lb_release_span_buffer(LineBuilder *builder);
 
@@ -90,11 +91,11 @@ static void resolve_cell_span(
     const char **out_text, ScTextStyle *out_style
 );
 
-static TLine *wrap_one_line(
-    const TLine *line, int max_width, size_t *out_count
+static ScRenderLine *wrap_one_line(
+    const ScRenderLine *line, int max_width, size_t *out_count
 );
     static void tokenize_line(
-        const TLine *line, WordWrapToken **out_tokens, size_t *out_count
+        const ScRenderLine *line, WordWrapToken **out_tokens, size_t *out_count
     );
     static void emit_space_token(
         LineBuilder *builder, WordWrapToken *token,
@@ -111,16 +112,16 @@ static TLine *wrap_one_line(
 /* ── make_cell_lines ────────────────────────────────────────────────────── */
 
 /**
- * Splits `cell` content on `\n` into an array of `TLine` values.
+ * Splits `cell` content on `\n` into an array of `ScRenderLine` values.
  *
- * Each `TLine` owns heap copies of its span strings; free with
+ * Each `ScRenderLine` owns heap copies of its span strings; free with
  * `free_tlines`.
  *
  * @param cell       Source cell.
  * @param out_count  Receives the number of returned lines.
- * @return           Heap-allocated `TLine` array (length `*out_count`).
+ * @return           Heap-allocated `ScRenderLine` array (length `*out_count`).
  */
-TLine *make_cell_lines(const ScCell *cell, size_t *out_count) {
+ScRenderLine *make_cell_lines(const ScCell *cell, size_t *out_count) {
     LineBuilder builder;
     lb_init(&builder);
 
@@ -146,7 +147,7 @@ TLine *make_cell_lines(const ScCell *cell, size_t *out_count) {
  */
 size_t cell_visible_width(const ScCell *cell) {
     size_t line_count;
-    TLine *lines = make_cell_lines(cell, &line_count);
+    ScRenderLine *lines = make_cell_lines(cell, &line_count);
     size_t max_width = 0;
     for (size_t i = 0; i < line_count; i++) {
         if (lines[i].visible_width > max_width) {
@@ -165,7 +166,7 @@ size_t count_cell_lines(
     const ScCell *cell, const ScColOpts *col_opts, int available_width
 ) {
     size_t line_count;
-    TLine *lines = (col_opts->word_wrap && available_width > 0)
+    ScRenderLine *lines = (col_opts->word_wrap && available_width > 0)
         ? wrap_cell_lines(cell, available_width, &line_count)
         : make_cell_lines(cell, &line_count);
     free_tlines(lines, line_count);
@@ -173,7 +174,7 @@ size_t count_cell_lines(
 }
 
 /** Frees every span string, then the spans array and the lines array. */
-void free_tlines(TLine *lines, size_t line_count) {
+void free_tlines(ScRenderLine *lines, size_t line_count) {
     for (size_t i = 0; i < line_count; i++) {
         for (size_t j = 0; j < lines[i].count; j++) {
             free((char *)lines[i].spans[j].text);
@@ -190,11 +191,11 @@ void free_tlines(TLine *lines, size_t line_count) {
  * Returns word-wrapped copies of every line in `cell` longer than
  * `max_width`; lines that already fit are deep-copied unchanged.
  */
-TLine *wrap_cell_lines(
+ScRenderLine *wrap_cell_lines(
     const ScCell *cell, int max_width, size_t *out_count
 ) {
     size_t raw_count;
-    TLine *raw_lines = make_cell_lines(cell, &raw_count);
+    ScRenderLine *raw_lines = make_cell_lines(cell, &raw_count);
     if (max_width <= 0) {
         *out_count = raw_count;
         return raw_lines;
@@ -209,7 +210,7 @@ TLine *wrap_cell_lines(
             continue;
         }
         size_t wrapped_count;
-        TLine *wrapped = wrap_one_line(
+        ScRenderLine *wrapped = wrap_one_line(
             &raw_lines[i], max_width, &wrapped_count
         );
         lb_append_lines_move(&builder, wrapped, wrapped_count);
@@ -227,10 +228,10 @@ TLine *wrap_cell_lines(
 
 /** Initializes an empty `LineBuilder` with starting capacities. */
 static void lb_init(LineBuilder *builder) {
-    builder->lines = malloc(INITIAL_LINE_CAPACITY * sizeof(TLine));
+    builder->lines = malloc(INITIAL_LINE_CAPACITY * sizeof(ScRenderLine));
     builder->line_count = 0;
     builder->line_capacity = INITIAL_LINE_CAPACITY;
-    builder->spans = malloc(INITIAL_SPAN_CAPACITY * sizeof(TSpan));
+    builder->spans = malloc(INITIAL_SPAN_CAPACITY * sizeof(ScRenderSpan));
     builder->span_count = 0;
     builder->span_capacity = INITIAL_SPAN_CAPACITY;
     builder->span_width = 0;
@@ -247,10 +248,10 @@ static void lb_push_span(
     if (builder->span_count == builder->span_capacity) {
         builder->span_capacity *= 2;
         builder->spans = realloc(
-            builder->spans, builder->span_capacity * sizeof(TSpan)
+            builder->spans, builder->span_capacity * sizeof(ScRenderSpan)
         );
     }
-    builder->spans[builder->span_count++] = (TSpan){
+    builder->spans[builder->span_count++] = (ScRenderSpan){
         .text = strndup(text, length),
         .style = style,
     };
@@ -258,25 +259,25 @@ static void lb_push_span(
 }
 
 /**
- * Finalizes the current line: copies the span buffer into a new `TLine`,
+ * Finalizes the current line: copies the span buffer into a new `ScRenderLine`,
  * appends it to `builder->lines`, and resets the span buffer.
  */
 static void lb_finalize_line(LineBuilder *builder) {
     if (builder->line_count == builder->line_capacity) {
         builder->line_capacity *= 2;
         builder->lines = realloc(
-            builder->lines, builder->line_capacity * sizeof(TLine)
+            builder->lines, builder->line_capacity * sizeof(ScRenderLine)
         );
     }
 
-    TSpan *spans_copy = malloc((builder->span_count + 1) * sizeof(TSpan));
+    ScRenderSpan *spans_copy = malloc((builder->span_count + 1) * sizeof(ScRenderSpan));
     if (builder->span_count > 0) {
         memcpy(
             spans_copy, builder->spans,
-            builder->span_count * sizeof(TSpan)
+            builder->span_count * sizeof(ScRenderSpan)
         );
     }
-    builder->lines[builder->line_count++] = (TLine){
+    builder->lines[builder->line_count++] = (ScRenderLine){
         .spans = spans_copy,
         .count = builder->span_count,
         .visible_width = builder->span_width,
@@ -286,26 +287,26 @@ static void lb_finalize_line(LineBuilder *builder) {
 }
 
 /**
- * Deep-copies `line` (spans + their strings) into a fresh `TLine` and
+ * Deep-copies `line` (spans + their strings) into a fresh `ScRenderLine` and
  * appends it to `builder->lines`. Does not touch the span buffer.
  */
 static void lb_append_line_copy(
-    LineBuilder *builder, const TLine *line
+    LineBuilder *builder, const ScRenderLine *line
 ) {
     if (builder->line_count == builder->line_capacity) {
         builder->line_capacity *= 2;
         builder->lines = realloc(
-            builder->lines, builder->line_capacity * sizeof(TLine)
+            builder->lines, builder->line_capacity * sizeof(ScRenderLine)
         );
     }
-    TSpan *spans_copy = malloc((line->count + 1) * sizeof(TSpan));
+    ScRenderSpan *spans_copy = malloc((line->count + 1) * sizeof(ScRenderSpan));
     for (size_t i = 0; i < line->count; i++) {
-        spans_copy[i] = (TSpan){
+        spans_copy[i] = (ScRenderSpan){
             .text = strdup(line->spans[i].text),
             .style = line->spans[i].style,
         };
     }
-    builder->lines[builder->line_count++] = (TLine){
+    builder->lines[builder->line_count++] = (ScRenderLine){
         .spans = spans_copy,
         .count = line->count,
         .visible_width = line->visible_width,
@@ -317,7 +318,7 @@ static void lb_append_line_copy(
  * (transfers span ownership; `source` is left as a shallow array).
  */
 static void lb_append_lines_move(
-    LineBuilder *builder, TLine *source, size_t count
+    LineBuilder *builder, ScRenderLine *source, size_t count
 ) {
     if (builder->line_count + count > builder->line_capacity) {
         while (builder->line_capacity < builder->line_count + count) {
@@ -325,12 +326,12 @@ static void lb_append_lines_move(
                 ? builder->line_capacity * 2 : INITIAL_LINE_CAPACITY;
         }
         builder->lines = realloc(
-            builder->lines, builder->line_capacity * sizeof(TLine)
+            builder->lines, builder->line_capacity * sizeof(ScRenderLine)
         );
     }
     memcpy(
         builder->lines + builder->line_count,
-        source, count * sizeof(TLine)
+        source, count * sizeof(ScRenderLine)
     );
     builder->line_count += count;
 }
@@ -409,11 +410,11 @@ static void resolve_cell_span(
 
 /**
  * Wraps `line` into multiple lines each fitting within `max_width` columns.
- * The returned array is a shallow `TLine[]` produced by an internal
+ * The returned array is a shallow `ScRenderLine[]` produced by an internal
  * `LineBuilder`; the caller takes ownership.
  */
-static TLine *wrap_one_line(
-    const TLine *line, int max_width, size_t *out_count
+static ScRenderLine *wrap_one_line(
+    const ScRenderLine *line, int max_width, size_t *out_count
 ) {
     WordWrapToken *tokens;
     size_t token_count;
@@ -423,7 +424,7 @@ static TLine *wrap_one_line(
     lb_init(&builder);
     builder.span_capacity = WRAP_SPAN_CAPACITY;
     free(builder.spans);
-    builder.spans = malloc(WRAP_SPAN_CAPACITY * sizeof(TSpan));
+    builder.spans = malloc(WRAP_SPAN_CAPACITY * sizeof(ScRenderSpan));
 
     for (size_t i = 0; i < token_count; i++) {
         const WordWrapToken *next =
@@ -451,7 +452,7 @@ static TLine *wrap_one_line(
  * The caller owns the returned array and must free each token's `string`.
  */
 static void tokenize_line(
-    const TLine *line, WordWrapToken **out_tokens, size_t *out_count
+    const ScRenderLine *line, WordWrapToken **out_tokens, size_t *out_count
 ) {
     WordWrapToken *tokens = NULL;
     size_t count = 0;
@@ -527,10 +528,10 @@ static void emit_space_token(
     if (builder->span_count == builder->span_capacity) {
         builder->span_capacity *= 2;
         builder->spans = realloc(
-            builder->spans, builder->span_capacity * sizeof(TSpan)
+            builder->spans, builder->span_capacity * sizeof(ScRenderSpan)
         );
     }
-    builder->spans[builder->span_count++] = (TSpan){
+    builder->spans[builder->span_count++] = (ScRenderSpan){
         .text = token->string,
         .style = token->style,
     };
@@ -557,10 +558,10 @@ static void emit_word_token(
     if (builder->span_count == builder->span_capacity) {
         builder->span_capacity *= 2;
         builder->spans = realloc(
-            builder->spans, builder->span_capacity * sizeof(TSpan)
+            builder->spans, builder->span_capacity * sizeof(ScRenderSpan)
         );
     }
-    builder->spans[builder->span_count++] = (TSpan){
+    builder->spans[builder->span_count++] = (ScRenderSpan){
         .text = token->string,
         .style = token->style,
     };

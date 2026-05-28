@@ -122,7 +122,6 @@ static void init_tree(Tree *self, const ScTree *tree);
 static void render_node(Tree *self, NodeFrame frame);
     static void print_connector(Tree *self, NodeFrame frame);
         static void print_colored(const char *str, ScColor color);
-        static void print_spaces(int count);
     static void print_node_content(const ScTreeNode *node);
     static char *build_child_prefix(Tree *self, NodeFrame frame);
 
@@ -307,7 +306,7 @@ static void print_connector(Tree *self, NodeFrame frame) {
     const char *connector = frame.is_last_sibling
         ? self->connectors.last_child : self->connectors.branch;
     print_colored(connector, self->tree->opts.connector_color);
-    print_spaces(self->connector_indent);
+    sc_print_spaces(self->connector_indent);
 }
 
 /**
@@ -324,10 +323,6 @@ static void print_colored(const char *str, ScColor color) {
     fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /**
  * Prints the optional prefix marker followed by the node's content

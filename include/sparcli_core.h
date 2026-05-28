@@ -222,6 +222,39 @@ typedef struct {
  */
 SPARCLI_EXPORT ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 
+
+/* ── Functional variants of the SC_ANSI_COLOR_* macros (FFI-friendly) ──── */
+
+/**
+ * These eight functions return the predefined ANSI color constants as
+ * regular function calls. Use them from bindings that cannot consume
+ * the `SC_ANSI_COLOR_*` compound-literal macros (Python via ctypes/cffi,
+ * Rust via bindgen for the macro values, etc.).
+ *
+ * The C-side macros remain available for native callers; they are
+ * equivalent.
+ */
+SPARCLI_EXPORT ScColor sc_color_none(void);
+SPARCLI_EXPORT ScColor sc_color_black(void);
+SPARCLI_EXPORT ScColor sc_color_red(void);
+SPARCLI_EXPORT ScColor sc_color_green(void);
+SPARCLI_EXPORT ScColor sc_color_yellow(void);
+SPARCLI_EXPORT ScColor sc_color_blue(void);
+SPARCLI_EXPORT ScColor sc_color_magenta(void);
+SPARCLI_EXPORT ScColor sc_color_cyan(void);
+SPARCLI_EXPORT ScColor sc_color_white(void);
+
+/**
+ * Builds an `ScTextStyle` from its three components.
+ *
+ * Equivalent to the C99 compound literal
+ * `(ScTextStyle){ attr, fg, bg }`, but usable from bindings that cannot
+ * construct compound literals.
+ */
+SPARCLI_EXPORT ScTextStyle sc_text_style(
+    ScTextAttribute attr, ScColor fg, ScColor bg
+);
+
 /**
  * Prints `text` to stdout with ANSI styling applied.
  *

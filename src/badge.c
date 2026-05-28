@@ -42,7 +42,6 @@ typedef struct Badge {
 static Badge resolve_badge(const char *text, ScBadgeOpts opts);
 static size_t compute_buffer_size(const Badge *self);
 static size_t compose_badge_string(const Badge *self, char *buffer);
-static bool style_has_format(ScTextStyle style);
 
 
 void sc_print_badge(const char *text, ScBadgeOpts opts) {
@@ -56,7 +55,7 @@ void sc_print_badge(const char *text, ScBadgeOpts opts) {
 
     compose_badge_string(&self, buffer);
 
-    if (style_has_format(self.style)) {
+    if (sc_style_has_format(self.style)) {
         sc_apply_colors(self.style.fg, self.style.bg);
         fputs(buffer, sc_output_stream());
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
@@ -138,8 +137,3 @@ static size_t compose_badge_string(const Badge *self, char *buffer) {
  * Returns `true` when `style` carries any formatting; zero-initialized
  * `ScTextStyle` returns `false`.
  */
-static bool style_has_format(ScTextStyle style) {
-    return style.attr != 0
-        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
-        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
-}

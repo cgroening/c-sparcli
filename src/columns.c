@@ -93,9 +93,6 @@ typedef struct ColumnsRender {
 
 // Forward declarations indented to reflect call hierarchy
 static int ansi_visible_width(const char *str);
-static bool color_is_active(ScColor color);
-static void print_spaces(int count);
-static void print_newlines(int count);
 
 static ScRendered *capture_render(void (*render_fn)(void *), void *ctx);
     static ScRendered *buffer_to_rendered(const char *buffer, size_t size);
@@ -172,22 +169,8 @@ static int ansi_visible_width(const char *str) {
  * Returns `true` when `color` should emit ANSI escapes. Both
  * `SC_ANSI_COLOR_NONE` and a zero-initialized `ScColor` return `false`.
  */
-static bool color_is_active(ScColor color) {
-    if (color.index == -2) { return false; }
-    bool is_zero_init = color.index == 0
-        && color.r == 0 && color.g == 0 && color.b == 0;
-    return !is_zero_init;
-}
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
-/** Prints `count` newline characters to stdout. */
-static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
-}
 
 
 /* ── ScRendered ──────────────────────────────────────────────────────────── */
@@ -574,12 +557,12 @@ static char *make_empty_panel_line(
     fputs(vertical, mem);
     fputs(SC_ANSI_ESCAPE_CODE_RESET, mem);
 
-    if (color_is_active(opts->bg)) {
+    if (sc_color_is_active(opts->bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, opts->bg);
-        print_spaces(inner_width);
+        sc_print_spaces(inner_width);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, mem);
     } else {
-        print_spaces(inner_width);
+        sc_print_spaces(inner_width);
     }
 
     sc_apply_colors(opts->border.color, opts->border.bg);
@@ -639,9 +622,9 @@ void sc_columns_print(const ScColumns *columns) {
     ColumnsRender self;
     init_render(&self, columns);
 
-    print_newlines(columns->opts.margin.top);
+    sc_print_newlines(columns->opts.margin.top);
     render_all_lines(&self);
-    print_newlines(columns->opts.margin.bottom);
+    sc_print_newlines(columns->opts.margin.bottom);
 
     cleanup_render(&self);
 }
@@ -810,7 +793,7 @@ static void render_all_lines(const ColumnsRender *self) {
 
 /** Renders a single output row (one screen line). */
 static void render_line(const ColumnsRender *self, size_t line_index) {
-    print_spaces(self->left_margin);
+    sc_print_spaces(self->left_margin);
     for (size_t column_index = 0;
          column_index < self->columns->count;
          column_index++) {
@@ -881,17 +864,17 @@ static void render_content_cell(
         right_pad = 0;
     }
 
-    bool has_bg = color_is_active(item.bg);
+    bool has_bg = sc_color_is_active(item.bg);
     if (has_bg) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, item.bg);
-        print_spaces(left_pad);
+        sc_print_spaces(left_pad);
         print_line_with_bg(line, item.bg);
-        print_spaces(right_pad);
+        sc_print_spaces(right_pad);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
-        print_spaces(left_pad);
+        sc_print_spaces(left_pad);
         fputs(line, sc_output_stream());
-        print_spaces(right_pad);
+        sc_print_spaces(right_pad);
     }
 }
 
@@ -916,12 +899,12 @@ static void print_line_with_bg(const char *line, ScColor bg) {
 
 /** Renders an empty cell of `column_width` columns, optionally with `bg`. */
 static void render_empty_cell(int column_width, ScColor bg) {
-    if (color_is_active(bg)) {
+    if (sc_color_is_active(bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
-        print_spaces(column_width);
+        sc_print_spaces(column_width);
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
-        print_spaces(column_width);
+        sc_print_spaces(column_width);
     }
 }
 
@@ -942,14 +925,14 @@ static void render_separator_or_gap(const ColumnsRender *self) {
 static void render_separator(
     const ColumnsRender *self, const char *separator
 ) {
-    bool has_sep_bg = color_is_active(self->columns->opts.sep.bg);
+    bool has_sep_bg = sc_color_is_active(self->columns->opts.sep.bg);
     ScColor sep_bg = has_sep_bg
         ? self->columns->opts.sep.bg : SC_ANSI_COLOR_NONE;
 
     if (has_sep_bg) { sc_apply_colors(SC_ANSI_COLOR_NONE, sep_bg); }
-    print_spaces(self->gap);
+    sc_print_spaces(self->gap);
 
-    if (color_is_active(self->columns->opts.sep.color)) {
+    if (sc_color_is_active(self->columns->opts.sep.color)) {
         sc_apply_colors(self->columns->opts.sep.color, sep_bg);
         fputs(separator, sc_output_stream());
         if (has_sep_bg) {
@@ -961,17 +944,17 @@ static void render_separator(
         fputs(separator, sc_output_stream());
     }
 
-    print_spaces(self->gap);
+    sc_print_spaces(self->gap);
     if (has_sep_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
 }
 
 /** Prints `gap` spaces between columns when no separator is configured. */
 static void render_gap_spaces(const ColumnsRender *self) {
-    bool has_sep_bg = color_is_active(self->columns->opts.sep.bg);
+    bool has_sep_bg = sc_color_is_active(self->columns->opts.sep.bg);
     if (has_sep_bg) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, self->columns->opts.sep.bg);
     }
-    print_spaces(self->gap);
+    sc_print_spaces(self->gap);
     if (has_sep_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
 }
 

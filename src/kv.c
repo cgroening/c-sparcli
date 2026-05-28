@@ -91,10 +91,8 @@ static void init_kv(KV *self, const ScKV *kv);
     static int get_total_width(const ScKVOpts *opts);
     static int get_key_column_width(const ScKV *kv, int configured);
     static int get_value_width(const KV *self);
-    static bool style_has_format(ScTextStyle style);
 
 static void render_entry(const KV *self, size_t entry_index);
-    static void print_spaces(int count);
     static void render_key(const KV *self, const char *key);
         static void print_text_slice(
             const char *text, int byte_count, ScTextStyle style, bool styled
@@ -103,7 +101,6 @@ static void render_entry(const KV *self, size_t entry_index);
         static void render_wrapped_value(const KV *self, const char *value);
         static void render_truncated_value(const KV *self, const char *value);
 
-static void print_newlines(int count);
 
 
 ScKV *sc_kv_new(ScKVOpts opts) {
@@ -124,11 +121,11 @@ void sc_kv_print(const ScKV *kv) {
     KV self;
     init_kv(&self, kv);
 
-    print_newlines(kv->opts.margin.top);
+    sc_print_newlines(kv->opts.margin.top);
     for (size_t i = 0; i < kv->entry_count; i++) {
         render_entry(&self, i);
     }
-    print_newlines(kv->opts.margin.bottom);
+    sc_print_newlines(kv->opts.margin.bottom);
 }
 
 void sc_kv_free(ScKV *kv) {
@@ -173,8 +170,8 @@ static void init_kv(KV *self, const ScKV *kv) {
     self->continuation_indent = self->left_margin
         + self->key_column_width + self->separator_width;
 
-    self->key_has_format = style_has_format(kv->opts.key_style);
-    self->val_has_format = style_has_format(kv->opts.val_style);
+    self->key_has_format = sc_style_has_format(kv->opts.key_style);
+    self->val_has_format = sc_style_has_format(kv->opts.val_style);
 }
 
 /** Returns `configured` clamped to `>= 0`. */
@@ -217,32 +214,23 @@ static int get_value_width(const KV *self) {
  * Returns `true` when `style` carries any formatting; zero-initialized
  * `ScTextStyle` returns `false`.
  */
-static bool style_has_format(ScTextStyle style) {
-    return style.attr != 0
-        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
-        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
-}
 
 
 /** Renders one entry and the trailing item gap (when not the last entry). */
 static void render_entry(const KV *self, size_t entry_index) {
     const ScKVEntry *entry = &self->kv->entries[entry_index];
 
-    print_spaces(self->left_margin);
+    sc_print_spaces(self->left_margin);
     render_key(self, entry->key);
     fputs(self->separator, sc_output_stream());
     render_value(self, entry->value);
 
     bool is_last = entry_index + 1 == self->kv->entry_count;
     if (!is_last) {
-        print_newlines(self->kv->opts.item_gap);
+        sc_print_newlines(self->kv->opts.item_gap);
     }
 }
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /**
  * Prints `key` padded or truncated to `self->key_column_width`, applying
@@ -261,7 +249,7 @@ static void render_key(const KV *self, const char *key) {
         key, print_byte_count,
         self->kv->opts.key_style, self->key_has_format
     );
-    print_spaces(field_width - printed_width);
+    sc_print_spaces(field_width - printed_width);
 }
 
 /**
@@ -333,7 +321,7 @@ static void render_wrapped_value(const KV *self, const char *value) {
         }
 
         line_buffer[byte_count] = '\0';
-        if (!is_first_line) { print_spaces(self->continuation_indent); }
+        if (!is_first_line) { sc_print_spaces(self->continuation_indent); }
         is_first_line = false;
 
         if (self->val_has_format) {
@@ -359,7 +347,3 @@ static void render_truncated_value(const KV *self, const char *value) {
 }
 
 
-/** Prints `count` newline characters to stdout. */
-static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
-}

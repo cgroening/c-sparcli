@@ -13,6 +13,36 @@
 void sc_apply_colors(ScColor fg, ScColor bg);
 void sc_apply_style (ScTextAttribute style);
 
+
+/* ── Shared render-time span / line types ───────────────────────────────── */
+
+/**
+ * Single styled run of UTF-8 text within an `ScRenderLine`.
+ *
+ * Internal-only type used by both the panel and table renderers when
+ * parsing `ScText` content into per-line styled spans. The string is
+ * owned by the surrounding `ScRenderLine`.
+ */
+typedef struct ScRenderSpan {
+    /** UTF-8 string content; no ANSI codes. */
+    const char *text;
+
+    /** Style applied at render time. */
+    ScTextStyle style;
+} ScRenderSpan;
+
+/** One rendered line of content, composed of one or more styled spans. */
+typedef struct ScRenderLine {
+    /** Array of styled spans making up this line. */
+    ScRenderSpan *spans;
+
+    /** Number of spans in `spans`. */
+    size_t count;
+
+    /** Total visible column width of this line. */
+    size_t visible_width;
+} ScRenderLine;
+
 static inline int    min_i (int a,    int b)    { return a < b ? a : b; }
 static inline int    max_i (int a,    int b)    { return a > b ? a : b; }
 static inline size_t min_sz(size_t a, size_t b) { return a < b ? a : b; }

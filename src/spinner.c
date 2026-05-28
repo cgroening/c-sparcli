@@ -65,10 +65,8 @@ struct ScSpinner {
 // Forward declarations indented to reflect call hierarchy
 static void render_spinner_char(const ScSpinner *spinner);
     static void print_colored(const char *str, ScColor color);
-        static bool color_is_active(ScColor color);
 static int render_label(const ScSpinner *spinner);
 static void pad_to_terminal_width(int already_printed);
-    static void print_spaces(int count);
 
 static void clear_current_line(void);
 static void render_status_symbol(bool success);
@@ -135,7 +133,7 @@ static void render_spinner_char(const ScSpinner *spinner) {
  * it as-is otherwise.
  */
 static void print_colored(const char *str, ScColor color) {
-    if (!color_is_active(color)) {
+    if (!sc_color_is_active(color)) {
         fputs(str, sc_output_stream());
         return;
     }
@@ -148,12 +146,6 @@ static void print_colored(const char *str, ScColor color) {
  * Returns `true` when `color` should emit ANSI escapes; both
  * `SC_ANSI_COLOR_NONE` and a zero-initialized `ScColor` return `false`.
  */
-static bool color_is_active(ScColor color) {
-    if (color.index == -2) { return false; }
-    bool is_zero_init = color.index == 0
-        && color.r == 0 && color.g == 0 && color.b == 0;
-    return !is_zero_init;
-}
 
 /**
  * Prints `" label"` if a label is set, applying `label_style` when it
@@ -167,7 +159,7 @@ static int render_label(const ScSpinner *spinner) {
 
     ScTextStyle style = spinner->opts.label_style;
     bool style_has_format = style.attr != 0
-        || color_is_active(style.fg) || color_is_active(style.bg);
+        || sc_color_is_active(style.fg) || sc_color_is_active(style.bg);
     if (style_has_format) {
         sc_print(spinner->label, style);
     } else {
@@ -186,18 +178,14 @@ static int render_label(const ScSpinner *spinner) {
  */
 static void pad_to_terminal_width(int already_printed) {
     int terminal_width = sc_terminal_width();
-    print_spaces(terminal_width - already_printed);
+    sc_print_spaces(terminal_width - already_printed);
 }
 
-/** Prints `count` space characters to stdout; no-op when `count <= 0`. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /** Overwrites the current terminal line with spaces, then returns to col 0. */
 static void clear_current_line(void) {
     int terminal_width = sc_terminal_width();
-    print_spaces(terminal_width);
+    sc_print_spaces(terminal_width);
     fputc('\r', sc_output_stream());
 }
 

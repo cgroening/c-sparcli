@@ -23,6 +23,25 @@ ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b) {
     return (ScColor){ -1, r, g, b };
 }
 
+
+/* ── Functional variants of the SC_ANSI_COLOR_* macros ──────────────────── */
+
+ScColor sc_color_none(void)    { return SC_ANSI_COLOR_NONE; }
+ScColor sc_color_black(void)   { return SC_ANSI_COLOR_BLACK; }
+ScColor sc_color_red(void)     { return SC_ANSI_COLOR_RED; }
+ScColor sc_color_green(void)   { return SC_ANSI_COLOR_GREEN; }
+ScColor sc_color_yellow(void)  { return SC_ANSI_COLOR_YELLOW; }
+ScColor sc_color_blue(void)    { return SC_ANSI_COLOR_BLUE; }
+ScColor sc_color_magenta(void) { return SC_ANSI_COLOR_MAGENTA; }
+ScColor sc_color_cyan(void)    { return SC_ANSI_COLOR_CYAN; }
+ScColor sc_color_white(void)   { return SC_ANSI_COLOR_WHITE; }
+
+ScTextStyle sc_text_style(
+    ScTextAttribute attr, ScColor fg, ScColor bg
+) {
+    return (ScTextStyle){ attr, fg, bg };
+}
+
 /** Emits ANSI foreground and background escape codes for `fg` and `bg`. */
 void sc_apply_colors(ScColor fg, ScColor bg) {
     apply_fg(fg);

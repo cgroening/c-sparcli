@@ -1,33 +1,10 @@
 #pragma once
 
 #include "sparcli.h"
+#include "internal.h"
 
 #include <stdbool.h>
 #include <stddef.h>
-
-
-/* ── Render-time span / line types ───────────────────────────────────────── */
-
-/** One styled text segment within a rendered line. */
-typedef struct TSpan {
-    /** UTF-8 string content; owned by the surrounding `TLine`. */
-    const char *text;
-
-    /** Visual style (color, attributes) applied to this span. */
-    ScTextStyle style;
-} TSpan;
-
-/** One rendered line of cell content, composed of one or more styled spans. */
-typedef struct TLine {
-    /** Array of styled spans making up this line. */
-    TSpan *spans;
-
-    /** Number of spans in `spans`. */
-    size_t count;
-
-    /** Total visible column width of this line. */
-    size_t visible_width;
-} TLine;
 
 
 /* ── Internal storage types ──────────────────────────────────────────────── */
@@ -238,13 +215,13 @@ void table_init(Table *table, const ScTableData *data, ScTableOpts opts);
 void table_render(Table *table);
 
 /* table_print_render_cell.c */
-TLine *make_cell_lines(const ScCell *cell, size_t *out_count);
-TLine *wrap_cell_lines(const ScCell *cell, int max_width, size_t *out_count);
+ScRenderLine *make_cell_lines(const ScCell *cell, size_t *out_count);
+ScRenderLine *wrap_cell_lines(const ScCell *cell, int max_width, size_t *out_count);
 size_t cell_visible_width(const ScCell *cell);
 size_t count_cell_lines(
     const ScCell *cell, const ScColOpts *col_opts, int available_width
 );
-void free_tlines(TLine *lines, size_t count);
+void free_tlines(ScRenderLine *lines, size_t count);
 
 /* table_print_render_border.c */
 void render_horizontal_border(
@@ -259,7 +236,7 @@ void print_span_with_bg(
     const char *text, ScTextStyle style, ScColor cell_bg
 );
 void print_tline_in_width(
-    const TLine *line, int width, ScHAlign halign, ScColor bg
+    const ScRenderLine *line, int width, ScHAlign halign, ScColor bg
 );
 
 /* table_print_render_row.c */

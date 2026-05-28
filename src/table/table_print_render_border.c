@@ -285,7 +285,7 @@ static void render_inner_sep_span_content(
     if (content_width < 0) { content_width = 0; }
 
     size_t line_count;
-    TLine *cell_lines =
+    ScRenderLine *cell_lines =
         (data->columns[col].opts.word_wrap && content_width > 0)
             ? wrap_cell_lines(
                   table->row_span[col].cell, content_width, &line_count
@@ -473,7 +473,7 @@ static void render_title_plain_fill(
 }
 
 
-/* ── TLine printing helpers (shared with row.c) ─────────────────────────── */
+/* ── ScRenderLine printing helpers (shared with row.c) ─────────────────────────── */
 
 /**
  * Prints `line` within `width` columns: adds alignment padding when the
@@ -481,7 +481,7 @@ static void render_title_plain_fill(
  * `width`.
  */
 void print_tline_in_width(
-    const TLine *line, int width, ScHAlign halign, ScColor bg
+    const ScRenderLine *line, int width, ScHAlign halign, ScColor bg
 ) {
     int remaining = width - (int)line->visible_width;
     if (remaining >= 0) {
@@ -529,7 +529,7 @@ void print_tline_in_width(
 void print_span_with_bg(
     const char *text, ScTextStyle style, ScColor cell_bg
 ) {
-    if (!color_is_active(style.bg) && color_is_active(cell_bg)) {
+    if (!sc_color_is_active(style.bg) && sc_color_is_active(cell_bg)) {
         style.bg = cell_bg;
     }
     sc_print(text, style);
@@ -540,7 +540,7 @@ void print_span_with_bg(
  */
 void print_spaces_with_bg(int count, ScColor bg) {
     if (count <= 0) { return; }
-    bool has_bg = color_is_active(bg);
+    bool has_bg = sc_color_is_active(bg);
     if (has_bg) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
     for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
     if (has_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }

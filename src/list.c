@@ -124,13 +124,11 @@ static void render_list_level(
         );
     static void render_item(List *self, size_t item_index);
         static void render_left_indent(const List *self);
-            static void print_spaces(int count);
         static void render_marker(const List *self, size_t item_index);
             static void build_marker_string(
                 const List *self, size_t item_index,
                 char *buffer, size_t buffer_size
             );
-            static bool style_has_format(ScTextStyle style);
         static void render_item_content(
             const List *self, const ScListItem *item
         );
@@ -140,7 +138,6 @@ static void render_list_level(
                 static char **word_wrap(
                     const char *text, int max_width, size_t *out_line_count
                 );
-        static void print_newlines(int count);
 
 static void item_free(ScListItem *item);
 
@@ -180,11 +177,11 @@ ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts) {
 
 void sc_list_print(const ScList *list) {
     if (!list) { return; }
-    print_newlines(list->opts.margin.top);
+    sc_print_newlines(list->opts.margin.top);
     int terminal_width = list->opts.width > 0
         ? list->opts.width : sc_terminal_width();
     render_list_level(list, 0, terminal_width);
-    print_newlines(list->opts.margin.bottom);
+    sc_print_newlines(list->opts.margin.bottom);
 }
 
 void sc_list_free(ScList *list) {
@@ -404,18 +401,14 @@ static void render_item(List *self, size_t item_index) {
         );
     }
 
-    print_newlines(self->list->opts.item_gap);
+    sc_print_newlines(self->list->opts.item_gap);
 }
 
 /** Prints the left margin plus the list indent for the current item. */
 static void render_left_indent(const List *self) {
-    print_spaces(self->list->opts.margin.left + self->list_indent);
+    sc_print_spaces(self->list->opts.margin.left + self->list_indent);
 }
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /**
  * Builds and prints the marker token, applying `marker_style` when it carries
@@ -427,7 +420,7 @@ static void render_marker(const List *self, size_t item_index) {
         self, item_index, marker_buffer, sizeof(marker_buffer)
     );
 
-    if (style_has_format(self->list->opts.marker_style)) {
+    if (sc_style_has_format(self->list->opts.marker_style)) {
         sc_print(marker_buffer, self->list->opts.marker_style);
     } else {
         fputs(marker_buffer, sc_output_stream());
@@ -464,11 +457,6 @@ static void build_marker_string(
  * Returns `true` when `style` carries any formatting; zero-initialized
  * `ScTextStyle` returns `false` so callers can skip ANSI emission.
  */
-static bool style_has_format(ScTextStyle style) {
-    return style.attr != 0
-        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
-        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
-}
 
 /** Renders the item content (rich text or word-wrapped string). */
 static void render_item_content(
@@ -495,7 +483,7 @@ static void render_wrapped_string(
 
     for (size_t i = 0; i < line_count; i++) {
         if (i > 0) {
-            print_spaces(
+            sc_print_spaces(
                 self->list->opts.margin.left + self->text_start_column
             );
         }
@@ -580,10 +568,6 @@ static char **word_wrap(
     return lines;
 }
 
-/** Prints `count` newline characters to stdout. */
-static void print_newlines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
-}
 
 
 /** Recursively frees `item`, its owned string and any sub-list. */

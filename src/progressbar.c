@@ -119,11 +119,9 @@ static void render(ScProgressBar *bar, double value, double max, bool final);
             static void print_label_text(
                 const ScProgressBar *bar, int byte_count
             );
-            static void print_spaces(int count);
         static void render_cap(const char *cap);
         static void render_bar_body(const Frame *frame);
             static void print_repeat(const char *str, int count, ScColor color);
-                static bool color_is_active(ScColor color);
         static void render_percent(const Frame *frame);
         static void render_value(const Frame *frame);
         static void terminate_line(bool final);
@@ -340,8 +338,8 @@ static void render_label(const Frame *frame) {
         ? natural_width : field_width;
 
     print_label_text(bar, print_byte_count);
-    print_spaces(field_width - printed_width);
-    print_spaces(LABEL_TRAILING_PAD);
+    sc_print_spaces(field_width - printed_width);
+    sc_print_spaces(LABEL_TRAILING_PAD);
 }
 
 /**
@@ -351,7 +349,7 @@ static void render_label(const Frame *frame) {
 static void print_label_text(const ScProgressBar *bar, int byte_count) {
     ScTextStyle style = bar->opts.label_style;
     bool has_format = style.attr != 0
-        || color_is_active(style.fg) || color_is_active(style.bg);
+        || sc_color_is_active(style.fg) || sc_color_is_active(style.bg);
 
     if (!has_format) {
         fwrite(bar->label, 1, (size_t)byte_count, sc_output_stream());
@@ -365,10 +363,6 @@ static void print_label_text(const ScProgressBar *bar, int byte_count) {
     sc_print(buffer, style);
 }
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /** Prints `cap` when non-NULL; otherwise no output. */
 static void render_cap(const char *cap) {
@@ -406,7 +400,7 @@ static void render_bar_body(const Frame *frame) {
  */
 static void print_repeat(const char *str, int count, ScColor color) {
     if (count <= 0) { return; }
-    bool styled = color_is_active(color);
+    bool styled = sc_color_is_active(color);
     if (styled) { sc_apply_colors(color, SC_ANSI_COLOR_NONE); }
     for (int i = 0; i < count; i++) { fputs(str, sc_output_stream()); }
     if (styled) { fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream()); }
@@ -416,12 +410,6 @@ static void print_repeat(const char *str, int count, ScColor color) {
  * Returns `true` when `color` should emit ANSI escapes; `SC_ANSI_COLOR_NONE`
  * and zero-initialized `ScColor` both return `false`.
  */
-static bool color_is_active(ScColor color) {
-    if (color.index == -2) { return false; }
-    bool is_zero_init = color.index == 0
-        && color.r == 0 && color.g == 0 && color.b == 0;
-    return !is_zero_init;
-}
 
 /** Prints `frame->percent_text` when `show_percent` is enabled. */
 static void render_percent(const Frame *frame) {
@@ -439,7 +427,7 @@ static void render_value(const Frame *frame) {
     int actual_width = (int)sc_utf8_string_length(
         frame->value_text, strlen(frame->value_text)
     );
-    print_spaces(frame->value_reserve_width - actual_width);
+    sc_print_spaces(frame->value_reserve_width - actual_width);
 }
 
 /** Emits the final line break (`\n` or `\r` + flush). */

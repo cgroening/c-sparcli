@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "internal.h"
 #include "table/table_internal.h"
 
 #include <stdio.h>
@@ -10,7 +11,6 @@
 
 
 // Forward declarations indented to reflect call hierarchy
-static void print_blank_lines(int count);
 
 static void render_top_border(const Table *table);
 static void render_header_row(const Table *table);
@@ -33,20 +33,16 @@ static void render_bottom_border(const Table *table);
 
 
 void table_render(Table *table) {
-    print_blank_lines(table->opts.margin.top);
+    sc_print_newlines(table->opts.margin.top);
     render_top_border(table);
     render_header_row(table);
     render_data_rows(table);
     render_footer_rows(table);
     render_bottom_border(table);
-    print_blank_lines(table->opts.margin.bottom);
+    sc_print_newlines(table->opts.margin.bottom);
 }
 
 
-/** Prints `count` blank lines for vertical margins. */
-static void print_blank_lines(int count) {
-    for (int i = 0; i < count; i++) { fputc('\n', sc_output_stream()); }
-}
 
 
 /* ── Top / bottom border ────────────────────────────────────────────────── */
@@ -281,7 +277,7 @@ static void render_data_row_separator(Table *table, size_t row_index) {
  */
 static ScColor resolve_data_row_bg(const Table *table, size_t row_index) {
     ScColor row_bg = table->table_data->rows[row_index].bg;
-    if (color_is_active(row_bg)) { return row_bg; }
+    if (sc_color_is_active(row_bg)) { return row_bg; }
 
     if (table->opts.striped && (row_index % 2 == 1)) {
         return table->opts.stripe_bg;

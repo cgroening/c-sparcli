@@ -93,6 +93,49 @@ void sc_table_add_footer_row(
     add_row(table_data, cells, cell_count, SC_ANSI_COLOR_NONE, true);
 }
 
+/* ── Functional variants of the inline cell helpers ─────────────────────── */
+
+ScCell sc_cell_from_str(const char *str) {
+    return sc_cell(str);
+}
+
+ScCell sc_cell_str_aligned(
+    const char *str, ScHAlign halign, ScVAlign valign
+) {
+    return sc_cell_a(str, halign, valign);
+}
+
+ScCell sc_cell_from_text(ScText *text) {
+    return sc_cell_t(text);
+}
+
+ScCell sc_cell_text_aligned(
+    ScText *text, ScHAlign halign, ScVAlign valign
+) {
+    return sc_cell_ta(text, halign, valign);
+}
+
+ScCell sc_cell_colspan(const char *str, int col_span) {
+    return sc_cell_cs(str, col_span);
+}
+
+ScCell sc_cell_rowspan(const char *str, int row_span) {
+    return sc_cell_rs(str, row_span);
+}
+
+ScCell sc_cell_skip_placeholder(void) {
+    return sc_cell_skip();
+}
+
+ScCell sc_row_skip_placeholder(void) {
+    return sc_row_skip();
+}
+
+ScCell sc_cell_from_markup(const char *markup) {
+    return sc_cell_m(markup);
+}
+
+
 void sc_table_free(ScTableData *table_data) {
     for (size_t i = 0; i < table_data->column_count; i++) {
         free(table_data->columns[i].header);

@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "text_internal.h"
 #include "internal.h"
 #include <string.h>
 #include <stdlib.h>
@@ -13,23 +14,6 @@ typedef struct {
     const char   *left_edge_character;   /**< Left corner character */
     const char   *right_edge_character;  /**< Right corner character */
 } HBorder;
-
-/** PSpan – Single styled text segment within a content line of a panel. */
-typedef struct {
-    const char *text;   /**< Heap-allocated UTF-8 string (owned) */
-    ScTextStyle style;  /**< Style to apply when rendering `text` */
-} PSpan;
-
-/**
- * PLine – One line of panel content, parsed from `ScText` on `\n` boundaries.
- *
- * Each line is made up of one or more `PSpan` segments.
- */
-typedef struct {
-    PSpan  *spans;       /**< Array of styled segments that make up this line */
-    size_t  count;       /**< Number of spans in `spans` */
-    size_t  line_width;  /**< Visible width of the line in columns */
-} PLine;
 
 /**
  * PLineLayout – Layout parameters for a content line within the panel interior.
@@ -70,7 +54,7 @@ typedef struct {
     ScPanelOpts   opts;
 
     /** Parsed content lines split from `text` on `\n` boundaries (owned) */
-    PLine        *lines;
+    ScRenderLine        *lines;
 
     /** Number of elements in `lines` */
     size_t        line_count;
@@ -98,14 +82,14 @@ typedef struct {
  * ParseBuf – Accumulator used while splitting `ScText` spans into `PLines`.
  */
 typedef struct {
-    PSpan       *spans;     /**< Growing span buffer for the current line */
+    ScRenderSpan       *spans;     /**< Growing span buffer for the current line */
     size_t       span_count;    /**< Spans written into `spans` */
     size_t       span_capacity;  /**< Allocated capacity of `spans` */
     size_t       span_width;    /**< Visible column width accumulated for the
                                  current line */
     ScTextStyle  style;     /**< Style of the source span currently
                                  being scanned */
-    PLine       *lines;     /**< Growing array of completed lines */
+    ScRenderLine       *lines;     /**< Growing array of completed lines */
     size_t       line_count;    /**< Lines written into `lines` */
     size_t       line_capacity;  /**< Allocated capacity of `lines` */
 } ParseBuf;
@@ -130,19 +114,17 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts);
 static void panel_render(Panel *panel);
     static void add_vertical_margin(int n);
     static void render_panel_border(Panel *panel, ScPosition pos);
-        static void print_spaces(int n);
         static void render_horizontal_border(HBorder hborder, ScTitle title);
             static void print_colored(const char *s, ScBorderStyle style);
                 static ScColor norm_bg(ScColor c);
-                    static bool is_color_active(ScColor c);
         static void print_repeat(const char *s, int n, ScBorderStyle style);
     static void render_body(Panel *panel);
         static void render_empty_line(Panel *panel);
-        static void render_content_line(Panel *panel, PLine *line);
-            static void print_line_spans(PLine *line, ScColor bg);
+        static void render_content_line(Panel *panel, ScRenderLine *line);
+            static void print_line_spans(ScRenderLine *line, ScColor bg);
 
 static void panel_cleanup(Panel *panel);
-    static void free_lines(PLine *lines, size_t n);
+    static void free_lines(ScRenderLine *lines, size_t n);
 
 
 /**
@@ -192,14 +174,14 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
 }
 
 /**
- * Splits the spans of `text` on newline boundaries into an array of `PLine`
- * records. Each `PLine` owns heap copies of its span strings.
+ * Splits the spans of `text` on newline boundaries into an array of `ScRenderLine`
+ * records. Each `ScRenderLine` owns heap copies of its span strings.
  * Caller must free the result with `free_lines`.
  */
 static void split_text_into_panel_lines(Panel *panel) {
     ParseBuf buf = {
-        .spans = malloc(8 * sizeof(PSpan)), .span_capacity = 8,
-        .lines = malloc(8 * sizeof(PLine)), .line_capacity = 8,
+        .spans = malloc(8 * sizeof(ScRenderSpan)), .span_capacity = 8,
+        .lines = malloc(8 * sizeof(ScRenderLine)), .line_capacity = 8,
     };
 
     for (size_t si = 0; si < panel->text->count; si++) {
@@ -210,7 +192,7 @@ static void split_text_into_panel_lines(Panel *panel) {
 }
 
 /**
- * Scans one source span for `\n`, flushing a `PLine` on each new line and
+ * Scans one source span for `\n`, flushing a `ScRenderLine` on each new line and
  * buffering the rest.
  */
 static void scan_source_span(ParseBuf *buf, const ScSpan *span) {
@@ -237,24 +219,24 @@ static void scan_source_span(ParseBuf *buf, const ScSpan *span) {
 static void append_span(ParseBuf *buf, const char *start, size_t length) {
     if (buf->span_count == buf->span_capacity) {
         buf->span_capacity *= 2;
-        buf->spans = realloc(buf->spans, buf->span_capacity * sizeof(PSpan));
+        buf->spans = realloc(buf->spans, buf->span_capacity * sizeof(ScRenderSpan));
     }
-    buf->spans[buf->span_count++] = (PSpan){ strndup(start, length), buf->style };
+    buf->spans[buf->span_count++] = (ScRenderSpan){ strndup(start, length), buf->style };
     buf->span_width += sc_utf8_string_length(start, length);
 }
 
 /**
- * Copies the span buffer into a new `PLine`, appends it to the line array
+ * Copies the span buffer into a new `ScRenderLine`, appends it to the line array
  * and resets the span buffer.
  */
 static void flush_line(ParseBuf *buf) {
     if (buf->line_count == buf->line_capacity) {
         buf->line_capacity *= 2;
-        buf->lines = realloc(buf->lines, buf->line_capacity * sizeof(PLine));
+        buf->lines = realloc(buf->lines, buf->line_capacity * sizeof(ScRenderLine));
     }
-    PSpan *ls = malloc((buf->span_count + 1) * sizeof(PSpan));
-    memcpy(ls, buf->spans, buf->span_count * sizeof(PSpan));
-    buf->lines[buf->line_count++] = (PLine){ ls, buf->span_count, buf->span_width };
+    ScRenderSpan *ls = malloc((buf->span_count + 1) * sizeof(ScRenderSpan));
+    memcpy(ls, buf->spans, buf->span_count * sizeof(ScRenderSpan));
+    buf->lines[buf->line_count++] = (ScRenderLine){ ls, buf->span_count, buf->span_width };
     buf->span_count = 0;
     buf->span_width = 0;
 }
@@ -295,8 +277,8 @@ static void resolve_panel_spacing(Panel *panel) {
 static void compute_max_line_width(Panel *panel) {
     size_t max = 0;
     for (size_t i = 0; i < panel->line_count; i++) {
-        if (panel->lines[i].line_width > max) {
-            max = panel->lines[i].line_width;
+        if (panel->lines[i].visible_width > max) {
+            max = panel->lines[i].visible_width;
         }
     }
     panel->max_line_width = max;
@@ -397,7 +379,7 @@ static void add_vertical_margin(int count) {
 static void render_panel_border(Panel *panel, ScPosition pos) {
     HBorder hborder = (pos == SC_POSITION_TOP)
         ? panel->top_border : panel->bottom_border;
-    print_spaces(panel->spacing.margin.left);
+    sc_print_spaces(panel->spacing.margin.left);
     ScTitle title = panel->opts.title;
     if (title.pos != pos) { title.text = NULL; }
     render_horizontal_border(hborder, title);
@@ -461,7 +443,7 @@ static void print_colored(const char *s, ScBorderStyle style) {
 
 /** Returns `SC_ANSI_COLOR_NONE` for the zero-init sentinel; else `color`. */
 static ScColor norm_bg(ScColor color) {
-    return is_color_active(color) ? color : SC_ANSI_COLOR_NONE;
+    return sc_color_is_active(color) ? color : SC_ANSI_COLOR_NONE;
 }
 
 /**
@@ -472,11 +454,6 @@ static ScColor norm_bg(ScColor color) {
  * set" because it is indistinguishable from `SC_ANSI_COLOR_BLACK`. Use
  * `sc_ansi_color_from_rgb(0,0,0)` to specify an explicit black.
  */
-static bool is_color_active(ScColor color) {
-    bool is_none     = color.index == -2;
-    bool is_zeroinit = color.index == 0 && !color.r && !color.g && !color.b;
-    return !is_none && !is_zeroinit;
-}
 
 /**
  * Applies `style.color`/`style.bg`, prints `str_raw` `count` times,
@@ -494,17 +471,17 @@ static void render_body(Panel *panel) {
     ScSpacing sp = panel->spacing;
 
     for (int i = 0; i < sp.padding.top; i++) {
-        print_spaces(sp.margin.left);
+        sc_print_spaces(sp.margin.left);
         render_empty_line(panel);
     }
 
     for (size_t i = 0; i < panel->line_count; i++) {
-        print_spaces(sp.margin.left);
+        sc_print_spaces(sp.margin.left);
         render_content_line(panel, &panel->lines[i]);
     }
 
     for (int i = 0; i < sp.padding.bottom; i++) {
-        print_spaces(sp.margin.left);
+        sc_print_spaces(sp.margin.left);
         render_empty_line(panel);
     }
 }
@@ -516,7 +493,7 @@ static void render_body(Panel *panel) {
 static void render_empty_line(Panel *panel) {
     PLineView row = panel->line_view_template;
     print_colored(border_table[row.border_style.type].v, row.border_style);
-    if (is_color_active(row.content_bg)) {
+    if (sc_color_is_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
         for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', sc_output_stream()); }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
@@ -533,13 +510,13 @@ static void render_empty_line(Panel *panel) {
  * Re-applies bg after each `sc_print` call because `sc_print` always emits
  * a reset that would otherwise clear the background color.
  */
-static void render_content_line(Panel *panel, PLine *line) {
+static void render_content_line(Panel *panel, ScRenderLine *line) {
     PLineView row = panel->line_view_template;
     PLineLayout layout = row.layout;
 
     // Alignment
     int content_space = layout.inner_width - layout.pad_left - layout.pad_right
-                        - (int)line->line_width;
+                        - (int)line->visible_width;
     if (content_space < 0) { content_space = 0; }
     int left_padding = 0, right_padding = content_space;
     if (layout.content_align == SC_ALIGN_CENTER) {
@@ -553,15 +530,15 @@ static void render_content_line(Panel *panel, PLine *line) {
 
     // Output
     print_colored(border_table[row.border_style.type].v, row.border_style);
-    if (is_color_active(row.content_bg)) {
+    if (sc_color_is_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
     }
-    print_spaces(layout.pad_left);
-    print_spaces(left_padding);
+    sc_print_spaces(layout.pad_left);
+    sc_print_spaces(left_padding);
     print_line_spans(line, row.content_bg);
-    print_spaces(right_padding);
-    print_spaces(layout.pad_right);
-    if (is_color_active(row.content_bg)) {
+    sc_print_spaces(right_padding);
+    sc_print_spaces(layout.pad_right);
+    if (sc_color_is_active(row.content_bg)) {
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     }
     print_colored(border_table[row.border_style.type].v, row.border_style);
@@ -569,17 +546,13 @@ static void render_content_line(Panel *panel, PLine *line) {
 }
 
 /** Prints each span of `line`, re-applying `bg` after each reset if active. */
-static void print_line_spans(PLine *line, ScColor bg) {
+static void print_line_spans(ScRenderLine *line, ScColor bg) {
     for (size_t i = 0; i < line->count; i++) {
         sc_print(line->spans[i].text, line->spans[i].style);
-        if (is_color_active(bg)) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
+        if (sc_color_is_active(bg)) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
     }
 }
 
-/** Prints `count` space characters to stdout. */
-static void print_spaces(int count) {
-    for (int i = 0; i < count; i++) { fputc(' ', sc_output_stream()); }
-}
 
 /** Frees heap-allocated panel content. */
 static void panel_cleanup(Panel *panel) {
@@ -590,7 +563,7 @@ static void panel_cleanup(Panel *panel) {
  * Frees the span strings and line array produced by
  * `split_text_into_panel_lines`.
  */
-static void free_lines(PLine *lines, size_t count) {
+static void free_lines(ScRenderLine *lines, size_t count) {
     for (size_t i = 0; i < count; i++) {
         for (size_t j = 0; j < lines[i].count; j++) {
             free((char *)lines[i].spans[j].text);

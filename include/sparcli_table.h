@@ -147,6 +147,31 @@ static inline ScCell sc_cell_m(const char *s) {
     return (ScCell){ .kind = SC_CELL_MARKUP, .text = sc_markup_parse(s) };
 }
 
+
+/* ── Functional variants of the inline cell helpers (FFI-friendly) ──── */
+
+/**
+ * Functional equivalents of the `sc_cell*` static-inline helpers above.
+ *
+ * Bindings that cannot consume `static inline` functions or C99 compound
+ * literals (Python via ctypes, some Rust binding setups) call these
+ * instead. Native C callers should prefer the inline forms.
+ */
+SPARCLI_EXPORT ScCell sc_cell_from_str(const char *str);
+SPARCLI_EXPORT ScCell sc_cell_str_aligned(
+    const char *str, ScHAlign halign, ScVAlign valign
+);
+SPARCLI_EXPORT ScCell sc_cell_from_text(ScText *text);
+SPARCLI_EXPORT ScCell sc_cell_text_aligned(
+    ScText *text, ScHAlign halign, ScVAlign valign
+);
+SPARCLI_EXPORT ScCell sc_cell_colspan(const char *str, int col_span);
+SPARCLI_EXPORT ScCell sc_cell_rowspan(const char *str, int row_span);
+SPARCLI_EXPORT ScCell sc_cell_skip_placeholder(void);
+SPARCLI_EXPORT ScCell sc_row_skip_placeholder(void);
+SPARCLI_EXPORT ScCell sc_cell_from_markup(const char *markup);
+
+
 /** Per-column display options. */
 typedef struct ScColOpts {
     /** Minimum column width in terminal columns; `0` = no minimum. */

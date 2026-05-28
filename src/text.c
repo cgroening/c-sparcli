@@ -1,4 +1,6 @@
 #include "sparcli.h"
+#include "text_internal.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -68,6 +70,17 @@ void sc_print_text(const ScText *sc_text) {
             sc_print(start, style);
         }
     }
+}
+
+size_t sc_text_span_count(const ScText *text) {
+    return text ? text->count : 0;
+}
+
+ScSpan sc_text_span(const ScText *text, size_t index) {
+    if (!text || index >= text->count) {
+        return (ScSpan){ NULL, { 0, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } } };
+    }
+    return text->spans[index];
 }
 
 size_t sc_text_visible_width(const ScText *sc_text) {

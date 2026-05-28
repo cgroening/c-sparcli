@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "text_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
