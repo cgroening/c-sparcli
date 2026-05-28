@@ -74,9 +74,9 @@
 
 ## Spinner & Animated Spinner
 
-- [ ] tests/test_spinner.c
-- [ ] include/sparcli_spinner.h
-- [ ] src/spinner.c
+- [x] tests/test_spinner.c
+- [x] include/sparcli_spinner.h
+- [x] src/spinner.c
 
 ## Key-Value Pairs
 

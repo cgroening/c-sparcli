@@ -1,128 +1,206 @@
 #include "sparcli.h"
 #include "internal.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-/* ── Frame tables ────────────────────────────────────────────────────────── */
 
-static const char * const spinner_frames[4][10] = {
-    [SC_SPINNER_BRAILLE] = {                              /* ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ */
+/** Maximum number of frames any spinner style uses. */
+#define MAX_SPINNER_FRAMES 10
+
+/** Success symbol (`✔`, U+2714). */
+#define SUCCESS_SYMBOL "\xe2\x9c\x94"
+
+/** Failure symbol (`✖`, U+2716). */
+#define FAILURE_SYMBOL "\xe2\x9c\x96"
+
+/** Visible width of one spinner character. */
+#define SPINNER_CHAR_WIDTH 1
+
+
+static const char *const spinner_frames[4][MAX_SPINNER_FRAMES] = {
+    [SC_SPINNER_BRAILLE] = {
         "\xe2\xa0\x8b", "\xe2\xa0\x99", "\xe2\xa0\xb9", "\xe2\xa0\xb8",
         "\xe2\xa0\xbc", "\xe2\xa0\xb4", "\xe2\xa0\xa6", "\xe2\xa0\xa7",
-        "\xe2\xa0\x87", "\xe2\xa0\x8f"
+        "\xe2\xa0\x87", "\xe2\xa0\x8f",
     },
-    [SC_SPINNER_PIPE]    = {                              /* |/-\ */
-        "|", "/", "-", "\\", NULL, NULL, NULL, NULL, NULL, NULL
+    [SC_SPINNER_PIPE] = {
+        "|", "/", "-", "\\",
+        NULL, NULL, NULL, NULL, NULL, NULL,
     },
-    [SC_SPINNER_DOTS]    = {                              /* ⣾⣽⣻⢿⡿⣟⣯⣷ */
+    [SC_SPINNER_DOTS] = {
         "\xe2\xa3\xbe", "\xe2\xa3\xbd", "\xe2\xa3\xbb", "\xe2\xa2\xbf",
         "\xe2\xa1\xbf", "\xe2\xa3\x9f", "\xe2\xa3\xaf", "\xe2\xa3\xb7",
-        NULL, NULL
+        NULL, NULL,
     },
-    [SC_SPINNER_ARROW]   = {                              /* ←↖↑↗→↘↓↙ */
+    [SC_SPINNER_ARROW] = {
         "\xe2\x86\x90", "\xe2\x86\x96", "\xe2\x86\x91", "\xe2\x86\x97",
         "\xe2\x86\x92", "\xe2\x86\x98", "\xe2\x86\x93", "\xe2\x86\x99",
-        NULL, NULL
+        NULL, NULL,
     },
 };
-static const int spinner_frame_count[] = { 10, 4, 8, 8 };
 
-/* ── Internal structure ──────────────────────────────────────────────────── */
-
-struct ScSpinner {
-    ScSpinnerOpts  opts;
-    char          *label;  /* owned */
-    int            frame;
+static const int spinner_frame_count[] = {
+    [SC_SPINNER_BRAILLE] = 10,
+    [SC_SPINNER_PIPE]    = 4,
+    [SC_SPINNER_DOTS]    = 8,
+    [SC_SPINNER_ARROW]   = 8,
 };
 
-/* zero-initialised ScTextStyle = "no formatting" sentinel */
-static int opts_no_fmt(ScTextStyle o) {
-    return o.attr == 0 &&
-           o.fg.index == 0 && !o.fg.r && !o.fg.g && !o.fg.b &&
-           o.bg.index == 0 && !o.bg.r && !o.bg.g && !o.bg.b;
-}
 
-/* zero-initialised ScColor (index=0, rgb=0) treated as "not set" */
-static int color_is_set(ScColor c) {
-    return c.index != -2 && !(c.index == 0 && !c.r && !c.g && !c.b);
-}
+/** Spinner instance state. */
+struct ScSpinner {
+    /** Rendering options captured at construction. */
+    ScSpinnerOpts opts;
 
-/* ── Public API ──────────────────────────────────────────────────────────── */
+    /** Heap-allocated label; `NULL` when no label is set. */
+    char *label;
+
+    /** Index of the next frame to print (0-based). */
+    int frame_index;
+};
+
+
+// Forward declarations indented to reflect call hierarchy
+static void render_spinner_char(const ScSpinner *spinner);
+    static void print_colored(const char *str, ScColor color);
+        static bool color_is_active(ScColor color);
+static int render_label(const ScSpinner *spinner);
+static void pad_to_terminal_width(int already_printed);
+    static void print_spaces(int count);
+
+static void clear_current_line(void);
+static void render_status_symbol(bool success);
+
 
 ScSpinner *sc_spinner_new(const char *label, ScSpinnerOpts opts) {
-    ScSpinner *s = calloc(1, sizeof(ScSpinner));
-    s->opts  = opts;
-    s->label = label ? strdup(label) : NULL;
-    return s;
+    ScSpinner *spinner = calloc(1, sizeof(ScSpinner));
+    spinner->opts = opts;
+    spinner->label = label ? strdup(label) : NULL;
+    return spinner;
 }
 
-void sc_spinner_set_label(ScSpinner *s, const char *label) {
-    free(s->label);
-    s->label = label ? strdup(label) : NULL;
+void sc_spinner_set_label(ScSpinner *spinner, const char *label) {
+    free(spinner->label);
+    spinner->label = label ? strdup(label) : NULL;
 }
 
-/* ── Rendering ───────────────────────────────────────────────────────────── */
-
-void sc_spinner_tick(ScSpinner *s) {
-    int         style = (int)s->opts.style;
-    const char *frame = spinner_frames[style][s->frame];
-    int         tw    = sc_terminal_width();
-
-    /* spinner character */
-    int colored = color_is_set(s->opts.color);
-    if (colored) { sc_apply_colors(s->opts.color, SC_ANSI_COLOR_NONE); }
-    fputs(frame, stdout);
-    if (colored) { fputs("\033[0m", stdout); }
-
-    int vis = 1;  /* spinner char = 1 visible column */
-
-    /* label */
-    if (s->label) {
-        fputc(' ', stdout); vis++;
-        int lw = (int)sc_utf8_string_length(s->label, strlen(s->label));
-        if (!opts_no_fmt(s->opts.label_opts)) {
-            sc_print(s->label, s->opts.label_opts);
-        } else {
-            fputs(s->label, stdout);
-        }
-        vis += lw;
-    }
-
-    /* pad to terminal width to overwrite any longer previous line */
-    for (int i = vis; i < tw; i++) { fputc(' ', stdout); }
+void sc_spinner_tick(ScSpinner *spinner) {
+    render_spinner_char(spinner);
+    int visible_width = SPINNER_CHAR_WIDTH + render_label(spinner);
+    pad_to_terminal_width(visible_width);
 
     fputc('\r', stdout);
     fflush(stdout);
 
-    s->frame = (s->frame + 1) % spinner_frame_count[style];
+    int frame_count = spinner_frame_count[spinner->opts.style];
+    spinner->frame_index = (spinner->frame_index + 1) % frame_count;
 }
 
-void sc_spinner_finish(ScSpinner *s, bool success, const char *label) {
-    /* clear the current line */
-    int tw = sc_terminal_width();
-    for (int i = 0; i < tw; i++) { fputc(' ', stdout); }
-    fputc('\r', stdout);
+void sc_spinner_finish(
+    ScSpinner *spinner, bool success, const char *label
+) {
+    (void)spinner;
 
-    /* ✔ (green) or ✖ (red) */
-    ScColor sym_col = success ? SC_ANSI_COLOR_GREEN : SC_ANSI_COLOR_RED;
-    sc_apply_colors(sym_col, SC_ANSI_COLOR_NONE);
-    fputs(success ? "\xe2\x9c\x94" : "\xe2\x9c\x96", stdout);  /* ✔ / ✖ */
-    fputs("\033[0m", stdout);
+    clear_current_line();
+    render_status_symbol(success);
 
     if (label) {
         fputc(' ', stdout);
         fputs(label, stdout);
     }
-
     fputc('\n', stdout);
-    (void)s;  /* s->opts could be used for label_opts in the future */
 }
 
-/* ── Memory management ───────────────────────────────────────────────────── */
+void sc_spinner_free(ScSpinner *spinner) {
+    if (!spinner) { return; }
+    free(spinner->label);
+    free(spinner);
+}
 
-void sc_spinner_free(ScSpinner *s) {
-    if (!s) { return; }
-    free(s->label);
-    free(s);
+
+/** Prints the current animation frame in the configured spinner color. */
+static void render_spinner_char(const ScSpinner *spinner) {
+    const char *frame =
+        spinner_frames[spinner->opts.style][spinner->frame_index];
+    print_colored(frame, spinner->opts.color);
+}
+
+/**
+ * Prints `str` wrapped in ANSI color escapes when `color` is set; prints
+ * it as-is otherwise.
+ */
+static void print_colored(const char *str, ScColor color) {
+    if (!color_is_active(color)) {
+        fputs(str, stdout);
+        return;
+    }
+    sc_apply_colors(color, SC_ANSI_COLOR_NONE);
+    fputs(str, stdout);
+    fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
+}
+
+/**
+ * Returns `true` when `color` should emit ANSI escapes; both
+ * `SC_ANSI_COLOR_NONE` and a zero-initialized `ScColor` return `false`.
+ */
+static bool color_is_active(ScColor color) {
+    if (color.index == -2) { return false; }
+    bool is_zero_init = color.index == 0
+        && color.r == 0 && color.g == 0 && color.b == 0;
+    return !is_zero_init;
+}
+
+/**
+ * Prints `" label"` if a label is set, applying `label_style` when it
+ * carries any formatting. Returns the visible width that was printed
+ * (`0` when no label).
+ */
+static int render_label(const ScSpinner *spinner) {
+    if (!spinner->label) { return 0; }
+
+    fputc(' ', stdout);
+
+    ScTextStyle style = spinner->opts.label_style;
+    bool style_has_format = style.attr != 0
+        || color_is_active(style.fg) || color_is_active(style.bg);
+    if (style_has_format) {
+        sc_print(spinner->label, style);
+    } else {
+        fputs(spinner->label, stdout);
+    }
+
+    int label_width = (int)sc_utf8_string_length(
+        spinner->label, strlen(spinner->label)
+    );
+    return 1 + label_width;
+}
+
+/**
+ * Pads the current line up to the terminal width so a shorter new label
+ * cleanly overwrites a longer previous one.
+ */
+static void pad_to_terminal_width(int already_printed) {
+    int terminal_width = sc_terminal_width();
+    print_spaces(terminal_width - already_printed);
+}
+
+/** Prints `count` space characters to stdout; no-op when `count <= 0`. */
+static void print_spaces(int count) {
+    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+}
+
+/** Overwrites the current terminal line with spaces, then returns to col 0. */
+static void clear_current_line(void) {
+    int terminal_width = sc_terminal_width();
+    print_spaces(terminal_width);
+    fputc('\r', stdout);
+}
+
+/** Prints `✔` in green (success) or `✖` in red (failure). */
+static void render_status_symbol(bool success) {
+    ScColor color = success ? SC_ANSI_COLOR_GREEN : SC_ANSI_COLOR_RED;
+    const char *symbol = success ? SUCCESS_SYMBOL : FAILURE_SYMBOL;
+    print_colored(symbol, color);
 }
