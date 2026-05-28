@@ -56,9 +56,9 @@
 
 ## Trees
 
-- [ ] tests/test_trees.c
-- [ ] include/sparcli_tree.h
-- [ ] src/tree.c
+- [x] tests/test_trees.c
+- [x] include/sparcli_tree.h
+- [x] src/tree.c
 
 ## Lists
 

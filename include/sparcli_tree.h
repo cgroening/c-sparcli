@@ -3,22 +3,83 @@
 #include "sparcli_core.h"
 #include "sparcli_text.h"
 
-typedef struct {
-    ScBorderType style;
-    ScColor       connector_color;
-    int           indent;    /* extra spaces after connector, default 1 */
-    bool          no_guide;  /* suppress vertical continuation lines */
+
+/**
+ * Rendering options for a tree layout.
+ */
+typedef struct ScTreeOpts {
+    /** Connector style; selects the box-drawing set for branches and guides. */
+    ScBorderType border_type;
+
+    /** Connector color; `SC_ANSI_COLOR_NONE` = no escape codes. */
+    ScColor connector_color;
+
+    /** Spaces between the connector and the node text; default `1`. */
+    int indent;
+
+    /** When `true`, suppress vertical continuation guides under finished
+        branches. */
+    bool no_guide;
 } ScTreeOpts;
 
-typedef struct ScTreeNode ScTreeNode;
-typedef struct ScTree     ScTree;
+/** Opaque tree container; build with `sc_tree_new`. */
+typedef struct ScTree ScTree;
 
-ScTree     *sc_tree_new     (ScTreeOpts opts);
-ScTreeNode *sc_tree_add_str (ScTree *t, ScTreeNode *parent,
-                              const char   *str,    ScTextStyle opts,
-                              const char   *prefix, ScTextStyle prefix_opts);
-ScTreeNode *sc_tree_add_text(ScTree *t, ScTreeNode *parent,
-                              const ScText *text,
-                              const char   *prefix, ScTextStyle prefix_opts);
-void        sc_tree_print   (const ScTree *t);
-void        sc_tree_free    (ScTree *t);
+/** Opaque tree node returned by the `sc_tree_add_*` functions. */
+typedef struct ScTreeNode ScTreeNode;
+
+
+/**
+ * Allocates an empty tree.
+ *
+ * @param opts  Rendering options (style, color, indent, guide).
+ * @return      Heap-allocated tree; free with `sc_tree_free`.
+ */
+ScTree *sc_tree_new(ScTreeOpts opts);
+
+/**
+ * Attaches a plain-string node to `tree`.
+ *
+ * @param tree         Tree the node is added to.
+ * @param parent       Parent node; `NULL` adds a new root.
+ * @param str          Node text; copied internally.
+ * @param style        Style applied to `str`.
+ * @param prefix       Optional marker printed before `str`; may be `NULL`.
+ * @param prefix_style Style applied to `prefix`.
+ * @return             Pointer to the new node; owned by the tree.
+ */
+ScTreeNode *sc_tree_add_str(
+    ScTree *tree, ScTreeNode *parent,
+    const char *str, ScTextStyle style,
+    const char *prefix, ScTextStyle prefix_style
+);
+
+/**
+ * Attaches a rich-text node to `tree`.
+ *
+ * @param tree         Tree the node is added to.
+ * @param parent       Parent node; `NULL` adds a new root.
+ * @param text         Rich-text content; not owned by the tree.
+ * @param prefix       Optional marker printed before `text`; may be `NULL`.
+ * @param prefix_style Style applied to `prefix`.
+ * @return             Pointer to the new node; owned by the tree.
+ */
+ScTreeNode *sc_tree_add_text(
+    ScTree *tree, ScTreeNode *parent,
+    const ScText *text,
+    const char *prefix, ScTextStyle prefix_style
+);
+
+/**
+ * Renders `tree` to stdout.
+ *
+ * @param tree  Tree to render; no output when `tree` is `NULL` or empty.
+ */
+void sc_tree_print(const ScTree *tree);
+
+/**
+ * Frees `tree`, all its nodes, and any owned strings.
+ *
+ * @param tree  Tree to free; safe to pass `NULL`.
+ */
+void sc_tree_free(ScTree *tree);
