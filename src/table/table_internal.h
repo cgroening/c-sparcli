@@ -190,6 +190,23 @@ static inline bool table_has_vertical_separator_after(
         || table_is_header_column(table, col);
 }
 
+/**
+ * Returns `true` when `color` should emit ANSI background escapes.
+ *
+ * Both `SC_ANSI_COLOR_NONE` (`index == -2`) and a zero-initialized `ScColor`
+ * (`{0, 0, 0, 0}`, indistinguishable from `SC_ANSI_COLOR_BLACK`) return
+ * `false`. Use `sc_ansi_color_from_rgb(0, 0, 0)` for an explicit black.
+ *
+ * Mirrors the active-color check used by columns, panel and progressbar so
+ * background fields behave consistently across the library.
+ */
+static inline bool color_is_active(ScColor color) {
+    if (color.index == -2) { return false; }
+    bool is_zero_init = color.index == 0
+        && color.r == 0 && color.g == 0 && color.b == 0;
+    return !is_zero_init;
+}
+
 
 /* ── Specification structs ───────────────────────────────────────────────── */
 

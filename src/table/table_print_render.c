@@ -281,7 +281,7 @@ static void render_data_row_separator(Table *table, size_t row_index) {
  */
 static ScColor resolve_data_row_bg(const Table *table, size_t row_index) {
     ScColor row_bg = table->table_data->rows[row_index].bg;
-    if (row_bg.index != -2) { return row_bg; }
+    if (color_is_active(row_bg)) { return row_bg; }
 
     if (table->opts.striped && (row_index % 2 == 1)) {
         return table->opts.stripe_bg;

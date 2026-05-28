@@ -89,7 +89,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -126,8 +125,6 @@ void test_tables(void) {
             },
             .header.row = true,
             .header.col = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
-            .header.col_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold_cyan,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -160,7 +157,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_ROUNDED),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .striped = true,
             .stripe_bg = sc_ansi_color_from_rgb(40, 40, 60),
@@ -201,7 +197,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold_underlined,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -233,7 +228,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .cell_pad = { 0, 2, 0, 2 },
         });
@@ -267,7 +261,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .cell_pad = { 1, 1, 1, 1 },
         });
@@ -305,7 +298,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -332,7 +324,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_NONE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold_underlined,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -358,7 +349,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_ASCII),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -395,7 +385,6 @@ void test_tables(void) {
                 0, 0, 0,
             },
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold_gold,
             .cell_pad = { 0, 1, 0, 1 },
         });
@@ -446,7 +435,6 @@ void test_tables(void) {
                 0, 0, 0,
             },
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .title = title_centered_top(" Word Wrap ", bold_cyan),
             .cell_pad = { 0, 1, 0, 1 },
@@ -482,7 +470,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .footer.row_bg = sc_ansi_color_from_rgb(30, 40, 30),
             .footer.style = bold,
@@ -529,7 +516,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .title = title_centered_top(
                 " Per-Row Background ", bold_yellow
@@ -614,7 +600,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .total_width = 60,
             .title = title_centered_top(
@@ -663,7 +648,6 @@ void test_tables(void) {
                 0, 0, 0,
             },
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .title = title_centered_top(" Colspan ", bold_yellow),
             .cell_pad = { 0, 1, 0, 1 },
@@ -704,7 +688,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .title = title_centered_top(" Rowspan ", bold_cyan),
             .cell_pad = { 0, 1, 0, 1 },
@@ -729,7 +712,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .right_to_left = true,
             .title = title_centered_top(" RTL Column Order ", bold_cyan),
@@ -772,7 +754,6 @@ void test_tables(void) {
         sc_table_print(table, (ScTableOpts){
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
-            .header.row_bg = SC_ANSI_COLOR_NONE,
             .header.style = bold,
             .max_rows = 4,
             .title = title_centered_top(

@@ -940,18 +940,17 @@ static void render_separator(
     const ColumnsRender *self, const char *separator
 ) {
     bool has_sep_bg = color_is_active(self->columns->opts.sep.bg);
-    if (has_sep_bg) {
-        sc_apply_colors(SC_ANSI_COLOR_NONE, self->columns->opts.sep.bg);
-    }
+    ScColor sep_bg = has_sep_bg
+        ? self->columns->opts.sep.bg : SC_ANSI_COLOR_NONE;
+
+    if (has_sep_bg) { sc_apply_colors(SC_ANSI_COLOR_NONE, sep_bg); }
     print_spaces(self->gap);
 
     if (color_is_active(self->columns->opts.sep.color)) {
-        sc_apply_colors(
-            self->columns->opts.sep.color, self->columns->opts.sep.bg
-        );
+        sc_apply_colors(self->columns->opts.sep.color, sep_bg);
         fputs(separator, stdout);
         if (has_sep_bg) {
-            sc_apply_colors(SC_ANSI_COLOR_NONE, self->columns->opts.sep.bg);
+            sc_apply_colors(SC_ANSI_COLOR_NONE, sep_bg);
         } else {
             fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
         }

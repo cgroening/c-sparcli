@@ -7,7 +7,7 @@ ScText *sc_text_new(void) {
     if (!sc_text) { return NULL; }
     sc_text->spans = NULL;
     sc_text->count = 0;
-    sc_text->cap   = 0;
+    sc_text->capacity = 0;
     return sc_text;
 }
 
@@ -21,12 +21,14 @@ ScText *sc_text_from_str(const char *s) {
 }
 
 void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
-    if (sc_text->count == sc_text->cap) {
-        size_t new_cap = sc_text->cap ? sc_text->cap * 2 : 4;
-        ScSpan *span = realloc(sc_text->spans, new_cap * sizeof(ScSpan));
-        if (!span) { return; }
-        sc_text->spans = span;
-        sc_text->cap   = new_cap;
+    if (sc_text->count == sc_text->capacity) {
+        size_t new_capacity = sc_text->capacity ? sc_text->capacity * 2 : 4;
+        ScSpan *spans = realloc(
+            sc_text->spans, new_capacity * sizeof(ScSpan)
+        );
+        if (!spans) { return; }
+        sc_text->spans = spans;
+        sc_text->capacity = new_capacity;
     }
     sc_text->spans[sc_text->count].raw_str = strdup(raw_str);
     sc_text->spans[sc_text->count].style = style;

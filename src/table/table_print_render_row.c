@@ -344,7 +344,7 @@ static ScColor resolve_cell_bg(const Row *self, size_t col) {
     bool is_header_col = table_is_header_column(self->table, col);
 
     ScColor col_bg = data->columns[col].opts.bg;
-    ScColor cell_bg = (self->row_bg.index != -2) ? self->row_bg : col_bg;
+    ScColor cell_bg = color_is_active(self->row_bg) ? self->row_bg : col_bg;
 
     if (is_header_col && !is_header) {
         cell_bg = is_footer

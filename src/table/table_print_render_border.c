@@ -529,7 +529,7 @@ void print_tline_in_width(
 void print_span_with_bg(
     const char *text, ScTextStyle style, ScColor cell_bg
 ) {
-    if (style.bg.index == -2 && cell_bg.index != -2) {
+    if (!color_is_active(style.bg) && color_is_active(cell_bg)) {
         style.bg = cell_bg;
     }
     sc_print(text, style);
@@ -540,11 +540,8 @@ void print_span_with_bg(
  */
 void print_spaces_with_bg(int count, ScColor bg) {
     if (count <= 0) { return; }
-    if (bg.index != -2) {
-        sc_apply_colors(SC_ANSI_COLOR_NONE, bg);
-    }
+    bool has_bg = color_is_active(bg);
+    if (has_bg) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
     for (int i = 0; i < count; i++) { fputc(' ', stdout); }
-    if (bg.index != -2) {
-        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
-    }
+    if (has_bg) { fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout); }
 }

@@ -16,8 +16,8 @@ typedef struct {
 
 /** PSpan – Single styled text segment within a content line of a panel. */
 typedef struct {
-    const char *text;  /**< Heap-allocated UTF-8 string (owned) */
-    ScTextStyle opts;  /**< Style to apply when rendering `text` */
+    const char *text;   /**< Heap-allocated UTF-8 string (owned) */
+    ScTextStyle style;  /**< Style to apply when rendering `text` */
 } PSpan;
 
 /**
@@ -36,8 +36,8 @@ typedef struct {
  */
 typedef struct {
     int      inner_width;    /**< Chars between the vertical edge characters */
-    int      pad_l;          /**< Left content padding in columns */
-    int      pad_r;          /**< Right content padding in columns */
+    int      pad_left;          /**< Left content padding in columns */
+    int      pad_right;          /**< Right content padding in columns */
     ScHAlign content_align;  /**< Horizontal alignment of the content */
 } PLineLayout;
 
@@ -99,27 +99,27 @@ typedef struct {
  */
 typedef struct {
     PSpan       *spans;     /**< Growing span buffer for the current line */
-    size_t       span_n;    /**< Spans written into `spans` */
-    size_t       span_cap;  /**< Allocated capacity of `spans` */
-    size_t       span_w;    /**< Visible column width accumulated for the
+    size_t       span_count;    /**< Spans written into `spans` */
+    size_t       span_capacity;  /**< Allocated capacity of `spans` */
+    size_t       span_width;    /**< Visible column width accumulated for the
                                  current line */
     ScTextStyle  style;     /**< Style of the source span currently
                                  being scanned */
     PLine       *lines;     /**< Growing array of completed lines */
-    size_t       line_n;    /**< Lines written into `lines` */
-    size_t       line_cap;  /**< Allocated capacity of `lines` */
+    size_t       line_count;    /**< Lines written into `lines` */
+    size_t       line_capacity;  /**< Allocated capacity of `lines` */
 } ParseBuf;
 
 
 // Forward declarations indented to reflect call hierarchy
 static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts);
     static void split_text_into_panel_lines(Panel *panel);
-        static void scan_source_span(ParseBuf *pb, const ScSpan *span);
+        static void scan_source_span(ParseBuf *buf, const ScSpan *span);
             static void append_span(
-                ParseBuf *pb, const char *start, size_t seglen
+                ParseBuf *buf, const char *start, size_t length
             );
-            static void flush_line(ParseBuf *pb);
-        static void finish_parse_buf(Panel *panel, ParseBuf *pb);
+            static void flush_line(ParseBuf *buf);
+        static void finish_parse_buf(Panel *panel, ParseBuf *buf);
     static void resolve_panel_spacing(Panel *panel);
     static void compute_max_line_width(Panel *panel);
     static void compute_inner_width(Panel *panel);
@@ -195,77 +195,77 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
  * Caller must free the result with `free_lines`.
  */
 static void split_text_into_panel_lines(Panel *panel) {
-    ParseBuf pb = {
-        .spans = malloc(8 * sizeof(PSpan)), .span_cap = 8,
-        .lines = malloc(8 * sizeof(PLine)), .line_cap = 8,
+    ParseBuf buf = {
+        .spans = malloc(8 * sizeof(PSpan)), .span_capacity = 8,
+        .lines = malloc(8 * sizeof(PLine)), .line_capacity = 8,
     };
 
     for (size_t si = 0; si < panel->text->count; si++) {
-        scan_source_span(&pb, &panel->text->spans[si]);
+        scan_source_span(&buf, &panel->text->spans[si]);
     }
 
-    finish_parse_buf(panel, &pb);
+    finish_parse_buf(panel, &buf);
 }
 
 /**
  * Scans one source span for `\n`, flushing a `PLine` on each new line and
  * buffering the rest.
  */
-static void scan_source_span(ParseBuf *pb, const ScSpan *span) {
-    pb->style          = span->style;
+static void scan_source_span(ParseBuf *buf, const ScSpan *span) {
+    buf->style          = span->style;
     const char *cursor = span->raw_str;
     const char *start  = cursor;
 
     while (*cursor) {
         if (*cursor == '\n') {
-            size_t seglen = (size_t)(cursor - start);
-            if (seglen > 0) { append_span(pb, start, seglen); }
-            flush_line(pb);
+            size_t length = (size_t)(cursor - start);
+            if (length > 0) { append_span(buf, start, length); }
+            flush_line(buf);
             start = cursor + 1;
         }
         cursor++;
     }
-    size_t seglen = (size_t)(cursor - start);
-    if (seglen > 0) { append_span(pb, start, seglen); }
+    size_t length = (size_t)(cursor - start);
+    if (length > 0) { append_span(buf, start, length); }
 }
 
 /**
- * Grows the span buffer if full, then appends a heap copy of [start, seglen).
+ * Grows the span buffer if full, then appends a heap copy of [start, length).
  */
-static void append_span(ParseBuf *pb, const char *start, size_t seglen) {
-    if (pb->span_n == pb->span_cap) {
-        pb->span_cap *= 2;
-        pb->spans = realloc(pb->spans, pb->span_cap * sizeof(PSpan));
+static void append_span(ParseBuf *buf, const char *start, size_t length) {
+    if (buf->span_count == buf->span_capacity) {
+        buf->span_capacity *= 2;
+        buf->spans = realloc(buf->spans, buf->span_capacity * sizeof(PSpan));
     }
-    pb->spans[pb->span_n++] = (PSpan){ strndup(start, seglen), pb->style };
-    pb->span_w += sc_utf8_string_length(start, seglen);
+    buf->spans[buf->span_count++] = (PSpan){ strndup(start, length), buf->style };
+    buf->span_width += sc_utf8_string_length(start, length);
 }
 
 /**
  * Copies the span buffer into a new `PLine`, appends it to the line array
  * and resets the span buffer.
  */
-static void flush_line(ParseBuf *pb) {
-    if (pb->line_n == pb->line_cap) {
-        pb->line_cap *= 2;
-        pb->lines = realloc(pb->lines, pb->line_cap * sizeof(PLine));
+static void flush_line(ParseBuf *buf) {
+    if (buf->line_count == buf->line_capacity) {
+        buf->line_capacity *= 2;
+        buf->lines = realloc(buf->lines, buf->line_capacity * sizeof(PLine));
     }
-    PSpan *ls = malloc((pb->span_n + 1) * sizeof(PSpan));
-    memcpy(ls, pb->spans, pb->span_n * sizeof(PSpan));
-    pb->lines[pb->line_n++] = (PLine){ ls, pb->span_n, pb->span_w };
-    pb->span_n = 0;
-    pb->span_w = 0;
+    PSpan *ls = malloc((buf->span_count + 1) * sizeof(PSpan));
+    memcpy(ls, buf->spans, buf->span_count * sizeof(PSpan));
+    buf->lines[buf->line_count++] = (PLine){ ls, buf->span_count, buf->span_width };
+    buf->span_count = 0;
+    buf->span_width = 0;
 }
 
 /**
  * Flushes the last line, transfers ownership of the line array to `panel`
  * and frees the span buffer.
  */
-static void finish_parse_buf(Panel *panel, ParseBuf *pb) {
-    flush_line(pb);
-    free(pb->spans);
-    panel->lines      = pb->lines;
-    panel->line_count = pb->line_n;
+static void finish_parse_buf(Panel *panel, ParseBuf *buf) {
+    flush_line(buf);
+    free(buf->spans);
+    panel->lines      = buf->lines;
+    panel->line_count = buf->line_count;
 }
 
 /** Clamps all padding and margin values from `panel->opts` to >= 0. */
@@ -332,8 +332,8 @@ static void create_line_view_template(Panel *panel) {
     panel->line_view_template = (PLineView){
         .layout = {
             .inner_width = panel->inner_width,
-            .pad_l = panel->spacing.padding.left,
-            .pad_r = panel->spacing.padding.right,
+            .pad_left = panel->spacing.padding.left,
+            .pad_right = panel->spacing.padding.right,
             .content_align = panel->opts.content_align
         },
         .border_style = panel->opts.border,
@@ -382,9 +382,9 @@ static void panel_render(Panel *panel) {
     add_vertical_margin(panel->spacing.margin.bottom);
 }
 
-/** Emits `line_count` blank lines to stdout. */
-static void add_vertical_margin(int line_count) {
-    for (int i = 0; i < line_count; i++) {
+/** Emits `count` blank lines to stdout. */
+static void add_vertical_margin(int count) {
+    for (int i = 0; i < count; i++) {
         fputc('\n', stdout);
     }
 }
@@ -536,7 +536,7 @@ static void render_content_line(Panel *panel, PLine *line) {
     PLineLayout layout = row.layout;
 
     // Alignment
-    int content_space = layout.inner_width - layout.pad_l - layout.pad_r
+    int content_space = layout.inner_width - layout.pad_left - layout.pad_right
                         - (int)line->line_width;
     if (content_space < 0) { content_space = 0; }
     int left_padding = 0, right_padding = content_space;
@@ -554,11 +554,11 @@ static void render_content_line(Panel *panel, PLine *line) {
     if (is_color_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
     }
-    print_spaces(layout.pad_l);
+    print_spaces(layout.pad_left);
     print_spaces(left_padding);
     print_line_spans(line, row.content_bg);
     print_spaces(right_padding);
-    print_spaces(layout.pad_r);
+    print_spaces(layout.pad_right);
     if (is_color_active(row.content_bg)) {
         fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     }
@@ -569,14 +569,14 @@ static void render_content_line(Panel *panel, PLine *line) {
 /** Prints each span of `line`, re-applying `bg` after each reset if active. */
 static void print_line_spans(PLine *line, ScColor bg) {
     for (size_t i = 0; i < line->count; i++) {
-        sc_print(line->spans[i].text, line->spans[i].opts);
+        sc_print(line->spans[i].text, line->spans[i].style);
         if (is_color_active(bg)) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
     }
 }
 
-/** Prints `n` space characters to stdout. */
-static void print_spaces(int n) {
-    for (int i = 0; i < n; i++) { fputc(' ', stdout); }
+/** Prints `count` space characters to stdout. */
+static void print_spaces(int count) {
+    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
 }
 
 /** Frees heap-allocated panel content. */
@@ -588,8 +588,8 @@ static void panel_cleanup(Panel *panel) {
  * Frees the span strings and line array produced by
  * `split_text_into_panel_lines`.
  */
-static void free_lines(PLine *lines, size_t n) {
-    for (size_t i = 0; i < n; i++) {
+static void free_lines(PLine *lines, size_t count) {
+    for (size_t i = 0; i < count; i++) {
         for (size_t j = 0; j < lines[i].count; j++) {
             free((char *)lines[i].spans[j].text);
         }

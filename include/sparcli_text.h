@@ -24,7 +24,7 @@ typedef struct {
 typedef struct {
     ScSpan *spans;  /**< Heap-allocated array of spans. */
     size_t  count;  /**< Number of spans currently in use. */
-    size_t  cap;    /**< Allocated capacity of the spans array. */
+    size_t  capacity;  /**< Allocated capacity of the spans array. */
 } ScText;
 
 
