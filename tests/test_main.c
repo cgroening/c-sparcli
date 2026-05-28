@@ -107,8 +107,8 @@ static Test *get_focused_tests(size_t *count) {
         // { "Badges",                    &test_badge,                0 },
         // { "Utilities",                 &test_util,                 0 },
         // { "Padding",                   &test_pad,                  0 },
-        { "Alignment",                 &test_align,                0 },
-        // { "Markup",                    &test_markup,               0 },
+        // { "Alignment",                 &test_align,                0 },
+        { "Markup",                    &test_markup,               0 },
         // { "Columns (Basic)",           &test_columns_basic,        0 },
         // { "Columns (Advanced)",        &test_columns,              0 },
     };

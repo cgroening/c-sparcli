@@ -1,11 +1,31 @@
 #include "sparcli.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* ── Color name table ────────────────────────────────────────────────────── */
 
-static const struct { const char *name; ScColor color; } color_map[] = {
+/** Maximum nesting depth of style frames during parsing. */
+#define MAX_STACK_DEPTH 32
+
+/** Prefix that flips the following token into a background color. */
+#define BG_PREFIX "on "
+
+/** Length of `BG_PREFIX` (excluding the terminator). */
+#define BG_PREFIX_LENGTH 3
+
+/** Prefix that introduces an RGB color tuple `rgb(r,g,b)`. */
+#define RGB_PREFIX "rgb("
+
+/** Length of `RGB_PREFIX`. */
+#define RGB_PREFIX_LENGTH 4
+
+
+/** Named ANSI color lookup table; terminated by a `NULL` name. */
+static const struct {
+    const char *name;
+    ScColor color;
+} color_map[] = {
     { "black",   { 0, 0, 0, 0 } },
     { "red",     { 1, 0, 0, 0 } },
     { "green",   { 2, 0, 0, 0 } },
@@ -14,214 +34,114 @@ static const struct { const char *name; ScColor color; } color_map[] = {
     { "magenta", { 5, 0, 0, 0 } },
     { "cyan",    { 6, 0, 0, 0 } },
     { "white",   { 7, 0, 0, 0 } },
-    { NULL, { 0, 0, 0, 0 } },
+    { NULL,      { 0, 0, 0, 0 } },
 };
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-static int lookup_color(const char *s, size_t len, ScColor *out) {
-    for (int i = 0; color_map[i].name; i++) {
-        if (strlen(color_map[i].name) == len && memcmp(s, color_map[i].name, len) == 0) {
-            *out = color_map[i].color;
-            return 1;
-        }
-    }
-    return 0;
+/** State carried through one parse pass. */
+typedef struct Parser {
+    /** Source string being parsed; never advanced. */
+    const char *source;
+
+    /** Current read position in `source`. */
+    const char *cursor;
+
+    /** Start of the current verbatim text segment. */
+    const char *segment_start;
+
+    /** When `true`, unrecognized tags are silently dropped. */
+    bool strip_unknown;
+
+    /** Output `ScText`; owned by caller after `parse_internal` returns. */
+    ScText *text;
+
+    /** Style frame stack; `stack[0]` is the implicit no-style frame. */
+    ScTextStyle stack[MAX_STACK_DEPTH];
+
+    /** Index of the top frame on the stack. */
+    int depth;
+} Parser;
+
+
+// Forward declarations indented to reflect call hierarchy
+static ScText *parse_internal(const char *markup, bool strip_unknown);
+    static void init_parser(
+        Parser *self, const char *markup, bool strip_unknown
+    );
+    static bool consume_literal_bracket(Parser *self);
+        static void append_chunk(
+            ScText *text, const char *start, size_t length, ScTextStyle style
+        );
+        static ScTextStyle current_style(const Parser *self);
+    static bool consume_tag(Parser *self);
+        static const char *find_tag_end(const char *open_bracket);
+        static void handle_closing_tag(
+            Parser *self,
+            const char *tag_content, size_t tag_length, const char *tag_end
+        );
+            static bool is_recognized_close_name(
+                const char *name, size_t length
+            );
+                static bool lookup_color_name(
+                    const char *name, size_t length, ScColor *out
+                );
+        static void handle_opening_tag(
+            Parser *self,
+            const char *tag_content, size_t tag_length, const char *tag_end
+        );
+            static bool parse_open_tag(
+                const char *content, size_t length,
+                ScTextStyle base, ScTextStyle *out
+            );
+                static const char *skip_spaces(const char *p, const char *end);
+                static bool consume_rgb_value(
+                    const char **cursor_ref, const char *end, ScColor *out
+                );
+                static bool consume_bare_token(
+                    const char **cursor_ref, const char *end,
+                    bool target_is_bg, ScTextStyle *out
+                );
+                    static bool apply_attribute_token(
+                        const char *token, size_t length, ScTextStyle *out
+                    );
+        static void drop_unknown_tag(Parser *self, const char *tag_end);
+    static void flush_segment(Parser *self);
+
+static void append_parsed_spans(ScText *target, const ScText *source);
+
+
+ScText *sc_markup_parse(const char *markup) {
+    return parse_internal(markup, false);
 }
 
-/* Returns 1 if (s, len) is a recognized bare style or color name. */
-static int is_recognized_name(const char *s, size_t len) {
-    static const struct { const char *n; size_t l; } styles[] = {
-        {"bold",9},{"italic",6},{"underline",9},{"u",1},{"dim",3},{NULL,0}
-    };
-    /* hand-coded lengths to avoid strlen at runtime */
-    static const size_t slens[] = { 4, 6, 9, 1, 3 };
-    for (int i = 0; styles[i].n; i++) {
-        if (slens[i] == len && memcmp(s, styles[i].n, len) == 0) { return 1; }
-    }
-    ScColor dummy;
-    return lookup_color(s, len, &dummy);
+ScText *sc_markup_parse_opts(const char *markup, ScMarkupOpts opts) {
+    return parse_internal(markup, opts.strip_unknown);
 }
 
-/* Parse all space-separated tokens in [content, content+len).
- * Inherits *base; accumulates results into *out.
- * Returns 1 if ALL tokens recognized, 0 if any token is unknown. */
-static int parse_open_tag(const char *content, size_t len,
-                          const ScTextStyle *base, ScTextStyle *out) {
-    *out = *base;
-    const char *p   = content;
-    const char *end = content + len;
-
-    while (p < end) {
-        while (p < end && *p == ' ') { p++; }
-        if (p >= end) { break; }
-
-        int is_bg = 0;
-        if ((size_t)(end - p) >= 3 && memcmp(p, "on ", 3) == 0) {
-            is_bg = 1;
-            p += 3;
-            while (p < end && *p == ' ') { p++; }
-            if (p >= end) { return 0; }
-        }
-
-        /* rgb(r,g,b) */
-        if ((size_t)(end - p) >= 4 && memcmp(p, "rgb(", 4) == 0) {
-            const char *paren_end = memchr(p, ')', (size_t)(end - p));
-            if (!paren_end) { return 0; }
-            int r, g, b;
-            if (sscanf(p + 4, "%d,%d,%d", &r, &g, &b) != 3) { return 0; }
-            if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) { return 0; }
-            ScColor c = sc_ansi_color_from_rgb((uint8_t)r, (uint8_t)g, (uint8_t)b);
-            if (is_bg) { out->bg = c; } else { out->fg = c; }
-            p = paren_end + 1;
-            continue;
-        }
-
-        /* bare token */
-        const char *tok = p;
-        while (p < end && *p != ' ') { p++; }
-        size_t tok_len = (size_t)(p - tok);
-
-        if (!is_bg) {
-            if (tok_len == 4 && memcmp(tok, "bold",      4) == 0) { out->attr |= SC_TEXT_ATTR_BOLD;   continue; }
-            if (tok_len == 6 && memcmp(tok, "italic",    6) == 0) { out->attr |= SC_TEXT_ATTR_ITALIC; continue; }
-            if (tok_len == 9 && memcmp(tok, "underline", 9) == 0) { out->attr |= SC_TEXT_ATTR_UNDER;  continue; }
-            if (tok_len == 1 && memcmp(tok, "u",         1) == 0) { out->attr |= SC_TEXT_ATTR_UNDER;  continue; }
-            if (tok_len == 3 && memcmp(tok, "dim",       3) == 0) { out->attr |= SC_TEXT_ATTR_DIM;    continue; }
-            ScColor c;
-            if (lookup_color(tok, tok_len, &c)) { out->fg = c; continue; }
-        } else {
-            ScColor c;
-            if (lookup_color(tok, tok_len, &c)) { out->bg = c; continue; }
-        }
-
-        return 0;
-    }
-
-    return 1;
+void sc_markup_append(ScText *text, const char *markup) {
+    ScText *parsed = parse_internal(markup, false);
+    append_parsed_spans(text, parsed);
+    sc_text_free(parsed);
 }
 
-static void append_chunk(ScText *t, const char *s, size_t len, ScTextStyle opts) {
-    if (len == 0) { return; }
-    char *chunk = strndup(s, len);
-    sc_text_append(t, chunk, opts);
-    free(chunk);
-}
-
-/* ── Core parser ─────────────────────────────────────────────────────────── */
-
-static ScText *parse_internal(const char *s, int strip_unknown) {
-    if (!s) { return sc_text_new(); }
-
-    ScText   *t     = sc_text_new();
-    ScTextStyle stack[32];
-    int       depth = 0;
-    stack[0] = (ScTextStyle){ SC_TEXT_ATTR_NONE, { -2, 0, 0, 0 }, { -2, 0, 0, 0 } };
-
-    const char *p         = s;
-    const char *seg_start = s;
-
-    while (*p) {
-        /* [[ → literal '[' */
-        if (p[0] == '[' && p[1] == '[') {
-            append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-            sc_text_append(t, "[", stack[depth]);
-            p += 2;
-            seg_start = p;
-            continue;
-        }
-
-        if (p[0] == '[') {
-            const char *end = strchr(p + 1, ']');
-            if (!end) { p++; continue; }
-
-            const char *tag_content = p + 1;
-            size_t      tag_len     = (size_t)(end - tag_content);
-
-            if (tag_len > 0 && tag_content[0] == '/') {
-                /* closing tag */
-                const char *rest     = tag_content + 1;
-                size_t      rest_len = tag_len - 1;
-                if (rest_len == 0 || is_recognized_name(rest, rest_len)) {
-                    append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-                    if (depth > 0) { depth--; }
-                    p = end + 1;
-                    seg_start = p;
-                } else {
-                    /* unknown close */
-                    if (strip_unknown) {
-                        append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-                        seg_start = end + 1;
-                    }
-                    p = end + 1;
-                }
-            } else if (tag_len > 0) {
-                /* opening tag */
-                ScTextStyle new_opts;
-                if (parse_open_tag(tag_content, tag_len, &stack[depth], &new_opts)) {
-                    append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-                    if (depth + 1 < 32) { stack[++depth] = new_opts; }
-                    p = end + 1;
-                    seg_start = p;
-                } else {
-                    /* unknown open */
-                    if (strip_unknown) {
-                        append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-                        seg_start = end + 1;
-                    }
-                    p = end + 1;
-                }
-            } else {
-                p = end + 1;  /* empty [] → literal */
-            }
-            continue;
-        }
-
-        p++;
-    }
-
-    /* flush remaining segment */
-    append_chunk(t, seg_start, (size_t)(p - seg_start), stack[depth]);
-
-    return t;
-}
-
-/* ── Public API ──────────────────────────────────────────────────────────── */
-
-ScText *sc_markup_parse(const char *s) {
-    return parse_internal(s, 0);
-}
-
-ScText *sc_markup_parse_opts(const char *s, ScMarkupOpts opts) {
-    return parse_internal(s, opts.strip_unknown);
-}
-
-void sc_markup_append(ScText *t, const char *markup) {
-    ScText *tmp = parse_internal(markup, 0);
-    for (size_t i = 0; i < tmp->count; i++) {
-        sc_text_append(t, tmp->spans[i].raw_str, tmp->spans[i].style);
-    }
-    sc_text_free(tmp);
-}
-
-void sc_markup_append_opts(ScText *t, const char *markup, ScMarkupOpts opts) {
-    ScText *tmp = parse_internal(markup, opts.strip_unknown);
-    for (size_t i = 0; i < tmp->count; i++) {
-        sc_text_append(t, tmp->spans[i].raw_str, tmp->spans[i].style);
-    }
-    sc_text_free(tmp);
+void sc_markup_append_opts(
+    ScText *text, const char *markup, ScMarkupOpts opts
+) {
+    ScText *parsed = parse_internal(markup, opts.strip_unknown);
+    append_parsed_spans(text, parsed);
+    sc_text_free(parsed);
 }
 
 void sc_markup_print(const char *markup) {
-    ScText *t = parse_internal(markup, 0);
-    sc_print_text(t);
-    sc_text_free(t);
+    ScText *parsed = parse_internal(markup, false);
+    sc_print_text(parsed);
+    sc_text_free(parsed);
 }
 
 void sc_markup_print_opts(const char *markup, ScMarkupOpts opts) {
-    ScText *t = parse_internal(markup, opts.strip_unknown);
-    sc_print_text(t);
-    sc_text_free(t);
+    ScText *parsed = parse_internal(markup, opts.strip_unknown);
+    sc_print_text(parsed);
+    sc_text_free(parsed);
 }
 
 void sc_markup_println(const char *markup) {
@@ -232,4 +152,393 @@ void sc_markup_println(const char *markup) {
 void sc_markup_println_opts(const char *markup, ScMarkupOpts opts) {
     sc_markup_print_opts(markup, opts);
     fputc('\n', stdout);
+}
+
+
+/**
+ * Core parser entry point. Returns a heap-allocated `ScText`; the caller
+ * owns it and must free with `sc_text_free`.
+ */
+static ScText *parse_internal(const char *markup, bool strip_unknown) {
+    if (!markup) { return sc_text_new(); }
+
+    Parser self;
+    init_parser(&self, markup, strip_unknown);
+
+    while (*self.cursor) {
+        if (consume_literal_bracket(&self)) { continue; }
+        if (consume_tag(&self)) { continue; }
+        self.cursor++;
+    }
+    flush_segment(&self);
+
+    return self.text;
+}
+
+/** Initializes the parser state with an empty stack frame on top. */
+static void init_parser(
+    Parser *self, const char *markup, bool strip_unknown
+) {
+    self->source = markup;
+    self->cursor = markup;
+    self->segment_start = markup;
+    self->strip_unknown = strip_unknown;
+    self->text = sc_text_new();
+    self->depth = 0;
+    self->stack[0] = (ScTextStyle){
+        SC_TEXT_ATTR_NONE,
+        { -2, 0, 0, 0 },
+        { -2, 0, 0, 0 },
+    };
+}
+
+/**
+ * Detects `[[` at the cursor: emits the pending segment, writes a literal
+ * `[` span, and advances the cursor past the second `[`. Returns `true`
+ * when the case applied.
+ */
+static bool consume_literal_bracket(Parser *self) {
+    if (!(self->cursor[0] == '[' && self->cursor[1] == '[')) {
+        return false;
+    }
+
+    append_chunk(
+        self->text, self->segment_start,
+        (size_t)(self->cursor - self->segment_start),
+        current_style(self)
+    );
+    sc_text_append(self->text, "[", current_style(self));
+    self->cursor += 2;
+    self->segment_start = self->cursor;
+    return true;
+}
+
+/**
+ * Detects an opening or closing tag at the cursor and dispatches to the
+ * matching handler. Returns `true` when a tag was consumed, `false`
+ * otherwise (caller advances past plain text).
+ */
+static bool consume_tag(Parser *self) {
+    if (self->cursor[0] != '[') { return false; }
+
+    const char *tag_end = find_tag_end(self->cursor);
+    if (!tag_end) {
+        self->cursor++;
+        return true;
+    }
+
+    const char *tag_content = self->cursor + 1;
+    size_t tag_length = (size_t)(tag_end - tag_content);
+
+    if (tag_length == 0) {
+        self->cursor = tag_end + 1;
+        return true;
+    }
+
+    if (tag_content[0] == '/') {
+        handle_closing_tag(self, tag_content, tag_length, tag_end);
+    } else {
+        handle_opening_tag(self, tag_content, tag_length, tag_end);
+    }
+    return true;
+}
+
+/** Returns a pointer to the closing `]` of the tag, or `NULL` when missing. */
+static const char *find_tag_end(const char *open_bracket) {
+    return strchr(open_bracket + 1, ']');
+}
+
+/**
+ * Handles `[/]` or `[/name]`. Pops the top style frame when the close is
+ * recognized; otherwise treats it as unknown (verbatim or stripped).
+ */
+static void handle_closing_tag(
+    Parser *self,
+    const char *tag_content, size_t tag_length, const char *tag_end
+) {
+    const char *close_name = tag_content + 1;
+    size_t close_name_length = tag_length - 1;
+
+    bool is_known = close_name_length == 0
+        || is_recognized_close_name(close_name, close_name_length);
+
+    if (is_known) {
+        append_chunk(
+            self->text, self->segment_start,
+            (size_t)(self->cursor - self->segment_start),
+            current_style(self)
+        );
+        if (self->depth > 0) { self->depth--; }
+        self->cursor = tag_end + 1;
+        self->segment_start = self->cursor;
+        return;
+    }
+
+    drop_unknown_tag(self, tag_end);
+}
+
+/**
+ * Returns `true` when the bare `name` matches any known attribute keyword
+ * or named color. Used to decide whether `[/name]` may close a frame.
+ */
+static bool is_recognized_close_name(const char *name, size_t length) {
+    static const struct {
+        const char *keyword;
+        size_t length;
+    } attributes[] = {
+        { "bold",      4 },
+        { "italic",    6 },
+        { "underline", 9 },
+        { "u",         1 },
+        { "dim",       3 },
+        { NULL,        0 },
+    };
+
+    for (int i = 0; attributes[i].keyword; i++) {
+        if (attributes[i].length == length
+            && memcmp(name, attributes[i].keyword, length) == 0) {
+            return true;
+        }
+    }
+
+    ScColor discarded;
+    return lookup_color_name(name, length, &discarded);
+}
+
+/**
+ * Returns `true` and writes the matching `ScColor` into `*out` when
+ * `(name, length)` equals a known color name; returns `false` otherwise.
+ */
+static bool lookup_color_name(
+    const char *name, size_t length, ScColor *out
+) {
+    for (int i = 0; color_map[i].name; i++) {
+        if (strlen(color_map[i].name) == length
+            && memcmp(name, color_map[i].name, length) == 0) {
+            *out = color_map[i].color;
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Handles an opening tag `[name attr...]`. Pushes a new style frame on
+ * success; falls back to `drop_unknown_tag` when any token is unknown.
+ */
+static void handle_opening_tag(
+    Parser *self,
+    const char *tag_content, size_t tag_length, const char *tag_end
+) {
+    ScTextStyle new_style;
+    bool recognized = parse_open_tag(
+        tag_content, tag_length, current_style(self), &new_style
+    );
+
+    if (!recognized) {
+        drop_unknown_tag(self, tag_end);
+        return;
+    }
+
+    append_chunk(
+        self->text, self->segment_start,
+        (size_t)(self->cursor - self->segment_start),
+        current_style(self)
+    );
+    if (self->depth + 1 < MAX_STACK_DEPTH) {
+        self->stack[++self->depth] = new_style;
+    }
+    self->cursor = tag_end + 1;
+    self->segment_start = self->cursor;
+}
+
+/**
+ * Parses the space-separated tokens inside an opening tag. Inherits
+ * `base` and writes the combined style into `*out`. Returns `true` when
+ * all tokens were recognized.
+ */
+static bool parse_open_tag(
+    const char *content, size_t length,
+    ScTextStyle base, ScTextStyle *out
+) {
+    *out = base;
+    const char *cursor = content;
+    const char *end = content + length;
+
+    while (cursor < end) {
+        cursor = skip_spaces(cursor, end);
+        if (cursor >= end) { break; }
+
+        bool target_is_bg = false;
+        if ((size_t)(end - cursor) >= BG_PREFIX_LENGTH
+            && memcmp(cursor, BG_PREFIX, BG_PREFIX_LENGTH) == 0) {
+            target_is_bg = true;
+            cursor = skip_spaces(cursor + BG_PREFIX_LENGTH, end);
+            if (cursor >= end) { return false; }
+        }
+
+        if ((size_t)(end - cursor) >= RGB_PREFIX_LENGTH
+            && memcmp(cursor, RGB_PREFIX, RGB_PREFIX_LENGTH) == 0) {
+            ScColor color;
+            if (!consume_rgb_value(&cursor, end, &color)) { return false; }
+            if (target_is_bg) { out->bg = color; } else { out->fg = color; }
+            continue;
+        }
+
+        if (!consume_bare_token(&cursor, end, target_is_bg, out)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** Advances past consecutive spaces. */
+static const char *skip_spaces(const char *cursor, const char *end) {
+    while (cursor < end && *cursor == ' ') { cursor++; }
+    return cursor;
+}
+
+/**
+ * Parses `rgb(r,g,b)` at `*cursor_ref`, validates the channel ranges and
+ * advances `*cursor_ref` past the closing `)`. Returns `true` on success.
+ */
+static bool consume_rgb_value(
+    const char **cursor_ref, const char *end, ScColor *out
+) {
+    const char *cursor = *cursor_ref;
+    const char *paren_end = memchr(cursor, ')', (size_t)(end - cursor));
+    if (!paren_end) { return false; }
+
+    int red, green, blue;
+    if (sscanf(cursor + RGB_PREFIX_LENGTH, "%d,%d,%d",
+               &red, &green, &blue) != 3) {
+        return false;
+    }
+    if (red < 0 || red > 255
+        || green < 0 || green > 255
+        || blue < 0 || blue > 255) {
+        return false;
+    }
+
+    *out = sc_ansi_color_from_rgb(
+        (uint8_t)red, (uint8_t)green, (uint8_t)blue
+    );
+    *cursor_ref = paren_end + 1;
+    return true;
+}
+
+/**
+ * Parses one bare token (`bold`, `red`, etc.) at `*cursor_ref` into `out`
+ * and advances the cursor past it. Foreground colors and attributes only
+ * apply when `target_is_bg` is `false`; otherwise the token must be a
+ * color name.
+ */
+static bool consume_bare_token(
+    const char **cursor_ref, const char *end,
+    bool target_is_bg, ScTextStyle *out
+) {
+    const char *cursor = *cursor_ref;
+    const char *token = cursor;
+    while (cursor < end && *cursor != ' ') { cursor++; }
+    size_t token_length = (size_t)(cursor - token);
+    *cursor_ref = cursor;
+
+    if (target_is_bg) {
+        ScColor color;
+        if (!lookup_color_name(token, token_length, &color)) {
+            return false;
+        }
+        out->bg = color;
+        return true;
+    }
+
+    if (apply_attribute_token(token, token_length, out)) { return true; }
+
+    ScColor color;
+    if (lookup_color_name(token, token_length, &color)) {
+        out->fg = color;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Applies `bold`/`italic`/`underline`/`u`/`dim` to `out->attr`. Returns
+ * `true` when the token matched an attribute keyword.
+ */
+static bool apply_attribute_token(
+    const char *token, size_t length, ScTextStyle *out
+) {
+    if (length == 4 && memcmp(token, "bold", 4) == 0) {
+        out->attr |= SC_TEXT_ATTR_BOLD;
+        return true;
+    }
+    if (length == 6 && memcmp(token, "italic", 6) == 0) {
+        out->attr |= SC_TEXT_ATTR_ITALIC;
+        return true;
+    }
+    if (length == 9 && memcmp(token, "underline", 9) == 0) {
+        out->attr |= SC_TEXT_ATTR_UNDER;
+        return true;
+    }
+    if (length == 1 && memcmp(token, "u", 1) == 0) {
+        out->attr |= SC_TEXT_ATTR_UNDER;
+        return true;
+    }
+    if (length == 3 && memcmp(token, "dim", 3) == 0) {
+        out->attr |= SC_TEXT_ATTR_DIM;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Handles an unrecognized tag: when `strip_unknown` is set, flushes the
+ * verbatim segment and skips the tag; otherwise leaves the tag in the
+ * output stream so it is emitted as plain text on the next flush.
+ */
+static void drop_unknown_tag(Parser *self, const char *tag_end) {
+    if (self->strip_unknown) {
+        append_chunk(
+            self->text, self->segment_start,
+            (size_t)(self->cursor - self->segment_start),
+            current_style(self)
+        );
+        self->segment_start = tag_end + 1;
+    }
+    self->cursor = tag_end + 1;
+}
+
+/** Flushes the remaining verbatim segment at end of parsing. */
+static void flush_segment(Parser *self) {
+    append_chunk(
+        self->text, self->segment_start,
+        (size_t)(self->cursor - self->segment_start),
+        current_style(self)
+    );
+}
+
+/** Returns the style frame currently on top of the parser stack. */
+static ScTextStyle current_style(const Parser *self) {
+    return self->stack[self->depth];
+}
+
+/**
+ * Appends `[start, start+length)` to `text` with `style`; does nothing
+ * when `length == 0`.
+ */
+static void append_chunk(
+    ScText *text, const char *start, size_t length, ScTextStyle style
+) {
+    if (length == 0) { return; }
+    char *chunk = strndup(start, length);
+    sc_text_append(text, chunk, style);
+    free(chunk);
+}
+
+/** Copies every span from `source` into `target`. */
+static void append_parsed_spans(ScText *target, const ScText *source) {
+    for (size_t i = 0; i < source->count; i++) {
+        sc_text_append(target, source->spans[i].raw_str, source->spans[i].style);
+    }
 }

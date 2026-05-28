@@ -109,9 +109,9 @@
 
 ## Markup
 
-- [ ] tests/test_markup.c
-- [ ] include/sparcli_markup.h
-- [ ] src/markup.c
+- [x] tests/test_markup.c
+- [x] include/sparcli_markup.h
+- [x] src/markup.c
 
 ## Columns (Basic)
 
