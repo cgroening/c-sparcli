@@ -1,0 +1,224 @@
+# sparcli
+
+A C11 library for styled terminal output — panels, tables, columns, lists,
+progress bars, and more, with **Rich-compatible inline markup**.
+
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Language: C11](https://img.shields.io/badge/c-11-blue.svg)
+![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
+
+> **Add Screenshot:** Hero collage showing a colored panel, a striped table, a
+> two-column layout and a progress bar rendered side by side.
+
+---
+
+## Table of contents
+
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Installation](#installation)
+- [Widgets](#widgets)
+- [Rich-compatible markup](#rich-compatible-markup)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [Inspiration](#inspiration)
+- [License](#license)
+
+---
+
+## Features
+
+- **Rich set of widgets**: panels, tables, rules, side-by-side columns, lists,
+  trees, key/value blocks, alerts, badges, progress bars, spinners.
+- **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`,
+  `[rgb(120,200,255)]…[/]` — same syntax as
+  [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
+- **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
+- **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
+- **Composable**: capture any widget into a buffer, then pad, align, or place it
+  inside a columns layout.
+- **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types,
+  NULL-safe entry points — built for future C++/Python/Rust bindings.
+- **No runtime dependencies** beyond libc.
+- **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
+
+---
+
+## Quick start
+
+```c
+#include <sparcli.h>
+
+int main(void) {
+    sc_markup_println("[bold green]Hello[/], [italic]sparcli[/]!");
+
+    ScPanelOpts opts = {
+        .border  = { .style = SC_BORDER_ROUNDED },
+        .title   = { .text = " Greeting ", .align = SC_ALIGN_CENTER },
+        .padding = { 0, 2, 0, 2 },
+    };
+    sc_panel_str("Welcome aboard.", opts);
+    return 0;
+}
+```
+
+```sh
+cc hello.c $(pkg-config --cflags --libs sparcli) -o hello && ./hello
+```
+
+> **Add Screenshot:** Rendered terminal output of the snippet above (the green
+> "Hello" line plus the rounded panel with centered title).
+
+---
+
+## Installation
+
+### From source
+
+```sh
+git clone https://github.com/cgroening/c-sparcli.git
+cd c-sparcli
+make                          # builds libsparcli.a, the shared lib, and sparcli.pc
+sudo make install             # installs into /usr/local
+# or, install into a user prefix:
+make install PREFIX=$HOME/.local
+```
+
+`make install` lays down:
+
+- `libsparcli.a` (static)
+- `libsparcli.<version>.dylib` / `libsparcli.so.<version>` plus the usual
+  versioned symlinks (`libsparcli.dylib` / `libsparcli.so`)
+- All public headers under `<prefix>/include`
+- `sparcli.pc` under `<prefix>/lib/pkgconfig`
+
+### Linking
+
+With `pkg-config` (recommended):
+
+```sh
+cc app.c $(pkg-config --cflags --libs sparcli) -o app
+```
+
+Manual:
+
+```sh
+cc app.c -I<prefix>/include -L<prefix>/lib -lsparcli -o app
+```
+
+### Requirements
+
+- C11 compiler (`cc`, `gcc`, or `clang`)
+- A UTF-8-capable terminal
+- Truecolor support recommended for `[rgb(…)]` markup; 8-color ANSI works
+  everywhere
+
+---
+
+## Widgets
+
+A one-line summary per widget. The full reference — every type, every option,
+every macro — lives in [`docs/API.md`](docs/API.md).
+
+| Widget | Function family | What it does |
+|--------|----------------|--------------|
+| **Panel** | `sc_panel_*` | Bordered frame with title, padding, margin, optional background. |
+| **Table** | `sc_table_*` | Headers, footers, colspan, rowspan, striping, word-wrap, per-column widths. |
+| **Rule** | `sc_rule_*` | Horizontal line with optional centered/aligned title. |
+| **Columns** | `sc_columns_*` | Side-by-side layout for any other widgets (with optional separator). |
+| **List** | `sc_list_*` | Bulleted, numbered, alpha, or roman lists with hanging indent and nesting. |
+| **Tree** | `sc_tree_*` | Hierarchical tree view with connectors. |
+| **Key/Value** | `sc_kv_*` | Aligned `key: value` pairs with key-column padding and optional value wrap. |
+| **Alert** | `sc_alert_*` | Preset info / warning / error / success boxes (icon + color). |
+| **Badge** | `sc_badge_*` | Inline styled token (`[ DONE ]`). |
+| **Progress bar** | `sc_progressbar_*` | Animated progress bar with thresholds and percent/value display. |
+| **Spinner** | `sc_spinner_*` | Animated activity indicator with success/failure finish. |
+| **Markup** | `sc_markup_*` | Rich-compatible `[bold red]…[/]` parser. |
+| **Capture** | `sc_capture_*` | Render any widget into a reusable in-memory buffer. |
+| **Pad** | `sc_pad_*` | Add top/right/bottom/left space around a rendered widget. |
+| **Align** | `sc_align_*` | Center- or right-align a rendered widget within a width. |
+
+> **Add Screenshot:** One screenshot per widget (or a single collage), showing
+> Panel, Table, Rule, Columns, List, Tree, KV, Alert, Badge, ProgressBar and
+> Spinner each in a representative state.
+
+---
+
+## Rich-compatible markup
+
+sparcli's inline markup mirrors the syntax used by
+[Rich](https://github.com/Textualize/rich) and
+[Textual](https://github.com/Textualize/textual). Existing Rich strings drop in
+unchanged for the supported tag set:
+
+```c
+sc_markup_println("[bold red]Error:[/] file not found");
+sc_markup_println("[on cyan] 200 OK [/]   [dim]42ms[/]");
+sc_markup_println("[rgb(120,200,255)]custom[/] color");
+```
+
+| sparcli                  | Rich (Python)            |
+|--------------------------|--------------------------|
+| `[bold red]…[/]`         | `[bold red]…[/]`         |
+| `[on yellow]…[/]`        | `[on yellow]…[/]`        |
+| `[underline]…[/u]`       | `[underline]…[/u]`       |
+| `[rgb(120,200,255)]…[/]` | `[rgb(120,200,255)]…[/]` |
+| `[[`                     | `[[`                     |
+
+By default, unknown tags such as `[blink]` are emitted verbatim. Pass
+`ScMarkupOpts{ .strip_unknown = 1 }` to silently drop them and keep only the
+inner content.
+
+Any widget that takes an `ScText *` accepts markup via `sc_markup_parse()`. For
+tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
+
+> **Add Screenshot:** Side-by-side "before / after": the raw markup string on
+> the left, the rendered terminal output on the right.
+
+---
+
+## Development
+
+```sh
+make            # static + shared + pkg-config
+make test       # build and run the full test suite
+make sanitize   # rebuild and run tests under AddressSanitizer + UBSan
+make clean
+```
+
+Project layout:
+
+```
+include/      public headers (sparcli_*.h, top-level sparcli.h)
+src/          implementation
+src/table/    table sub-modules (see docs/API.md)
+tests/        unit tests, all wired into tests/test_main
+docs/         API reference and design notes
+```
+
+---
+
+## Roadmap
+
+- **C++ wrapper** (`sparcli-cpp`): RAII wrappers over `ScText`, `ScTableData`,
+  `ScColumns`, `ScList`, `ScTree`, …
+- **Python bindings** (`sparcli-py`): `cffi`/`ctypes`-based wrapper with
+  Pythonic constructors.
+- **Rust crate** (`sparcli-rs`): safe `&str`-friendly wrappers around the C API.
+- **`examples/` directory** with self-contained copy-pasteable snippets.
+- **More widgets** — open an issue with ideas.
+
+---
+
+## Inspiration
+
+Heavily inspired by the wonderful [Rich](https://github.com/Textualize/rich) and
+[Textual](https://github.com/Textualize/textual) projects by Will McGugan and
+the Textualize team. The goal of sparcli is to give plain C programs the same
+level of polish for one-shot CLI output — without taking on a full TUI runtime.
+
+---
+
+## License
+
+MIT. See [LICENSE](LICENSE) for the full text.
