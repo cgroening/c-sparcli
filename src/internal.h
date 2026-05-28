@@ -180,18 +180,14 @@ static inline void sc_print_newlines(int count) {
 }
 
 /**
- * Returns `true` when `color` should emit ANSI background escapes.
+ * Returns `true` when `color` should emit ANSI escapes.
  *
- * Both `SC_ANSI_COLOR_NONE` (`index == -2`) and a zero-initialized
- * `ScColor` (`{0, 0, 0, 0}`, indistinguishable from
- * `SC_ANSI_COLOR_BLACK`) return `false`. Use
- * `sc_ansi_color_from_rgb(0, 0, 0)` to specify explicit black.
+ * Zero-initialized `ScColor` equals `SC_ANSI_COLOR_NONE` (`index == 0`)
+ * and returns `false`. All named colors (`index >= 1`) and RGB mode
+ * (`index == -1`) return `true`.
  */
 static inline bool sc_color_is_active(ScColor color) {
-    if (color.index == -2) { return false; }
-    bool is_zero_init = color.index == 0
-        && color.r == 0 && color.g == 0 && color.b == 0;
-    return !is_zero_init;
+    return color.index != 0;
 }
 
 /**
@@ -201,8 +197,8 @@ static inline bool sc_color_is_active(ScColor color) {
  */
 static inline bool sc_style_has_format(ScTextStyle style) {
     return style.attr != 0
-        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
-        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
+        || sc_color_is_active(style.fg)
+        || sc_color_is_active(style.bg);
 }
 
 /**

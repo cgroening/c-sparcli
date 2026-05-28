@@ -35,13 +35,13 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 
 | `index` | Meaning |
 |---------|---------|
-| `-2`    | **Not set** — `SC_ANSI_COLOR_NONE` — no escape code emitted |
+| `0`     | **Not set** — `SC_ANSI_COLOR_NONE`; no escape code emitted. **Zero-init `ScColor` lands here**, so any unset color field is "no color" by default. |
 | `-1`    | 24-bit RGB mode; uses `r`, `g`, `b` fields |
-| `0`–`7` | Named ANSI color (`SC_ANSI_COLOR_BLACK` … `SC_ANSI_COLOR_WHITE`) |
+| `1`–`8` | Named ANSI color (`SC_ANSI_COLOR_BLACK` … `SC_ANSI_COLOR_WHITE`) |
 
-**Critical:** Zero-initializing a `ScColor` struct gives `index=0` = `SC_ANSI_COLOR_BLACK`,
-NOT "no color". Always set `.color = SC_ANSI_COLOR_NONE` explicitly when you don't want
-a color, especially in `ScColumnsOpts.sep.color`, `ScRuleOpts.color`, etc.
+Zero-init friendly: `(ScColor){0}` ≡ `SC_ANSI_COLOR_NONE`, so leaving any
+color field unset emits no escape codes. Construct explicit black with
+`SC_ANSI_COLOR_BLACK`; RGB with `sc_ansi_color_from_rgb(...)`.
 
 ```c
 ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
@@ -223,7 +223,7 @@ typedef struct {
 
 **Background priority:** `header/footer bg > per-row bg > stripe bg > col bg`.
 Per-column bg is the lowest-priority fallback: only applied when no row-level
-background is active (`row_bg.index == -2`).
+background is active (`row_bg.index == 0`).
 
 ### ScCell macros
 
@@ -272,9 +272,6 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 | `align` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
 | `margin` | `ScEdges` — top/bottom = blank lines; left/right = indent |
 
-**Zero-init pitfall:** `color` defaults to `SC_ANSI_COLOR_BLACK` if not set. Always
-specify `.color = SC_ANSI_COLOR_NONE` for an uncolored rule.
-
 ---
 
 ## Columns
@@ -310,9 +307,6 @@ Nested columns are captured eagerly at `sc_columns_add_columns` call time.
 | `sep.bg` | Background color applied to gap spaces and the separator char; zero-init = none |
 | `valign` | `SC_VALIGN_TOP` / `SC_VALIGN_MIDDLE` / `SC_VALIGN_BOTTOM` |
 | `total_width` | 0 = auto; >0 = distribute across flex columns |
-
-**Zero-init pitfall:** `sep.color` defaults to `SC_ANSI_COLOR_BLACK`. Always set
-`.sep.color = SC_ANSI_COLOR_NONE` when using a separator without a color.
 
 ### ScColItem
 
@@ -452,7 +446,7 @@ void           sc_progressbar_free     (ScProgressBar *b);
 | `label_width` | Fixed label column width; 0 = natural width |
 | `label_style` | Style for label text |
 
-**Zero-init of `fill_color`/`empty_color`:** Same as other color fields — zero-initialized `ScColor` (index=0, rgb=0) is treated as "no color" by the renderer. Use `sc_ansi_color_from_rgb(0,0,0)` for explicit black.
+**Zero-init of `fill_color`/`empty_color`:** Same as every other `ScColor` field — zero-init equals `SC_ANSI_COLOR_NONE` and emits no escape codes. Use `SC_ANSI_COLOR_BLACK` for explicit black.
 
 **Animation pattern:**
 ```c
@@ -518,7 +512,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 
 | Helper | Description |
 |--------|-------------|
-| `sc_apply_colors(fg, bg)` | Emits ANSI fg/bg escapes; skips if `index == -2` |
+| `sc_apply_colors(fg, bg)` | Emits ANSI fg/bg escapes; skips if `index == 0` (zero-init / `SC_ANSI_COLOR_NONE`) |
 | `sc_term_width()` | Terminal width via `ioctl(TIOCGWINSZ)`, fallback 80 |
 | `sc_utf8_vis_w(s, byte_len)` | Visible column count of a UTF-8 byte sequence |
 | `sc_utf8_trim_to_cols(s, max_cols)` | Byte count that fits within `max_cols` columns |
@@ -527,8 +521,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 
 ## Key Invariants
 
-- **`SC_ANSI_COLOR_NONE` sentinel is `index = -2`**, not 0. Zero-initialized `ScColor`
-  is `SC_ANSI_COLOR_BLACK`. This is the most common source of unexpected coloring.
+- **`SC_ANSI_COLOR_NONE` sentinel is `index = 0`**, identical to a zero-initialized `ScColor`. Any unset color field renders as "no color" automatically; no explicit assignment needed. Named colors use `index = 1..8` (BLACK..WHITE); RGB uses `index = -1`.
 - `sc_print()` always appends `\033[0m` (reset), even when opts are all-none.
   This is intentional to isolate styling.
 - The `h` horizontal-line character from `ScBorderType` is used by both

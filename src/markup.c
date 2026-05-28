@@ -27,15 +27,15 @@ static const struct {
     const char *name;
     ScColor color;
 } color_map[] = {
-    { "black",   { 0, 0, 0, 0 } },
-    { "red",     { 1, 0, 0, 0 } },
-    { "green",   { 2, 0, 0, 0 } },
-    { "yellow",  { 3, 0, 0, 0 } },
-    { "blue",    { 4, 0, 0, 0 } },
-    { "magenta", { 5, 0, 0, 0 } },
-    { "cyan",    { 6, 0, 0, 0 } },
-    { "white",   { 7, 0, 0, 0 } },
-    { NULL,      { 0, 0, 0, 0 } },
+    { "black",   SC_ANSI_COLOR_BLACK   },
+    { "red",     SC_ANSI_COLOR_RED     },
+    { "green",   SC_ANSI_COLOR_GREEN   },
+    { "yellow",  SC_ANSI_COLOR_YELLOW  },
+    { "blue",    SC_ANSI_COLOR_BLUE    },
+    { "magenta", SC_ANSI_COLOR_MAGENTA },
+    { "cyan",    SC_ANSI_COLOR_CYAN    },
+    { "white",   SC_ANSI_COLOR_WHITE   },
+    { NULL,      SC_ANSI_COLOR_NONE    },
 };
 
 
@@ -190,8 +190,8 @@ static void init_parser(
     self->depth = 0;
     self->stack[0] = (ScTextStyle){
         SC_TEXT_ATTR_NONE,
-        { -2, 0, 0, 0 },
-        { -2, 0, 0, 0 },
+        SC_ANSI_COLOR_NONE,
+        SC_ANSI_COLOR_NONE,
     };
 }
 

@@ -454,7 +454,7 @@ static void render_cell_line_aligned(
 
 /**
  * Returns `span_style` with header or footer default styling applied to
- * its unstyled fields (`attr == 0` / `fg.index == -2`). Spans that carry
+ * its unstyled fields (`attr == 0` / `fg.index == 0`). Spans that carry
  * their own styling pass through unchanged.
  */
 static ScTextStyle apply_section_default_style(
@@ -464,14 +464,14 @@ static ScTextStyle apply_section_default_style(
         if (span_style.attr == 0) {
             span_style.attr = self->table->opts.header.style.attr;
         }
-        if (span_style.fg.index == -2) {
+        if (span_style.fg.index == 0) {
             span_style.fg = self->table->opts.header.style.fg;
         }
     } else if (self->section == ROW_SECTION_FOOTER) {
         if (span_style.attr == 0) {
             span_style.attr = self->table->opts.footer.style.attr;
         }
-        if (span_style.fg.index == -2) {
+        if (span_style.fg.index == 0) {
             span_style.fg = self->table->opts.footer.style.fg;
         }
     }
@@ -527,7 +527,7 @@ static void render_cell_vertical_separator(
     ScColor sep_color = self->table->opts.border.inner_color;
     bool is_header_edge = table_is_header_column(self->table, end_col);
     if (is_header_edge
-        && self->table->opts.border.header_col_sep_color.index != -2) {
+        && self->table->opts.border.header_col_sep_color.index != 0) {
         sep_color = self->table->opts.border.header_col_sep_color;
     }
     print_colored_string(

@@ -170,7 +170,7 @@ static int get_indentation(Rule *self) {
  */
 static void print_rule_line_with_title(Rule *self) {
     FillSplit fill_split = get_fill_split(self);
-    int is_colored = (self->opts.color.index != -2);
+    int is_colored = (self->opts.color.index != 0);
 
     print_rule_fill(self, fill_split.left);
 
@@ -230,7 +230,7 @@ static void print_rule_fill(Rule *self, int count) {
         return;
     }
 
-    int is_colored = (self->opts.color.index != -2);
+    int is_colored = (self->opts.color.index != 0);
     if (is_colored) {
         sc_apply_colors(self->opts.color, SC_ANSI_COLOR_NONE);
     }

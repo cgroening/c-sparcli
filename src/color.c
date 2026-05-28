@@ -80,9 +80,10 @@ static void apply_bg(ScColor clr) {
  * Emits a single ANSI color escape code to stdout.
  *
  * Selects the escape format based on `clr.index`:
- * - `-2` (`SC_ANSI_COLOR_NONE`): Mo output, returns immediately.
- * - `-1` (24-bit RGB): Emits `\033[{rgb_prefix};2;r;g;bm`.
- * - `0` to `7` (named color): Emits `\033[{named}{index}m`.
+ * - `0` (`SC_ANSI_COLOR_NONE`, zero-init): no output, returns immediately.
+ * - `-1` (24-bit RGB): emits `\033[{rgb_prefix};2;r;g;bm`.
+ * - `1` to `8` (named color): emits `\033[{named}{index - 1}m`, i.e. the
+ *   standard ANSI codes 30..37 (fg) / 40..47 (bg).
  *
  * @param clr    Color to emit.
  * @param layer  Prefix constants - use `SC_ANSI_COLOR_LAYER_FOREGROUND` or
@@ -92,11 +93,11 @@ static void apply_color_escape(ScColor clr, ColorLayer layer) {
     int named = layer.named;
     int rgb_prefix = layer.rgb_prefix;
 
-    if(clr.index == -2) {
+    if (clr.index == 0) {
         return;
-    } else if(clr.index == -1) {
+    } else if (clr.index == -1) {
         fprintf(sc_output_stream(), "\033[%d;2;%d;%d;%dm", rgb_prefix, clr.r, clr.g, clr.b);
     } else {
-        fprintf(sc_output_stream(), "\033[%d%dm", named, clr.index);
+        fprintf(sc_output_stream(), "\033[%d%dm", named, clr.index - 1);
     }
 }

@@ -133,7 +133,7 @@ static void render_section_separator(const Table *table) {
     ScBorderType style = table->opts.border.type;
 
     ScColor separator_color = table->opts.border.inner_color;
-    if (table->opts.border.header_row_sep_color.index != -2) {
+    if (table->opts.border.header_row_sep_color.index != 0) {
         separator_color = table->opts.border.header_row_sep_color;
     }
 

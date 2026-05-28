@@ -196,7 +196,7 @@ static ScColor select_junction_color(
     bool is_header_edge = table_is_header_column(table, col);
     if (spec.use_header_col_sep_color
         && is_header_edge
-        && table->opts.border.header_col_sep_color.index != -2) {
+        && table->opts.border.header_col_sep_color.index != 0) {
         return table->opts.border.header_col_sep_color;
     }
     return spec.inner_color;
@@ -361,7 +361,7 @@ static void render_inner_sep_junction(Table *table, size_t col) {
 
     ScColor junction_color = table->opts.border.inner_color;
     if (table_is_header_column(table, col)
-        && table->opts.border.header_col_sep_color.index != -2) {
+        && table->opts.border.header_col_sep_color.index != 0) {
         junction_color = table->opts.border.header_col_sep_color;
     }
     print_colored_string(junction_char, junction_color);

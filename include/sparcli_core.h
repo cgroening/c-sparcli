@@ -73,7 +73,7 @@ SPARCLI_EXPORT extern const ScTextAttributeNs ScTextAttributeNs_;
  * or RGB.
  */
 typedef struct {
-    int index;  /**< -2 = not set; -1 = RGB mode; 0-7 = ANSI color index */
+    int index;  /**< 0 = not set (zero-init); -1 = RGB mode; 1-8 = ANSI color */
     uint8_t r, g, b;  /**< RGB values (0-255) used if index == -1 */
 } ScColor;
 
@@ -81,17 +81,21 @@ typedef struct {
  * @defgroup sc_ansi_colors Predefined ANSI Colors
  * @brief Predefined ScColor instances for standard ANSI colors.
  *
+ * Zero-initialized `ScColor` (i.e. `(ScColor){0}`) compares equal to
+ * `SC_ANSI_COLOR_NONE`, so renderers treat any unset color field as
+ * "no color" without the caller having to set it explicitly.
+ *
  * @{
  */
-#define SC_ANSI_COLOR_NONE    ((ScColor){ -2, 0, 0, 0 })
-#define SC_ANSI_COLOR_BLACK   ((ScColor){  0, 0, 0, 0 })
-#define SC_ANSI_COLOR_RED     ((ScColor){  1, 0, 0, 0 })
-#define SC_ANSI_COLOR_GREEN   ((ScColor){  2, 0, 0, 0 })
-#define SC_ANSI_COLOR_YELLOW  ((ScColor){  3, 0, 0, 0 })
-#define SC_ANSI_COLOR_BLUE    ((ScColor){  4, 0, 0, 0 })
-#define SC_ANSI_COLOR_MAGENTA ((ScColor){  5, 0, 0, 0 })
-#define SC_ANSI_COLOR_CYAN    ((ScColor){  6, 0, 0, 0 })
-#define SC_ANSI_COLOR_WHITE   ((ScColor){  7, 0, 0, 0 })
+#define SC_ANSI_COLOR_NONE    ((ScColor){ 0, 0, 0, 0 })
+#define SC_ANSI_COLOR_BLACK   ((ScColor){ 1, 0, 0, 0 })
+#define SC_ANSI_COLOR_RED     ((ScColor){ 2, 0, 0, 0 })
+#define SC_ANSI_COLOR_GREEN   ((ScColor){ 3, 0, 0, 0 })
+#define SC_ANSI_COLOR_YELLOW  ((ScColor){ 4, 0, 0, 0 })
+#define SC_ANSI_COLOR_BLUE    ((ScColor){ 5, 0, 0, 0 })
+#define SC_ANSI_COLOR_MAGENTA ((ScColor){ 6, 0, 0, 0 })
+#define SC_ANSI_COLOR_CYAN    ((ScColor){ 7, 0, 0, 0 })
+#define SC_ANSI_COLOR_WHITE   ((ScColor){ 8, 0, 0, 0 })
 /** @} */
 
 /**

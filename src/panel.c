@@ -458,10 +458,9 @@ static ScColor norm_bg(ScColor color) {
 /**
  * Returns true if `color` should cause ANSI color escape codes to be emitted.
  *
- * Returns false for `SC_ANSI_COLOR_NONE` (index == -2) and for zero-initialized
- * `ScColor` structs. Zero-init ({index=0, r=0, g=0, b=0}) is treated as "not
- * set" because it is indistinguishable from `SC_ANSI_COLOR_BLACK`. Use
- * `sc_ansi_color_from_rgb(0,0,0)` to specify an explicit black.
+ * Returns false for `SC_ANSI_COLOR_NONE` (`index == 0`, which is also the
+ * zero-init value), true for any named color (`index >= 1`) or RGB mode
+ * (`index == -1`).
  */
 
 /**

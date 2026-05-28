@@ -392,8 +392,8 @@ static void resolve_cell_span(
 ) {
     static const ScTextStyle plain = {
         SC_TEXT_ATTR_NONE,
-        { -2, 0, 0, 0 },
-        { -2, 0, 0, 0 },
+        SC_ANSI_COLOR_NONE,
+        SC_ANSI_COLOR_NONE,
     };
 
     if (cell->kind == SC_CELL_STR) {

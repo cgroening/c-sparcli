@@ -314,7 +314,7 @@ static void print_connector(Tree *self, NodeFrame frame) {
  * it as-is when `color` is `SC_ANSI_COLOR_NONE`.
  */
 static void print_colored(const char *str, ScColor color) {
-    if (color.index == -2) {
+    if (color.index == 0) {
         fputs(str, sc_output_stream());
         return;
     }
@@ -367,7 +367,7 @@ static char *build_child_prefix(Tree *self, NodeFrame frame) {
     memcpy(buffer + position, frame.prefix, parent_length);
     position += parent_length;
 
-    if (segment_color.index != -2) {
+    if (segment_color.index != 0) {
         int written;
         if (segment_color.index == -1) {
             written = snprintf(
@@ -376,7 +376,7 @@ static char *build_child_prefix(Tree *self, NodeFrame frame) {
             );
         } else {
             written = snprintf(
-                buffer + position, 10, "\033[3%dm", segment_color.index
+                buffer + position, 10, "\033[3%dm", segment_color.index - 1
             );
         }
         position += (size_t)written;

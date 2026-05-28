@@ -168,20 +168,13 @@ static inline bool table_has_vertical_separator_after(
 }
 
 /**
- * Returns `true` when `color` should emit ANSI background escapes.
+ * Returns `true` when `color` should emit ANSI escapes.
  *
- * Both `SC_ANSI_COLOR_NONE` (`index == -2`) and a zero-initialized `ScColor`
- * (`{0, 0, 0, 0}`, indistinguishable from `SC_ANSI_COLOR_BLACK`) return
- * `false`. Use `sc_ansi_color_from_rgb(0, 0, 0)` for an explicit black.
- *
- * Mirrors the active-color check used by columns, panel and progressbar so
- * background fields behave consistently across the library.
+ * Zero-initialized `ScColor` equals `SC_ANSI_COLOR_NONE` (`index == 0`)
+ * and returns `false`. Mirrors `sc_color_is_active` from `internal.h`.
  */
 static inline bool color_is_active(ScColor color) {
-    if (color.index == -2) { return false; }
-    bool is_zero_init = color.index == 0
-        && color.r == 0 && color.g == 0 && color.b == 0;
-    return !is_zero_init;
+    return color.index != 0;
 }
 
 
