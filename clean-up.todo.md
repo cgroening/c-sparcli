@@ -62,9 +62,9 @@
 
 ## Lists
 
-- [ ] tests/test_lists.c
-- [ ] include/sparcli_list.h
-- [ ] src/list.c
+- [x] tests/test_lists.c
+- [x] include/sparcli_list.h
+- [x] src/list.c
 
 ## Progress Bar & Animated Progress Bar
 

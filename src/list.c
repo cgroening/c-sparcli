@@ -1,183 +1,171 @@
 #include "sparcli.h"
 #include "internal.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-/* ── Internal structures ─────────────────────────────────────────────────── */
 
+/** Default bullet character (`•`, U+2022). */
+#define DEFAULT_BULLET "\xe2\x80\xa2"
+
+/** Default suffix after a numbered/alpha/roman marker value. */
+#define DEFAULT_MARKER_SUFFIX "."
+
+/** Default prefix before a numbered/alpha/roman marker value. */
+#define DEFAULT_MARKER_PREFIX ""
+
+/** Buffer size used to format a single marker value (number, roman, …). */
+#define MARKER_VALUE_BUFFER 64
+
+/** Buffer size used to assemble the full marker token (prefix + value + …). */
+#define MARKER_FIELD_BUFFER 256
+
+/** Minimum text width preserved for an item even on narrow terminals. */
+#define MIN_AVAILABLE_TEXT_WIDTH 4
+
+
+/** One item in a list. */
 struct ScListItem {
-    int           is_text;
-    char         *str;       /* owned */
-    const ScText *text;      /* not owned */
-    ScTextStyle     opts;
-    ScList       *sublist;   /* owned, may be NULL */
+    /** `true` = `text` is used as content; `false` = `str` is used. */
+    bool is_text;
+
+    /** Plain-string content; owned copy when set; `NULL` for text items. */
+    char *str;
+
+    /** Rich-text content; not owned; `NULL` for string items. */
+    const ScText *text;
+
+    /** Style applied to `str`; ignored for text items. */
+    ScTextStyle style;
+
+    /** Optional sub-list; owned by the item. */
+    struct ScList *sublist;
 };
 
+/** List container. */
 struct ScList {
-    ScListItem  **items;
-    size_t        count, cap;
-    ScListOpts    opts;
+    /** Heap-allocated array of item pointers; owned. */
+    struct ScListItem **items;
+
+    /** Number of valid entries in `items`. */
+    size_t item_count;
+
+    /** Allocated capacity of `items`. */
+    size_t item_capacity;
+
+    /** Rendering options provided at construction. */
+    ScListOpts opts;
 };
 
-/* ── Roman numeral conversion ────────────────────────────────────────────── */
+/** Render-time context for one level of a list. */
+typedef struct List {
+    /** List being rendered at this level; not owned. */
+    const ScList *list;
 
-static void to_roman(int n, char *buf, int upper) {
-    static const struct { int v; const char *u; const char *l; } t[] = {
-        {1000,"M","m"},{900,"CM","cm"},{500,"D","d"},{400,"CD","cd"},
-        {100,"C","c"},{ 90,"XC","xc"},{ 50,"L","l"},{ 40,"XL","xl"},
-        { 10,"X","x"},{  9,"IX","ix"},{  5,"V","v"},{  4,"IV","iv"},
-        {  1,"I","i"},{  0,NULL,NULL}
-    };
-    buf[0] = '\0';
-    if (n <= 0) { strcpy(buf, "0"); return; }
-    for (int i = 0; t[i].v; i++) {
-        while (n >= t[i].v) { strcat(buf, upper ? t[i].u : t[i].l); n -= t[i].v; }
-    }
-}
+    /** Total line width in columns. */
+    int terminal_width;
 
-/* ── Marker helpers ──────────────────────────────────────────────────────── */
+    /** Indent inherited from the parent item; `0` for the outer list. */
+    int base_indent;
 
-static void format_marker_val(const ScList *l, int idx, char *buf64) {
-    int n = idx + 1;
-    switch (l->opts.marker) {
-    case SC_LIST_BULLET:
-        strcpy(buf64, l->opts.bullet ? l->opts.bullet : "\xe2\x80\xa2"); /* U+2022 • */
-        break;
-    case SC_LIST_NUMBER:   snprintf(buf64, 32, "%d", n);                         break;
-    case SC_LIST_ALPHA_LC: buf64[0] = (char)('a' + (n-1) % 26); buf64[1] = '\0'; break;
-    case SC_LIST_ALPHA_UC: buf64[0] = (char)('A' + (n-1) % 26); buf64[1] = '\0'; break;
-    case SC_LIST_ROMAN_LC: to_roman(n, buf64, 0);                                break;
-    case SC_LIST_ROMAN_UC: to_roman(n, buf64, 1);                                break;
-    }
-}
+    /** Column at which the marker field starts (base + opts.indent). */
+    int list_indent;
 
-static int marker_val_vis_w(const ScList *l, int idx) {
-    char buf[64]; format_marker_val(l, idx, buf);
-    return (int)sc_utf8_string_length(buf, strlen(buf));
-}
+    /** Width in columns of the full marker field. */
+    int marker_field_width;
 
-static int max_marker_val_w(const ScList *l) {
-    if (l->opts.marker == SC_LIST_BULLET) {
-        const char *b = l->opts.bullet ? l->opts.bullet : "\xe2\x80\xa2";
-        return (int)sc_utf8_string_length(b, strlen(b));
-    }
-    int mw = 0;
-    for (size_t i = 0; i < l->count; i++) {
-        int w = marker_val_vis_w(l, (int)i);
-        if (w > mw) { mw = w; }
-    }
-    return mw ? mw : 1;
-}
+    /** Width in columns of the widest marker value in this list. */
+    int max_marker_value_width;
 
-/* total visible width of the marker field (prefix + value + suffix + 1 space) */
-static int total_marker_w(const ScList *l) {
-    if (l->opts.marker == SC_LIST_BULLET) {
-        const char *b = l->opts.bullet ? l->opts.bullet : "\xe2\x80\xa2";
-        return (int)sc_utf8_string_length(b, strlen(b)) + 1;
-    }
-    const char *pre = l->opts.marker_prefix ? l->opts.marker_prefix : "";
-    const char *suf = l->opts.marker_suffix ? l->opts.marker_suffix : ".";
-    int pw = (int)sc_utf8_string_length(pre, strlen(pre));
-    int sw = (int)sc_utf8_string_length(suf, strlen(suf));
-    return pw + max_marker_val_w(l) + sw + 1;
-}
+    /** Column at which item content (and continuation lines) starts. */
+    int text_start_column;
 
-/* zero-init ScTextStyle means "no formatting" (index==0 is SC_ANSI_COLOR_BLACK, -2 is SC_ANSI_COLOR_NONE) */
-static int opts_has_format(ScTextStyle o) {
-    return o.attr != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
-                        || o.bg.index != 0 || o.bg.r || o.bg.g || o.bg.b;
-}
+    /** Width in columns available for item content. */
+    int available_text_width;
 
-/* ── Word wrap ────────────────────────────────────────────────────────────── */
+    /** `true` when this list uses `SC_LIST_BULLET`. */
+    bool marker_is_bullet;
 
-static char **word_wrap(const char *text, int max_w, size_t *out_n) {
-    size_t cap = 8, n = 0;
-    char **lines = malloc(cap * sizeof(char *));
+    /** Resolved marker prefix string (never `NULL`). */
+    const char *marker_prefix;
 
-    if (!text || !*text || max_w < 1) {
-        lines[n++] = strdup(text && *text ? text : "");
-        *out_n = n; return lines;
-    }
+    /** Resolved marker suffix string (never `NULL`). */
+    const char *marker_suffix;
+} List;
 
-    const char *p = text;
-    while (*p) {
-        /* skip leading spaces at each wrapped-line start */
-        while (*p == ' ') { p++; }
-        if (!*p) { break; }
 
-        const char *start    = p;
-        const char *last_sp  = NULL;
-        const char *last_sp_e = NULL;
-        int vis = 0;
+// Forward declarations indented to reflect call hierarchy
+static ScListItem *new_item(
+    bool is_text, const char *str, ScTextStyle style, const ScText *text
+);
+static void append_item(ScList *list, ScListItem *item);
 
-        while (*p && *p != '\n') {
-            unsigned char c = *(unsigned char *)p;
-            int bytes = (c < 0x80) ? 1 : (c < 0xE0) ? 2 : (c < 0xF0) ? 3 : 4;
-            if (vis + 1 > max_w) { break; }
-            if (*p == ' ') { last_sp = p; last_sp_e = p + 1; }
-            vis++;
-            p += bytes;
-        }
+static void render_list_level(
+    const ScList *list, int base_indent, int terminal_width
+);
+    static void init_list(
+        List *self, const ScList *list, int base_indent, int terminal_width
+    );
+        static int get_marker_field_width(
+            const ScList *list, int max_marker_value_width
+        );
+            static const char *get_bullet_char(const ScListOpts *opts);
+        static int get_max_marker_value_width(const ScList *list);
+            static int marker_value_visible_width(const ScList *list, int index);
+                static void format_marker_value(
+                    const ScList *list, int index, char *buffer
+                );
+                    static void to_roman(
+                        int number, char *buffer, bool uppercase
+                    );
+        static int get_available_text_width(
+            const ScListOpts *opts, int terminal_width, int text_start_column
+        );
+    static void render_item(List *self, size_t item_index);
+        static void render_left_indent(const List *self);
+            static void print_spaces(int count);
+        static void render_marker(const List *self, size_t item_index);
+            static void build_marker_string(
+                const List *self, size_t item_index,
+                char *buffer, size_t buffer_size
+            );
+            static bool style_has_format(ScTextStyle style);
+        static void render_item_content(
+            const List *self, const ScListItem *item
+        );
+            static void render_wrapped_string(
+                const List *self, const ScListItem *item
+            );
+                static char **word_wrap(
+                    const char *text, int max_width, size_t *out_line_count
+                );
+        static void print_newlines(int count);
 
-        const char *end;
-        if (!*p || *p == '\n') {
-            end = p;
-            if (*p == '\n') { p++; }
-        } else if (last_sp) {
-            end = last_sp; p = last_sp_e;
-        } else {
-            end = p; /* hard break */
-        }
+static void item_free(ScListItem *item);
 
-        while (end > start && *(end-1) == ' ') { end--; }
-
-        if (n == cap) { cap *= 2; lines = realloc(lines, cap * sizeof(char *)); }
-        lines[n++] = strndup(start, (size_t)(end - start));
-    }
-
-    if (n == 0) { lines[n++] = strdup(""); }
-    *out_n = n;
-    return lines;
-}
-
-/* ── Public API ──────────────────────────────────────────────────────────── */
 
 ScList *sc_list_new(ScListOpts opts) {
-    ScList *l = calloc(1, sizeof(ScList));
-    l->opts   = opts;
-    return l;
+    ScList *list = calloc(1, sizeof(ScList));
+    list->opts = opts;
+    return list;
 }
 
-static ScListItem *item_alloc(int is_text, const char *str, ScTextStyle opts,
-                               const ScText *text) {
-    ScListItem *it = calloc(1, sizeof(ScListItem));
-    it->is_text = is_text;
-    it->str     = str ? strdup(str) : NULL;
-    it->opts    = opts;
-    it->text    = text;
-    return it;
+ScListItem *sc_list_add_str(
+    ScList *list, const char *str, ScTextStyle style
+) {
+    ScListItem *item = new_item(false, str, style, NULL);
+    append_item(list, item);
+    return item;
 }
 
-static void list_push(ScList *l, ScListItem *it) {
-    if (l->count == l->cap) {
-        l->cap   = l->cap ? l->cap * 2 : 4;
-        l->items = realloc(l->items, l->cap * sizeof(ScListItem *));
-    }
-    l->items[l->count++] = it;
-}
-
-ScListItem *sc_list_add_str(ScList *l, const char *str, ScTextStyle opts) {
-    ScListItem *it = item_alloc(0, str, opts, NULL);
-    list_push(l, it);
-    return it;
-}
-
-ScListItem *sc_list_add_text(ScList *l, const ScText *t) {
-    ScTextStyle none = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    ScListItem *it = item_alloc(1, NULL, none, t);
-    list_push(l, it);
-    return it;
+ScListItem *sc_list_add_text(ScList *list, const ScText *text) {
+    ScTextStyle no_style = {
+        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
+    ScListItem *item = new_item(true, NULL, no_style, text);
+    append_item(list, item);
+    return item;
 }
 
 ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts) {
@@ -186,98 +174,418 @@ ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts) {
     return parent->sublist;
 }
 
-/* ── Rendering ───────────────────────────────────────────────────────────── */
+void sc_list_print(const ScList *list) {
+    if (!list) { return; }
+    print_newlines(list->opts.margin.top);
+    int terminal_width = list->opts.width > 0
+        ? list->opts.width : sc_terminal_width();
+    render_list_level(list, 0, terminal_width);
+    print_newlines(list->opts.margin.bottom);
+}
 
-static void print_list_r(const ScList *l, int base_indent, int term_w);
+void sc_list_free(ScList *list) {
+    if (!list) { return; }
+    for (size_t i = 0; i < list->item_count; i++) {
+        item_free(list->items[i]);
+    }
+    free(list->items);
+    free(list);
+}
 
-static void print_list_r(const ScList *l, int base_indent, int term_w) {
-    if (!l || !l->count) { return; }
 
-    int mw         = total_marker_w(l);
-    int max_vw     = max_marker_val_w(l);
-    int list_left  = base_indent + l->opts.indent;
-    int text_start = list_left + mw;
+/** Allocates a new item and copies the string field when present. */
+static ScListItem *new_item(
+    bool is_text, const char *str, ScTextStyle style, const ScText *text
+) {
+    ScListItem *item = calloc(1, sizeof(ScListItem));
+    item->is_text = is_text;
+    item->str = str ? strdup(str) : NULL;
+    item->style = style;
+    item->text = text;
+    return item;
+}
 
-    int avail_w = term_w - l->opts.margin.left - l->opts.margin.right - text_start;
-    if (avail_w < 4) { avail_w = 4; }
+/** Appends `item` to `list`, growing the items array as needed. */
+static void append_item(ScList *list, ScListItem *item) {
+    if (list->item_count == list->item_capacity) {
+        list->item_capacity = list->item_capacity
+            ? list->item_capacity * 2 : 4;
+        list->items = realloc(
+            list->items, list->item_capacity * sizeof(ScListItem *)
+        );
+    }
+    list->items[list->item_count++] = item;
+}
 
-    int is_bullet = (l->opts.marker == SC_LIST_BULLET);
-    const char *pre = is_bullet ? "" : (l->opts.marker_prefix ? l->opts.marker_prefix : "");
-    const char *suf = is_bullet ? "" : (l->opts.marker_suffix ? l->opts.marker_suffix : ".");
 
-    for (size_t i = 0; i < l->count; i++) {
-        ScListItem *it = l->items[i];
+/** Renders one level of a list; recurses into sub-lists via `render_item`. */
+static void render_list_level(
+    const ScList *list, int base_indent, int terminal_width
+) {
+    if (!list || list->item_count == 0) { return; }
 
-        /* ── marker ── */
-        char val[64];
-        format_marker_val(l, (int)i, val);
-        int vw  = (int)sc_utf8_string_length(val, strlen(val));
-        int pad = max_vw - vw;  /* right-align value within field */
+    List self;
+    init_list(&self, list, base_indent, terminal_width);
 
-        char marker[256];
-        if (is_bullet) {
-            snprintf(marker, sizeof(marker), "%s ", val);
-        } else {
-            snprintf(marker, sizeof(marker), "%s%*s%s%s ", pre, pad, "", val, suf);
-        }
-
-        /* print left margin + list indent */
-        for (int k = 0; k < l->opts.margin.left + list_left; k++) { fputc(' ', stdout); }
-        if (opts_has_format(l->opts.marker_opts)) {
-            sc_print(marker, l->opts.marker_opts);
-        } else {
-            fputs(marker, stdout);
-        }
-
-        /* ── text ── */
-        if (it->is_text) {
-            if (it->text) { sc_print_text(it->text); }
-            fputc('\n', stdout);
-        } else {
-            const char *txt = it->str ? it->str : "";
-            size_t nlines;
-            char **wrapped = word_wrap(txt, avail_w, &nlines);
-            for (size_t li = 0; li < nlines; li++) {
-                if (li > 0) {
-                    for (int k = 0; k < l->opts.margin.left + text_start; k++) { fputc(' ', stdout); }
-                }
-                sc_print(wrapped[li], it->opts);
-                fputc('\n', stdout);
-                free(wrapped[li]);
-            }
-            free(wrapped);
-        }
-
-        /* ── sublist ── */
-        if (it->sublist) {
-            print_list_r(it->sublist, text_start, term_w);
-        }
-
-        /* ── item gap ── */
-        for (int g = 0; g < l->opts.item_gap; g++) { fputc('\n', stdout); }
+    for (size_t i = 0; i < list->item_count; i++) {
+        render_item(&self, i);
     }
 }
 
-void sc_list_print(const ScList *l) {
-    if (!l) { return; }
-    for (int i = 0; i < l->opts.margin.top; i++) { fputc('\n', stdout); }
-    int term_w = l->opts.width > 0 ? l->opts.width : sc_terminal_width();
-    print_list_r(l, 0, term_w);
-    for (int i = 0; i < l->opts.margin.bottom; i++) { fputc('\n', stdout); }
+/** Populates `self` with all derived layout values for one list level. */
+static void init_list(
+    List *self, const ScList *list, int base_indent, int terminal_width
+) {
+    self->list = list;
+    self->base_indent = base_indent;
+    self->terminal_width = terminal_width;
+    self->marker_is_bullet = (list->opts.marker == SC_LIST_BULLET);
+    self->marker_prefix = list->opts.marker_prefix
+        ? list->opts.marker_prefix : DEFAULT_MARKER_PREFIX;
+    self->marker_suffix = list->opts.marker_suffix
+        ? list->opts.marker_suffix : DEFAULT_MARKER_SUFFIX;
+
+    self->list_indent = base_indent + list->opts.indent;
+    self->max_marker_value_width = get_max_marker_value_width(list);
+    self->marker_field_width = get_marker_field_width(
+        list, self->max_marker_value_width
+    );
+    self->text_start_column = self->list_indent + self->marker_field_width;
+    self->available_text_width = get_available_text_width(
+        &list->opts, terminal_width, self->text_start_column
+    );
 }
 
-/* ── Memory management ───────────────────────────────────────────────────── */
-
-static void item_free(ScListItem *it) {
-    if (!it) { return; }
-    free(it->str);
-    sc_list_free(it->sublist);
-    free(it);
+/**
+ * Returns the full marker field width: bullet + space, or
+ * prefix + value-field + suffix + space.
+ */
+static int get_marker_field_width(
+    const ScList *list, int max_marker_value_width
+) {
+    if (list->opts.marker == SC_LIST_BULLET) {
+        const char *bullet = get_bullet_char(&list->opts);
+        return (int)sc_utf8_string_length(bullet, strlen(bullet)) + 1;
+    }
+    const char *prefix = list->opts.marker_prefix
+        ? list->opts.marker_prefix : DEFAULT_MARKER_PREFIX;
+    const char *suffix = list->opts.marker_suffix
+        ? list->opts.marker_suffix : DEFAULT_MARKER_SUFFIX;
+    int prefix_width = (int)sc_utf8_string_length(prefix, strlen(prefix));
+    int suffix_width = (int)sc_utf8_string_length(suffix, strlen(suffix));
+    return prefix_width + max_marker_value_width + suffix_width + 1;
 }
 
-void sc_list_free(ScList *l) {
-    if (!l) { return; }
-    for (size_t i = 0; i < l->count; i++) { item_free(l->items[i]); }
-    free(l->items);
-    free(l);
+/** Returns the configured bullet character or the default `•`. */
+static const char *get_bullet_char(const ScListOpts *opts) {
+    return opts->bullet ? opts->bullet : DEFAULT_BULLET;
+}
+
+/**
+ * Returns the visible width of the widest marker value in `list`, or the
+ * bullet width for bullet lists. Always `>= 1`.
+ */
+static int get_max_marker_value_width(const ScList *list) {
+    if (list->opts.marker == SC_LIST_BULLET) {
+        const char *bullet = get_bullet_char(&list->opts);
+        return (int)sc_utf8_string_length(bullet, strlen(bullet));
+    }
+    int max_width = 0;
+    for (size_t i = 0; i < list->item_count; i++) {
+        int width = marker_value_visible_width(list, (int)i);
+        if (width > max_width) { max_width = width; }
+    }
+    return max_width > 0 ? max_width : 1;
+}
+
+/**
+ * Returns the visible width of the marker value at `index` (1-based for
+ * the user, 0-based here).
+ */
+static int marker_value_visible_width(const ScList *list, int index) {
+    char buffer[MARKER_VALUE_BUFFER];
+    format_marker_value(list, index, buffer);
+    return (int)sc_utf8_string_length(buffer, strlen(buffer));
+}
+
+/**
+ * Writes the bare marker value (no prefix/suffix) for the item at `index`
+ * into `buffer`; `buffer` must be at least `MARKER_VALUE_BUFFER` bytes long.
+ */
+static void format_marker_value(
+    const ScList *list, int index, char *buffer
+) {
+    int number = index + 1;
+    switch (list->opts.marker) {
+    case SC_LIST_BULLET:
+        strcpy(buffer, get_bullet_char(&list->opts));
+        break;
+    case SC_LIST_NUMBER:
+        snprintf(buffer, MARKER_VALUE_BUFFER, "%d", number);
+        break;
+    case SC_LIST_ALPHA_LC:
+        buffer[0] = (char)('a' + (number - 1) % 26);
+        buffer[1] = '\0';
+        break;
+    case SC_LIST_ALPHA_UC:
+        buffer[0] = (char)('A' + (number - 1) % 26);
+        buffer[1] = '\0';
+        break;
+    case SC_LIST_ROMAN_LC:
+        to_roman(number, buffer, false);
+        break;
+    case SC_LIST_ROMAN_UC:
+        to_roman(number, buffer, true);
+        break;
+    }
+}
+
+/**
+ * Writes the Roman-numeral representation of `number` into `buffer`,
+ * using uppercase letters when `uppercase` is `true`.
+ */
+static void to_roman(int number, char *buffer, bool uppercase) {
+    static const struct {
+        int value;
+        const char *upper;
+        const char *lower;
+    } table[] = {
+        { 1000, "M",  "m"  }, { 900, "CM", "cm" },
+        {  500, "D",  "d"  }, { 400, "CD", "cd" },
+        {  100, "C",  "c"  }, {  90, "XC", "xc" },
+        {   50, "L",  "l"  }, {  40, "XL", "xl" },
+        {   10, "X",  "x"  }, {   9, "IX", "ix" },
+        {    5, "V",  "v"  }, {   4, "IV", "iv" },
+        {    1, "I",  "i"  }, {   0, NULL, NULL },
+    };
+
+    buffer[0] = '\0';
+    if (number <= 0) {
+        strcpy(buffer, "0");
+        return;
+    }
+    for (int i = 0; table[i].value > 0; i++) {
+        while (number >= table[i].value) {
+            strcat(buffer, uppercase ? table[i].upper : table[i].lower);
+            number -= table[i].value;
+        }
+    }
+}
+
+/**
+ * Returns the width in columns available for item content; clamped to at
+ * least `MIN_AVAILABLE_TEXT_WIDTH`.
+ */
+static int get_available_text_width(
+    const ScListOpts *opts, int terminal_width, int text_start_column
+) {
+    int available = terminal_width - opts->margin.left
+                    - opts->margin.right - text_start_column;
+    return available < MIN_AVAILABLE_TEXT_WIDTH
+        ? MIN_AVAILABLE_TEXT_WIDTH : available;
+}
+
+
+/** Renders the item at `item_index`, its content and any attached sub-list. */
+static void render_item(List *self, size_t item_index) {
+    const ScListItem *item = self->list->items[item_index];
+
+    render_left_indent(self);
+    render_marker(self, item_index);
+    render_item_content(self, item);
+
+    if (item->sublist) {
+        render_list_level(
+            item->sublist, self->text_start_column, self->terminal_width
+        );
+    }
+
+    print_newlines(self->list->opts.item_gap);
+}
+
+/** Prints the left margin plus the list indent for the current item. */
+static void render_left_indent(const List *self) {
+    print_spaces(self->list->opts.margin.left + self->list_indent);
+}
+
+/** Prints `count` space characters to stdout. */
+static void print_spaces(int count) {
+    for (int i = 0; i < count; i++) { fputc(' ', stdout); }
+}
+
+/**
+ * Builds and prints the marker token, applying `marker_style` when it carries
+ * formatting; otherwise emits the marker without ANSI codes.
+ */
+static void render_marker(const List *self, size_t item_index) {
+    char marker_buffer[MARKER_FIELD_BUFFER];
+    build_marker_string(
+        self, item_index, marker_buffer, sizeof(marker_buffer)
+    );
+
+    if (style_has_format(self->list->opts.marker_style)) {
+        sc_print(marker_buffer, self->list->opts.marker_style);
+    } else {
+        fputs(marker_buffer, stdout);
+    }
+}
+
+/**
+ * Composes the marker token for the item at `item_index` into `buffer`:
+ * bullet form `"<bullet> "` or counted form `"<prefix><pad><value><suffix> "`.
+ */
+static void build_marker_string(
+    const List *self, size_t item_index, char *buffer, size_t buffer_size
+) {
+    char value_buffer[MARKER_VALUE_BUFFER];
+    format_marker_value(self->list, (int)item_index, value_buffer);
+
+    if (self->marker_is_bullet) {
+        snprintf(buffer, buffer_size, "%s ", value_buffer);
+        return;
+    }
+
+    int value_width = (int)sc_utf8_string_length(
+        value_buffer, strlen(value_buffer)
+    );
+    int right_align_pad = self->max_marker_value_width - value_width;
+    snprintf(
+        buffer, buffer_size, "%s%*s%s%s ",
+        self->marker_prefix, right_align_pad, "",
+        value_buffer, self->marker_suffix
+    );
+}
+
+/**
+ * Returns `true` when `style` carries any formatting; zero-initialized
+ * `ScTextStyle` returns `false` so callers can skip ANSI emission.
+ */
+static bool style_has_format(ScTextStyle style) {
+    return style.attr != 0
+        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
+        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
+}
+
+/** Renders the item content (rich text or word-wrapped string). */
+static void render_item_content(
+    const List *self, const ScListItem *item
+) {
+    if (item->is_text) {
+        if (item->text) { sc_print_text(item->text); }
+        fputc('\n', stdout);
+        return;
+    }
+    render_wrapped_string(self, item);
+}
+
+/**
+ * Word-wraps `item->str` to the available text width and prints every line
+ * with a hanging indent for continuations.
+ */
+static void render_wrapped_string(
+    const List *self, const ScListItem *item
+) {
+    const char *text = item->str ? item->str : "";
+    size_t line_count;
+    char **lines = word_wrap(text, self->available_text_width, &line_count);
+
+    for (size_t i = 0; i < line_count; i++) {
+        if (i > 0) {
+            print_spaces(
+                self->list->opts.margin.left + self->text_start_column
+            );
+        }
+        sc_print(lines[i], item->style);
+        fputc('\n', stdout);
+        free(lines[i]);
+    }
+    free(lines);
+}
+
+/**
+ * Word-wraps `text` to at most `max_width` visible columns per line.
+ *
+ * Breaks on spaces when one fits; otherwise produces a hard break at
+ * `max_width`. The returned array and its strings must be freed by the
+ * caller. On entry `*out_line_count` is ignored; on exit it holds the
+ * number of returned lines.
+ */
+static char **word_wrap(
+    const char *text, int max_width, size_t *out_line_count
+) {
+    size_t capacity = 8;
+    size_t line_count = 0;
+    char **lines = malloc(capacity * sizeof(char *));
+
+    if (!text || !*text || max_width < 1) {
+        lines[line_count++] = strdup(text && *text ? text : "");
+        *out_line_count = line_count;
+        return lines;
+    }
+
+    const char *cursor = text;
+    while (*cursor) {
+        while (*cursor == ' ') { cursor++; }
+        if (!*cursor) { break; }
+
+        const char *line_start = cursor;
+        const char *last_space = NULL;
+        const char *after_last_space = NULL;
+        int visible_columns = 0;
+
+        while (*cursor && *cursor != '\n') {
+            unsigned char byte = *(unsigned char *)cursor;
+            int byte_count = (byte < 0x80) ? 1
+                : (byte < 0xE0) ? 2
+                : (byte < 0xF0) ? 3 : 4;
+            if (visible_columns + 1 > max_width) { break; }
+            if (*cursor == ' ') {
+                last_space = cursor;
+                after_last_space = cursor + 1;
+            }
+            visible_columns++;
+            cursor += byte_count;
+        }
+
+        const char *line_end;
+        if (!*cursor || *cursor == '\n') {
+            line_end = cursor;
+            if (*cursor == '\n') { cursor++; }
+        } else if (last_space) {
+            line_end = last_space;
+            cursor = after_last_space;
+        } else {
+            line_end = cursor;
+        }
+
+        while (line_end > line_start && *(line_end - 1) == ' ') {
+            line_end--;
+        }
+
+        if (line_count == capacity) {
+            capacity *= 2;
+            lines = realloc(lines, capacity * sizeof(char *));
+        }
+        lines[line_count++] = strndup(
+            line_start, (size_t)(line_end - line_start)
+        );
+    }
+
+    if (line_count == 0) { lines[line_count++] = strdup(""); }
+    *out_line_count = line_count;
+    return lines;
+}
+
+/** Prints `count` newline characters to stdout. */
+static void print_newlines(int count) {
+    for (int i = 0; i < count; i++) { fputc('\n', stdout); }
+}
+
+
+/** Recursively frees `item`, its owned string and any sub-list. */
+static void item_free(ScListItem *item) {
+    if (!item) { return; }
+    free(item->str);
+    sc_list_free(item->sublist);
+    free(item);
 }
