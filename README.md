@@ -28,7 +28,7 @@ progress bars, and more, with **Rich-compatible inline markup**.
 
 ## Features
 
-- **Rich set of widgets**: panels, tables, rules, side-by-side columns, lists,
+- **Large set of widgets**: panels, tables, rules, side-by-side columns, lists,
   trees, key/value blocks, alerts, badges, progress bars, spinners.
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`,
   `[rgb(120,200,255)]…[/]` — same syntax as
