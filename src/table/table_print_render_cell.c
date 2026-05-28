@@ -42,7 +42,8 @@ typedef struct WordWrapAccum {
 } WordWrapAccum;
 
 /**
- * Arguments for `flush_tline()`:
+ * Arguments for `flush_tline(
+ )`:
  * the destination line array and the line data to append.
  */
 typedef struct TLineFlush {
@@ -65,6 +66,49 @@ typedef struct TLineFlush {
     size_t   visible_width;
 } TLineFlush;
 
+/**
+ * Working state shared by `scan_text_for_newlines()` and `buf_push_segment()`.
+ */
+typedef struct LineScanCtx {
+    /** Pointer to the growing output lines array. */
+    TLine  **lines;
+
+    /** Number of completed lines in `*lines`. */
+    size_t  *line_count;
+
+    /** Allocated slot count in `*lines`. */
+    size_t  *line_capacity;
+
+    /** Pointer to the growing span buffer for the current line. */
+    TSpan  **spans;
+
+    /** Number of spans currently in `*spans`. */
+    size_t  *span_count;
+
+    /** Allocated slot count in `*spans`. */
+    size_t  *span_capacity;
+
+    /** Visible column width of the current line. */
+    size_t  *span_width;
+} LineScanCtx;
+
+
+/**
+ * Growable output buffer for `TLine` rows, shared by `append_tline_copy()`
+ * and `append_wrapped_lines()`.
+ */
+typedef struct {
+    /** Pointer to the growing line array. */
+    TLine  **lines;
+
+    /** Number of lines in `*lines`. */
+    size_t  *count;
+
+    /** Allocated slot count in `*lines`. */
+    size_t  *capacity;
+} TLineBuf;
+
+
 // Forward declarations indented to reflect call hierarchy
 
 static TLine *make_cell_lines(const ScCell *cell, size_t *out_count);
@@ -74,23 +118,47 @@ static TLine *make_cell_lines(const ScCell *cell, size_t *out_count);
         const char **out_string,
         ScTextStyle *out_opts
     );
-    static void scan_text_for_newlines(const char *text, ScTextStyle opts, TLine **lines, size_t *line_cap, size_t *line_count, TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width);
-        static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width, const char *start, size_t len, ScTextStyle opts);
+    static void scan_text_for_newlines(
+        const char *text, ScTextStyle opts, LineScanCtx *ctx
+    );
+        static void buf_push_segment(
+            LineScanCtx *ctx, const char *start, size_t len, ScTextStyle opts
+        );
     static void flush_tline(TLineFlush args);
 
 static size_t cell_vis_width(const ScCell *cell);
     static void free_tlines(TLine *lines, size_t line_count);
 
-static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
-    static void append_tline_copy(TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src);
-    static void append_wrapped_lines(TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src, int wrap_w);
-        static TLine *wrap_one_tline(const TLine *src, int wrap_w, size_t *out_n);
-            static void tokenize_tline_spans(const TLine *src, WordWrapToken **out_tokens, size_t *out_n);
-            static void emit_space_tok(WordWrapAccum *state, WordWrapToken *tok, const WordWrapToken *next, int wrap_w);
+static TLine *wrap_cell_lines(const ScCell *cell, int wrap_wrap, size_t *out_n);
+    static void append_tline_copy(TLineBuf *out, const TLine *src);
+    static void append_wrapped_lines(
+        TLineBuf *out, const TLine *src, int wrap_word
+    );
+        static TLine *wrap_one_tline(
+            const TLine *src, int wrap_word, size_t *out_n
+        );
+            static void tokenize_tline_spans(
+                const TLine *src, WordWrapToken **out_tokens, size_t *out_n
+            );
+            static void emit_space_tok(
+                WordWrapAccum *state,
+                WordWrapToken *tok,
+                const WordWrapToken *next,
+                int wrap_word
+            );
                 static void ww_flush_sbuf(WordWrapAccum *state);
-                static void ww_push_span(WordWrapAccum *state, char *text, size_t vis_w, ScTextStyle opts);
-            static void emit_word_tok(WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
-                static void hard_break_word(WordWrapAccum *state, WordWrapToken *tok, int wrap_w);
+                static void ww_push_span(
+                    WordWrapAccum *state,
+                    char *text,
+                    size_t visible_width,
+                    ScTextStyle opts
+                );
+            static void emit_word_tok(
+                WordWrapAccum *state, WordWrapToken *tok, int wrap_word
+            );
+                static void hard_break_word(
+                    WordWrapAccum *state, WordWrapToken *tok, int wrap_word
+                );
 
 
 /**
@@ -99,27 +167,39 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n);
  * scanning to `resolve_cell_span()` and `scan_text_for_newlines()`.
  */
 static TLine *make_cell_lines(const ScCell *cell, size_t *out_n) {
-    size_t line_cap = 4, line_count = 0;
-    TLine *lines = malloc(line_cap * sizeof(TLine));
-    size_t buf_cap = 4, buf_count = 0, buf_width = 0;
-    TSpan *buf = malloc(buf_cap * sizeof(TSpan));
+    size_t line_capacity = 4, line_count = 0;
+    TLine *lines = malloc(line_capacity * sizeof(TLine));
+    size_t span_capacity = 4, span_count = 0, span_width = 0;
+    TSpan *spans = malloc(span_capacity * sizeof(TSpan));
+    LineScanCtx ctx = {
+        .lines         = &lines,
+        .line_count    = &line_count,
+        .line_capacity = &line_capacity,
+        .spans         = &spans,
+        .span_count    = &span_count,
+        .span_capacity = &span_capacity,
+        .span_width    = &span_width,
+    };
 
-    size_t span_count = ((cell->kind == SC_CELL_TEXT || cell->kind == SC_CELL_MARKUP) && cell->text)
+    size_t num_spans = ((cell->kind == SC_CELL_TEXT || cell->kind == SC_CELL_MARKUP) && cell->text)
         ? cell->text->count : 1;
 
-    for (size_t span_idx = 0; span_idx < span_count; span_idx++) {
+    for (size_t span_idx = 0; span_idx < num_spans; span_idx++) {
         const char *span_text;
         ScTextStyle span_style;
         resolve_cell_span(cell, span_idx, &span_text, &span_style);
-        scan_text_for_newlines(
-            span_text, span_style,
-            &lines, &line_cap, &line_count,
-            &buf, &buf_cap, &buf_count, &buf_width
-        );
+        scan_text_for_newlines(span_text, span_style, &ctx);
     }
 
-    flush_tline((TLineFlush){ &lines, &line_cap, &line_count, buf, buf_count, buf_width });
-    free(buf);
+    flush_tline((TLineFlush){
+        .out_lines    = &lines,
+        .out_capacity = &line_capacity,
+        .out_count    = &line_count,
+        .spans        = spans,
+        .span_count   = span_count,
+        .visible_width = span_width,
+    });
+    free(spans);
     *out_n = line_count;
     return lines;
 }
@@ -145,25 +225,30 @@ static void resolve_cell_span(const ScCell *cell, size_t span_idx,
  * and `flush_tline()` on each newline. Remaining text after the last newline
  * is left in the buffer for the caller to flush.
  */
-static void scan_text_for_newlines(const char *text, ScTextStyle opts,
-                                    TLine **lines, size_t *line_cap, size_t *line_count,
-                                    TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width) {
+static void scan_text_for_newlines(const char *text, ScTextStyle opts, LineScanCtx *ctx) {
     const char *start = text;
     while (*text) {
         if (*text == '\n') {
             size_t len = (size_t)(text - start);
             if (len > 0) {
-                buf_push_segment(buf, buf_cap, buf_count, buf_width, start, len, opts);
+                buf_push_segment(ctx, start, len, opts);
             }
-            flush_tline((TLineFlush){ lines, line_cap, line_count, *buf, *buf_count, *buf_width });
-            *buf_count = 0; *buf_width = 0;
+            flush_tline((TLineFlush){
+                .out_lines    = ctx->lines,
+                .out_capacity = ctx->line_capacity,
+                .out_count    = ctx->line_count,
+                .spans        = *ctx->spans,
+                .span_count   = *ctx->span_count,
+                .visible_width = *ctx->span_width,
+            });
+            *ctx->span_count = 0; *ctx->span_width = 0;
             start = text + 1;
         }
         text++;
     }
     size_t len = (size_t)(text - start);
     if (len > 0) {
-        buf_push_segment(buf, buf_cap, buf_count, buf_width, start, len, opts);
+        buf_push_segment(ctx, start, len, opts);
     }
 }
 
@@ -171,14 +256,13 @@ static void scan_text_for_newlines(const char *text, ScTextStyle opts,
  * Appends the text segment [`start`, `start`+`len`) with style `opts` to
  * the span buffer, doubling its capacity if it is full.
  */
-static void buf_push_segment(TSpan **buf, size_t *buf_cap, size_t *buf_count, size_t *buf_width,
-                              const char *start, size_t len, ScTextStyle opts) {
-    if (*buf_count == *buf_cap) {
-        *buf_cap *= 2;
-        *buf = realloc(*buf, *buf_cap * sizeof(TSpan));
+static void buf_push_segment(LineScanCtx *ctx, const char *start, size_t len, ScTextStyle opts) {
+    if (*ctx->span_count == *ctx->span_capacity) {
+        *ctx->span_capacity *= 2;
+        *ctx->spans = realloc(*ctx->spans, *ctx->span_capacity * sizeof(TSpan));
     }
-    (*buf)[(*buf_count)++] = (TSpan){ strndup(start, len), opts };
-    *buf_width += sc_utf8_string_length(start, len);
+    (*ctx->spans)[(*ctx->span_count)++] = (TSpan){ .text = strndup(start, len), .opts = opts };
+    *ctx->span_width += sc_utf8_string_length(start, len);
 }
 
 /* Copies the span buffer into a new TLine entry and appends it to the lines
@@ -190,7 +274,7 @@ static void flush_tline(TLineFlush args) {
     }
     TSpan *span_copy = malloc((args.span_count + 1) * sizeof(TSpan));
     if (args.span_count) { memcpy(span_copy, args.spans, args.span_count * sizeof(TSpan)); }
-    (*args.out_lines)[(*args.out_count)++] = (TLine){ span_copy, args.span_count, args.visible_width };
+    (*args.out_lines)[(*args.out_count)++] = (TLine){ .spans = span_copy, .count = args.span_count, .vis_w = args.visible_width };
 }
 
 /* Returns the visible column width of the widest line in a cell. */
@@ -229,12 +313,17 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n) {
     TLine *raw_lines = make_cell_lines(cell, &raw_count);
     if (wrap_w <= 0) { *out_n = raw_count; return raw_lines; }
 
-    TLine *result_lines = NULL; size_t result_count = 0, result_cap = 0;
+    TLine *result_lines = NULL; size_t result_count = 0, result_capacity = 0;
+    TLineBuf out = {
+        .lines    = &result_lines,
+        .count    = &result_count,
+        .capacity = &result_capacity,
+    };
     for (size_t i = 0; i < raw_count; i++) {
         if ((int)raw_lines[i].vis_w <= wrap_w) {
-            append_tline_copy(&result_lines, &result_count, &result_cap, &raw_lines[i]);
+            append_tline_copy(&out, &raw_lines[i]);
         } else {
-            append_wrapped_lines(&result_lines, &result_count, &result_cap, &raw_lines[i], wrap_w);
+            append_wrapped_lines(&out, &raw_lines[i], wrap_w);
         }
     }
     free_tlines(raw_lines, raw_count);
@@ -246,16 +335,16 @@ static TLine *wrap_cell_lines(const ScCell *cell, int wrap_w, size_t *out_n) {
  * Deep-copies `src`'s spans into a new TLine and appends it to `out_lines`,
  * growing the array if needed.
  */
-static void append_tline_copy(TLine **out_lines, size_t *out_count, size_t *out_cap, const TLine *src) {
-    if (*out_count == *out_cap) {
-        *out_cap = *out_cap ? *out_cap * 2 : 4;
-        *out_lines = realloc(*out_lines, *out_cap * sizeof(TLine));
+static void append_tline_copy(TLineBuf *out, const TLine *src) {
+    if (*out->count == *out->capacity) {
+        *out->capacity = *out->capacity ? *out->capacity * 2 : 4;
+        *out->lines = realloc(*out->lines, *out->capacity * sizeof(TLine));
     }
     TSpan *span_copy = malloc((src->count + 1) * sizeof(TSpan));
     for (size_t i = 0; i < src->count; i++) {
-        span_copy[i] = (TSpan){ strdup(src->spans[i].text), src->spans[i].opts };
+        span_copy[i] = (TSpan){ .text = strdup(src->spans[i].text), .opts = src->spans[i].opts };
     }
-    (*out_lines)[(*out_count)++] = (TLine){ span_copy, src->count, src->vis_w };
+    (*out->lines)[(*out->count)++] = (TLine){ span_copy, src->count, src->vis_w };
 }
 
 /**
@@ -263,19 +352,18 @@ static void append_tline_copy(TLine **out_lines, size_t *out_count, size_t *out_
  * into `out_lines`. The temporary wrap buffer is freed shallowly — span
  * ownership transfers to `out_lines`.
  */
-static void append_wrapped_lines(TLine **out_lines, size_t *out_count, size_t *out_cap,
-                                  const TLine *src, int wrap_w) {
+static void append_wrapped_lines(TLineBuf *out, const TLine *src, int wrap_w) {
     size_t wrapped_count;
     TLine *wrapped_lines = wrap_one_tline(src, wrap_w, &wrapped_count);
-    if (*out_count + wrapped_count > *out_cap) {
-        while (*out_cap < *out_count + wrapped_count) {
-            *out_cap = *out_cap ? *out_cap * 2 : 4;
+    if (*out->count + wrapped_count > *out->capacity) {
+        while (*out->capacity < *out->count + wrapped_count) {
+            *out->capacity = *out->capacity ? *out->capacity * 2 : 4;
         }
-        *out_lines = realloc(*out_lines, *out_cap * sizeof(TLine));
+        *out->lines = realloc(*out->lines, *out->capacity * sizeof(TLine));
     }
-    memcpy(*out_lines + *out_count, wrapped_lines, wrapped_count * sizeof(TLine));
+    memcpy(*out->lines + *out->count, wrapped_lines, wrapped_count * sizeof(TLine));
     free(wrapped_lines);
-    *out_count += wrapped_count;
+    *out->count += wrapped_count;
 }
 
 /**
@@ -326,7 +414,12 @@ static void tokenize_tline_spans(const TLine *src, WordWrapToken **out_tokens, s
                 token_cap = token_cap ? token_cap * 2 : 16;
                 tokens = realloc(tokens, token_cap * sizeof(WordWrapToken));
             }
-            tokens[token_count++] = (WordWrapToken){ strndup(run_start, run_len), run_vis_width, span_style, is_space_run };
+            tokens[token_count++] = (WordWrapToken){
+                .string        = strndup(run_start, run_len),
+                .visible_width = run_vis_width,
+                .opts          = span_style,
+                .is_space      = is_space_run,
+            };
         }
     }
     *out_tokens = tokens;
@@ -360,8 +453,12 @@ static void ww_flush_sbuf(WordWrapAccum *state) {
         free((char *)state->spans[--state->span_count].text);
     }
     flush_tline((TLineFlush){
-        &state->lines, &state->line_capacity, &state->line_count,
-        state->spans, state->span_count, state->span_width
+        .out_lines    = &state->lines,
+        .out_capacity = &state->line_capacity,
+        .out_count    = &state->line_count,
+        .spans        = state->spans,
+        .span_count   = state->span_count,
+        .visible_width = state->span_width,
     });
     state->span_count = 0; state->span_width = 0;
 }
@@ -375,7 +472,7 @@ static void ww_push_span(WordWrapAccum *state, char *text, size_t vis_w, ScTextS
         state->span_capacity = state->span_capacity ? state->span_capacity * 2 : 8;
         state->spans = realloc(state->spans, state->span_capacity * sizeof(TSpan));
     }
-    state->spans[state->span_count++] = (TSpan){ text, opts };
+    state->spans[state->span_count++] = (TSpan){ .text = text, .opts = opts };
     state->span_width += vis_w;
 }
 
