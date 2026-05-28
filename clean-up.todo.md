@@ -50,9 +50,9 @@
 
 ## Rules
 
-- [ ] tests/test_rules.c
-- [ ] include/sparcli_rule.h
-- [ ] src/rule.c
+- [x] tests/test_rules.c
+- [x] include/sparcli_rule.h
+- [x] src/rule.c
 
 ## Trees
 
