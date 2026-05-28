@@ -77,3 +77,5 @@ void sc_markup_println(const char *markup);
  * Same as `sc_markup_print_opts` followed by `\\n`.
  */
 void sc_markup_println_opts(const char *markup, ScMarkupOpts opts);
+
+SPARCLI_END_DECLS
