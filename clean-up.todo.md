@@ -68,9 +68,9 @@
 
 ## Progress Bar & Animated Progress Bar
 
-- [ ] tests/test_progressbar.c
-- [ ] include/sparcli_progressbar.h
-- [ ] src/progressbar.c
+- [x] tests/test_progressbar.c
+- [x] include/sparcli_progressbar.h
+- [x] src/progressbar.c
 
 ## Spinner & Animated Spinner
 
