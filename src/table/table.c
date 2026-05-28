@@ -1,13 +1,24 @@
-#include "sparcli.h"         // IWYU pragma: export
-#include "internal.h"        // IWYU pragma: export
-#include "table_internal.h"  // IWYU pragma: export
-#include "table_print.c"     // IWYU pragma: export
+#include "sparcli.h"
+#include "table/table_internal.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 
-typedef struct {
+/** Initial capacity used when growing the column array. */
+#define INITIAL_COLUMN_CAPACITY 4
+
+/** Initial capacity used when growing a row array. */
+#define INITIAL_ROW_CAPACITY 8
+
+
+/**
+ * Aliases the dynamic row array within `ScTableData` (either the data rows
+ * block or the footer rows block), so the row-append helpers can work on
+ * either without code duplication.
+ */
+typedef struct RowBlock {
     TRow **rows;
     size_t *count;
     size_t *capacity;
@@ -15,37 +26,19 @@ typedef struct {
 
 
 // Forward declarations indented to reflect call hierarchy
-
-ScTableData *sc_table_new(void);
-
-void sc_table_add_column(ScTableData *table_data, const char *header, ScColOpts col);
-    static void *dynarray_grow(
-        void *array,
-        size_t *current_capacity,
-        size_t element_size,
-        size_t initial_capacity
-    );
-
-void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t n);
-void sc_table_add_row_bg(
-    ScTableData *table_data, ScCell *cells, size_t n, ScColor bg
+static void *dynarray_grow(
+    void *array, size_t *capacity_in_out,
+    size_t element_size, size_t initial_capacity
 );
-void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n);
-    static void add_row(
-        ScTableData *table_data,
-        ScCell *cells,
-        size_t cell_count,
-        ScColor bg,
-        bool to_footer
-    );
-        static RowBlock get_row_block(ScTableData *table_data, bool to_footer);
-        static void grow_rows_array(RowBlock *row_block);
 
-void sc_table_print(const ScTableData *table_data, ScTableOpts opts);
+static void add_row(
+    ScTableData *table_data, ScCell *cells, size_t cell_count,
+    ScColor bg, bool to_footer
+);
+    static RowBlock get_row_block(ScTableData *table_data, bool to_footer);
+    static void grow_row_block(RowBlock *block);
 
-
-void sc_table_free(ScTableData *table_data);
-    static void free_row(TRow *row);
+static void free_row(TRow *row);
     static void free_row_array(TRow *rows, size_t count);
 
 
@@ -64,139 +57,37 @@ ScTableData *sc_table_new(void) {
 }
 
 void sc_table_add_column(
-    ScTableData *table_data, const char *header, ScColOpts col
+    ScTableData *table_data, const char *header, ScColOpts col_opts
 ) {
-    // Ensure there is enough capacity for the new column, growing if necessary
     if (table_data->column_count == table_data->column_capacity) {
         table_data->columns = dynarray_grow(
-            table_data->columns, &table_data->column_capacity, sizeof(TCol), 4
+            table_data->columns, &table_data->column_capacity,
+            sizeof(TCol), INITIAL_COLUMN_CAPACITY
         );
     }
 
-    // Add the new column with the provided header and options
-    table_data->columns[table_data->column_count].header =
-        header ? strdup(header) : NULL;
-    table_data->columns[table_data->column_count].opts   = col;
-    table_data->columns[table_data->column_count].width  = 0;
+    size_t slot = table_data->column_count;
+    table_data->columns[slot].header = header ? strdup(header) : NULL;
+    table_data->columns[slot].opts = col_opts;
+    table_data->columns[slot].width = 0;
     table_data->column_count++;
 }
 
-
-/**
- * @brief Grows a dynamic array by doubling its capacity.
- *
- * @param array            Pointer to the existing array or `NULL`.
- * @param current_capacity Current allocated capacity; updated in place.
- * @param element_size     Size of a single element in bytes.
- * @param initial_capacity Capacity to allocate when the array is empty.
- * @return                 Pointer to the reallocated array.
- */
-static void *dynarray_grow(
-    void *array,
-    size_t *current_capacity,
-    size_t element_size,
-    size_t initial_capacity
-) {
-    // Double the capacity or set to initial_capacity if currently zero.
-    if (*current_capacity == 0) {
-        *current_capacity = initial_capacity;
-    }
-    else {
-        *current_capacity *= 2;
-    }
-
-    // Reallocate the array to the new capacity, abort on failure
-    void *tmp = realloc(array, *current_capacity * element_size);
-    if (!tmp) {
-        abort();
-    }
-    return tmp;
-}
-
-
-void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t n) {
-    add_row(table_data, cells, n, SC_ANSI_COLOR_NONE, false);
+void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t cell_count) {
+    add_row(table_data, cells, cell_count, SC_ANSI_COLOR_NONE, false);
 }
 
 void sc_table_add_row_bg(
-    ScTableData *table_data, ScCell *cells, size_t n, ScColor bg
+    ScTableData *table_data, ScCell *cells, size_t cell_count, ScColor bg
 ) {
-    add_row(table_data, cells, n, bg, false);
+    add_row(table_data, cells, cell_count, bg, false);
 }
 
-void sc_table_add_footer_row(ScTableData *table_data, ScCell *cells, size_t n) {
-    add_row(table_data, cells, n, SC_ANSI_COLOR_NONE, true);
-}
-
-/**
- * Appends a row to either the data or footer section of the table.
- *
- * Grows the target array if needed, then copies the cells and sets the
- * row background color. Shared implementation for `sc_table_add_row`,
- * `sc_table_add_row_bg` and `sc_table_add_footer_row`.
- *
- * @param table_data  Table to modify.
- * @param cells       Array of cells; one entry per column.
- * @param cell_count  Number of elements in `cells`.
- * @param bg          Row background color; `SC_ANSI_COLOR_NONE` for none.
- * @param to_footer   `true` to append to the footer section, `false` for
- *                    data rows.
- */
-static void add_row(
-    ScTableData *table_data,
-    ScCell *cells,
-    size_t cell_count,
-    ScColor bg,
-    bool to_footer
+void sc_table_add_footer_row(
+    ScTableData *table_data, ScCell *cells, size_t cell_count
 ) {
-    RowBlock row_block = get_row_block(table_data, to_footer);
-    grow_rows_array(&row_block);
-
-    // Determine the address of the new row and initialize it
-    TRow *row = &(*row_block.rows)[(*row_block.count)++];
-    row->ncols = table_data->column_count;
-    row->bg    = bg;
-    row->cells = malloc(table_data->column_count * sizeof(ScCell));
-
-    // Copy provided cells into the new row, filling remaining cells with
-    // empty content
-    for (size_t i = 0; i < table_data->column_count; i++) {
-        row->cells[i] = (i < cell_count) ? cells[i] : sc_cell("");
-    }
+    add_row(table_data, cells, cell_count, SC_ANSI_COLOR_NONE, true);
 }
-
-/**
- * Returns a `RowBlock` struct containing pointers to the appropriate row array,
- * count and capacity based on whether the target is the main rows block or the
- * footer rows block.
- */
-static RowBlock get_row_block(ScTableData *table_data, bool to_footer) {
-    if(to_footer) {
-        return (RowBlock){
-            .rows = &table_data->footer_rows,
-            .count = &table_data->footer_row_count,
-            .capacity = &table_data->footer_rows_capacity
-        };
-    } else {
-        return (RowBlock){
-            .rows = &table_data->rows,
-            .count = &table_data->row_count,
-            .capacity = &table_data->row_capacity
-        };
-    }
-}
-
-/**
- * Checks if the row array has reached its capacity and grows it if necessary.
- */
-static void grow_rows_array(RowBlock *row_block) {
-    if (*row_block->count == *row_block->capacity) {
-        *row_block->rows = dynarray_grow(
-            *row_block->rows, row_block->capacity, sizeof(TRow), 8
-        );
-    }
-}
-
 
 void sc_table_free(ScTableData *table_data) {
     for (size_t i = 0; i < table_data->column_count; i++) {
@@ -208,31 +99,101 @@ void sc_table_free(ScTableData *table_data) {
     free(table_data);
 }
 
+
 /**
- * Frees all resources owned by a single row.
+ * Doubles the capacity of a dynamic array (or sets it to `initial_capacity`
+ * when currently zero) and reallocates the storage. Aborts on allocation
+ * failure.
+ */
+static void *dynarray_grow(
+    void *array, size_t *capacity_in_out,
+    size_t element_size, size_t initial_capacity
+) {
+    if (*capacity_in_out == 0) {
+        *capacity_in_out = initial_capacity;
+    } else {
+        *capacity_in_out *= 2;
+    }
+
+    void *tmp = realloc(array, *capacity_in_out * element_size);
+    if (!tmp) { abort(); }
+    return tmp;
+}
+
+/**
+ * Appends one row to either the data section or the footer section.
  *
- * Releases the `ScText` of every `SC_CELL_MARKUP` cell, then frees the
+ * Grows the target array on demand, then copies the cells and the row
+ * background color. Cells beyond `cell_count` are filled with empty cells
+ * so every row has exactly `column_count` cells.
+ *
+ * @param table_data  Table to modify.
+ * @param cells       Array of cells; one entry per column.
+ * @param cell_count  Number of elements in `cells`.
+ * @param bg          Row background color; `SC_ANSI_COLOR_NONE` for none.
+ * @param to_footer   `true` to append to the footer section,
+ *                    `false` for the data section.
+ */
+static void add_row(
+    ScTableData *table_data, ScCell *cells, size_t cell_count,
+    ScColor bg, bool to_footer
+) {
+    RowBlock block = get_row_block(table_data, to_footer);
+    grow_row_block(&block);
+
+    TRow *row = &(*block.rows)[(*block.count)++];
+    row->ncols = table_data->column_count;
+    row->bg = bg;
+    row->cells = malloc(table_data->column_count * sizeof(ScCell));
+
+    for (size_t i = 0; i < table_data->column_count; i++) {
+        row->cells[i] = (i < cell_count) ? cells[i] : sc_cell("");
+    }
+}
+
+/**
+ * Returns the row array, count and capacity pointers for the requested
+ * section so `add_row` can operate on either block uniformly.
+ */
+static RowBlock get_row_block(ScTableData *table_data, bool to_footer) {
+    if (to_footer) {
+        return (RowBlock){
+            .rows = &table_data->footer_rows,
+            .count = &table_data->footer_row_count,
+            .capacity = &table_data->footer_rows_capacity,
+        };
+    }
+    return (RowBlock){
+        .rows = &table_data->rows,
+        .count = &table_data->row_count,
+        .capacity = &table_data->row_capacity,
+    };
+}
+
+/** Grows the row array referenced by `block` when it has reached capacity. */
+static void grow_row_block(RowBlock *block) {
+    if (*block->count == *block->capacity) {
+        *block->rows = dynarray_grow(
+            *block->rows, block->capacity,
+            sizeof(TRow), INITIAL_ROW_CAPACITY
+        );
+    }
+}
+
+/**
+ * Releases the `ScText` of every `SC_CELL_MARKUP` cell and frees the
  * cells array. Does not free the `TRow` struct itself.
- *
- * @param row Pointer to the row to free.
  */
 static void free_row(TRow *row) {
-    for (size_t j = 0; j < row->ncols; j++) {
-        if (row->cells[j].kind == SC_CELL_MARKUP && row->cells[j].text) {
-            sc_text_free(row->cells[j].text);
+    for (size_t i = 0; i < row->ncols; i++) {
+        if (row->cells[i].kind == SC_CELL_MARKUP && row->cells[i].text) {
+            sc_text_free(row->cells[i].text);
         }
     }
     free(row->cells);
 }
 
-/**
- * Frees an array of rows and the array itself.
- *
- * Calls `free_row` on each element, then frees the array pointer.
- *
- * @param rows  Pointer to the row array; may be `NULL`.
- * @param count Number of rows in the array.
- */
+/** Frees an array of rows and the array allocation itself. */
 static void free_row_array(TRow *rows, size_t count) {
     for (size_t i = 0; i < count; i++) {
         free_row(&rows[i]);

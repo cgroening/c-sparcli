@@ -1,7 +1,15 @@
 CC      = cc
 CFLAGS  = -std=c11 -Wall -Wextra -Iinclude -Isrc
 
-SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c src/table/table.c src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
+SRC     = src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c \
+          src/table/table.c \
+          src/table/table_print.c \
+          src/table/table_print_init.c \
+          src/table/table_print_render.c \
+          src/table/table_print_render_cell.c \
+          src/table/table_print_render_border.c \
+          src/table/table_print_render_row.c \
+          src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
 BUILDDIR = build.nosync
 OBJ     = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 LIB     = libsparcli.a
