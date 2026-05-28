@@ -92,9 +92,9 @@
 
 ## Utilities
 
-- [ ] tests/test_util.c
-- [ ] include/sparcli_util.h
-- [ ] src/util.c
+- [x] tests/test_util.c
+- [x] include/sparcli_util.h
+- [x] src/util.c
 
 ## Padding
 
