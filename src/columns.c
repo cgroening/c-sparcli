@@ -191,12 +191,19 @@ void sc_rendered_free(ScRendered *rendered) {
  */
 static ScRendered *buffer_to_rendered(const char *buffer, size_t size) {
     ScRendered *rendered = malloc(sizeof(ScRendered));
+    if (!rendered) { return NULL; }
     rendered->line_count = 0;
     rendered->max_column_width = 0;
 
     size_t capacity = INITIAL_LINE_CAPACITY;
     rendered->lines = malloc(capacity * sizeof(char *));
     rendered->column_widths = malloc(capacity * sizeof(int));
+    if (!rendered->lines || !rendered->column_widths) {
+        free(rendered->lines);
+        free(rendered->column_widths);
+        free(rendered);
+        return NULL;
+    }
 
     const char *cursor = buffer;
     const char *end = buffer + size;

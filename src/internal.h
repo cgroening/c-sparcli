@@ -14,6 +14,23 @@ void sc_apply_colors(ScColor fg, ScColor bg);
 void sc_apply_style (ScTextAttribute style);
 
 
+/* ── Shared capacity constants ──────────────────────────────────────────── */
+
+/**
+ * Default initial capacity for dynamic arrays. Picked as a sensible
+ * middle ground between immediate-resize overhead (too small) and wasted
+ * memory for small collections (too large).
+ *
+ * Modules with hot paths that benefit from a larger initial size define
+ * their own constant locally — but the default for new code is to use
+ * this value.
+ */
+#define SC_INITIAL_CAPACITY 8
+
+/** Doubling factor used by every dynamic-array grower. */
+#define SC_GROWTH_FACTOR 2
+
+
 /* ── Shared render-time span / line types ───────────────────────────────── */
 
 /**
@@ -24,8 +41,12 @@ void sc_apply_style (ScTextAttribute style);
  * owned by the surrounding `ScRenderLine`.
  */
 typedef struct ScRenderSpan {
-    /** UTF-8 string content; no ANSI codes. */
-    const char *text;
+    /**
+     * Heap-allocated UTF-8 string; owned by the surrounding `ScRenderLine`.
+     * Non-`const` because the line takes ownership and is responsible for
+     * freeing it.
+     */
+    char *text;
 
     /** Style applied at render time. */
     ScTextStyle style;

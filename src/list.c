@@ -319,7 +319,8 @@ static void format_marker_value(
     int number = index + 1;
     switch (list->opts.marker) {
     case SC_LIST_BULLET:
-        strcpy(buffer, get_bullet_char(&list->opts));
+        snprintf(buffer, MARKER_VALUE_BUFFER, "%s",
+                 get_bullet_char(&list->opts));
         break;
     case SC_LIST_NUMBER:
         snprintf(buffer, MARKER_VALUE_BUFFER, "%d", number);
@@ -343,7 +344,13 @@ static void format_marker_value(
 
 /**
  * Writes the Roman-numeral representation of `number` into `buffer`,
- * using uppercase letters when `uppercase` is `true`.
+ * using uppercase letters when `uppercase` is `true`. `buffer` must hold
+ * at least `MARKER_VALUE_BUFFER` bytes (enough for any practical roman
+ * numeral; the longest cluster within `int` range is < 20 chars).
+ *
+ * Uses position-tracked `snprintf` so we never run past the buffer end —
+ * unlike the previous `strcpy`/`strcat` version which silently relied on
+ * the caller-provided buffer being large enough.
  */
 static void to_roman(int number, char *buffer, bool uppercase) {
     static const struct {
@@ -360,14 +367,25 @@ static void to_roman(int number, char *buffer, bool uppercase) {
         {    1, "I",  "i"  }, {   0, NULL, NULL },
     };
 
-    buffer[0] = '\0';
     if (number <= 0) {
-        strcpy(buffer, "0");
+        snprintf(buffer, MARKER_VALUE_BUFFER, "0");
         return;
     }
+
+    size_t position = 0;
     for (int i = 0; table[i].value > 0; i++) {
+        const char *literal = uppercase ? table[i].upper : table[i].lower;
         while (number >= table[i].value) {
-            strcat(buffer, uppercase ? table[i].upper : table[i].lower);
+            int written = snprintf(
+                buffer + position, MARKER_VALUE_BUFFER - position,
+                "%s", literal
+            );
+            if (written < 0
+                || (size_t)written >= MARKER_VALUE_BUFFER - position) {
+                /* Would overflow the buffer — stop gracefully. */
+                return;
+            }
+            position += (size_t)written;
             number -= table[i].value;
         }
     }

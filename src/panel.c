@@ -180,9 +180,18 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
  */
 static void split_text_into_panel_lines(Panel *panel) {
     ParseBuf buf = {
-        .spans = malloc(8 * sizeof(ScRenderSpan)), .span_capacity = 8,
-        .lines = malloc(8 * sizeof(ScRenderLine)), .line_capacity = 8,
+        .spans = malloc(SC_INITIAL_CAPACITY * sizeof(ScRenderSpan)),
+        .span_capacity = SC_INITIAL_CAPACITY,
+        .lines = malloc(SC_INITIAL_CAPACITY * sizeof(ScRenderLine)),
+        .line_capacity = SC_INITIAL_CAPACITY,
     };
+    if (!buf.spans || !buf.lines) {
+        free(buf.spans);
+        free(buf.lines);
+        panel->lines = NULL;
+        panel->line_count = 0;
+        return;
+    }
 
     for (size_t si = 0; si < panel->text->count; si++) {
         scan_source_span(&buf, &panel->text->spans[si]);
@@ -566,7 +575,7 @@ static void panel_cleanup(Panel *panel) {
 static void free_lines(ScRenderLine *lines, size_t count) {
     for (size_t i = 0; i < count; i++) {
         for (size_t j = 0; j < lines[i].count; j++) {
-            free((char *)lines[i].spans[j].text);
+            free(lines[i].spans[j].text);
         }
         free(lines[i].spans);
     }

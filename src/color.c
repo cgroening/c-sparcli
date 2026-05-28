@@ -26,6 +26,24 @@ ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b) {
 
 /* ── Functional variants of the SC_ANSI_COLOR_* macros ──────────────────── */
 
+/**
+ * Single shared instance of `ScAnsiColorNs`. Declared `extern` in the
+ * public header so all consumers (including FFI bindings) link to the
+ * same object.
+ */
+const ScAnsiColorNs ScAnsiColorNs_ = {
+    .NONE    = SC_ANSI_COLOR_NONE,
+    .BLACK   = SC_ANSI_COLOR_BLACK,
+    .RED     = SC_ANSI_COLOR_RED,
+    .GREEN   = SC_ANSI_COLOR_GREEN,
+    .YELLOW  = SC_ANSI_COLOR_YELLOW,
+    .BLUE    = SC_ANSI_COLOR_BLUE,
+    .MAGENTA = SC_ANSI_COLOR_MAGENTA,
+    .CYAN    = SC_ANSI_COLOR_CYAN,
+    .WHITE   = SC_ANSI_COLOR_WHITE,
+};
+
+
 ScColor sc_color_none(void)    { return SC_ANSI_COLOR_NONE; }
 ScColor sc_color_black(void)   { return SC_ANSI_COLOR_BLACK; }
 ScColor sc_color_red(void)     { return SC_ANSI_COLOR_RED; }

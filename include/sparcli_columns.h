@@ -85,9 +85,14 @@ ScColumns *sc_columns_new(ScColumnsOpts opts);
 /**
  * Captures a table and appends it as a column.
  *
+ * The table is rendered into a temporary buffer **at call time** and the
+ * resulting frozen rendering is stored. The caller may freely modify or
+ * free `table` afterwards — the columns layout no longer references it.
+ *
  * @param columns  Layout the column is appended to.
- * @param table    Table data; not owned by the columns layout.
- * @param opts     Table rendering options.
+ * @param table    Source table; rendered at call time, then no longer
+ *                 referenced.
+ * @param opts     Table rendering options (passed by value).
  * @param item     Per-column options.
  */
 SPARCLI_EXPORT void sc_columns_add_table(
@@ -97,30 +102,28 @@ SPARCLI_EXPORT void sc_columns_add_table(
 
 /**
  * Captures a plain-string panel and appends it as a column.
+ *
+ * Same snapshot semantics as `sc_columns_add_table`: the panel is
+ * rendered into a frozen buffer at call time, `content` is no longer
+ * referenced after the call.
  */
 SPARCLI_EXPORT void sc_columns_add_panel_str(
     ScColumns *columns, const char *content,
     ScPanelOpts opts, ScColItem item
 );
 
-/**
- * Captures a rich-text panel and appends it as a column.
- */
+/** Same snapshot semantics as `sc_columns_add_panel_str`. */
 SPARCLI_EXPORT void sc_columns_add_panel_text(
     ScColumns *columns, const ScText *content,
     ScPanelOpts opts, ScColItem item
 );
 
-/**
- * Captures rich text and appends it as a column.
- */
+/** Same snapshot semantics as `sc_columns_add_table`; captures `text`. */
 SPARCLI_EXPORT void sc_columns_add_text(
     ScColumns *columns, const ScText *text, ScColItem item
 );
 
-/**
- * Captures a plain string and appends it as a column.
- */
+/** Same snapshot semantics as `sc_columns_add_table`; captures `str`. */
 SPARCLI_EXPORT void sc_columns_add_str(
     ScColumns *columns, const char *str, ScColItem item
 );
@@ -128,23 +131,19 @@ SPARCLI_EXPORT void sc_columns_add_str(
 /**
  * Captures a nested columns layout and appends it as a column.
  *
- * The nested layout is captured at call time; later modifications to
- * `nested` have no effect.
+ * The nested layout is rendered into a frozen buffer at call time; later
+ * modifications to `nested` have no effect on the captured snapshot.
  */
 SPARCLI_EXPORT void sc_columns_add_columns(
     ScColumns *columns, const ScColumns *nested, ScColItem item
 );
 
-/**
- * Captures a tree and appends it as a column.
- */
+/** Same snapshot semantics as `sc_columns_add_table`; captures `tree`. */
 SPARCLI_EXPORT void sc_columns_add_tree(
     ScColumns *columns, const ScTree *tree, ScColItem item
 );
 
-/**
- * Captures a list and appends it as a column.
- */
+/** Same snapshot semantics as `sc_columns_add_table`; captures `list`. */
 SPARCLI_EXPORT void sc_columns_add_list(
     ScColumns *columns, const ScList *list, ScColItem item
 );

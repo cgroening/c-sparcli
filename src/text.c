@@ -33,7 +33,9 @@ void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
         sc_text->spans = spans;
         sc_text->capacity = new_capacity;
     }
-    sc_text->spans[sc_text->count].raw_str = strdup(raw_str);
+    char *copy = strdup(raw_str);
+    if (!copy) { return; }
+    sc_text->spans[sc_text->count].raw_str = copy;
     sc_text->spans[sc_text->count].style = style;
     sc_text->count++;
 }

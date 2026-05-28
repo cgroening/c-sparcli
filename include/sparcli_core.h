@@ -62,15 +62,11 @@ typedef struct {
 /**
  * Pre-initialized instance of `ScTextAttributeNs`.
  *
- * The trailing `_` distinguishes the instance from its type `ScTextAttributeNs`.
+ * The trailing `_` distinguishes the instance from its type
+ * `ScTextAttributeNs`. Declared `extern` so every translation unit sees
+ * the same object (and FFI bindings can resolve the symbol).
  */
-static const ScTextAttributeNs ScTextAttributeNs_ = {
-    .NONE   = SC_TEXT_ATTR_NONE,
-    .BOLD   = SC_TEXT_ATTR_BOLD,
-    .DIM    = SC_TEXT_ATTR_DIM,
-    .ITALIC = SC_TEXT_ATTR_ITALIC,
-    .UNDER  = SC_TEXT_ATTR_UNDER
-};
+SPARCLI_EXPORT extern const ScTextAttributeNs ScTextAttributeNs_;
 
 /**
  * ScColor Struct - Represents a terminal color, either as a named ANSI color
@@ -115,19 +111,11 @@ typedef struct {
 /**
  * Pre-initialized instance of `ScAnsiColorNs`.
  *
- * The trailing `_` distinguishes the instance from its type `ScAnsiColorNs`.
+ * The trailing `_` distinguishes the instance from its type
+ * `ScAnsiColorNs`. Declared `extern` so every translation unit shares the
+ * same object (and FFI bindings can resolve the symbol).
  */
-static const ScAnsiColorNs ScAnsiColorNs_ = {
-    .NONE    = SC_ANSI_COLOR_NONE,
-    .BLACK   = SC_ANSI_COLOR_BLACK,
-    .RED     = SC_ANSI_COLOR_RED,
-    .GREEN   = SC_ANSI_COLOR_GREEN,
-    .YELLOW  = SC_ANSI_COLOR_YELLOW,
-    .BLUE    = SC_ANSI_COLOR_BLUE,
-    .MAGENTA = SC_ANSI_COLOR_MAGENTA,
-    .CYAN    = SC_ANSI_COLOR_CYAN,
-    .WHITE   = SC_ANSI_COLOR_WHITE,
-};
+SPARCLI_EXPORT extern const ScAnsiColorNs ScAnsiColorNs_;
 
 /**
  * ScTextStyle Struct - Combines text attributes and colors for terminal output.

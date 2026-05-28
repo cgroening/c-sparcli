@@ -13,3 +13,11 @@ FILE *sc_output_stream(void) {
 void sc_set_output(FILE *out) {
     current_output = out;
 }
+
+void sc_with_output(FILE *out, void (*fn)(void *ctx), void *ctx) {
+    if (!fn) { return; }
+    FILE *saved = current_output;
+    current_output = out;
+    fn(ctx);
+    current_output = saved;
+}

@@ -13,8 +13,10 @@ static void print_example_row(ExampleGroup example);
 static void print_example(const Example example, const int spaces_after);
 
 
-static ScTextAttributeNs attr = ScTextAttributeNs_;
-static ScAnsiColorNs clr = ScAnsiColorNs_;
+static const ScTextAttributeNs *attr_ns = &ScTextAttributeNs_;
+static const ScAnsiColorNs *clr_ns = &ScAnsiColorNs_;
+#define attr (*attr_ns)
+#define clr (*clr_ns)
 
 
 /**

@@ -309,20 +309,67 @@ typedef struct ScTableOpts {
 
 typedef struct ScTableData ScTableData;
 
-ScTableData *sc_table_new(void);
+/**
+ * Allocates an empty table. Free with `sc_table_free`.
+ *
+ * @return  Heap-allocated table; `NULL` on allocation failure.
+ */
+SPARCLI_EXPORT ScTableData *sc_table_new(void);
+
+/**
+ * Appends a column with the given header and per-column options.
+ *
+ * @param table     Target table; no-op when `NULL`.
+ * @param header    Column header string; copied internally; may be `NULL`.
+ * @param col_opts  Per-column display options.
+ *
+ * @note `header` is `strdup`-ed; the caller may free it immediately
+ * after this call returns.
+ */
 SPARCLI_EXPORT void sc_table_add_column(
     ScTableData *table, const char *header, ScColOpts col_opts
 );
+
+/**
+ * Appends a data row. The cells are copied into the table.
+ *
+ * @param table       Target table; no-op when `NULL`.
+ * @param cells       Cell array; one entry per column. Cells beyond
+ *                    `cell_count` are filled with empty cells.
+ * @param cell_count  Number of valid entries in `cells`.
+ *
+ * @note For `SC_CELL_STR` and `SC_CELL_TEXT` cells the table stores the
+ * original pointers (`ScCell.str` is `const char *`; `ScCell.text` is
+ * `ScText *`). Those strings/objects must outlive the next
+ * `sc_table_print`. For `SC_CELL_MARKUP` cells the table takes
+ * ownership of the parsed `ScText`.
+ */
 SPARCLI_EXPORT void sc_table_add_row(
     ScTableData *table, ScCell *cells, size_t cell_count
 );
+
+/** Same as `sc_table_add_row`, but sets an explicit row background. */
 SPARCLI_EXPORT void sc_table_add_row_bg(
     ScTableData *table, ScCell *cells, size_t cell_count, ScColor bg
 );
+
+/** Appends a footer row; same ownership rules as `sc_table_add_row`. */
 SPARCLI_EXPORT void sc_table_add_footer_row(
     ScTableData *table, ScCell *cells, size_t cell_count
 );
+
+/**
+ * Renders `table` to the current output stream.
+ *
+ * @param table  Borrowed table; not retained or modified.
+ * @param opts   Rendering options (passed by value).
+ */
 SPARCLI_EXPORT void sc_table_print(const ScTableData *table, ScTableOpts opts);
+
+/**
+ * Frees `table` and any owned cells (including the `ScText` of
+ * `SC_CELL_MARKUP` cells). Safe to call with `NULL`.
+ */
 SPARCLI_EXPORT void sc_table_free(ScTableData *table);
 
 SPARCLI_END_DECLS

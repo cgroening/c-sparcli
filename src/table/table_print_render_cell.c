@@ -177,7 +177,7 @@ size_t count_cell_lines(
 void free_tlines(ScRenderLine *lines, size_t line_count) {
     for (size_t i = 0; i < line_count; i++) {
         for (size_t j = 0; j < lines[i].count; j++) {
-            free((char *)lines[i].spans[j].text);
+            free(lines[i].spans[j].text);
         }
         free(lines[i].spans);
     }
@@ -498,7 +498,7 @@ static void flush_wrapped_line(LineBuilder *builder) {
         && builder->spans[builder->span_count - 1].text[0] == ' ') {
         builder->span_width -=
             strlen(builder->spans[builder->span_count - 1].text);
-        free((char *)builder->spans[--builder->span_count].text);
+        free(builder->spans[--builder->span_count].text);
     }
     lb_finalize_line(builder);
 }
