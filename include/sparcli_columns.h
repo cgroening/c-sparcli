@@ -8,36 +8,163 @@
 #include "sparcli_tree.h"
 #include "sparcli_list.h"
 
-typedef struct {
-    int      min_w;
-    int      max_w;
-    int      fixed_w;
-    ScHAlign  align;      /* content placement when col_w > content_w */
-    bool     valign_set; /* override ScColumnsOpts.valign for this column */
+
+/**
+ * Per-column options passed alongside a captured widget.
+ *
+ * Width priority: `fixed_w` (when `> 0`) overrides `min_w`/`max_w`;
+ * otherwise the natural content width is clamped to `[min_w, max_w]`
+ * when those are set.
+ */
+typedef struct ScColItem {
+    /** Minimum column width in columns; `0` = no minimum. */
+    int min_w;
+
+    /** Maximum column width in columns; `0` = no maximum. */
+    int max_w;
+
+    /** Fixed column width; `0` = auto. Overrides `min_w`/`max_w` when `> 0`. */
+    int fixed_w;
+
+    /** Horizontal placement of the content when the column is wider. */
+    ScHAlign align;
+
+    /** When `true`, `valign` overrides `ScColumnsOpts.valign` for this column. */
+    bool valign_set;
+
+    /** Vertical alignment override; effective only when `valign_set` is `true`. */
     ScVAlign valign;
-    ScColor  bg;          /* background color for padding and empty slots; SC_ANSI_COLOR_NONE = none */
-    bool     stretch;     /* expand panel border to fill full column height */
+
+    /**
+     * Background color filling padding spaces and empty slots; zero-init =
+     * no color. Does not affect the captured widget content itself.
+     */
+    ScColor bg;
+
+    /** When `true`, extend the captured panel to the full column height. */
+    bool stretch;
 } ScColItem;
 
-typedef struct {
-    int           gap;         /* spaces between columns, default 3 */
-    ScBorderStyle  sep;         /* separator style, color, and bg; zero-init = none */
-    ScVAlign      valign;
-    int           total_width; /* 0 = auto; >0 = scale flex cols to fit */
-    ScEdges       margin;      /* outer margin (top/right/bottom/left) */
+/**
+ * Layout options applied to a `ScColumns` container.
+ */
+typedef struct ScColumnsOpts {
+    /**
+     * Space between columns; default `3` without a separator, `2` with one
+     * (added on both sides of the separator).
+     */
+    int gap;
+
+    /** Separator style, color and bg; zero-init = no separator. */
+    ScBorderStyle sep;
+
+    /** Default vertical alignment per column; overridable per `ScColItem`. */
+    ScVAlign valign;
+
+    /** `0` = auto; `>0` = distribute width across flex columns. */
+    int total_width;
+
+    /** Outer margin (top/right/bottom/left). */
+    ScEdges margin;
 } ScColumnsOpts;
 
+/** Opaque columns container; build with `sc_columns_new`. */
 typedef struct ScColumns ScColumns;
 
-ScColumns *sc_columns_new         (ScColumnsOpts opts);
-void sc_columns_add_table         (ScColumns *cl, const ScTableData *table_data, ScTableOpts opts, ScColItem item);
-void sc_columns_add_panel_str     (ScColumns *cl, const char      *content, ScPanelOpts opts, ScColItem item);
-void sc_columns_add_panel_text    (ScColumns *cl, const ScText    *content, ScPanelOpts opts, ScColItem item);
-void sc_columns_add_text          (ScColumns *cl, const ScText    *t,       ScColItem item);
-void sc_columns_add_str           (ScColumns *cl, const char      *s,       ScColItem item);
-void sc_columns_add_columns       (ScColumns *cl, const ScColumns *nested,  ScColItem item);
-void sc_columns_add_tree          (ScColumns *cl, const ScTree    *tree,    ScColItem item);
-void sc_columns_add_list          (ScColumns *cl, const ScList    *list,    ScColItem item);
-void sc_columns_add_rendered      (ScColumns *cl, const ScRendered *r,      ScColItem item);
-void sc_columns_print             (const ScColumns *cl);
-void sc_columns_free              (ScColumns *cl);
+
+/**
+ * Allocates an empty columns layout.
+ *
+ * @param opts  Layout options.
+ * @return      Heap-allocated layout; free with `sc_columns_free`.
+ */
+ScColumns *sc_columns_new(ScColumnsOpts opts);
+
+/**
+ * Captures a table and appends it as a column.
+ *
+ * @param columns  Layout the column is appended to.
+ * @param table    Table data; not owned by the columns layout.
+ * @param opts     Table rendering options.
+ * @param item     Per-column options.
+ */
+void sc_columns_add_table(
+    ScColumns *columns, const ScTableData *table,
+    ScTableOpts opts, ScColItem item
+);
+
+/**
+ * Captures a plain-string panel and appends it as a column.
+ */
+void sc_columns_add_panel_str(
+    ScColumns *columns, const char *content,
+    ScPanelOpts opts, ScColItem item
+);
+
+/**
+ * Captures a rich-text panel and appends it as a column.
+ */
+void sc_columns_add_panel_text(
+    ScColumns *columns, const ScText *content,
+    ScPanelOpts opts, ScColItem item
+);
+
+/**
+ * Captures rich text and appends it as a column.
+ */
+void sc_columns_add_text(
+    ScColumns *columns, const ScText *text, ScColItem item
+);
+
+/**
+ * Captures a plain string and appends it as a column.
+ */
+void sc_columns_add_str(
+    ScColumns *columns, const char *str, ScColItem item
+);
+
+/**
+ * Captures a nested columns layout and appends it as a column.
+ *
+ * The nested layout is captured at call time; later modifications to
+ * `nested` have no effect.
+ */
+void sc_columns_add_columns(
+    ScColumns *columns, const ScColumns *nested, ScColItem item
+);
+
+/**
+ * Captures a tree and appends it as a column.
+ */
+void sc_columns_add_tree(
+    ScColumns *columns, const ScTree *tree, ScColItem item
+);
+
+/**
+ * Captures a list and appends it as a column.
+ */
+void sc_columns_add_list(
+    ScColumns *columns, const ScList *list, ScColItem item
+);
+
+/**
+ * Appends an already-captured `ScRendered` as a column.
+ *
+ * The columns layout makes a deep copy, so the caller may free `rendered`
+ * immediately after.
+ */
+void sc_columns_add_rendered(
+    ScColumns *columns, const ScRendered *rendered, ScColItem item
+);
+
+/**
+ * Renders the columns layout to stdout.
+ */
+void sc_columns_print(const ScColumns *columns);
+
+/**
+ * Frees `columns`, all its captured entries and any owned strings.
+ *
+ * @param columns  Layout to free; safe to pass `NULL`.
+ */
+void sc_columns_free(ScColumns *columns);

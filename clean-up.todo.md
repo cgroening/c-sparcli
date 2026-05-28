@@ -115,10 +115,10 @@
 
 ## Columns (Basic)
 
-- [ ] tests/test_columns_basic.c
-- [ ] include/sparcli_columns.h
-- [ ] src/columns.c
+- [x] tests/test_columns_basic.c
+- [x] include/sparcli_columns.h
+- [x] src/columns.c
 
 ## Columns (Advanced)
 
-- [ ] tests/test_columns.c
+- [x] tests/test_columns.c
