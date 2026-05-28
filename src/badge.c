@@ -1,76 +1,145 @@
 #include "sparcli.h"
 #include "internal.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-/* zero-initialised ScTextStyle = "no formatting" sentinel (same as list.c / kv.c) */
-static int opts_has_format(ScTextStyle o) {
-    return o.attr != 0 || o.fg.index != 0 || o.fg.r || o.fg.g || o.fg.b
-                        || o.bg.index != 0 || o.bg.r || o.bg.g || o.bg.b;
-}
+/** Default left cap when `opts.left_cap` is `NULL`. */
+#define DEFAULT_LEFT_CAP "["
 
-/* Build the composed badge string lcap+pad+text+pad+rcap into buf (size >= total).
-   Returns the byte length written (not including NUL). */
-static size_t badge_build(char *buf, const char *lcap, const char *rcap,
-                           const char *text, int pad) {
-    size_t lcap_len = strlen(lcap);
-    size_t rcap_len = strlen(rcap);
-    size_t text_len = text ? strlen(text) : 0;
+/** Default right cap when `opts.right_cap` is `NULL`. */
+#define DEFAULT_RIGHT_CAP "]"
 
-    size_t pos = 0;
-    memcpy(buf + pos, lcap, lcap_len); pos += lcap_len;
-    for (int i = 0; i < pad; i++) { buf[pos++] = ' '; }
-    if (text) { memcpy(buf + pos, text, text_len); pos += text_len; }
-    for (int i = 0; i < pad; i++) { buf[pos++] = ' '; }
-    memcpy(buf + pos, rcap, rcap_len); pos += rcap_len;
-    buf[pos] = '\0';
-    return pos;
-}
+/**
+ * Stack buffer size for the composed badge string; allocations happen only
+ * when the badge exceeds this length.
+ */
+#define STACK_BUFFER_SIZE 512
 
-/* ── Public API ──────────────────────────────────────────────────────────── */
+
+/** Resolved badge inputs for one call. */
+typedef struct Badge {
+    /** Badge text; may be `NULL`. */
+    const char *text;
+
+    /** Resolved left cap (never `NULL`). */
+    const char *left_cap;
+
+    /** Resolved right cap (never `NULL`). */
+    const char *right_cap;
+
+    /** Spaces inserted inside each cap; clamped to `>= 0`. */
+    int pad;
+
+    /** Style applied to the badge as a whole. */
+    ScTextStyle style;
+} Badge;
+
+
+// Forward declarations indented to reflect call hierarchy
+static Badge resolve_badge(const char *text, ScBadgeOpts opts);
+static size_t compute_buffer_size(const Badge *self);
+static size_t compose_badge_string(const Badge *self, char *buffer);
+static bool style_has_format(ScTextStyle style);
+
 
 void sc_print_badge(const char *text, ScBadgeOpts opts) {
-    const char *lcap = opts.left_cap  ? opts.left_cap  : "[";
-    const char *rcap = opts.right_cap ? opts.right_cap : "]";
-    int         pad  = opts.pad > 0   ? opts.pad       : 0;
+    Badge self = resolve_badge(text, opts);
+    size_t buffer_size = compute_buffer_size(&self);
 
-    size_t total = strlen(lcap) + (size_t)pad + (text ? strlen(text) : 0)
-                 + (size_t)pad + strlen(rcap) + 1;
+    char stack_buffer[STACK_BUFFER_SIZE];
+    char *buffer = (buffer_size <= sizeof(stack_buffer))
+        ? stack_buffer : malloc(buffer_size);
+    if (!buffer) { return; }
 
-    char  stack[512];
-    char *buf = (total <= sizeof(stack)) ? stack : malloc(total);
-    if (!buf) { return; }
+    compose_badge_string(&self, buffer);
 
-    badge_build(buf, lcap, rcap, text, pad);
-
-    if (opts_has_format(opts.text_opts)) {
-        sc_apply_colors(opts.text_opts.fg, opts.text_opts.bg);
-        fputs(buf, stdout);
-        fputs("\033[0m", stdout);
+    if (style_has_format(self.style)) {
+        sc_apply_colors(self.style.fg, self.style.bg);
+        fputs(buffer, stdout);
+        fputs(SC_ANSI_ESCAPE_CODE_RESET, stdout);
     } else {
-        fputs(buf, stdout);
+        fputs(buffer, stdout);
     }
 
-    if (buf != stack) { free(buf); }
+    if (buffer != stack_buffer) { free(buffer); }
 }
 
-void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts) {
-    const char *lcap = opts.left_cap  ? opts.left_cap  : "[";
-    const char *rcap = opts.right_cap ? opts.right_cap : "]";
-    int         pad  = opts.pad > 0   ? opts.pad       : 0;
+void sc_text_append_badge(
+    ScText *text_obj, const char *text, ScBadgeOpts opts
+) {
+    Badge self = resolve_badge(text, opts);
+    size_t buffer_size = compute_buffer_size(&self);
 
-    size_t total = strlen(lcap) + (size_t)pad + (text ? strlen(text) : 0)
-                 + (size_t)pad + strlen(rcap) + 1;
+    char stack_buffer[STACK_BUFFER_SIZE];
+    char *buffer = (buffer_size <= sizeof(stack_buffer))
+        ? stack_buffer : malloc(buffer_size);
+    if (!buffer) { return; }
 
-    char  stack[512];
-    char *buf = (total <= sizeof(stack)) ? stack : malloc(total);
-    if (!buf) { return; }
+    compose_badge_string(&self, buffer);
+    sc_text_append(text_obj, buffer, self.style);
 
-    badge_build(buf, lcap, rcap, text, pad);
-    sc_text_append(t, buf, opts.text_opts);
+    if (buffer != stack_buffer) { free(buffer); }
+}
 
-    if (buf != stack) { free(buf); }
+
+/** Resolves caps and pad defaults into a `Badge`. */
+static Badge resolve_badge(const char *text, ScBadgeOpts opts) {
+    return (Badge){
+        .text = text,
+        .left_cap = opts.left_cap ? opts.left_cap : DEFAULT_LEFT_CAP,
+        .right_cap = opts.right_cap ? opts.right_cap : DEFAULT_RIGHT_CAP,
+        .pad = opts.pad > 0 ? opts.pad : 0,
+        .style = opts.text_style,
+    };
+}
+
+/** Returns the buffer size needed for the composed string (including `\\0`). */
+static size_t compute_buffer_size(const Badge *self) {
+    size_t left_length = strlen(self->left_cap);
+    size_t right_length = strlen(self->right_cap);
+    size_t text_length = self->text ? strlen(self->text) : 0;
+    return left_length + (size_t)self->pad + text_length
+        + (size_t)self->pad + right_length + 1;
+}
+
+/**
+ * Writes `left_cap + pad×' ' + text + pad×' ' + right_cap + '\\0'` into
+ * `buffer`. Returns the byte length written (excluding the terminator).
+ */
+static size_t compose_badge_string(const Badge *self, char *buffer) {
+    size_t left_length = strlen(self->left_cap);
+    size_t right_length = strlen(self->right_cap);
+    size_t text_length = self->text ? strlen(self->text) : 0;
+
+    size_t position = 0;
+    memcpy(buffer + position, self->left_cap, left_length);
+    position += left_length;
+
+    for (int i = 0; i < self->pad; i++) { buffer[position++] = ' '; }
+
+    if (self->text) {
+        memcpy(buffer + position, self->text, text_length);
+        position += text_length;
+    }
+
+    for (int i = 0; i < self->pad; i++) { buffer[position++] = ' '; }
+
+    memcpy(buffer + position, self->right_cap, right_length);
+    position += right_length;
+
+    buffer[position] = '\0';
+    return position;
+}
+
+/**
+ * Returns `true` when `style` carries any formatting; zero-initialized
+ * `ScTextStyle` returns `false`.
+ */
+static bool style_has_format(ScTextStyle style) {
+    return style.attr != 0
+        || style.fg.index != 0 || style.fg.r || style.fg.g || style.fg.b
+        || style.bg.index != 0 || style.bg.r || style.bg.g || style.bg.b;
 }

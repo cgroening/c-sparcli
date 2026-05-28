@@ -86,9 +86,9 @@
 
 ## Badges
 
-- [ ] tests/test_badge.c
-- [ ] include/sparcli_badge.h
-- [ ] src/badge.c
+- [x] tests/test_badge.c
+- [x] include/sparcli_badge.h
+- [x] src/badge.c
 
 ## Utilities
 
