@@ -37,8 +37,8 @@
 
 ## Tables
 
-- [ ] tests/test_tables.c
-- [ ] include/sparcli_table.h
+- [x] tests/test_tables.c
+- [x] include/sparcli_table.h
 - [x] src/table/table.c
 - [x] src/table/table_print.c
 - [x] src/table/table_print_init.c
@@ -46,7 +46,7 @@
 - [x] src/table/table_print_render_border.c
 - [x] src/table/table_print_render_cell.c
 - [x] src/table/table_print_render_row.c
-- [ ] src/table/table_internal.h
+- [x] src/table/table_internal.h
 
 ## Rules
 
