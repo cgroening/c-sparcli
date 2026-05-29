@@ -174,6 +174,7 @@ ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg);
 ScRendered *sc_select_frame(ScSelect *select);
 ScRendered *sc_fuzzy_frame(ScFuzzy *fuzzy, const char *query);
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);
+ScRendered *sc_textarea_frame(const char *prompt, const char *content, ScTextareaOpts opts);
 
 
 /* ── Theme merge (theme.c): fills zero-init opts from the global theme ───── */

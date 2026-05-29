@@ -91,16 +91,8 @@ static void move_vertical(Textarea *a, int dir) {
 
 /* ── Render ─────────────────────────────────────────────────────────────── */
 
-static ScRendered *ta_render(void *state) {
-    Textarea *a = state;
-    ScText *t = sc_text_new();
-    if (!t) { return NULL; }
-
-    if (a->prompt) {
-        sc_text_append(t, a->prompt, a->opts.prompt_style);
-        sc_text_append(t, "\n", (ScTextStyle){ 0 });
-    }
-
+/** Appends the multi-line content (cursor cell marked, newlines preserved). */
+static void append_content(const Textarea *a, ScText *t) {
     ScTextStyle cur = sc_style_set(a->opts.cursor_style) ? a->opts.cursor_style
         : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_WHITE };
 
@@ -108,31 +100,84 @@ static ScRendered *ta_render(void *state) {
         sc_text_append(t, " ", cur);
         sc_text_append(t, a->opts.placeholder,
             (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
-    } else {
-        /* Walk the buffer, marking the cursor cell and preserving newlines. */
-        size_t i = 0;
-        while (i < a->len) {
-            if (a->buf[i] == '\n') {
-                if (i == a->cursor) { sc_text_append(t, " ", cur); }
-                sc_text_append(t, "\n", (ScTextStyle){ 0 });
-                i++;
-                continue;
-            }
-            size_t e = next_b(a->buf, a->len, i);
-            char g[8]; memcpy(g, a->buf + i, e - i); g[e - i] = '\0';
-            sc_text_append(t, g, (i == a->cursor) ? cur : a->opts.value_style);
-            i = e;
-        }
-        if (a->cursor == a->len) { sc_text_append(t, " ", cur); }  /* trailing */
+        return;
     }
+    size_t i = 0;
+    while (i < a->len) {
+        if (a->buf[i] == '\n') {
+            if (i == a->cursor) { sc_text_append(t, " ", cur); }
+            sc_text_append(t, "\n", (ScTextStyle){ 0 });
+            i++;
+            continue;
+        }
+        size_t e = next_b(a->buf, a->len, i);
+        char g[8]; memcpy(g, a->buf + i, e - i); g[e - i] = '\0';
+        sc_text_append(t, g, (i == a->cursor) ? cur : a->opts.value_style);
+        i = e;
+    }
+    if (a->cursor == a->len) { sc_text_append(t, " ", cur); }  /* trailing */
+}
 
-    sc_append_hint(t, a->opts.hint ? a->opts.hint
-                   : "ctrl-d submit \xc2\xb7 enter newline \xc2\xb7 esc cancel",
-                   a->opts.hide_hint, a->opts.hint_style);
+static const char *ta_hint(const Textarea *a) {
+    return a->opts.hint ? a->opts.hint
+        : "ctrl-d submit \xc2\xb7 enter newline \xc2\xb7 esc cancel";
+}
 
+/** Inline: prompt line, content, footer. */
+static ScRendered *render_inline(const Textarea *a) {
+    ScText *t = sc_text_new();
+    if (!t) { return NULL; }
+    if (a->prompt) {
+        sc_text_append(t, a->prompt, a->opts.prompt_style);
+        sc_text_append(t, "\n", (ScTextStyle){ 0 });
+    }
+    append_content(a, t);
+    sc_append_hint(t, ta_hint(a), a->opts.hide_hint, a->opts.hint_style);
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
     return r;
+}
+
+/** Boxed: content inside a panel (prompt = top title), footer stacked below. */
+static ScRendered *render_boxed(const Textarea *a) {
+    ScText *inner = sc_text_new();
+    if (!inner) { return NULL; }
+    append_content(a, inner);
+
+    ScPanelOpts opts = {
+        .border        = a->opts.border,
+        .title         = { .text = a->prompt, .style = a->opts.prompt_style,
+                           .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+        .padding       = { .left = 1, .right = 1 },
+        .content_align = SC_ALIGN_LEFT,
+    };
+    if (opts.border.type == SC_BORDER_NONE) { opts.border.type = SC_BORDER_ROUNDED; }
+    if (a->opts.width > 0) { opts.width = a->opts.width; } else { opts.full_width = true; }
+
+    ScRendered *panel = sc_capture_panel_text(inner, opts);
+    sc_text_free(inner);
+    if (!panel) { return NULL; }
+    if (a->opts.hide_hint) { return panel; }
+
+    ScText *ft = sc_text_new();
+    if (!ft) { return panel; }
+    ScTextStyle hs = sc_style_set(a->opts.hint_style) ? a->opts.hint_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    sc_text_append(ft, ta_hint(a), hs);
+    ScRendered *foot = sc_capture_text(ft);
+    sc_text_free(ft);
+    if (!foot) { return panel; }
+
+    const ScRendered *parts[2] = { panel, foot };
+    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    sc_rendered_free(panel);
+    sc_rendered_free(foot);
+    return stacked;
+}
+
+static ScRendered *ta_render(void *state) {
+    Textarea *a = state;
+    return a->opts.boxed ? render_boxed(a) : render_inline(a);
 }
 
 static void ta_on_key(void *state, ScKey key, bool *done, bool *cancel) {
@@ -188,4 +233,19 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
     }
     free(a.buf);
     return status;
+}
+
+ScRendered *sc_textarea_frame(
+    const char *prompt, const char *content, ScTextareaOpts opts
+) {
+    Textarea a = { .prompt = prompt, .opts = opts };
+    size_t n = content ? strlen(content) : 0;
+    a.cap = n + 1;
+    a.buf = malloc(a.cap);
+    if (!a.buf) { return NULL; }
+    if (n) { memcpy(a.buf, content, n); }
+    a.buf[n] = '\0'; a.len = n; a.cursor = n;
+    ScRendered *r = ta_render(&a);
+    free(a.buf);
+    return r;
 }

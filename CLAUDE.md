@@ -633,6 +633,8 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   formatted to `decimals` places.
 - **Textarea** (`textarea.c`, self-contained multi-line buffer): Enter inserts a
   newline, Ctrl-D submits, arrows move across lines/cols, Home/End within a line.
+  `boxed = true` renders the editor inside a panel (prompt = top title, footer
+  stacked below); `border`/`width` as for text input.
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
   move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` /
   `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the

@@ -37,6 +37,7 @@ int main(void) {
     printf("\n");
     rule("Confirm");      style_confirm();    rule(NULL); printf("\n");
     rule("Text / Password"); style_text();    rule(NULL); printf("\n");
+    rule("Textarea");        style_textarea(); rule(NULL); printf("\n");
     rule("Select");       style_select();     rule(NULL); printf("\n");
     rule("Fuzzy Finder"); style_fuzzy();      rule(NULL); printf("\n");
     rule("Date Picker");  style_datepicker(); rule(NULL); printf("\n");

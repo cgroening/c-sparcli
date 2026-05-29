@@ -117,6 +117,7 @@ INPUT_TEST_BIN = tests/input/logic/test_input_main
 STYLE_TEST_SRC = tests/input/style/test_style_main.c \
                  tests/input/style/test_style_confirm.c \
                  tests/input/style/test_style_text.c \
+                 tests/input/style/test_style_textarea.c \
                  tests/input/style/test_style_select.c \
                  tests/input/style/test_style_fuzzy.c \
                  tests/input/style/test_style_datepicker.c

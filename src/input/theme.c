@@ -77,6 +77,7 @@ void sc_theme_apply_textarea(ScTextareaOpts *o) {
     m_style(&o->cursor_style, t.cursor_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
+    m_border(&o->border, t.border);
     o->hide_hint = o->hide_hint || t.hide_hint;
 }
 
