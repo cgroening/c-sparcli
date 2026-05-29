@@ -242,13 +242,15 @@ test-input-pty: $(SANITIZE_LIB)
 	    $(LDFLAGS) $(SANITIZE_FLAGS) $(PTY_LDLIBS) -o $(PTY_TEST_BIN)
 	./$(PTY_TEST_BIN) $(ARGS)
 
-# C++ wrapper gate: compiles examples/cpp_demo.cpp against include/sparcli.hpp
-# with the C++20 toolchain and runs it headless. Guards the header from
-# silently breaking when the C API changes. Needs a C++ compiler.
+# C++ wrapper gate (needs a C++ compiler). Compiles the example (so it never
+# bit-rots) and builds + runs the assertion suite, which verifies the wrapper's
+# ownership/lifetime guarantees and that it renders like the C API.
 CPP_DEMO_BIN = $(EXAMPLES_BUILDDIR)/cpp_demo
+CPP_TEST_BIN = $(EXAMPLES_BUILDDIR)/test_cpp
 test-cpp: $(LIB) | $(EXAMPLES_BUILDDIR)
 	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
-	./$(CPP_DEMO_BIN) </dev/null
+	$(CXX) $(CXXFLAGS) tests/cpp/test_cpp.cpp $(LIB) $(LDFLAGS) -o $(CPP_TEST_BIN)
+	./$(CPP_TEST_BIN)
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.
 # Uses a separate build tree and a separate .a so it never contaminates the
