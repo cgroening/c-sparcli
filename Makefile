@@ -41,6 +41,7 @@ SRC     = src/output.c src/version.c src/text_attributes.c src/print.c src/panel
           src/table/table_print_render_cell.c \
           src/table/table_print_render_border.c \
           src/table/table_print_render_row.c \
+          src/render_wrap.c \
           src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))

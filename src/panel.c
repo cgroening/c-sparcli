@@ -1,6 +1,7 @@
 #include "sparcli.h"
 #include "text_internal.h"
 #include "internal.h"
+#include "render_wrap.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -107,6 +108,8 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts);
     static void resolve_panel_spacing(Panel *panel);
     static void compute_max_line_width(Panel *panel);
     static void compute_inner_width(Panel *panel);
+        static int panel_title_min_width(const Panel *panel);
+    static void wrap_panel_content(Panel *panel);
     static void create_line_view_template(Panel *panel);
     static void resolve_horizontal_border_lines(Panel *panel);
         static HBorder make_hborder(Panel *panel, ScPosition position);
@@ -169,6 +172,7 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
     resolve_panel_spacing(panel);
     compute_max_line_width(panel);
     compute_inner_width(panel);
+    wrap_panel_content(panel);
     create_line_view_template(panel);
     resolve_horizontal_border_lines(panel);
 }
@@ -300,7 +304,6 @@ static void compute_max_line_width(Panel *panel) {
 static void compute_inner_width(Panel *panel) {
     ScPanelOpts opts = panel->opts;
     ScSpacing   sp   = panel->spacing;
-    const char *title_text = opts.title.text;
 
     int w;
     if (opts.full_width) {
@@ -308,16 +311,71 @@ static void compute_inner_width(Panel *panel) {
     } else if (opts.width > 0) {
         w = opts.width - 2;
     } else {
-        int title_len = title_text
-            ? (int)sc_utf8_string_length(title_text, strlen(title_text))
-            : 0;
-        int title_min_width = title_text
-            ? title_len + 2 * opts.title.pad + 2 : 0;
+        int title_min_width = panel_title_min_width(panel);
         int from_content = (int)panel->max_line_width
             + sp.padding.left + sp.padding.right;
-        w = from_content > title_min_width ? from_content : title_min_width;
+        int natural = from_content > title_min_width
+            ? from_content : title_min_width;
+        // Never let an auto-sized panel grow past the terminal; content is
+        // wrapped to fit by wrap_panel_content afterwards.
+        int cap = sc_terminal_width() - 2 - sp.margin.left - sp.margin.right;
+        w = natural < cap ? natural : cap;
     }
     panel->inner_width = w < 2 ? 2 : w;
+}
+
+/**
+ * Returns the minimum inner width required to display the title inline
+ * (title length + padding on both sides + one dash per corner), or 0 when
+ * the panel has no title.
+ */
+static int panel_title_min_width(const Panel *panel) {
+    const char *title_text = panel->opts.title.text;
+    if (!title_text) { return 0; }
+    int title_len = (int)sc_utf8_string_length(title_text, strlen(title_text));
+    int pad = panel->opts.title.pad > 0 ? panel->opts.title.pad : 0;
+    return title_len + 2 * pad + 2;
+}
+
+/**
+ * Word-wraps content lines that are wider than the interior content area so
+ * they never overflow the border. When the panel is auto-sized, the frame is
+ * then shrunk back to the widest wrapped line (it is never grown past the
+ * target computed by `compute_inner_width`).
+ */
+static void wrap_panel_content(Panel *panel) {
+    int content_width = panel->inner_width
+        - panel->spacing.padding.left - panel->spacing.padding.right;
+    if (content_width < 1) { content_width = 1; }
+
+    bool any_over = false;
+    for (size_t i = 0; i < panel->line_count; i++) {
+        if ((int)panel->lines[i].visible_width > content_width) {
+            any_over = true;
+            break;
+        }
+    }
+    if (!any_over) { return; }
+
+    size_t new_count;
+    ScRenderLine *wrapped = sc_wrap_render_lines(
+        panel->lines, panel->line_count, content_width, &new_count
+    );
+    free_lines(panel->lines, panel->line_count);
+    panel->lines = wrapped;
+    panel->line_count = new_count;
+    compute_max_line_width(panel);
+
+    // Auto-sized panels snap the frame to the wrapped content width.
+    if (!panel->opts.full_width && panel->opts.width <= 0) {
+        int title_min_width = panel_title_min_width(panel);
+        int from_content = (int)panel->max_line_width
+            + panel->spacing.padding.left + panel->spacing.padding.right;
+        int snug = from_content > title_min_width
+            ? from_content : title_min_width;
+        if (snug < panel->inner_width) { panel->inner_width = snug; }
+        if (panel->inner_width < 2)    { panel->inner_width = 2; }
+    }
 }
 
 /** Builds the `PLineView` template shared by all content and empty rows. */
