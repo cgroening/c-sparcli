@@ -77,9 +77,14 @@ TEST_SRC = tests/test_main.c \
            tests/test_markup.c
 TEST_BIN = tests/test_main
 
+# Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
+EXAMPLES_BUILDDIR = build.examples.nosync
+EXAMPLES_SRC      = $(wildcard examples/*.c)
+EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SRC))
+
 HEADERS = $(wildcard include/*.h)
 
-.PHONY: all test clean install uninstall sanitize pkgconfig shared
+.PHONY: all test clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -129,6 +134,20 @@ $(SANITIZE_BUILDDIR)/%.o: src/%.c | $(SANITIZE_BUILDDIR)
 $(SANITIZE_BUILDDIR):
 	mkdir -p $(SANITIZE_BUILDDIR)
 
+# Build all example programs into EXAMPLES_BUILDDIR. Linked against the static
+# .a, same as the test binary, so they don't depend on the install path.
+examples: $(EXAMPLES_BIN)
+
+$(EXAMPLES_BUILDDIR)/%: examples/%.c $(LIB) | $(EXAMPLES_BUILDDIR)
+	$(CC) $(CFLAGS) $< $(LIB) $(LDFLAGS) -o $@
+
+$(EXAMPLES_BUILDDIR):
+	mkdir -p $(EXAMPLES_BUILDDIR)
+
+# Build & run a single example: `make run-example EX=readme_screenshots`.
+run-example: $(EXAMPLES_BUILDDIR)/$(EX)
+	./$(EXAMPLES_BUILDDIR)/$(EX)
+
 install: $(LIB) $(SHLIB) $(PC_FILE)
 	install -d "$(DESTDIR)$(LIBDIR)"
 	install -d "$(DESTDIR)$(INCLUDEDIR)"
@@ -150,7 +169,7 @@ uninstall:
 	for h in $(HEADERS); do rm -f "$(DESTDIR)$(INCLUDEDIR)/$$(basename $$h)"; done
 
 clean:
-	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) \
+	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) $(EXAMPLES_BUILDDIR) \
 	       $(LIB) $(SANITIZE_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
 	       $(PC_FILE) $(TEST_BIN) $(SANITIZE_TEST_BIN)
