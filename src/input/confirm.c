@@ -38,7 +38,7 @@ static ScRendered *confirm_render(void *state) {
         ? s->opts.unselected_style
         : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
 
-    ScTextStyle q = s->opts.question_style;
+    ScTextStyle q = s->opts.prompt_style;
     sc_text_append(t, "? ", q);
     sc_text_append(t, s->question, q);
     sc_text_append(t, "   ", (ScTextStyle){ 0 });

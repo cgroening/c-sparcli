@@ -103,18 +103,33 @@ void sc_le_render_into(
 /* ── Shared text-entry core (text_input.c) ──────────────────────────────── */
 
 /**
- * Runs a single-line text prompt. Drives both `sc_text_input` (mask == NULL)
- * and `sc_password_input` (mask != NULL).
- *
- * On `SC_INPUT_OK`, `*out` receives a heap-allocated copy of the value.
+ * Configuration for the shared single-line entry core. Drives both
+ * `sc_text_input` (mask == NULL) and `sc_password_input` (mask != NULL), and
+ * the snapshot builder. Zero-init fields select the built-in defaults.
  */
-ScInputStatus sc_text_entry(
-    const char *prompt, char **out,
-    const char *initial, const char *placeholder, const char *mask,
-    ScTextStyle prompt_style, ScTextStyle value_style, ScTextStyle cursor_style,
-    ScTextStyle error_style, ScTextStyle summary_style, bool hide_summary,
-    bool (*validate)(const char *, void *, const char **), void *validate_ctx
-);
+typedef struct {
+    const char  *prompt;
+    const char  *initial;        /* prefilled value (live) / shown value (frame) */
+    const char  *placeholder;
+    const char  *mask;           /* NULL = plain text */
+    ScTextStyle  prompt_style;
+    ScTextStyle  value_style;
+    ScTextStyle  cursor_style;   /* zero-init = black-on-white */
+    ScTextStyle  error_style;    /* zero-init = red            */
+    ScTextStyle  count_style;    /* zero-init = dim            */
+    ScTextStyle  summary_style;
+    bool         hide_summary;
+    bool         hide_char_count;
+    int          max_chars;      /* 0 = unlimited */
+    bool (*validate)(const char *, void *, const char **);
+    void        *validate_ctx;
+} ScTextEntryCfg;
+
+/**
+ * Runs a single-line text prompt. On `SC_INPUT_OK`, `*out` receives a
+ * heap-allocated copy of the value (caller frees).
+ */
+ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out);
 
 
 /* ── Snapshot frame builders (used by the non-interactive style tests) ───── */
@@ -127,11 +142,7 @@ ScInputStatus sc_text_entry(
  * `sc_rendered_free`.
  */
 ScRendered *sc_confirm_frame(const char *question, bool yes, ScConfirmOpts opts);
-ScRendered *sc_text_entry_frame(
-    const char *prompt, const char *value, const char *placeholder,
-    const char *mask, ScTextStyle prompt_style, ScTextStyle value_style,
-    ScTextStyle cursor_style
-);
+ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg);
 ScRendered *sc_select_frame(ScSelect *select);
 void        sc_select_check(ScSelect *select, size_t index, bool on);
 ScRendered *sc_fuzzy_frame(ScFuzzy *fuzzy, const char *query);

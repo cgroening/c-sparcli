@@ -21,7 +21,7 @@ typedef struct {
     bool        default_yes;      /**< Initial selection (`false` = No). */
     const char *yes_label;        /**< Label for the affirmative; `NULL` = "Yes". */
     const char *no_label;         /**< Label for the negative;    `NULL` = "No". */
-    ScTextStyle question_style;   /**< Style for the question text. */
+    ScTextStyle prompt_style;     /**< Style for the question text. */
     ScColor     accent;           /**< Highlight color of the selected option. */
     ScTextStyle selected_style;   /**< Style of the selected option; zero-init =
                                        bold black-on-`accent`. */

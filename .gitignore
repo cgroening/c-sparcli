@@ -39,8 +39,10 @@
 *.i*86
 *.x86_64
 *.hex
-tests/test_main
-tests/test_main_sanitize
+tests/output/test_main
+tests/output/test_main_sanitize
+tests/input/logic/test_input_main
+tests/input/style/test_style_main
 
 # Debug files
 *.dSYM/

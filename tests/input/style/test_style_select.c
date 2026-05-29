@@ -39,4 +39,13 @@ void style_select(void) {
     sc_select_check(c, 3, true);
     style_show("multi-select: custom check glyph, two checked", sc_select_frame(c));
     sc_select_free(c);
+
+    /* Styled prompt heading. */
+    ScSelect *d = build((ScSelectOpts){
+        .prompt = "Choose environment",
+        .prompt_style = { SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER,
+                          SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
+    }, items, n);
+    style_show("prompt_style: bold underline green heading", sc_select_frame(d));
+    sc_select_free(d);
 }

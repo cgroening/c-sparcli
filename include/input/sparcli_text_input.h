@@ -33,6 +33,12 @@ typedef struct {
     ScTextStyle  error_style;   /**< Style of the validation error line; zero-init = red. */
     ScTextStyle  summary_style; /**< Style of the persistent summary line. */
     bool         hide_summary;  /**< Suppress the post-entry summary line. */
+    int          max_chars;     /**< Max characters; 0 = unlimited (default).
+                                     When > 0 the input is capped and the counter
+                                     shows `count/max`. */
+    bool         hide_char_count;/**< Suppress the character counter (shown by
+                                     default below the field). */
+    ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
     int          width;         /**< Field width in columns; 0 = terminal width. */
     ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
     void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
@@ -63,6 +69,9 @@ typedef struct {
     ScTextStyle  error_style;   /**< Style of the validation error line; zero-init = red. */
     ScTextStyle  summary_style; /**< Style of the persistent summary line. */
     bool         hide_summary;  /**< Suppress the post-entry summary line. */
+    int          max_chars;     /**< Max characters; 0 = unlimited (default). */
+    bool         hide_char_count;/**< Suppress the character counter. */
+    ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
     ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
     void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScPasswordOpts;

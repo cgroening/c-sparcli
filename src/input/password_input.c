@@ -4,12 +4,21 @@
 ScInputStatus sc_password_input(
     const char *prompt, char **out, ScPasswordOpts opts
 ) {
-    const char *mask = opts.mask ? opts.mask : "*";
-    ScTextStyle value_style = { 0 };  /* masked glyphs use the default color */
-    return sc_text_entry(
-        prompt, out, NULL, opts.placeholder, mask,
-        opts.prompt_style, value_style, opts.cursor_style,
-        opts.error_style, opts.summary_style, opts.hide_summary,
-        opts.validate, opts.validate_ctx
-    );
+    ScTextEntryCfg cfg = {
+        .prompt          = prompt,
+        .placeholder     = opts.placeholder,
+        .mask            = opts.mask ? opts.mask : "*",
+        .prompt_style    = opts.prompt_style,
+        /* value_style stays unset: masked glyphs use the default color. */
+        .cursor_style    = opts.cursor_style,
+        .error_style     = opts.error_style,
+        .count_style     = opts.count_style,
+        .summary_style   = opts.summary_style,
+        .hide_summary    = opts.hide_summary,
+        .hide_char_count = opts.hide_char_count,
+        .max_chars       = opts.max_chars,
+        .validate        = opts.validate,
+        .validate_ctx    = opts.validate_ctx,
+    };
+    return sc_text_entry(&cfg, out);
 }

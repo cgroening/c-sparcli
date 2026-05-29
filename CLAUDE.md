@@ -582,9 +582,13 @@ void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
 ```
 
-- **TextInput/Password** share `sc_text_entry` (`text_input.c`); password is
-  the masked variant (`opts.mask`, default `"*"`). Both accept an optional
-  `validate` callback that keeps the prompt open and shows an error line.
+- **TextInput/Password** share `sc_text_entry` (`text_input.c`, configured via
+  the internal `ScTextEntryCfg`); password is the masked variant (`opts.mask`,
+  default `"*"`). Both accept an optional `validate` callback that keeps the
+  prompt open and shows an error line. A character counter is shown under the
+  field by default — `count` (no limit) or `count/max` when `max_chars > 0`,
+  which also caps input. Hide it with `hide_char_count`; style it via
+  `count_style` (default dim). Counts UTF-8 codepoints, not bytes.
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
   move, Space toggles in multi-select.
 - **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; table view builds an
@@ -601,12 +605,15 @@ unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
 "caller-supplied vs default" for each `ScTextStyle`; glyph fields fall back when
 `NULL`.
 
+- **Prompt/label:** every widget has a `prompt_style` for its prompt/heading
+  (confirm's styles the question text and the `? ` prefix). Defaults: bold in
+  `accent` (fuzzy), bold (datepicker), unstyled elsewhere.
 - **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget
   `cursor_style` (text/password/fuzzy editor cell; default black-on-white),
-  `error_style` (text/password; default red), `selected_style` (select/fuzzy
-  cursor row), `prompt_style`/`counter_style` (fuzzy), `prompt_style`/
-  `header_style`/`weekday_style`/`selected_style` (datepicker), and a
-  `summary_style` on every widget.
+  `error_style` (text/password; default red), `count_style` (text/password
+  character counter; default dim), `selected_style` (select/fuzzy cursor row),
+  `counter_style` (fuzzy), `header_style`/`weekday_style`/`selected_style`
+  (datepicker), and a `summary_style` on every widget.
 - **Glyphs:** `cursor_marker`/`marker` and `checkbox_on`/`checkbox_off`
   (select), `cursor_marker`/`marker` (fuzzy list), `header_prev`/`header_next`
   (datepicker).

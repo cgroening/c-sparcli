@@ -25,4 +25,10 @@ void style_confirm(void) {
                                   SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
             .unselected_style = { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE,
                                   SC_ANSI_COLOR_NONE } }));
+
+    /* Styled prompt (question) text. */
+    style_show("prompt_style: bold blue question",
+        sc_confirm_frame("Save changes?", true, (ScConfirmOpts){
+            .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLUE,
+                              SC_ANSI_COLOR_NONE } }));
 }

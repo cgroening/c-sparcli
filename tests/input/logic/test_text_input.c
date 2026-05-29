@@ -32,4 +32,19 @@ void test_text_input(void) {
     } else {
         printf("  → no TTY (skipped)\n");
     }
+
+    /* Capped input: the counter shows count/max and typing stops at the cap. */
+    char *code = NULL;
+    st = sc_text_input(
+        "Coupon (max 12):", &code,
+        (ScTextInputOpts){ .placeholder = "ABC-123", .max_chars = 12 }
+    );
+    if (st == SC_INPUT_OK) {
+        printf("  → got: \"%s\"\n", code);
+        free(code);
+    } else if (st == SC_INPUT_CANCELLED) {
+        printf("  → cancelled\n");
+    } else {
+        printf("  → no TTY (skipped)\n");
+    }
 }

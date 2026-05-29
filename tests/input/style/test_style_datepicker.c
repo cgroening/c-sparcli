@@ -37,4 +37,11 @@ void style_datepicker(void) {
                                 SC_ANSI_COLOR_NONE },
             .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
                                 { -1, 255, 140, 0 } } }));
+
+    /* Styled prompt heading. */
+    style_show("prompt_style: italic cyan heading",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "When?",
+            .prompt_style = { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_CYAN,
+                              SC_ANSI_COLOR_NONE } }));
 }
