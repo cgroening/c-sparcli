@@ -17,7 +17,8 @@ progress bars, and more, with **Rich-compatible inline markup**.
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Installation](#installation)
-- [Widgets](#widgets)
+- [Output widgets](#output-widgets)
+- [Input widgets](#input-widgets)
 - [Rich-compatible markup](#rich-compatible-markup)
 - [Development](#development)
 - [Roadmap](#roadmap)
@@ -30,6 +31,8 @@ progress bars, and more, with **Rich-compatible inline markup**.
 
 - **Large set of widgets**: panels, tables, rules, side-by-side columns, lists,
   trees, key/value blocks, alerts, badges, progress bars, spinners.
+- **Interactive prompts**: confirm, text/password, number, textarea, single &
+  multi select, fuzzy finder, and a date picker — each with a non-TTY fallback.
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`,
   `[rgb(120,200,255)]…[/]` — same syntax as
   [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
@@ -53,8 +56,8 @@ int main(void) {
     sc_markup_println("[bold green]Hello[/], [italic]sparcli[/]!");
 
     ScPanelOpts opts = {
-        .border  = { .style = SC_BORDER_ROUNDED },
-        .title   = { .text = " Greeting ", .align = SC_ALIGN_CENTER },
+        .border  = { .type = SC_BORDER_ROUNDED },
+        .title   = { .text = " Greeting ", .halign = SC_ALIGN_CENTER },
         .padding = { 0, 2, 0, 2 },
     };
     sc_panel_str("Welcome aboard.", opts);
@@ -115,7 +118,7 @@ cc app.c -I<prefix>/include -L<prefix>/lib -lsparcli -o app
 
 ---
 
-## Widgets
+## Output widgets
 
 A one-line summary per widget. The full reference — every type, every option,
 every macro — lives in [`docs/API.md`](docs/API.md).
@@ -141,6 +144,47 @@ every macro — lives in [`docs/API.md`](docs/API.md).
 > **Add Screenshot:** One screenshot per widget (or a single collage), showing
 > Panel, Table, Rule, Columns, List, Tree, KV, Alert, Badge, ProgressBar and
 > Spinner each in a representative state.
+
+---
+
+## Input widgets
+
+Interactive prompts that drive a real terminal in raw mode. Each returns an
+`ScInputStatus` — Esc and Ctrl-C cancel, and a non-TTY context (output piped,
+CI) returns an error so callers can fall back to a default. The full reference
+lives in [`docs/API.md`](docs/API.md#input-widgets).
+
+| Widget | Function family | What it does |
+|--------|----------------|--------------|
+| **Confirm** | `sc_confirm` | Yes/No prompt; arrow / `y` / `n` selection. |
+| **Text input** | `sc_text_input` | Single-line entry with placeholder, validation, autocomplete, char filters, optional boxed panel. |
+| **Password** | `sc_password_input` | Masked single-line entry (configurable mask glyph). |
+| **Number** | `sc_number_input` | Numeric entry with min/max/step and ↑/↓ adjustment. |
+| **Textarea** | `sc_textarea` | Multi-line entry (Ctrl-D submits) with soft-wrap. |
+| **Select** | `sc_select_*` | Single- or multi-choice list with a scrolling viewport. |
+| **Fuzzy finder** | `sc_fuzzy_*` | Incremental fuzzy search; optional table view. |
+| **Date picker** | `sc_datepicker` | Month-grid calendar; day/week/month/year navigation. |
+| **Theme** | `sc_input_set_theme` | Process-wide style defaults inherited by every input widget. |
+
+```c
+char *name = NULL;
+if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })
+        == SC_INPUT_OK) {
+    sc_markup_println("[green]Hello[/], it's nice to meet you.");
+    free(name);
+}
+```
+
+Build a runnable demo of every input widget with
+[`examples/input_demo.c`](examples/input_demo.c):
+
+```sh
+make run-example EX=input_demo
+```
+
+> **Add Screenshot:** Each input widget mid-interaction — confirm, text /
+> password, number, multi-select (with checkboxes), the fuzzy finder, and the
+> month-grid date picker.
 
 ---
 

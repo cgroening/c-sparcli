@@ -863,6 +863,207 @@ silently discard them.
 
 ---
 
+## Input Widgets
+
+Interactive prompts: confirm, text, password, number, textarea, single/multi
+select, fuzzy finder, and a date picker. Unlike the output side (which writes to
+the redirectable `sc_output_stream()`), input widgets are **tty-oriented**: they
+open `/dev/tty` (falling back to stdin/stdout), enter raw mode, read decoded
+keys, and redraw in place. Header: `input/sparcli_input.h` (included by the
+`sparcli.h` umbrella).
+
+Every widget returns an `ScInputStatus`. Esc and Ctrl-C always cancel; a
+non-TTY context (output piped, CI) returns `SC_INPUT_ERROR` so callers can fall
+back to a default. On `SC_INPUT_OK` the interactive region is erased and a
+one-line summary is printed in its place (suppress with `hide_summary`).
+
+```c
+typedef enum ScInputStatus {
+    SC_INPUT_OK = 0,    /* user confirmed a value (Enter / selection) */
+    SC_INPUT_CANCELLED, /* user aborted (Esc or Ctrl-C)               */
+    SC_INPUT_ERROR,     /* not a TTY, read error, or allocation failure */
+} ScInputStatus;
+```
+
+```c
+/* Value widgets — return ScInputStatus; out-params filled on SC_INPUT_OK. */
+ScInputStatus sc_confirm       (const char *question, bool *out, ScConfirmOpts opts);
+ScInputStatus sc_text_input    (const char *prompt, char **out, ScTextInputOpts opts);  /* *out heap; free */
+ScInputStatus sc_password_input(const char *prompt, char **out, ScPasswordOpts opts);   /* *out heap; free */
+ScInputStatus sc_number_input  (const char *prompt, double *out, ScNumberOpts opts);
+ScInputStatus sc_textarea      (const char *prompt, char **out, ScTextareaOpts opts);   /* *out heap; free */
+ScInputStatus sc_datepicker    (struct tm *io, ScDatePickerOpts opts);                  /* io in/out */
+
+/* Opaque-handle widgets — variable item count / per-run config. */
+ScSelect *sc_select_new(ScSelectOpts opts);            /* opts.multi = true → checkboxes */
+void      sc_select_add(ScSelect *s, const char *label);
+void      sc_select_set_cursor (ScSelect *s, size_t index);       /* preselect */
+void      sc_select_set_checked(ScSelect *s, size_t index, bool on);
+ScInputStatus sc_select_run(ScSelect *s, size_t *indices, size_t *count_io); /* count_io in:cap out:written */
+void      sc_select_free(ScSelect *s);
+
+ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n_cols → table view */
+void      sc_fuzzy_add    (ScFuzzy *f, const char *label);
+void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* fields[0] = match key */
+ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
+void      sc_fuzzy_free(ScFuzzy *f);
+bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
+
+/* Optional input constraints for text/password (validate keeps the prompt open). */
+typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out);
+typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
+bool sc_filter_digits  (uint32_t cp, void *ctx);   /* 0-9 */
+bool sc_filter_decimal (uint32_t cp, void *ctx);   /* 0-9 . - + */
+bool sc_filter_alpha   (uint32_t cp, void *ctx);   /* letters */
+bool sc_filter_alnum   (uint32_t cp, void *ctx);   /* letters + digits */
+bool sc_filter_no_space(uint32_t cp, void *ctx);   /* rejects whitespace */
+
+bool sc_input_available(void);   /* true when a prompt can run (a TTY is present) */
+```
+
+Most styling options are zero-init-friendly: an unset `ScTextStyle`/`ScColor`
+selects the widget's built-in default. Every widget has a `prompt_style`,
+`summary_style`/`hide_summary`, and a key-hint footer (`hint` / `hide_hint` /
+`hint_style`).
+
+### sc_confirm
+
+Yes/No question. Arrow keys / Tab / `h` / `l` move; `y`/`n` pick directly; Enter
+confirms.
+
+| Field | Description |
+|-------|-------------|
+| `default_yes` | Initial selection (`false` = No) |
+| `yes_label` / `no_label` | Button labels; `NULL` = "Yes" / "No" |
+| `accent` | Highlight color of the selected option; zero-init = green |
+| `prompt_style` | Style for the question text |
+| `selected_style` / `unselected_style` | Option styles; zero-init = bold black-on-`accent` / dim |
+| `summary_style` / `hide_summary` | Post-confirm summary line |
+| `hint` / `hide_hint` / `hint_style` | Key-hint footer |
+
+### sc_text_input / sc_password_input
+
+Single-line entry over a shared line editor (UTF-8 cursor/insert/delete/word-
+kill). Password masks each character (`mask`, default `"*"`; `""` hides length).
+
+| Field | Description |
+|-------|-------------|
+| `initial` | Pre-filled value (text only); `NULL` = empty |
+| `placeholder` | Dim hint shown while empty |
+| `mask` | Password only: glyph per char; `NULL` = `"*"` |
+| `prompt_style` / `value_style` / `cursor_style` | Styles; cursor zero-init = black-on-white |
+| `error_style` | Validation error line; zero-init = red |
+| `max_chars` | Cap on input length; `0` = unlimited |
+| `hide_char_count` / `count_style` | Character counter (`count` or `count/max`); default shown, dim |
+| `boxed` / `border` / `width` | Render inside a panel; prompt = top title, counter = bottom-right; `width` 0 = full terminal width |
+| `char_filter` / `char_filter_ctx` | Per-keystroke filter (built-ins `sc_filter_*`) |
+| `suggestions` / `n_suggestions` | Text only: dim autocomplete ghost; Tab accepts |
+| `validate` / `validate_ctx` | Validator; keeps the prompt open and shows an error line |
+| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+
+`*out` is heap-allocated on `SC_INPUT_OK` — the caller must `free()` it.
+
+### sc_number_input
+
+Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to
+`[min, max]` when `max > min`; formatted to `decimals` places.
+
+| Field | Description |
+|-------|-------------|
+| `initial` | Starting value |
+| `min` / `max` | Bounds, applied when `max > min` |
+| `step` | Up/Down increment; `0` = 1 |
+| `decimals` | Fractional digits; `0` = integer |
+| `prompt_style` / `value_style` / `cursor_style` | Styles |
+| `boxed` / `border` / `width` | Panel mode (range shown on the bottom-right border) |
+| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+
+### sc_textarea
+
+Multi-line entry: Enter inserts a newline, Ctrl-D submits, arrows move across
+lines/cols, Home/End within a line; long logical lines soft-wrap to the field
+width.
+
+| Field | Description |
+|-------|-------------|
+| `initial` | Pre-filled multi-line value |
+| `placeholder` | Dim hint shown while empty |
+| `prompt_style` / `value_style` / `cursor_style` | Styles |
+| `boxed` / `border` / `width` | Render the editor inside a panel |
+| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+
+`*out` (with embedded newlines) is heap-allocated on `SC_INPUT_OK`; free it.
+
+### sc_select (single / multi)
+
+Opaque handle (variable item count). `j/k` + arrows move; Space toggles in
+multi-select; a viewport (`max_visible`, default 10) scrolls with a dim
+`↑ first–last/total ↓` indicator. Single-select writes one index; multi-select
+writes the checked indices in display order (`*count_io` in: capacity, out:
+written).
+
+| Field | Description |
+|-------|-------------|
+| `prompt` | Heading above the list |
+| `multi` | `true` = checkbox multi-select |
+| `max_visible` | Rows shown at once; `0` = 10 |
+| `accent` | Cursor-row highlight; zero-init = cyan |
+| `prompt_style` / `selected_style` | Heading + cursor-row styles |
+| `cursor_marker` / `marker` | Cursor / other-row prefixes; `NULL` = "‣ " / "  " |
+| `checkbox_on` / `checkbox_off` | Multi only; `NULL` = "[x] " / "[ ] " |
+| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+
+### sc_fuzzy
+
+Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched
+characters are highlighted. List view by default; set `table = true` with
+`headers`/`n_cols` and add rows via `sc_fuzzy_add_row` for a table view.
+`out_index` is the chosen item's original add order.
+
+| Field | Description |
+|-------|-------------|
+| `prompt` | Search-field label; `NULL` = "Search" |
+| `max_visible` | Result rows shown; `0` = 10 |
+| `accent` | Cursor-row highlight; zero-init = cyan |
+| `table` / `headers` / `n_cols` | Table view configuration |
+| `table_opts` | Passed through to the table renderer (border, header, …) |
+| `prompt_style` / `selected_style` / `cursor_style` / `counter_style` | Styles |
+| `cursor_marker` / `marker` | List cursor / other-row prefixes |
+| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+
+### sc_datepicker
+
+Month-grid calendar. Arrows move day/week; PageUp/PageDown (or `<`/`>`) change
+month; Shift+PageUp/PageDown change year; month/year jumps keep the selected day
+(clamped, e.g. Jan 31 → Feb 28). `io` is in/out: a zeroed `struct tm` seeds
+today; on `SC_INPUT_OK` it holds the picked date.
+
+| Field | Description |
+|-------|-------------|
+| `prompt` | Heading above the calendar |
+| `week_start` | `ScWeekStart`: `SC_WEEK_START_DEFAULT` (Monday) / `_MONDAY` / `_SUNDAY` |
+| `accent` | Selected-day highlight; zero-init = cyan |
+| `prompt_style` / `header_style` / `weekday_style` / `selected_style` | Styles |
+| `header_prev` / `header_next` | Month-arrow glyphs; `NULL` = "‹" / "›" |
+| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+
+### Theme
+
+Process-wide defaults inherited by every widget for any zero-init option.
+Precedence: per-call opts > theme > built-in default.
+
+```c
+void         sc_input_set_theme(const ScInputTheme *theme);  /* NULL resets */
+ScInputTheme sc_input_theme(void);                           /* current theme */
+```
+
+`ScInputTheme` carries `accent`, `border`, the shared styles (`prompt_style`,
+`selected_style`, `cursor_style`, `count_style`, `summary_style`, `error_style`,
+`hint_style`), glyphs (`cursor_marker`, `marker`, `checkbox_on`,
+`checkbox_off`), and `hide_hint`.
+
+---
+
 ## Internal Helpers (`src/internal.h`)
 
 Not part of the public API, but useful background for contributors and
