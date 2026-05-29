@@ -161,9 +161,10 @@ make sanitize ARGS=--no-animated
 
 ### Golden-file workflow
 
-`test-output-check` and `test-input-style-check` diff the rendered bytes against
-committed snapshots (deterministic because, off a TTY, the terminal width falls
-back to 80). When you change rendering **on purpose**:
+`test-output-check`, `test-input-style-check` and the C++ `test-cpp` gate diff
+the rendered bytes against committed snapshots (deterministic because, off a
+TTY, the terminal width falls back to 80). When you change rendering **on
+purpose**:
 
 1. regenerate with `make test-output-golden`, `make test-input-style-golden`
    and/or `make test-cpp-golden`,
@@ -181,6 +182,7 @@ make test EXTRA_CFLAGS=-Werror
 # 2. If you changed rendering on purpose, regenerate + review + commit the golden:
 make test-output-golden
 make test-input-style-golden
+make test-cpp-golden                   # only if you changed the C++ wrapper
 
 # 3. Examples still build (and try the input widgets by hand):
 make examples                          # compile every examples/*.c
@@ -269,6 +271,7 @@ include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
+tests/cpp/                     C++ wrapper assertion suite + golden
 ```
 
 The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin,
@@ -305,6 +308,9 @@ ABI.
   table in `tests/input/logic/test_input_main.c` (mark it `interactive` or not).
 - **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/`
   runner, then `make test-input-style-golden`.
+- **C++ wrapper check:** add a `CHECK(...)` case to `tests/cpp/test_cpp.cpp`
+  (no Makefile change — `test-cpp` compiles that file directly); if it changes
+  the demo output, run `make test-cpp-golden`.
 
 See [`../CLAUDE.md`](../CLAUDE.md) for the full module map and type reference.
 
@@ -329,7 +335,8 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
 ## Pre-commit checklist
 
-1. `make test EXTRA_CFLAGS=-Werror` — builds clean (no warnings) and all four
+1. `make test EXTRA_CFLAGS=-Werror` — builds clean (no warnings) and all five
    headless gates pass.
 2. If you changed rendering on purpose, regenerate the affected golden file
-   (`make test-output-golden` / `make test-input-style-golden`) and commit it.
+   (`make test-output-golden` / `make test-input-style-golden` /
+   `make test-cpp-golden`) and commit it.
