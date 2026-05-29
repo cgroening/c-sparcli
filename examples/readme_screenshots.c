@@ -51,6 +51,61 @@ static void section_rule(const char *title) {
     });
 }
 
+/*
+ * Vertically stacks captured renderings into one ScRendered (top to bottom,
+ * with `gap` blank lines between parts). Consumes (frees) the input parts;
+ * the caller owns the result and frees it with sc_rendered_free.
+ */
+static ScRendered *vstack(ScRendered **parts, size_t n, int gap) {
+    size_t total = 0;
+    for (size_t i = 0; i < n; i++) {
+        total += parts[i]->line_count;
+        if (i + 1 < n) { total += (size_t)gap; }
+    }
+
+    ScRendered *out      = malloc(sizeof *out);
+    out->lines           = malloc(total * sizeof *out->lines);
+    out->column_widths   = malloc(total * sizeof *out->column_widths);
+    out->line_count      = total;
+    out->max_column_width = 0;
+
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < parts[i]->line_count; j++) {
+            out->lines[k]         = strdup(parts[i]->lines[j]);
+            out->column_widths[k] = parts[i]->column_widths[j];
+            if (parts[i]->column_widths[j] > out->max_column_width) {
+                out->max_column_width = parts[i]->column_widths[j];
+            }
+            k++;
+        }
+        if (i + 1 < n) {
+            for (int g = 0; g < gap; g++) {
+                out->lines[k]         = strdup("");
+                out->column_widths[k] = 0;
+                k++;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < n; i++) { sc_rendered_free(parts[i]); }
+    return out;
+}
+
+/* Captures a single fixed-width titled rule for use as a stacked column item. */
+static ScRendered *capture_titled_rule(
+    const char *title, ScBorderType type, ScColor color, ScTextStyle style
+) {
+    return sc_capture_rule_str(title, (ScRuleOpts){
+        .type        = type,
+        .color       = color,
+        .title.style = style,
+        .title.align = SC_ALIGN_CENTER,
+        .title.pad   = 1,
+        .width       = 46,
+    });
+}
+
 
 /* ───────────────────────────────────────────────── 1. hero collage ── */
 
@@ -157,6 +212,44 @@ static void shot_hero(void) {
         sc_columns_free(cols);
         sc_list_free(l);
         sc_table_free(t);
+    }
+
+    printf("\n");
+
+    /* Lower band: a narrow source tree on the left, a stack of rules on the
+     * right — fills the width and shows two more widgets in the collage. */
+    {
+        ScTree *tree = sc_tree_new((ScTreeOpts){
+            .type            = SC_BORDER_SINGLE,
+            .connector_color = SC_ANSI_COLOR_CYAN,
+            .indent          = 1,
+        });
+        ScTreeNode *root = sc_tree_add_str(tree, NULL, "project/", s_b_cyan, NULL, s_plain);
+        ScTreeNode *api  = sc_tree_add_str(tree, root, "api/",     s_b_cyan, NULL, s_plain);
+        sc_tree_add_str(tree, api,  "routes.c", s_plain, NULL, s_plain);
+        sc_tree_add_str(tree, api,  "auth.c",   s_plain, NULL, s_plain);
+        sc_tree_add_str(tree, root, "worker.c", s_plain, NULL, s_plain);
+        sc_tree_add_str(tree, root, "store.c",  s_plain, NULL, s_plain);
+
+        ScRendered *rules[] = {
+            capture_titled_rule("Pipeline", SC_BORDER_SINGLE, SC_ANSI_COLOR_CYAN,   s_b_cyan),
+            capture_titled_rule("Workers",  SC_BORDER_DOUBLE, SC_ANSI_COLOR_NONE,   s_b_green),
+            capture_titled_rule("Storage",  SC_BORDER_THICK,  SC_ANSI_COLOR_NONE,   s_b_yellow),
+        };
+        ScRendered *rule_stack = vstack(rules, 3, 1);
+
+        ScColumns *band = sc_columns_new((ScColumnsOpts){
+            .gap    = 3,
+            .sep    = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
+            .valign = SC_VALIGN_MIDDLE,
+        });
+        sc_columns_add_tree    (band, tree,       (ScColItem){ 0 });
+        sc_columns_add_rendered(band, rule_stack, (ScColItem){ 0 });
+        sc_columns_print(band);
+
+        sc_columns_free(band);
+        sc_rendered_free(rule_stack);
+        sc_tree_free(tree);
     }
 
     printf("\n");
