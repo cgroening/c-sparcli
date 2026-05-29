@@ -1,19 +1,28 @@
 #pragma once
-//
-// sparcli.hpp — header-only C++20 wrapper around the sparcli C API.
-//
-// Goals: RAII (no leaks / no double-free), owned strings where the C API only
-// borrows (no dangling pointers), clean call sites with little boilerplate,
-// and a `.get()` escape hatch so you can always drop down to the C API.
-//
-// Requires C++20 (designated initializers for the *Opts structs). The only
-// exception thrown is std::bad_alloc, from a constructor when the underlying
-// `sc_*_new` returns NULL; everything else is exception-free.
-//
-//   #include <sparcli.hpp>
-//   using namespace sparcli;
-//   panel("Hi", { .border = { .type = SC_BORDER_ROUNDED } });
-//
+/**
+ * @file sparcli.hpp
+ * @brief Header-only C++20 wrapper around the sparcli C API.
+ *
+ * A thin, zero-overhead layer that adds:
+ * - **RAII** owning handles (no leaks / double-free; move-only),
+ * - **owned strings/texts** where the C API only borrows (no dangling),
+ * - `std::optional` / `std::vector` returns for input prompts,
+ * - a `.get()` escape hatch back to the C API.
+ *
+ * This header documents only what the wrapper adds on top of the C API
+ * (ownership/lifetime, return semantics, exceptions); for the per-option and
+ * per-function reference see the C headers (`@see sc_*`) or `docs/API.md`.
+ *
+ * Requires C++20 (designated initializers for the `*Opts` structs). The only
+ * exception thrown is `std::bad_alloc`, from a constructor when the underlying
+ * `sc_*_new` returns NULL; everything else is exception-free.
+ *
+ * @code
+ * #include <sparcli.hpp>
+ * using namespace sparcli;
+ * panel("Hi", { .border = { .type = SC_BORDER_ROUNDED } });
+ * @endcode
+ */
 #include <sparcli.h>
 
 #include <cstdint>
@@ -94,17 +103,26 @@ namespace detail {
 inline std::string z(std::string_view s) { return std::string(s); }
 }  // namespace detail
 
-// ── Rich text (owns ScText*) ─────────────────────────────────────────────────
+/**
+ * Owning, move-only multi-span rich-text object (wraps `ScText`).
+ *
+ * The destructor frees the underlying text. All `append*` calls copy their
+ * input, so no caller string needs to outlive the call. @see sc_text_new,
+ * sc_text_append, sc_markup_parse.
+ */
 class Text {
 public:
+    /** Allocates an empty text. @throws std::bad_alloc on OOM. */
     Text() : p_(sc_text_new()) { require(); }
+    /** Allocates a text from `s` (one unstyled span). @throws std::bad_alloc */
     explicit Text(std::string_view s)
         : p_(sc_text_from_str(detail::z(s).c_str())) { require(); }
 
-    // Parse inline markup into a Text (`[bold red]…[/]`).
+    /** Parses inline markup into a Text. @throws std::bad_alloc */
     static Text markup(std::string_view m) {
         return Text(sc_markup_parse(detail::z(m).c_str()));
     }
+    /** Markup overload with parser options. @see ScMarkupOpts */
     static Text markup(std::string_view m, MarkupOpts opts) {
         return Text(sc_markup_parse_opts(detail::z(m).c_str(), opts));
     }
@@ -118,27 +136,35 @@ public:
     Text(const Text&) = delete;
     Text& operator=(const Text&) = delete;
 
+    /** Appends a styled span (string copied). @see sc_text_append */
     Text& append(std::string_view s, TextStyle st = {}) {
         sc_text_append(p_, detail::z(s).c_str(), st);
         return *this;
     }
+    /** Appends parsed markup. @see sc_markup_append */
     Text& append_markup(std::string_view m) {
         sc_markup_append(p_, detail::z(m).c_str());
         return *this;
     }
+    /** Markup append with parser options. @see sc_markup_append_opts */
     Text& append_markup(std::string_view m, MarkupOpts opts) {
         sc_markup_append_opts(p_, detail::z(m).c_str(), opts);
         return *this;
     }
+    /** Appends a styled badge token. @see sc_text_append_badge */
     Text& append_badge(std::string_view s, BadgeOpts opts = {}) {
         sc_text_append_badge(p_, detail::z(s).c_str(), opts);
         return *this;
     }
 
+    /** Prints to the current output stream. @see sc_print_text */
     void        print()          const { sc_print_text(p_); }
+    /** Max visible column width across lines. @see sc_text_visible_width */
     std::size_t visible_width()  const { return sc_text_visible_width(p_); }
+    /** Number of spans. @see sc_text_span_count */
     std::size_t span_count()     const { return sc_text_span_count(p_); }
 
+    /** Borrowed underlying `ScText*` (escape hatch to the C API); not owned. */
     ScText*       get()       { return p_; }
     const ScText* get() const { return p_; }
 
@@ -148,7 +174,12 @@ private:
     ScText* p_;
 };
 
-// ── Captured rendering (owns ScRendered*) ────────────────────────────────────
+/**
+ * Owning, move-only captured rendering of a widget (wraps `ScRendered`).
+ *
+ * Produced by the `capture::*` helpers and `vstack`; feed it to `pad`/`align`
+ * or `Columns::add`. @see sc_capture_str, sc_rendered_free.
+ */
 class Rendered {
 public:
     ~Rendered() { sc_rendered_free(p_); }
@@ -160,13 +191,16 @@ public:
     Rendered(const Rendered&) = delete;
     Rendered& operator=(const Rendered&) = delete;
 
+    /** Prints with padding. @see sc_pad_print */
     void pad(PadOpts opts)            const { sc_pad_print(p_, opts); }
+    /** Prints aligned within `w` columns. @see sc_align_print */
     void align(HAlign a, int w = 0)   const { sc_align_print(p_, a, w); }
 
+    /** Borrowed underlying `ScRendered*` (escape hatch); not owned. */
     ScRendered*       get()       { return p_; }
     const ScRendered* get() const { return p_; }
 
-    // Adopt a raw ScRendered* (from the sc_capture_* family).
+    /** Adopts ownership of a raw `ScRendered*` (e.g. from `sc_capture_*`). */
     static Rendered adopt(ScRendered* r) { return Rendered(r); }
 
 private:
@@ -176,23 +210,41 @@ private:
     ScRendered* p_;
 };
 
-// ── Table (owns ScTableData* and the strings/headers the C API borrows) ──────
+/**
+ * Owning, move-only table (wraps `ScTableData`).
+ *
+ * The C table only *borrows* cell strings, so this wrapper copies every cell
+ * string into an internal arena that lives as long as the table — passing
+ * `std::string` temporaries to `add_row` is therefore safe. Markup cells are
+ * owned by the C table itself. @see sc_table_new, sc_table_add_row.
+ */
 class Table {
 public:
-    // A single cell. Implicitly constructible from any string-like, so
-    // `t.add_row({ "a", "b" })` just works; richer cells via the helpers below.
+    /**
+     * A single table cell. Implicitly constructible from any string-like, so
+     * `t.add_row({ "a", "b" })` just works; chain `.align()/.colspan()/…` for
+     * options, or use the `cell` / `cell_markup` free helpers.
+     */
     class Cell {
     public:
         Cell(const char* s)        : str_(s) {}
         Cell(std::string s)        : str_(std::move(s)) {}
         Cell(std::string_view s)   : str_(s) {}
 
-        Cell& align(HAlign h)  { halign_set_ = true; halign_ = h; return *this; }
-        Cell& valign(VAlign v) { valign_set_ = true; valign_ = v; return *this; }
+        /** Override horizontal alignment for this cell. */
+        Cell& align(HAlign h) {
+            halign_set_ = true; halign_ = h; return *this;
+        }
+        /** Override vertical alignment for this cell. */
+        Cell& valign(VAlign v) {
+            valign_set_ = true; valign_ = v; return *this;
+        }
+        /** Span `n` columns (fill the covered positions with skip cells). */
         Cell& colspan(int n)   { col_span_ = n; return *this; }
+        /** Span `n` rows. */
         Cell& rowspan(int n)   { row_span_ = n; return *this; }
 
-        // Cell whose content is parsed as inline markup (prefer `cell_markup`).
+        /** Markup cell (prefer the `cell_markup` free helper). */
         static Cell from_markup(std::string m) {
             Cell c(std::move(m)); c.kind_ = Kind::Markup; return c;
         }
@@ -208,6 +260,7 @@ public:
         int         row_span_ = 0;
     };
 
+    /** Allocates an empty table. @throws std::bad_alloc on OOM. */
     Table()
         : p_(sc_table_new()),
           strings_(std::make_unique<std::deque<std::string>>()) {
@@ -226,28 +279,34 @@ public:
     Table(const Table&) = delete;
     Table& operator=(const Table&) = delete;
 
+    /** Adds a column. The C side copies `header`. @see sc_table_add_column */
     Table& add_column(std::string_view header, ColOpts opts = {}) {
         // The C side copies the header, so a transient c_str() is fine here;
         // only cell strings (borrowed until print) go through the arena.
         sc_table_add_column(p_, detail::z(header).c_str(), opts);
         return *this;
     }
+    /** Adds a data row; cell strings are copied into the table-owned arena. */
     Table& add_row(std::vector<Cell> cells) {
         emit(cells, Row::Data);
         return *this;
     }
+    /** Adds a data row with a background color. @see sc_table_add_row_bg */
     Table& add_row(std::vector<Cell> cells, Color bg) {
         auto sc = build(cells);
         sc_table_add_row_bg(p_, sc.data(), sc.size(), bg);
         return *this;
     }
+    /** Adds a footer row. @see sc_table_add_footer_row */
     Table& add_footer_row(std::vector<Cell> cells) {
         emit(cells, Row::Footer);
         return *this;
     }
 
+    /** Renders the table. @see sc_table_print, ScTableOpts */
     void print(TableOpts opts = {}) const { sc_table_print(p_, opts); }
 
+    /** Borrowed underlying `ScTableData*` (escape hatch); not owned. */
     ScTableData*       get()       { return p_; }
     const ScTableData* get() const { return p_; }
 
@@ -266,7 +325,7 @@ private:
         for (auto& c : cells) {
             ScCell sc = (c.kind_ == Cell::Kind::Markup)
                 ? sc_cell_from_markup(c.str_.c_str())  // table owns the ScText
-                : sc_cell_from_str(own(c.str_));        // wrapper owns the string
+                : sc_cell_from_str(own(c.str_));  // owned by the wrapper
             sc.halign_set = c.halign_set_; sc.halign = c.halign_;
             sc.valign_set = c.valign_set_; sc.valign = c.valign_;
             sc.col_span   = c.col_span_;   sc.row_span = c.row_span_;
@@ -289,26 +348,32 @@ private:
     std::unique_ptr<std::deque<std::string>> strings_;
 };
 
-// Cell helpers (free functions so call sites read `cell_markup("…")`).
+/** A plain-string table cell (chain `.align()/.colspan()/…` for options). */
 inline Table::Cell cell(std::string_view s)        { return Table::Cell(s); }
+/** A table cell whose content is parsed as inline markup. */
 inline Table::Cell cell_markup(std::string_view s)  {
     return Table::Cell::from_markup(std::string(s));
 }
 
-// ── List (owns ScList*; sub-lists and rich-text items are kept alive safely) ─
-//
-// The C list borrows any ScText passed to it, so the wrapper owns those Text
-// objects in a shared arena that lives as long as the root list (sub-lists
-// share the same arena). String items are copied by the C side, so they need
-// no special handling.
+/**
+ * Owning, move-only bulleted/numbered list (wraps `ScList`).
+ *
+ * String items are copied by the C side. The C list *borrows* any `ScText`, so
+ * the wrapper keeps rich-text items alive in a **shared text arena** that lives
+ * as long as the root list — sub-lists share that arena, so a rich item added
+ * to a sub-list stays valid until the whole list is destroyed.
+ * @see sc_list_new, sc_list_add_str, sc_list_add_text, sc_list_add_sub.
+ */
 class List {
 public:
+    /** Handle to an added item; non-owning. Use `sub()` to nest a list. */
     class Item {
     public:
-        // Attach a sub-list (owned by the parent list; shares its text arena).
+        /** Attaches a sub-list (owned by the parent; shares its text arena). */
         List sub(ListOpts opts = {}) {
             return List(sc_list_add_sub(p_, opts), /*owns=*/false, arena_);
         }
+        /** Borrowed underlying `ScListItem*` (escape hatch); not owned. */
         ScListItem* get() const { return p_; }
     private:
         friend class List;
@@ -318,6 +383,7 @@ public:
         Arena       arena_;
     };
 
+    /** Allocates an empty list. @throws std::bad_alloc on OOM. */
     explicit List(ListOpts opts = {})
         : p_(sc_list_new(opts)), owns_(true),
           arena_(std::make_shared<std::deque<Text>>()) {
@@ -339,18 +405,22 @@ public:
     List(const List&) = delete;
     List& operator=(const List&) = delete;
 
+    /** Adds a string item (copied by the C side). @see sc_list_add_str */
     Item add(std::string_view s, TextStyle st = {}) {
         return Item(sc_list_add_str(p_, detail::z(s).c_str(), st), arena_);
     }
-    // Rich item: the list takes ownership of the Text (moved into the arena).
+    /** Adds a rich item; the list takes ownership of `t`. */
     Item add(Text t) {
         arena_->push_back(std::move(t));
         return Item(sc_list_add_text(p_, arena_->back().get()), arena_);
     }
+    /** Adds a rich item from markup (owned by the list). */
     Item add_markup(std::string_view m) { return add(Text::markup(m)); }
 
+    /** Renders the list. @see sc_list_print */
     void print() const { sc_list_print(p_); }
 
+    /** Borrowed underlying `ScList*` (escape hatch); not owned. */
     ScList*       get()       { return p_; }
     const ScList* get() const { return p_; }
 
@@ -364,9 +434,17 @@ private:
     Item::Arena  arena_;
 };
 
-// ── Tree (owns ScTree*; nodes are non-owning handles) ────────────────────────
+/**
+ * Owning, move-only tree view (wraps `ScTree`).
+ *
+ * String nodes are copied by the C side. The C tree *borrows* any `ScText`, so
+ * the wrapper owns rich-text nodes in an internal arena (the stored C text
+ * pointer stays valid across a `Tree` move). Nodes are returned as non-owning
+ * handles. @see sc_tree_new, sc_tree_add_str, sc_tree_add_text.
+ */
 class Tree {
 public:
+    /** Non-owning handle to a node; pass as the `parent` of a child. */
     class Node {
     public:
         Node() : p_(nullptr) {}
@@ -376,11 +454,14 @@ public:
         ScTreeNode* p_;
     };
 
+    /** Allocates an empty tree. @throws std::bad_alloc on OOM. */
     explicit Tree(TreeOpts opts = {}) : p_(sc_tree_new(opts)) {
         if (!p_) throw std::bad_alloc();
     }
     ~Tree() { sc_tree_free(p_); }
-    Tree(Tree&& o) noexcept : p_(o.p_), texts_(std::move(o.texts_)) { o.p_ = nullptr; }
+    Tree(Tree&& o) noexcept : p_(o.p_), texts_(std::move(o.texts_)) {
+        o.p_ = nullptr;
+    }
     Tree& operator=(Tree&& o) noexcept {
         if (this != &o) {
             sc_tree_free(p_);
@@ -391,14 +472,17 @@ public:
     Tree(const Tree&) = delete;
     Tree& operator=(const Tree&) = delete;
 
+    /**
+     * Adds a string node under `parent` (a default `Node{}` adds a root).
+     * String and prefix are copied by the C side. @see sc_tree_add_str
+     */
     Node add(std::string_view s, Node parent = {}, TextStyle st = {},
              std::string_view prefix = {}, TextStyle prefix_st = {}) {
         return Node(sc_tree_add_str(
             p_, parent.get(), detail::z(s).c_str(), st,
             prefix.empty() ? nullptr : detail::z(prefix).c_str(), prefix_st));
     }
-    // Rich node: the tree borrows the ScText, so the wrapper owns it (the C
-    // text pointer stays valid across a Tree move).
+    /** Adds a rich node; the tree owns `t`. @see sc_tree_add_text */
     Node add(Text t, Node parent = {},
              std::string_view prefix = {}, TextStyle prefix_st = {}) {
         texts_.push_back(std::move(t));
@@ -406,12 +490,15 @@ public:
             p_, parent.get(), texts_.back().get(),
             prefix.empty() ? nullptr : detail::z(prefix).c_str(), prefix_st));
     }
+    /** Adds a rich node from markup (owned by the tree). */
     Node add_markup(std::string_view m, Node parent = {},
                     std::string_view prefix = {}, TextStyle prefix_st = {}) {
         return add(Text::markup(m), parent, prefix, prefix_st);
     }
+    /** Renders the tree. @see sc_tree_print */
     void print() const { sc_tree_print(p_); }
 
+    /** Borrowed underlying `ScTree*` (escape hatch); not owned. */
     ScTree*       get()       { return p_; }
     const ScTree* get() const { return p_; }
 
@@ -420,9 +507,13 @@ private:
     std::deque<Text>      texts_;   // owns ScText borrowed by the C tree
 };
 
-// ── Key/Value list (owns ScKV*; copies its strings → no lifetime worries) ────
+/**
+ * Owning, move-only key/value list (wraps `ScKV`). The C side copies both key
+ * and value, so no lifetime management is needed. @see sc_kv_new, sc_kv_add.
+ */
 class Kv {
 public:
+    /** Allocates an empty key/value list. @throws std::bad_alloc */
     explicit Kv(KVOpts opts = {}) : p_(sc_kv_new(opts)) {
         if (!p_) throw std::bad_alloc();
     }
@@ -435,12 +526,15 @@ public:
     Kv(const Kv&) = delete;
     Kv& operator=(const Kv&) = delete;
 
+    /** Adds a key/value pair (both copied). @see sc_kv_add */
     Kv& add(std::string_view key, std::string_view value) {
         sc_kv_add(p_, detail::z(key).c_str(), detail::z(value).c_str());
         return *this;
     }
+    /** Renders the list. @see sc_kv_print */
     void print() const { sc_kv_print(p_); }
 
+    /** Borrowed underlying `ScKV*` (escape hatch); not owned. */
     ScKV*       get()       { return p_; }
     const ScKV* get() const { return p_; }
 
@@ -448,9 +542,16 @@ private:
     ScKV* p_;
 };
 
-// ── Columns (owns ScColumns*; captures each added widget eagerly) ────────────
+/**
+ * Owning, move-only side-by-side layout (wraps `ScColumns`).
+ *
+ * Each `add*` call captures the widget's rendering **eagerly**, so the source
+ * widget need not outlive the columns and may be modified or destroyed after.
+ * @see sc_columns_new, sc_columns_add_table.
+ */
 class Columns {
 public:
+    /** Allocates an empty columns layout. @throws std::bad_alloc */
     explicit Columns(ColumnsOpts opts = {}) : p_(sc_columns_new(opts)) {
         if (!p_) throw std::bad_alloc();
     }
@@ -463,11 +564,15 @@ public:
     Columns(const Columns&) = delete;
     Columns& operator=(const Columns&) = delete;
 
+    /// @name Add the next column (the widget's rendering is captured eagerly).
+    /// @{
     Columns& add(const Table& t, TableOpts o = {}, ColItem it = {}) {
         sc_columns_add_table(p_, t.get(), o, it); return *this;
     }
-    Columns& add_panel(std::string_view content, PanelOpts o = {}, ColItem it = {}) {
-        sc_columns_add_panel_str(p_, detail::z(content).c_str(), o, it); return *this;
+    Columns& add_panel(std::string_view content, PanelOpts o = {},
+                       ColItem it = {}) {
+        sc_columns_add_panel_str(p_, detail::z(content).c_str(), o, it);
+        return *this;
     }
     Columns& add_panel(const Text& content, PanelOpts o = {}, ColItem it = {}) {
         sc_columns_add_panel_text(p_, content.get(), o, it); return *this;
@@ -490,9 +595,12 @@ public:
     Columns& add(const Rendered& r, ColItem it = {}) {
         sc_columns_add_rendered(p_, r.get(), it); return *this;
     }
+    /// @}
 
+    /** Renders the columns. @see sc_columns_print */
     void print() const { sc_columns_print(p_); }
 
+    /** Borrowed underlying `ScColumns*` (escape hatch); not owned. */
     ScColumns*       get()       { return p_; }
     const ScColumns* get() const { return p_; }
 
@@ -500,10 +608,15 @@ private:
     ScColumns* p_;
 };
 
-// ── Progress bar (owns ScProgressBar*) ───────────────────────────────────────
+/**
+ * Owning, move-only animated progress bar (wraps `ScProgressBar`). Allocate
+ * once, call `draw` in a loop, `finish` at the end. @see sc_progressbar_new.
+ */
 class ProgressBar {
 public:
-    explicit ProgressBar(ProgressBarOpts opts = {}) : p_(sc_progressbar_new(opts)) {
+    /** Allocates a progress bar. @throws std::bad_alloc */
+    explicit ProgressBar(ProgressBarOpts opts = {})
+        : p_(sc_progressbar_new(opts)) {
         if (!p_) throw std::bad_alloc();
     }
     ~ProgressBar() { sc_progressbar_free(p_); }
@@ -515,19 +628,33 @@ public:
     ProgressBar(const ProgressBar&) = delete;
     ProgressBar& operator=(const ProgressBar&) = delete;
 
-    void set_label(std::string_view l) { sc_progressbar_set_label(p_, detail::z(l).c_str()); }
-    void draw(double value, double max = 0.0)   { sc_progressbar_draw(p_, value, max); }
-    void finish(double value, double max = 0.0) { sc_progressbar_finish(p_, value, max); }
+    /** Sets the label (copied). @see sc_progressbar_set_label */
+    void set_label(std::string_view l) {
+        sc_progressbar_set_label(p_, detail::z(l).c_str());
+    }
+    /** Redraws in place. `max == 0` → `value` is a 0..1 ratio. */
+    void draw(double value, double max = 0.0) {
+        sc_progressbar_draw(p_, value, max);
+    }
+    /** Finalizes the bar (ends the line). @see sc_progressbar_finish */
+    void finish(double value, double max = 0.0) {
+        sc_progressbar_finish(p_, value, max);
+    }
 
+    /** Borrowed underlying `ScProgressBar*` (escape hatch); not owned. */
     ScProgressBar* get() { return p_; }
 
 private:
     ScProgressBar* p_;
 };
 
-// ── Spinner (owns ScSpinner*) ────────────────────────────────────────────────
+/**
+ * Owning, move-only animated spinner (wraps `ScSpinner`). Call `tick` in a
+ * loop, `finish` to end with a success/failure mark. @see sc_spinner_new.
+ */
 class Spinner {
 public:
+    /** Allocates a spinner with an initial label. @throws std::bad_alloc */
     explicit Spinner(std::string_view label, SpinnerOpts opts = {})
         : p_(sc_spinner_new(detail::z(label).c_str(), opts)) {
         if (!p_) throw std::bad_alloc();
@@ -541,12 +668,18 @@ public:
     Spinner(const Spinner&) = delete;
     Spinner& operator=(const Spinner&) = delete;
 
-    void set_label(std::string_view l) { sc_spinner_set_label(p_, detail::z(l).c_str()); }
+    /** Updates the label mid-animation (copied). @see sc_spinner_set_label */
+    void set_label(std::string_view l) {
+        sc_spinner_set_label(p_, detail::z(l).c_str());
+    }
+    /** Advances to the next frame. @see sc_spinner_tick */
     void tick() { sc_spinner_tick(p_); }
+    /** Ends with ✔/✖ and a final label. @see sc_spinner_finish */
     void finish(bool success, std::string_view label) {
         sc_spinner_finish(p_, success, detail::z(label).c_str());
     }
 
+    /** Borrowed underlying `ScSpinner*` (escape hatch); not owned. */
     ScSpinner* get() { return p_; }
 
 private:
@@ -554,54 +687,96 @@ private:
 };
 
 // ── Stateless output free functions ──────────────────────────────────────────
-inline void print(std::string_view s, TextStyle st = {})   { sc_print(detail::z(s).c_str(), st); }
-inline void println(std::string_view s, TextStyle st = {}) { sc_println(detail::z(s).c_str(), st); }
+// Thin wrappers over the C renderers; each takes a string_view (or Text) plus
+// the C `*Opts` struct (use C++20 designated initializers). @see sc_print etc.
 
+/** Prints styled text. @see sc_print */
+inline void print(std::string_view s, TextStyle st = {}) {
+    sc_print(detail::z(s).c_str(), st);
+}
+/** Prints styled text + newline. @see sc_println */
+inline void println(std::string_view s, TextStyle st = {}) {
+    sc_println(detail::z(s).c_str(), st);
+}
+
+/** Renders a bordered panel. @see sc_panel_str, ScPanelOpts */
 inline void panel(std::string_view content, PanelOpts opts = {}) {
     sc_panel_str(detail::z(content).c_str(), opts);
 }
+/** Panel from rich text. @see sc_panel_text */
 inline void panel(const Text& content, PanelOpts opts = {}) {
     sc_panel_text(content.get(), opts);
 }
+/** Horizontal rule with a title. @see sc_rule_str, ScRuleOpts */
 inline void rule(std::string_view title, RuleOpts opts = {}) {
     sc_rule_str(detail::z(title).c_str(), opts);
 }
+/** Title-less rule. @see sc_rule_str */
 inline void rule(RuleOpts opts = {})           { sc_rule_str(nullptr, opts); }
+/** Rule with a rich-text title. @see sc_rule_text */
 inline void rule(const Text& title, RuleOpts opts = {}) {
     sc_rule_text(title.get(), opts);
 }
+/** Prints an inline badge token (no newline). @see sc_print_badge */
 inline void badge(std::string_view text, BadgeOpts opts = {}) {
     sc_print_badge(detail::z(text).c_str(), opts);
 }
 
+/** Preset alert boxes (icon + color + border). @see sc_alert_info etc. */
 namespace alert {
-inline void info   (std::string_view c) { sc_alert_info(detail::z(c).c_str()); }
-inline void debug  (std::string_view c) { sc_alert_debug(detail::z(c).c_str()); }
-inline void warning(std::string_view c) { sc_alert_warning(detail::z(c).c_str()); }
-inline void error  (std::string_view c) { sc_alert_error(detail::z(c).c_str()); }
-inline void success(std::string_view c) { sc_alert_success(detail::z(c).c_str()); }
-inline void show(AlertType t, std::string_view c) { sc_alert_str(t, detail::z(c).c_str()); }
+inline void info(std::string_view c) { sc_alert_info(detail::z(c).c_str()); }
+inline void debug(std::string_view c) { sc_alert_debug(detail::z(c).c_str()); }
+inline void warning(std::string_view c) {
+    sc_alert_warning(detail::z(c).c_str());
+}
+inline void error(std::string_view c) { sc_alert_error(detail::z(c).c_str()); }
+inline void success(std::string_view c) {
+    sc_alert_success(detail::z(c).c_str());
+}
+inline void show(AlertType t, std::string_view c) {
+    sc_alert_str(t, detail::z(c).c_str());
+}
 }  // namespace alert
 
+/** Rich-compatible inline markup (`[bold red]…[/]`). @see sc_markup_parse. */
 namespace markup {
-inline Text parse(std::string_view m)              { return Text::markup(m); }
-inline Text parse(std::string_view m, MarkupOpts o){ return Text::markup(m, o); }
-inline void print(std::string_view m)   { sc_markup_print(detail::z(m).c_str()); }
-inline void println(std::string_view m) { sc_markup_println(detail::z(m).c_str()); }
+inline Text parse(std::string_view m) { return Text::markup(m); }
+inline Text parse(std::string_view m, MarkupOpts o) {
+    return Text::markup(m, o);
+}
+inline void print(std::string_view m) { sc_markup_print(detail::z(m).c_str()); }
+inline void println(std::string_view m) {
+    sc_markup_println(detail::z(m).c_str());
+}
 inline void println(std::string_view m, MarkupOpts o) {
     sc_markup_println_opts(detail::z(m).c_str(), o);
 }
 }  // namespace markup
 
 // ── Capture / compose ────────────────────────────────────────────────────────
+/** Renders a widget into an owning Rendered for reuse. @see sc_capture_str. */
 namespace capture {
-inline Rendered str(std::string_view s)   { return Rendered::adopt(sc_capture_str(detail::z(s).c_str())); }
-inline Rendered text(const Text& t)       { return Rendered::adopt(sc_capture_text(t.get())); }
-inline Rendered table(const Table& t, TableOpts o = {}) { return Rendered::adopt(sc_capture_table(t.get(), o)); }
-inline Rendered list(const List& l)       { return Rendered::adopt(sc_capture_list(l.get())); }
-inline Rendered tree(const Tree& t)       { return Rendered::adopt(sc_capture_tree(t.get())); }
-inline Rendered kv(const Kv& k)           { return Rendered::adopt(sc_capture_kv(k.get())); }
-inline Rendered columns(const Columns& c) { return Rendered::adopt(sc_capture_columns(c.get())); }
+inline Rendered str(std::string_view s) {
+    return Rendered::adopt(sc_capture_str(detail::z(s).c_str()));
+}
+inline Rendered text(const Text& t) {
+    return Rendered::adopt(sc_capture_text(t.get()));
+}
+inline Rendered table(const Table& t, TableOpts o = {}) {
+    return Rendered::adopt(sc_capture_table(t.get(), o));
+}
+inline Rendered list(const List& l) {
+    return Rendered::adopt(sc_capture_list(l.get()));
+}
+inline Rendered tree(const Tree& t) {
+    return Rendered::adopt(sc_capture_tree(t.get()));
+}
+inline Rendered kv(const Kv& k) {
+    return Rendered::adopt(sc_capture_kv(k.get()));
+}
+inline Rendered columns(const Columns& c) {
+    return Rendered::adopt(sc_capture_columns(c.get()));
+}
 inline Rendered panel(std::string_view content, PanelOpts o = {}) {
     return Rendered::adopt(sc_capture_panel_str(detail::z(content).c_str(), o));
 }
@@ -613,7 +788,8 @@ inline Rendered rule(std::string_view title, RuleOpts o = {}) {
 }
 }  // namespace capture
 
-// Stack several captured renderings into one column (gap blank lines between).
+/** Stacks captured renderings top-to-bottom into one column (`gap` blank lines
+ *  between). Inputs are not consumed. @see sc_vstack */
 inline Rendered vstack(const std::vector<const Rendered*>& parts, int gap = 0) {
     std::vector<const ScRendered*> raw;
     raw.reserve(parts.size());
@@ -621,31 +797,45 @@ inline Rendered vstack(const std::vector<const Rendered*>& parts, int gap = 0) {
     return Rendered::adopt(sc_vstack(raw.data(), raw.size(), gap));
 }
 
-// pad / align convenience over a string.
-inline void pad(std::string_view s, PadOpts opts)        { sc_pad_str(detail::z(s).c_str(), opts); }
-inline void align(std::string_view s, HAlign a, int w = 0) { sc_align_str(detail::z(s).c_str(), a, w); }
+/** Prints a string with padding. @see sc_pad_str */
+inline void pad(std::string_view s, PadOpts opts) {
+    sc_pad_str(detail::z(s).c_str(), opts);
+}
+/** Prints a string aligned within `w` columns. @see sc_align_str */
+inline void align(std::string_view s, HAlign a, int w = 0) {
+    sc_align_str(detail::z(s).c_str(), a, w);
+}
 
-// ── Utilities (return owned std::string) ─────────────────────────────────────
+// ── Utilities ────────────────────────────────────────────────────────────────
+/** Returns `s` with all ANSI escapes removed. @see sc_strip_ansi */
 inline std::string strip_ansi(std::string_view s) {
     char* c = sc_strip_ansi(detail::z(s).c_str());
     std::string r(c ? c : "");
     std::free(c);
     return r;
 }
+/** Truncates `s` to `max_cols` columns + `ellipsis`. @see sc_truncate */
 inline std::string truncate(std::string_view s, int max_cols,
                             std::string_view ellipsis = "…") {
-    char* c = sc_truncate(detail::z(s).c_str(), max_cols, detail::z(ellipsis).c_str());
+    char* c = sc_truncate(detail::z(s).c_str(), max_cols,
+                          detail::z(ellipsis).c_str());
     std::string r(c ? c : "");
     std::free(c);
     return r;
 }
+/** Overwrites the current terminal line in place. @see sc_clear_line */
 inline void clear_line() { sc_clear_line(); }
 
-// Redirect the (thread-local) output stream. `set_output(nullptr)` restores
-// stdout. Prefer ScopedOutput, which restores the previous stream on scope exit.
+/** Redirects the thread-local output stream; `nullptr` restores stdout. */
 inline void set_output(std::FILE* out) { sc_output_set_stream(out); }
+/** Current output stream (never NULL). @see sc_output_stream */
 inline std::FILE* output_stream()       { return sc_output_stream(); }
 
+/**
+ * RAII output redirection: routes sparcli output to `out` for the lifetime of
+ * the object and restores the previous stream on scope exit. The stream target
+ * is thread-local. @see sc_output_set_stream.
+ */
 class ScopedOutput {
 public:
     explicit ScopedOutput(std::FILE* out) : prev_(sc_output_stream()) {
@@ -658,10 +848,17 @@ private:
     std::FILE* prev_;
 };
 
-// ── Input widgets (return std::optional; nullopt = cancelled or no TTY) ──────
+// ── Input widgets ────────────────────────────────────────────────────────────
+// Each returns std::optional / std::vector; the result is empty (std::nullopt)
+// when the user cancels (Esc / Ctrl-C) or no interactive terminal is available.
+// @see sc_confirm, sc_text_input, etc.
+
+/** True when an interactive prompt can run (a TTY is present). */
 inline bool input_available() { return sc_input_available(); }
 
-inline std::optional<bool> confirm(std::string_view question, ConfirmOpts opts = {}) {
+/** Yes/No prompt. @return the choice, or `std::nullopt` on cancel/no-TTY. */
+inline std::optional<bool> confirm(std::string_view question,
+                                   ConfirmOpts opts = {}) {
     bool out = false;
     if (sc_confirm(detail::z(question).c_str(), &out, opts) == SC_INPUT_OK)
         return out;
@@ -677,40 +874,65 @@ inline std::optional<std::string> take(char* out, InputStatus st) {
 }
 }  // namespace detail
 
-inline std::optional<std::string> text_input(std::string_view prompt, TextInputOpts opts = {}) {
+/** Single-line text entry. @return the string, or nullopt on cancel/no-TTY. */
+inline std::optional<std::string> text_input(std::string_view prompt,
+                                             TextInputOpts opts = {}) {
     char* out = nullptr;
-    return detail::take(out, sc_text_input(detail::z(prompt).c_str(), &out, opts));
+    return detail::take(
+        out, sc_text_input(detail::z(prompt).c_str(), &out, opts));
 }
-inline std::optional<std::string> password_input(std::string_view prompt, PasswordOpts opts = {}) {
+/** Masked entry. @return the secret, or nullopt. @see sc_password_input */
+inline std::optional<std::string> password_input(std::string_view prompt,
+                                                 PasswordOpts opts = {}) {
     char* out = nullptr;
-    return detail::take(out, sc_password_input(detail::z(prompt).c_str(), &out, opts));
+    return detail::take(
+        out, sc_password_input(detail::z(prompt).c_str(), &out, opts));
 }
-inline std::optional<std::string> textarea(std::string_view prompt, TextareaOpts opts = {}) {
+/** Multi-line entry (Ctrl-D submits). @return the text, or nullopt. */
+inline std::optional<std::string> textarea(std::string_view prompt,
+                                           TextareaOpts opts = {}) {
     char* out = nullptr;
-    return detail::take(out, sc_textarea(detail::z(prompt).c_str(), &out, opts));
+    return detail::take(
+        out, sc_textarea(detail::z(prompt).c_str(), &out, opts));
 }
-inline std::optional<double> number_input(std::string_view prompt, NumberOpts opts = {}) {
+/** Numeric entry. @return the value, or nullopt. @see sc_number_input */
+inline std::optional<double> number_input(std::string_view prompt,
+                                          NumberOpts opts = {}) {
     double out = 0.0;
     if (sc_number_input(detail::z(prompt).c_str(), &out, opts) == SC_INPUT_OK)
         return out;
     return std::nullopt;
 }
-inline std::optional<std::tm> datepicker(std::tm seed = {}, DatePickerOpts opts = {}) {
+/** Month-grid date picker (a zeroed `seed` starts at today). @return the picked
+ *  date, or nullopt. @see sc_datepicker */
+inline std::optional<std::tm> datepicker(std::tm seed = {},
+                                         DatePickerOpts opts = {}) {
     if (sc_datepicker(&seed, opts) == SC_INPUT_OK) return seed;
     return std::nullopt;
 }
 
-inline bool fuzzy_match(std::string_view pattern, std::string_view str, int* score = nullptr) {
-    return sc_fuzzy_match(detail::z(pattern).c_str(), detail::z(str).c_str(), score);
+/** Pure subsequence match (no TTY needed). @see sc_fuzzy_match */
+inline bool fuzzy_match(std::string_view pattern, std::string_view str,
+                        int* score = nullptr) {
+    return sc_fuzzy_match(detail::z(pattern).c_str(),
+                          detail::z(str).c_str(), score);
 }
 
+/** Sets process-wide input defaults inherited by every widget. */
 inline void set_theme(const InputTheme& theme) { sc_input_set_theme(&theme); }
+/** Clears the process-wide theme (back to built-in defaults). */
 inline void reset_theme()                       { sc_input_set_theme(nullptr); }
+/** Current process-wide theme. @see sc_input_theme */
 inline InputTheme theme()                        { return sc_input_theme(); }
 
-// Single/multi selection (owns ScSelect*).
+/**
+ * Owning, move-only single/multi-choice selection (wraps `ScSelect`). Labels
+ * are copied by the C side. Set `SelectOpts.multi` for checkboxes.
+ * @see sc_select_new, sc_select_run.
+ */
 class Select {
 public:
+    /** Allocates a selection prompt. @throws std::bad_alloc */
     explicit Select(SelectOpts opts = {}) : p_(sc_select_new(opts)) {
         if (!p_) throw std::bad_alloc();
     }
@@ -725,27 +947,37 @@ public:
     Select(const Select&) = delete;
     Select& operator=(const Select&) = delete;
 
+    /** Appends a selectable item (label copied). @see sc_select_add */
     Select& add(std::string_view label) {
         sc_select_add(p_, detail::z(label).c_str()); ++count_; return *this;
     }
-    void set_cursor(std::size_t index)               { sc_select_set_cursor(p_, index); }
-    void set_checked(std::size_t index, bool on = true) { sc_select_set_checked(p_, index, on); }
+    /** Pre-positions the cursor. @see sc_select_set_cursor */
+    void set_cursor(std::size_t index) { sc_select_set_cursor(p_, index); }
+    /** Pre-checks an item (multi-select). @see sc_select_set_checked */
+    void set_checked(std::size_t index, bool on = true) {
+        sc_select_set_checked(p_, index, on);
+    }
 
-    // Multi-select: chosen indices in display order. Single-select: one index.
+    /**
+     * Runs the prompt. @return chosen indices in display order (multi-select)
+     * or a single index (single-select), or `std::nullopt` on cancel/no-TTY.
+     */
     std::optional<std::vector<std::size_t>> run() {
         std::vector<std::size_t> idx(count_ ? count_ : 1);
         std::size_t n = idx.size();
-        if (sc_select_run(p_, idx.data(), &n) != SC_INPUT_OK) return std::nullopt;
+        if (sc_select_run(p_, idx.data(), &n) != SC_INPUT_OK)
+            return std::nullopt;
         idx.resize(n);
         return idx;
     }
-    // Convenience for single-select.
+    /** Single-select convenience. @return the index, or `std::nullopt`. */
     std::optional<std::size_t> run_one() {
         auto r = run();
         if (r && !r->empty()) return (*r)[0];
         return std::nullopt;
     }
 
+    /** Borrowed underlying `ScSelect*` (escape hatch); not owned. */
     ScSelect* get() { return p_; }
 
 private:
@@ -753,9 +985,14 @@ private:
     std::size_t count_ = 0;
 };
 
-// Fuzzy finder (owns ScFuzzy*).
+/**
+ * Owning, move-only incremental fuzzy finder (wraps `ScFuzzy`). Labels/rows are
+ * copied by the C side; set `FuzzyOpts.table` for a table view.
+ * @see sc_fuzzy_new, sc_fuzzy_run.
+ */
 class Fuzzy {
 public:
+    /** Allocates a fuzzy finder. @throws std::bad_alloc */
     explicit Fuzzy(FuzzyOpts opts = {}) : p_(sc_fuzzy_new(opts)) {
         if (!p_) throw std::bad_alloc();
     }
@@ -768,9 +1005,11 @@ public:
     Fuzzy(const Fuzzy&) = delete;
     Fuzzy& operator=(const Fuzzy&) = delete;
 
+    /** Adds a single-field item (copied). @see sc_fuzzy_add */
     Fuzzy& add(std::string_view label) {
         sc_fuzzy_add(p_, detail::z(label).c_str()); return *this;
     }
+    /** Adds a multi-field row; `fields[0]` is the match key. */
     Fuzzy& add_row(const std::vector<std::string>& fields) {
         std::vector<const char*> ptrs;
         ptrs.reserve(fields.size());
@@ -778,12 +1017,14 @@ public:
         sc_fuzzy_add_row(p_, ptrs.data(), ptrs.size());
         return *this;
     }
+    /** Runs the finder. @return the add-order index, or nullopt. */
     std::optional<std::size_t> run() {
         std::size_t out = 0;
         if (sc_fuzzy_run(p_, &out) != SC_INPUT_OK) return std::nullopt;
         return out;
     }
 
+    /** Borrowed underlying `ScFuzzy*` (escape hatch); not owned. */
     ScFuzzy* get() { return p_; }
 
 private:
