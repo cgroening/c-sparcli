@@ -19,7 +19,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
+#include <cstdio>
 #include <deque>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -206,7 +208,11 @@ public:
         int         row_span_ = 0;
     };
 
-    Table() : p_(sc_table_new()) { if (!p_) throw std::bad_alloc(); }
+    Table()
+        : p_(sc_table_new()),
+          strings_(std::make_unique<std::deque<std::string>>()) {
+        if (!p_) throw std::bad_alloc();
+    }
     ~Table() { sc_table_free(p_); }
     Table(Table&& o) noexcept
         : p_(o.p_), strings_(std::move(o.strings_)) { o.p_ = nullptr; }
@@ -221,7 +227,9 @@ public:
     Table& operator=(const Table&) = delete;
 
     Table& add_column(std::string_view header, ColOpts opts = {}) {
-        sc_table_add_column(p_, own(header), opts);
+        // The C side copies the header, so a transient c_str() is fine here;
+        // only cell strings (borrowed until print) go through the arena.
+        sc_table_add_column(p_, detail::z(header).c_str(), opts);
         return *this;
     }
     Table& add_row(std::vector<Cell> cells) {
@@ -247,22 +255,22 @@ private:
     enum class Row { Data, Footer };
 
     const char* own(std::string_view s) {
-        strings_.emplace_back(s);            // deque → stable addresses
-        return strings_.back().c_str();
+        // The deque lives behind a unique_ptr, so its node addresses are stable
+        // even across a Table move — the borrowed c_str() pointers stay valid.
+        strings_->emplace_back(s);
+        return strings_->back().c_str();
     }
     std::vector<ScCell> build(std::vector<Cell>& cells) {
         std::vector<ScCell> out;
         out.reserve(cells.size());
         for (auto& c : cells) {
-            if (c.kind_ == Cell::Kind::Markup) {
-                out.push_back(sc_cell_from_markup(c.str_.c_str()));
-            } else {
-                ScCell sc = sc_cell_from_str(own(c.str_));
-                sc.halign_set = c.halign_set_; sc.halign = c.halign_;
-                sc.valign_set = c.valign_set_; sc.valign = c.valign_;
-                sc.col_span   = c.col_span_;   sc.row_span = c.row_span_;
-                out.push_back(sc);
-            }
+            ScCell sc = (c.kind_ == Cell::Kind::Markup)
+                ? sc_cell_from_markup(c.str_.c_str())  // table owns the ScText
+                : sc_cell_from_str(own(c.str_));        // wrapper owns the string
+            sc.halign_set = c.halign_set_; sc.halign = c.halign_;
+            sc.valign_set = c.valign_set_; sc.valign = c.valign_;
+            sc.col_span   = c.col_span_;   sc.row_span = c.row_span_;
+            out.push_back(sc);
         }
         return out;
     }
@@ -275,8 +283,10 @@ private:
         }
     }
 
-    ScTableData*            p_;
-    std::deque<std::string> strings_;   // owns every borrowed cell/header string
+    ScTableData* p_;
+    // Owns every borrowed cell/header string. Behind a unique_ptr so the deque
+    // object never relocates → stored c_str() pointers survive a Table move.
+    std::unique_ptr<std::deque<std::string>> strings_;
 };
 
 // Cell helpers (free functions so call sites read `cell_markup("…")`).
@@ -285,30 +295,44 @@ inline Table::Cell cell_markup(std::string_view s)  {
     return Table::Cell::from_markup(std::string(s));
 }
 
-// ── List (owns ScList*; sub-lists are owned by their parent item) ────────────
+// ── List (owns ScList*; sub-lists and rich-text items are kept alive safely) ─
+//
+// The C list borrows any ScText passed to it, so the wrapper owns those Text
+// objects in a shared arena that lives as long as the root list (sub-lists
+// share the same arena). String items are copied by the C side, so they need
+// no special handling.
 class List {
 public:
     class Item {
     public:
-        explicit Item(ScListItem* p) : p_(p) {}
-        // Attach a sub-list (owned by this item / the parent list).
+        // Attach a sub-list (owned by the parent list; shares its text arena).
         List sub(ListOpts opts = {}) {
-            return List::borrow(sc_list_add_sub(p_, opts));
+            return List(sc_list_add_sub(p_, opts), /*owns=*/false, arena_);
         }
         ScListItem* get() const { return p_; }
     private:
+        friend class List;
+        using Arena = std::shared_ptr<std::deque<Text>>;
+        Item(ScListItem* p, Arena a) : p_(p), arena_(std::move(a)) {}
         ScListItem* p_;
+        Arena       arena_;
     };
 
-    explicit List(ListOpts opts = {}) : p_(sc_list_new(opts)), owns_(true) {
+    explicit List(ListOpts opts = {})
+        : p_(sc_list_new(opts)), owns_(true),
+          arena_(std::make_shared<std::deque<Text>>()) {
         if (!p_) throw std::bad_alloc();
     }
     ~List() { if (owns_) sc_list_free(p_); }
-    List(List&& o) noexcept : p_(o.p_), owns_(o.owns_) { o.p_ = nullptr; o.owns_ = false; }
+    List(List&& o) noexcept
+        : p_(o.p_), owns_(o.owns_), arena_(std::move(o.arena_)) {
+        o.p_ = nullptr; o.owns_ = false;
+    }
     List& operator=(List&& o) noexcept {
         if (this != &o) {
             if (owns_) sc_list_free(p_);
-            p_ = o.p_; owns_ = o.owns_; o.p_ = nullptr; o.owns_ = false;
+            p_ = o.p_; owns_ = o.owns_; arena_ = std::move(o.arena_);
+            o.p_ = nullptr; o.owns_ = false;
         }
         return *this;
     }
@@ -316,9 +340,14 @@ public:
     List& operator=(const List&) = delete;
 
     Item add(std::string_view s, TextStyle st = {}) {
-        return Item(sc_list_add_str(p_, detail::z(s).c_str(), st));
+        return Item(sc_list_add_str(p_, detail::z(s).c_str(), st), arena_);
     }
-    Item add(const Text& t) { return Item(sc_list_add_text(p_, t.get())); }
+    // Rich item: the list takes ownership of the Text (moved into the arena).
+    Item add(Text t) {
+        arena_->push_back(std::move(t));
+        return Item(sc_list_add_text(p_, arena_->back().get()), arena_);
+    }
+    Item add_markup(std::string_view m) { return add(Text::markup(m)); }
 
     void print() const { sc_list_print(p_); }
 
@@ -326,12 +355,13 @@ public:
     const ScList* get() const { return p_; }
 
 private:
-    static List borrow(ScList* p) { return List(p, false); }
-    List(ScList* p, bool owns) : p_(p), owns_(owns) {
+    List(ScList* p, bool owns, Item::Arena arena)
+        : p_(p), owns_(owns), arena_(std::move(arena)) {
         if (!p_) throw std::bad_alloc();
     }
-    ScList* p_;
-    bool    owns_;
+    ScList*      p_;
+    bool         owns_;
+    Item::Arena  arena_;
 };
 
 // ── Tree (owns ScTree*; nodes are non-owning handles) ────────────────────────
@@ -350,9 +380,12 @@ public:
         if (!p_) throw std::bad_alloc();
     }
     ~Tree() { sc_tree_free(p_); }
-    Tree(Tree&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    Tree(Tree&& o) noexcept : p_(o.p_), texts_(std::move(o.texts_)) { o.p_ = nullptr; }
     Tree& operator=(Tree&& o) noexcept {
-        if (this != &o) { sc_tree_free(p_); p_ = o.p_; o.p_ = nullptr; }
+        if (this != &o) {
+            sc_tree_free(p_);
+            p_ = o.p_; texts_ = std::move(o.texts_); o.p_ = nullptr;
+        }
         return *this;
     }
     Tree(const Tree&) = delete;
@@ -364,13 +397,27 @@ public:
             p_, parent.get(), detail::z(s).c_str(), st,
             prefix.empty() ? nullptr : detail::z(prefix).c_str(), prefix_st));
     }
+    // Rich node: the tree borrows the ScText, so the wrapper owns it (the C
+    // text pointer stays valid across a Tree move).
+    Node add(Text t, Node parent = {},
+             std::string_view prefix = {}, TextStyle prefix_st = {}) {
+        texts_.push_back(std::move(t));
+        return Node(sc_tree_add_text(
+            p_, parent.get(), texts_.back().get(),
+            prefix.empty() ? nullptr : detail::z(prefix).c_str(), prefix_st));
+    }
+    Node add_markup(std::string_view m, Node parent = {},
+                    std::string_view prefix = {}, TextStyle prefix_st = {}) {
+        return add(Text::markup(m), parent, prefix, prefix_st);
+    }
     void print() const { sc_tree_print(p_); }
 
     ScTree*       get()       { return p_; }
     const ScTree* get() const { return p_; }
 
 private:
-    ScTree* p_;
+    ScTree*               p_;
+    std::deque<Text>      texts_;   // owns ScText borrowed by the C tree
 };
 
 // ── Key/Value list (owns ScKV*; copies its strings → no lifetime worries) ────
@@ -593,6 +640,23 @@ inline std::string truncate(std::string_view s, int max_cols,
     return r;
 }
 inline void clear_line() { sc_clear_line(); }
+
+// Redirect the (thread-local) output stream. `set_output(nullptr)` restores
+// stdout. Prefer ScopedOutput, which restores the previous stream on scope exit.
+inline void set_output(std::FILE* out) { sc_output_set_stream(out); }
+inline std::FILE* output_stream()       { return sc_output_stream(); }
+
+class ScopedOutput {
+public:
+    explicit ScopedOutput(std::FILE* out) : prev_(sc_output_stream()) {
+        sc_output_set_stream(out);
+    }
+    ~ScopedOutput() { sc_output_set_stream(prev_); }
+    ScopedOutput(const ScopedOutput&) = delete;
+    ScopedOutput& operator=(const ScopedOutput&) = delete;
+private:
+    std::FILE* prev_;
+};
 
 // ── Input widgets (return std::optional; nullopt = cancelled or no TTY) ──────
 inline bool input_available() { return sc_input_available(); }

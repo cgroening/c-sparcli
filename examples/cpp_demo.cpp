@@ -49,15 +49,16 @@ static void output_demo() {
     l.add("First");
     auto item = l.add("Second");
     { auto sub = item.sub({ .marker = SC_LIST_ALPHA_LC });
-      sub.add("nested a"); sub.add("nested b"); }
-    l.add("Third");
+      sub.add("nested a");
+      sub.add_markup("[italic]nested markup[/]"); }   // list owns the Text
+    l.add_markup("[cyan]rich item[/]");               // safe: arena-owned
     l.print();
 
-    // Tree.
+    // Tree (with a markup node — the tree borrows the text, wrapper owns it).
     Tree tree;
     auto root = tree.add("project");
     tree.add("src", root);
-    tree.add("include", root);
+    tree.add_markup("[dim]README.md[/]", root);
     tree.print();
 
     // Key/value.
@@ -101,6 +102,9 @@ static void output_demo() {
     if (fuzzy_match("to", "Tokyo", &score))
         markup::println("[dim]fuzzy 'to' matches 'Tokyo' (score " +
                         std::to_string(score) + ")[/]");
+
+    // Scoped output redirection (restored automatically on scope exit).
+    { ScopedOutput to(stderr); println("(diagnostics line routed to stderr)"); }
 }
 
 static void input_demo() {
