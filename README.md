@@ -181,7 +181,7 @@ tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
 
 ```sh
 make            # static + shared + pkg-config
-make test       # build and run the full test suite
+make test       # build and run the output test suite
 make sanitize   # rebuild and run tests under AddressSanitizer + UBSan
 make clean
 ```
@@ -189,12 +189,17 @@ make clean
 Project layout:
 
 ```
-include/      public headers (sparcli_*.h, top-level sparcli.h)
-src/          implementation
-src/table/    table sub-modules (see docs/API.md)
-tests/        unit tests, all wired into tests/test_main
-docs/         API reference and design notes
+include/{core,output,input}/   public headers (sparcli.h is the umbrella)
+src/{core,output,tty,input}/   implementation
+src/output/table/              table sub-modules (see docs/API.md)
+tests/output/                  output suite
+tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
+docs/                          API reference and developer guide
 ```
+
+See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/
+install workflow: every `make` target, what each test suite covers and how to
+run it, the golden-file workflow, and the pre-commit checklist.
 
 ---
 
