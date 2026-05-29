@@ -76,7 +76,8 @@ cc hello.c $(pkg-config --cflags --libs sparcli) -o hello && ./hello
 
 A header-only C++20 wrapper ships in [`include/sparcli.hpp`](include/sparcli.hpp):
 RAII handles (no manual `free`), owned strings where the C API borrows (so
-temporaries are safe), and `std::optional` returns for input prompts.
+temporaries are safe), and `std::optional` returns for input prompts. Full
+reference: [`docs/api-cpp.md`](docs/api-cpp.md).
 
 ```cpp
 #include <sparcli.hpp>
@@ -169,7 +170,7 @@ cc app.c -I<prefix>/include -L<prefix>/lib -lsparcli -o app
 ## Output widgets
 
 A one-line summary per widget. The full reference — every type, every option,
-every macro — lives in [`docs/API.md`](docs/API.md).
+every macro — lives in [`docs/api-c.md`](docs/api-c.md).
 
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
@@ -200,7 +201,7 @@ every macro — lives in [`docs/API.md`](docs/API.md).
 Interactive prompts that drive a real terminal in raw mode. Each returns an
 `ScInputStatus` — Esc and Ctrl-C cancel, and a non-TTY context (output piped,
 CI) returns an error so callers can fall back to a default. The full reference
-lives in [`docs/API.md`](docs/API.md#input-widgets).
+lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
 
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
@@ -284,7 +285,7 @@ Project layout:
 ```
 include/{core,output,input}/   public headers (sparcli.h is the umbrella)
 src/{core,output,tty,input}/   implementation
-src/output/table/              table sub-modules (see docs/API.md)
+src/output/table/              table sub-modules (see docs/api-c.md)
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 docs/                          API reference and developer guide

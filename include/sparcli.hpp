@@ -11,7 +11,8 @@
  *
  * This header documents only what the wrapper adds on top of the C API
  * (ownership/lifetime, return semantics, exceptions); for the per-option and
- * per-function reference see the C headers (`@see sc_*`) or `docs/API.md`.
+ * per-function reference see the C headers (`@see sc_*`) or `docs/api-c.md`.
+ * A readable C++ reference is in `docs/api-cpp.md`.
  *
  * Requires C++20 (designated initializers for the `*Opts` structs). The only
  * exception thrown is `std::bad_alloc`, from a constructor when the underlying

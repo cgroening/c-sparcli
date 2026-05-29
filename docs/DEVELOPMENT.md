@@ -1,7 +1,8 @@
 # sparcli — Developer Guide
 
 Build, test, and install workflow for working on sparcli itself. For the public
-API see [`API.md`](API.md); for architecture and house conventions see
+API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and
+[C++](api-cpp.md) references); for architecture and house conventions see
 [`../CLAUDE.md`](../CLAUDE.md).
 
 **Requirements:** a C11 compiler (`cc`, clang, or gcc), `make`, and a POSIX
@@ -277,8 +278,9 @@ tests/cpp/                     C++ wrapper assertion suite + golden
 The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin,
 header-only layer: RAII handle classes, owned strings where the C API borrows
 (tables), `std::optional`/`std::vector` returns for input, and a `.get()`
-escape hatch to the C API. It is verified by `make test-cpp`. Keep it in sync
-when you add or change public C functions.
+escape hatch to the C API. It is verified by `make test-cpp` and documented in
+[`api-cpp.md`](api-cpp.md). Keep both in sync when you add or change public
+C functions.
 
 The **output/input boundary is physical**: `src/core` and `src/output` are
 stream-oriented and write through the redirectable `sc_output_stream()`;
