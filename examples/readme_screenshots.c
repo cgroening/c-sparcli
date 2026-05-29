@@ -136,13 +136,13 @@ static void shot_hero(void) {
         }, 3);
 
         ScTableOpts topts = {
-            .border       = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            .border       = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
                               SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
             .header.row   = true,
             .header.style = s_b_cyan,
             .striped      = true,
             .stripe_bg    = stripe,
-            .title        = { .text = " Status ", .style = s_b_cyan,
+            .title        = { .text = " Overview ", .style = s_b_magenta,
                               .align = SC_ALIGN_CENTER, .pad = 1,
                               .pos = SC_POSITION_TOP },
             .cell_pad     = { 0, 1, 0, 1 },
@@ -175,7 +175,7 @@ static void shot_hero(void) {
 
         /* Three narrow rules stacked vertically. */
         ScRendered *r_rules[] = {
-            capture_titled_rule("Pipeline", SC_BORDER_SINGLE, SC_ANSI_COLOR_CYAN,   s_b_cyan,   18),
+            capture_titled_rule("Pipeline", SC_BORDER_SINGLE, SC_ANSI_COLOR_MAGENTA,   s_b_magenta,   18),
             capture_titled_rule("Workers",  SC_BORDER_DOUBLE, SC_ANSI_COLOR_NONE,   s_b_green,  18),
             capture_titled_rule("Storage",  SC_BORDER_THICK,  SC_ANSI_COLOR_NONE,   s_b_yellow, 18),
         };
