@@ -16,6 +16,8 @@ progress bars, and more, with **Rich-compatible inline markup**.
 
 - [Features](#features)
 - [Quick start](#quick-start)
+  - [C](#c)
+  - [C++ wrapper](#c-header-only)
 - [Installation](#installation)
 - [Output widgets](#output-widgets)
 - [Input widgets](#input-widgets)
@@ -40,14 +42,18 @@ progress bars, and more, with **Rich-compatible inline markup**.
 - **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
 - **Composable**: capture any widget into a buffer, then pad, align, or place it
   inside a columns layout.
-- **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types,
-  NULL-safe entry points — built for future C++/Python/Rust bindings.
+- **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`,
+  namespace `sparcli`) — no manual `free`, owned strings, `std::optional` inputs.
+- **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
+  entry points — ready for future Python/Rust bindings.
 - **No runtime dependencies** beyond libc.
 - **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
 
 ---
 
 ## Quick start
+
+### C
 
 ```c
 #include <sparcli.h>
