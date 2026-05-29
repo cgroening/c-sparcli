@@ -1,0 +1,310 @@
+
+═══════════════════════════════════ [1mConfirm[0m ════════════════════════════════════
+[2mdefault, Yes selected[0m
+  ? [0mDeploy?[0m   [0m[1m[30m[42m [0m[1m[30m[42mYes[0m[1m[30m[42m [0m [0m[2m [0m[2mNo[0m[2m [0m
+  [2m←/→ toggle · enter confirm · esc cancel[0m
+
+[2maccent=magenta, custom labels, No selected[0m
+  ? [0mOverwrite file?[0m   [0m[2m [0m[2mReplace[0m[2m [0m [0m[1m[30m[45m [0m[1m[30m[45mKeep[0m[1m[30m[45m [0m
+  [2m←/→ toggle · enter confirm · esc cancel[0m
+
+[2maccent=rgb(255,140,0)[0m
+  ? [0mContinue?[0m   [0m[1m[30m[48;2;255;140;0m [0m[1m[30m[48;2;255;140;0mYes[0m[1m[30m[48;2;255;140;0m [0m [0m[2m [0m[2mNo[0m[2m [0m
+  [2m←/→ toggle · enter confirm · esc cancel[0m
+
+[2mcustom selected (bold underline cyan) + unselected (italic)[0m
+  ? [0mProceed?[0m   [0m[1m[4m[36m [0m[1m[4m[36mYes[0m[1m[4m[36m [0m [0m[3m [0m[3mNo[0m[3m [0m
+  [2m←/→ toggle · enter confirm · esc cancel[0m
+
+[2mprompt_style: bold blue question[0m
+  [1m[34m? [0m[1m[34mSave changes?[0m   [0m[1m[30m[42m [0m[1m[30m[42mYes[0m[1m[30m[42m [0m [0m[2m [0m[2mNo[0m[2m [0m
+  [2m←/→ toggle · enter confirm · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════ [1mText / Password[0m ════════════════════════════════
+[2mtext: default cursor + counter (count only, no max)[0m
+  Name:[0m [0mA[0md[0ma[0m [0mL[0mo[0mv[0me[0ml[0ma[0mc[0me[0m[30m[47m [0m
+    [0m[2m12[0m
+  [2menter submit · esc cancel[0m
+
+[2mtext: empty with placeholder[0m
+  Email:[0m [0m[30m[47m [0m[2myou@example.com[0m
+    [0m[2m0[0m
+  [2menter submit · esc cancel[0m
+
+[2mtext: cyan value, cursor white-on-blue[0m
+  [1mHost:[0m [0m[36ml[0m[36mo[0m[36mc[0m[36ma[0m[36ml[0m[36mh[0m[36mo[0m[36ms[0m[36mt[0m[37m[44m [0m
+    [0m[2m9[0m
+  [2menter submit · esc cancel[0m
+
+[2mtext: counter with max (count/max)[0m
+  Tweet:[0m [0mh[0me[0ml[0ml[0mo[0m [0mw[0mo[0mr[0ml[0md[0m[30m[47m [0m
+    [0m[2m11/40[0m
+  [2menter submit · esc cancel[0m
+
+[2mtext: counter hidden[0m
+  Note:[0m [0mn[0mo[0m [0mc[0mo[0mu[0mn[0mt[0me[0mr[0m [0mh[0me[0mr[0me[0m[30m[47m [0m
+  [2menter submit · esc cancel[0m
+
+[2mtext: counter styled (bold cyan), max[0m
+  Title:[0m [0mS[0mt[0my[0ml[0me[0m[30m[47m [0m
+    [0m[1m[36m5/32[0m
+  [2menter submit · esc cancel[0m
+
+[2mpassword: default mask '*'[0m
+  Password:[0m [0m*[0m*[0m*[0m*[0m*[0m*[0m*[0m[30m[47m [0m
+    [0m[2m7[0m
+  [2menter submit · esc cancel[0m
+
+[2mpassword: bullet mask[0m
+  PIN:[0m [0m•[0m•[0m•[0m•[0m[30m[47m [0m
+    [0m[2m4[0m
+  [2menter submit · esc cancel[0m
+
+[2mpassword: hidden mask (length concealed)[0m
+  Secret:[0m [0m[30m[47m [0m
+    [0m[2m9[0m
+  [2menter submit · esc cancel[0m
+
+[2mprompt_style: bold magenta label[0m
+  [1m[35mUsername:[0m [0mn[0me[0mo[0m[30m[47m [0m
+    [0m[2m3[0m
+  [2menter submit · esc cancel[0m
+
+[2mboxed: fixed width 30, counter (count only)[0m
+  ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m
+  │[0m A[0md[0ma[0m [0mL[0mo[0mv[0me[0ml[0ma[0mc[0me[0m[30m[47m [0m              │[0m
+  ╰[0m─────────────────────[0m [0m[2m(12)[0m [0m─[0m╯[0m
+  [2menter submit · esc cancel[0m
+
+[2mboxed: fixed width 30, counter with max[0m
+  ╭[0m─[0m [0mTweet[0m [0m────────────────────[0m╮[0m
+  │[0m h[0me[0ml[0ml[0mo[0m [0mw[0mo[0mr[0ml[0md[0m[30m[47m [0m               │[0m
+  ╰[0m──────────────────[0m [0m[2m(11/40)[0m [0m─[0m╯[0m
+  [2menter submit · esc cancel[0m
+
+[2mboxed: counter hidden[0m
+  ╭[0m─[0m [0mNote[0m [0m─────────────────────[0m╮[0m
+  │[0m n[0mo[0m [0mc[0mo[0mu[0mn[0mt[0me[0mr[0m[30m[47m [0m                │[0m
+  ╰[0m────────────────────────────[0m╯[0m
+  [2menter submit · esc cancel[0m
+
+[2mboxed: double border + cyan prompt[0m
+  [34m╔[0m[34m═[0m [0m[1m[36mHost[0m [0m[34m═════════════════════[0m[34m╗[0m
+  [34m║[0m l[0mo[0mc[0ma[0ml[0mh[0mo[0ms[0mt[0m[30m[47m [0m                 [34m║[0m
+  [34m╚[0m[34m═══════════════════[0m [0m[2m(9/24)[0m [0m[34m═[0m[34m╝[0m
+  [2menter submit · esc cancel[0m
+
+[2mboxed: password, fixed width 30[0m
+  ╭[0m─[0m [0mPassword[0m [0m─────────────────[0m╮[0m
+  │[0m *[0m*[0m*[0m*[0m*[0m*[0m*[0m[30m[47m [0m                   │[0m
+  ╰[0m──────────────────────[0m [0m[2m(7)[0m [0m─[0m╯[0m
+  [2menter submit · esc cancel[0m
+
+[2mboxed: full width (default), flush-left[0m
+╭[0m─[0m [0mSearch[0m [0m─────────────────────────────────────────────────────────────────────[0m╮[0m
+│[0m q[0mu[0me[0mr[0my[0m[30m[47m [0m                                                                       │[0m
+╰[0m────────────────────────────────────────────────────────────────────────[0m [0m[2m(5)[0m [0m─[0m╯[0m
+[2menter submit · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════ [1mNumber[0m ════════════════════════════════════
+[2mnumber: inline, bounded (range shown)[0m
+  Quantity[0m [0m1[0m0[0m[30m[47m [0m  [0m[2m[0–100][0m
+  [2m↑/↓ adjust · enter submit · esc cancel[0m
+
+[2mnumber: inline, 2 decimals[0m
+  Price[0m [0m9[0m.[0m9[0m9[0m[30m[47m [0m  [0m[2m[0.00–1000.00][0m
+  [2m↑/↓ adjust · enter submit · esc cancel[0m
+
+[2mnumber: boxed (panel), range on bottom-right[0m
+  ╭[0m─[0m [0mQuantity[0m [0m───────────────[0m╮[0m
+  │[0m 4[0m2[0m[30m[47m [0m                      │[0m
+  ╰[0m────────────────[0m [0m[2m[0–100][0m [0m─[0m╯[0m
+  [2m↑/↓ adjust · enter submit · esc cancel[0m
+
+[2mnumber: boxed, double border + cyan prompt[0m
+  [34m╔[0m[34m═[0m [0m[1m[36mPort[0m [0m[34m═════════════════════[0m[34m╗[0m
+  [34m║[0m 8[0m0[0m8[0m0[0m[30m[47m [0m                      [34m║[0m
+  [34m╚[0m[34m════════════════[0m [0m[2m[1–65535][0m [0m[34m═[0m[34m╝[0m
+  [2m↑/↓ adjust · enter submit · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════ [1mTextarea[0m ═══════════════════════════════════
+[2mtextarea: inline, multi-line[0m
+  Notes[0m
+  f[0mi[0mr[0ms[0mt[0m [0ml[0mi[0mn[0me[0m
+  s[0me[0mc[0mo[0mn[0md[0m [0ml[0mi[0mn[0me[0m[30m[47m [0m
+  [2mctrl-d submit · enter newline · esc cancel[0m
+
+[2mtextarea: boxed (panel), fixed width 36[0m
+  ╭[0m─[0m [0mNotes[0m [0m──────────────────────────[0m╮[0m
+  │[0m f[0mi[0mr[0ms[0mt[0m [0ml[0mi[0mn[0me[0m                       │[0m
+  │[0m s[0me[0mc[0mo[0mn[0md[0m [0ml[0mi[0mn[0me[0m                      │[0m
+  │[0m t[0mh[0mi[0mr[0md[0m [0ml[0mi[0mn[0me[0m[30m[47m [0m                      │[0m
+  ╰[0m──────────────────────────────────[0m╯[0m
+  [2mctrl-d submit · enter newline · esc cancel[0m
+
+[2mtextarea: boxed double border + cyan prompt[0m
+  [34m╔[0m[34m═[0m [0m[1m[36mDescription[0m [0m[34m════════════════════════[0m[34m╗[0m
+  [34m║[0m l[0mo[0mr[0me[0mm[0m [0mi[0mp[0ms[0mu[0mm[0m                          [34m║[0m
+  [34m║[0m d[0mo[0ml[0mo[0mr[0m [0ms[0mi[0mt[0m [0ma[0mm[0me[0mt[0m[30m[47m [0m                      [34m║[0m
+  [34m╚[0m[34m══════════════════════════════════════[0m[34m╝[0m
+  [2mctrl-d submit · enter newline · esc cancel[0m
+
+[2mtextarea: boxed full width (flush-left)[0m
+╭[0m─[0m [0mBody[0m [0m───────────────────────────────────────────────────────────────────────[0m╮[0m
+│[0m s[0mp[0ma[0mn[0mn[0mi[0mn[0mg[0m [0mt[0mh[0me[0m [0mw[0mh[0mo[0ml[0me[0m [0mt[0me[0mr[0mm[0mi[0mn[0ma[0ml[0m [0mw[0mi[0md[0mt[0mh[0m                                            │[0m
+│[0m s[0me[0mc[0mo[0mn[0md[0m [0ml[0mi[0mn[0me[0m[30m[47m [0m                                                                 │[0m
+╰[0m──────────────────────────────────────────────────────────────────────────────[0m╯[0m
+[2mctrl-d submit · enter newline · esc cancel[0m
+
+[2mtextarea: long line soft-wraps inside the box[0m
+  ╭[0m─[0m [0mWrap[0m [0m─────────────────────────[0m╮[0m
+  │[0m T[0mh[0mi[0ms[0m [0mi[0ms[0m [0mo[0mn[0me[0m [0mv[0me[0mr[0my[0m [0ml[0mo[0mn[0mg[0m [0ml[0mo[0mg[0mi[0mc[0ma[0ml[0m [0m │[0m
+  │[0m l[0mi[0mn[0me[0m [0mt[0mh[0ma[0mt[0m [0mm[0mu[0ms[0mt[0m [0ms[0mo[0mf[0mt[0m-[0mw[0mr[0ma[0mp[0m [0mi[0mn[0ms[0mi[0md[0m │[0m
+  │[0m e[0m [0mt[0mh[0me[0m [0mn[0ma[0mr[0mr[0mo[0mw[0m [0mb[0mo[0mx[0m [0mi[0mn[0ms[0mt[0me[0ma[0md[0m [0mo[0mf[0m [0mo[0mv[0m │[0m
+  │[0m e[0mr[0mf[0ml[0mo[0mw[0mi[0mn[0mg[0m [0mi[0mt[0ms[0m [0mr[0mi[0mg[0mh[0mt[0m [0mb[0mo[0mr[0md[0me[0mr[0m.[0m[30m[47m [0m   │[0m
+  ╰[0m────────────────────────────────[0m╯[0m
+  [2mctrl-d submit · enter newline · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════ [1mSelect[0m ════════════════════════════════════
+[2mselect: default[0m
+  Pick one[0m
+  [1m[36m‣ [0m[1m[36mApple[0m
+    [0mBanana[0m
+    [0mCherry[0m
+    [0mDate[0m
+  [2m↑/↓ move · enter select · esc cancel[0m
+
+[2mselect: yellow accent, → marker, bold-italic row[0m
+  Pick one[0m
+  [1m[3m[33m→ [0m[1m[3m[33mApple[0m
+    [0mBanana[0m
+    [0mCherry[0m
+    [0mDate[0m
+  [2m↑/↓ move · enter select · esc cancel[0m
+
+[2mmulti-select: custom check glyph, two checked[0m
+  Pick many[0m
+  [1m[32m‣ [0m[1m[32m[ ] [0m[1m[32mApple[0m
+    [0m[✔] [0mBanana[0m
+    [0m[ ] [0mCherry[0m
+    [0m[✔] [0mDate[0m
+  [2m↑/↓ move · space toggle · enter confirm · esc cancel[0m
+
+[2mprompt_style: bold underline green heading[0m
+  [1m[4m[32mChoose environment[0m
+  [1m[36m‣ [0m[1m[36mApple[0m
+    [0mBanana[0m
+    [0mCherry[0m
+    [0mDate[0m
+  [2m↑/↓ move · enter select · esc cancel[0m
+
+[2mscroll indicator (max_visible 4, cursor on #6)[0m
+  Pick a color[0m
+    [0mBlue[0m
+    [0mYellow[0m
+    [0mCyan[0m
+  [1m[36m‣ [0m[1m[36mMagenta[0m
+  [2m  ↑ 3–6/8 ↓[0m
+  [2m↑/↓ move · enter select · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+
+═════════════════════════════════ [1mFuzzy Finder[0m ═════════════════════════════════
+[2mfuzzy list: default, query='to'[0m
+  [1m[36mCity[0m [0mt[0mo[0m[30m[47m [0m[2m  (3/5)[0m
+  [1m[36m‣ [0m[1m[4m[36mT[0m[1m[4m[36mo[0m[1m[36mk[0m[1m[36my[0m[1m[36mo[0m
+    [0m[1m[4m[36mT[0m[1m[4m[36mo[0mr[0mo[0mn[0mt[0mo[0m
+    [0mB[0mo[0ms[0m[1m[4m[36mt[0m[1m[4m[36mo[0mn[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy list: magenta accent, » marker, query='o'[0m
+  [1m[4m[35mCity[0m [0mo[0m[37m[45m [0m[2m  (5/5)[0m
+  [1m[35m» [0m[1m[35mT[0m[1m[4m[35mo[0m[1m[35mk[0m[1m[35my[0m[1m[35mo[0m
+    [0mT[0m[1m[4m[35mo[0mr[0mo[0mn[0mt[0mo[0m
+    [0mL[0m[1m[4m[35mo[0mn[0md[0mo[0mn[0m
+    [0mB[0m[1m[4m[35mo[0ms[0mt[0mo[0mn[0m
+    [0mL[0mi[0ms[0mb[0m[1m[4m[35mo[0mn[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy table: default single border[0m
+  [1m[36mSearch[0m [0m[30m[47m [0m[2m  (3/3)[0m
+  ┌[0m──────[0m┬[0m────────[0m┬[0m────[0m┐[0m
+  │[0m[1mCity[0m  │[0m[1mCountry[0m │[0m[1mPop.[0m│[0m
+  ├[0m──────[0m┼[0m────────[0m┼[0m────[0m┤[0m
+  │[0m[46mTokyo[0m[46m [0m│[0m[46mJapan[0m[46m   [0m│[0m[46m37.4[0m│[0m
+  ├[0m──────[0m┼[0m────────[0m┼[0m────[0m┤[0m
+  │[0mLondon[0m│[0mUK[0m      │[0m9.0[0m │[0m
+  ├[0m──────[0m┼[0m────────[0m┼[0m────[0m┤[0m
+  │[0mLisbon[0m│[0mPortugal[0m│[0m0.5[0m │[0m
+  └[0m──────[0m┴[0m────────[0m┴[0m────[0m┘[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy table: double border via table_opts[0m
+  [1m[34mSearch[0m [0m[30m[47m [0m[2m  (2/2)[0m
+  ╔[0m══════[0m╦[0m═══════[0m╦[0m════[0m╗[0m
+  ║[0m[1mCity[0m  ║[0m[1mCountry[0m║[0m[1mPop.[0m║[0m
+  ╠[0m══════[0m╬[0m═══════[0m╬[0m════[0m╣[0m
+  ║[0m[44mTokyo[0m[44m [0m║[0m[44mJapan[0m[44m  [0m║[0m[44m37.4[0m║[0m
+  ╠[0m══════[0m╬[0m═══════[0m╬[0m════[0m╣[0m
+  ║[0mLondon[0m║[0mUK[0m     ║[0m9.0[0m ║[0m
+  ╚[0m══════[0m╩[0m═══════[0m╩[0m════[0m╝[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+
+═════════════════════════════════ [1mDate Picker[0m ══════════════════════════════════
+[2mdate: default[0m
+  [1mPick a date[0m
+  [1m[36m  ‹ May 2026 ›[0m
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+  [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+
+[2mdate: Sunday start, accent=green[0m
+  [1mPick a date[0m
+  [1m[32m  ‹ May 2026 ›[0m
+  [2mSu[0m [0m[2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m
+     [0m   [0m   [0m   [0m   [0m 1[0m [0m 2[0m
+   3[0m [0m 4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m
+  10[0m [0m11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[42m15[0m [0m16[0m
+  17[0m [0m18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m
+  24[0m [0m25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m
+  31[0m [0m
+  [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+
+[2mdate: custom < > glyphs, underline header, RGB selected[0m
+  [1mDate[0m
+  [1m[4m[33m  < May 2026 >[0m
+  [3mMo[0m [0m[3mTu[0m [0m[3mWe[0m [0m[3mTh[0m [0m[3mFr[0m [0m[3mSa[0m [0m[3mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[48;2;255;140;0m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+  [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+
+[2mprompt_style: italic cyan heading[0m
+  [3m[36mWhen?[0m
+  [1m[36m  ‹ May 2026 ›[0m
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+  [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+
+════════════════════════════════════════════════════════════════════════════════
+

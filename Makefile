@@ -1,6 +1,8 @@
 CC      = cc
 AR      = ar
-CFLAGS  = -std=c11 -Wall -Wextra -fPIC -Iinclude -Isrc
+# EXTRA_CFLAGS is an overridable hook for extra flags (e.g. CI uses
+# `make EXTRA_CFLAGS=-Werror` to treat warnings as errors).
+CFLAGS  = -std=c11 -Wall -Wextra -fPIC -Iinclude -Isrc $(EXTRA_CFLAGS)
 LDFLAGS =
 
 # Version. Keep in sync with SPARCLI_VERSION_* in include/sparcli_export.h.
@@ -61,6 +63,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
+DEP               = $(OBJ:.o=.d)
 LIB               = libsparcli.a
 PC_FILE           = sparcli.pc
 
@@ -69,6 +72,7 @@ PC_FILE           = sparcli.pc
 # ASAN/UBSAN symbols at link time.
 SANITIZE_BUILDDIR = build.sanitize.nosync
 SANITIZE_OBJ      = $(patsubst src/%.c,$(SANITIZE_BUILDDIR)/%.o,$(SRC))
+SANITIZE_DEP      = $(SANITIZE_OBJ:.o=.d)
 SANITIZE_LIB      = libsparcli-sanitize.a
 SANITIZE_TEST_BIN = tests/output/test_main_sanitize
 SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
@@ -137,7 +141,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 
 HEADERS = $(shell find include -name '*.h')
 
-.PHONY: all test test-input test-input-style test-input-pty clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -159,7 +163,7 @@ $(PC_FILE): sparcli.pc.in Makefile
 
 $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
@@ -169,6 +173,22 @@ $(BUILDDIR):
 test: $(LIB)
 	$(CC) $(CFLAGS) $(TEST_SRC) $(LIB) $(LDFLAGS) -o $(TEST_BIN)
 	./$(TEST_BIN) $(ARGS)
+
+# Golden-file regression test for the output suite. The output is deterministic
+# off a TTY (sc_terminal_width() falls back to 80) with --no-animated, so the
+# rendered bytes can be diffed against a committed snapshot.
+OUTPUT_GOLDEN = tests/output/expected.txt
+
+test-output-check: $(LIB) | $(BUILDDIR)
+	$(CC) $(CFLAGS) $(TEST_SRC) $(LIB) $(LDFLAGS) -o $(TEST_BIN)
+	./$(TEST_BIN) --no-animated > $(BUILDDIR)/output.actual.txt
+	diff -u $(OUTPUT_GOLDEN) $(BUILDDIR)/output.actual.txt
+
+# Regenerate the output golden file after an intentional rendering change.
+test-output-golden: $(LIB)
+	$(CC) $(CFLAGS) $(TEST_SRC) $(LIB) $(LDFLAGS) -o $(TEST_BIN)
+	./$(TEST_BIN) --no-animated > $(OUTPUT_GOLDEN)
+	@echo "Regenerated $(OUTPUT_GOLDEN)"
 
 # Interactive input-widget test runner. Needs a real TTY, so it is a separate
 # target and is NOT part of `make test`. Run it directly in a terminal.
@@ -181,6 +201,21 @@ test-input: $(LIB)
 test-input-style: $(LIB)
 	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
 	./$(STYLE_TEST_BIN) $(ARGS)
+
+# Golden-file regression test for the input style snapshots. Non-interactive
+# (the frame builders render without a TTY), so the bytes are deterministic.
+STYLE_GOLDEN = tests/input/style/expected.txt
+
+test-input-style-check: $(LIB) | $(BUILDDIR)
+	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
+	./$(STYLE_TEST_BIN) > $(BUILDDIR)/style.actual.txt
+	diff -u $(STYLE_GOLDEN) $(BUILDDIR)/style.actual.txt
+
+# Regenerate the style golden file after an intentional rendering change.
+test-input-style-golden: $(LIB)
+	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
+	./$(STYLE_TEST_BIN) > $(STYLE_GOLDEN)
+	@echo "Regenerated $(STYLE_GOLDEN)"
 
 # Self-driving PTY suite under the sanitizers: exercises the interactive widgets
 # end-to-end (raw mode, key decoding, redraw) with no human and reports leaks /
@@ -202,7 +237,7 @@ $(SANITIZE_LIB): $(SANITIZE_OBJ)
 
 $(SANITIZE_BUILDDIR)/%.o: src/%.c | $(SANITIZE_BUILDDIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) -MMD -MP -c $< -o $@
 
 $(SANITIZE_BUILDDIR):
 	mkdir -p $(SANITIZE_BUILDDIR)
@@ -251,3 +286,7 @@ clean:
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
 	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) \
 	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN)
+
+# Auto-generated header dependencies (-MMD -MP). The leading '-' silences the
+# "no such file" notice on the first build, before any .d exists.
+-include $(DEP) $(SANITIZE_DEP)
