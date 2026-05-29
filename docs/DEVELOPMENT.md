@@ -131,13 +131,20 @@ make test-input-pty
 
 ### `make test-cpp` — C++ wrapper gate
 
-Compiles `examples/cpp_demo.cpp` against the header-only C++20 wrapper
-(`include/sparcli.hpp`) and runs it headless. Guards the wrapper from silently
-breaking when the C API changes. Needs a C++ compiler (`$(CXX)`, default `c++`).
+Three checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a
+C++ compiler (`$(CXX)`, default `c++`):
+
+1. **Compile** `examples/cpp_demo.cpp` (so the example never bit-rots).
+2. **Golden diff** the demo's output against `tests/cpp/expected.txt`.
+3. **Assertion suite** `tests/cpp/test_cpp.cpp` — verifies the wrapper's
+   ownership/lifetime guarantees (table built from temporaries, `Table` survives
+   a move, List/Tree rich-text arenas) and that it renders like the C API. Built
+   under **AddressSanitizer + UBSan** so arena/RAII/move memory bugs are caught.
 
 ```sh
-make test-cpp                    # compile + run the C++ demo headless
+make test-cpp                    # all three checks
 make test-cpp EXTRA_CFLAGS=-Werror
+make test-cpp-golden             # regenerate tests/cpp/expected.txt
 ```
 
 ### `make sanitize` — output suite under ASan/UBSan
@@ -158,7 +165,8 @@ make sanitize ARGS=--no-animated
 committed snapshots (deterministic because, off a TTY, the terminal width falls
 back to 80). When you change rendering **on purpose**:
 
-1. regenerate with `make test-output-golden` and/or `make test-input-style-golden`,
+1. regenerate with `make test-output-golden`, `make test-input-style-golden`
+   and/or `make test-cpp-golden`,
 2. review the diff to confirm the change is what you intended,
 3. commit the updated `expected.txt`.
 

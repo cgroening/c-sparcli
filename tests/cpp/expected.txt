@@ -1,0 +1,38 @@
+[1m[32msparcli[0m — C++ wrapper demo[0m
+[2mplain styled line[0m
+[34m╭[0m[34m─[0m [0m[1m[34mℹ Info[0m [0m[34m─────────────────────────────────────────────────────────────────────[0m[34m╮[0m
+[34m│[0m Header-only C++20 wrapper over the C API.[0m                                    [34m│[0m
+[34m╰[0m[34m──────────────────────────────────────────────────────────────────────────────[0m[34m╯[0m
+[36m╭[0m[36m────────[0m Status [0m[36m────────[0m[36m╮[0m
+[36m│[0m  status: [0m[1m[32mok[0m  [0m[v0.1.0][0m  [36m│[0m
+[36m╰[0m[36m────────────────────────[0m[36m╯[0m
+ [0mName[0m Score[0m [0m
+ [0mrow 1[0m   10[0m [0m
+ [0mrow 2[0m   20[0m [0m
+ [0mrow 3[0m   30[0m [0m
+ [0m[32m✔ ok[0m   100[0m [0m
+─ Lists, trees & key/value[0m ─────────────────────────────────────────────────────
+1. First[0m
+2. Second[0m
+   a. nested a[0m
+   b. [3mnested markup[0m
+3. [36mrich item[0m
+project[0m
+    src[0m
+    [2mREADME.md[0m
+Version  0.1.0
+Build    ok
+ [0mName[0m Score[0m [0m   ┌[0m──────────[0m┐[0m
+ [0mrow 1[0m   10[0m [0m   │[0mside panel[0m│[0m
+ [0mrow 2[0m   20[0m [0m   └[0m──────────[0m┘[0m
+ [0mrow 3[0m   30[0m [0m               
+ [0m[32m✔ ok[0m   100[0m [0m               
+    captured A
+    
+    captured B
+[ DONE ][0m
+a very long…[0m
+red becomes plain[0m
+Installing  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%Installing  ███████████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  50%Installing  ███████████████████████████████████████████████████████████████ 100%Installing  ███████████████████████████████████████████████████████████████ 100%
+⠋ Loading                                                                       ⠙ Loading                                                                       ⠹ Loading                                                                                                                                                       [32m✔[0m Done
+[2mfuzzy 'to' matches 'Tokyo' (score 5)[0m

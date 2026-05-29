@@ -145,7 +145,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -242,15 +242,26 @@ test-input-pty: $(SANITIZE_LIB)
 	    $(LDFLAGS) $(SANITIZE_FLAGS) $(PTY_LDLIBS) -o $(PTY_TEST_BIN)
 	./$(PTY_TEST_BIN) $(ARGS)
 
-# C++ wrapper gate (needs a C++ compiler). Compiles the example (so it never
-# bit-rots) and builds + runs the assertion suite, which verifies the wrapper's
-# ownership/lifetime guarantees and that it renders like the C API.
+# C++ wrapper gate (needs a C++ compiler). Three checks:
+#  1. the example compiles cleanly and its output matches a golden snapshot;
+#  2. the assertion suite (ownership / move-safety / C parity) passes, built
+#     under AddressSanitizer + UBSan so arena / RAII memory bugs are caught.
 CPP_DEMO_BIN = $(EXAMPLES_BUILDDIR)/cpp_demo
 CPP_TEST_BIN = $(EXAMPLES_BUILDDIR)/test_cpp
-test-cpp: $(LIB) | $(EXAMPLES_BUILDDIR)
+CPP_GOLDEN   = tests/cpp/expected.txt
+test-cpp: $(LIB) $(SANITIZE_LIB) | $(EXAMPLES_BUILDDIR)
 	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
-	$(CXX) $(CXXFLAGS) tests/cpp/test_cpp.cpp $(LIB) $(LDFLAGS) -o $(CPP_TEST_BIN)
+	./$(CPP_DEMO_BIN) </dev/null 2>/dev/null > $(EXAMPLES_BUILDDIR)/cpp.actual.txt
+	diff -u $(CPP_GOLDEN) $(EXAMPLES_BUILDDIR)/cpp.actual.txt
+	$(CXX) $(CXXFLAGS) $(SANITIZE_FLAGS) tests/cpp/test_cpp.cpp $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(CPP_TEST_BIN)
 	./$(CPP_TEST_BIN)
+
+# Regenerate the C++ demo golden after an intentional rendering change.
+test-cpp-golden: $(LIB) | $(EXAMPLES_BUILDDIR)
+	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
+	./$(CPP_DEMO_BIN) </dev/null 2>/dev/null > $(CPP_GOLDEN)
+	@echo "Regenerated $(CPP_GOLDEN)"
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.
 # Uses a separate build tree and a separate .a so it never contaminates the
