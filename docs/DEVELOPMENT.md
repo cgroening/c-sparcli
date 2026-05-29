@@ -131,6 +131,34 @@ back to 80). When you change rendering **on purpose**:
 2. review the diff to confirm the change is what you intended,
 3. commit the updated `expected.txt`.
 
+### After a change — run these
+
+Copy-paste block to validate a change. The first five are headless (safe to run
+anywhere, including over a pipe); the rest need a real terminal.
+
+```sh
+# 1. Build clean, warnings as errors.
+make EXTRA_CFLAGS=-Werror
+
+# 2. Headless gates — all must pass.
+make test-output-check       EXTRA_CFLAGS=-Werror   # output golden-file diff
+make test-input ARGS=--logic EXTRA_CFLAGS=-Werror   # input logic + thread safety
+make test-input-style-check  EXTRA_CFLAGS=-Werror   # style snapshot diff
+make test-input-pty          EXTRA_CFLAGS=-Werror   # interactive paths under ASan/UBSan
+
+# 3. If you changed rendering on purpose, regenerate + review + commit the golden:
+make test-output-golden
+make test-input-style-golden
+
+# 4. Examples still build (and try the input widgets by hand):
+make examples                          # compile every examples/*.c
+make run-example EX=readme_screenshots # output gallery
+make run-example EX=input_demo         # interactive walkthrough of all input widgets
+
+# 5. Interactive widget suite (needs a real terminal):
+make test-input
+```
+
 ---
 
 ## Install / packaging
