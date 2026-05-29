@@ -72,6 +72,34 @@ cc hello.c $(pkg-config --cflags --libs sparcli) -o hello && ./hello
 > **Add Screenshot:** Rendered terminal output of the snippet above (the green
 > "Hello" line plus the rounded panel with centered title).
 
+### C++ (header-only)
+
+A header-only C++20 wrapper ships in [`include/sparcli.hpp`](include/sparcli.hpp):
+RAII handles (no manual `free`), owned strings where the C API borrows (so
+temporaries are safe), and `std::optional` returns for input prompts.
+
+```cpp
+#include <sparcli.hpp>
+using namespace sparcli;
+
+int main() {
+    panel("Welcome aboard.", { .border = { .type = SC_BORDER_ROUNDED },
+                               .title  = { .text = " Greeting ",
+                                           .halign = SC_ALIGN_CENTER } });
+    Table t;                                   // frees itself
+    t.add_column("Name");
+    t.add_row({ "Ada", std::to_string(42) });  // strings are owned → safe
+    t.print({ .header = { .row = true } });
+
+    if (auto name = text_input("Your name"))   // std::optional<std::string>
+        markup::println("[green]Hi[/] " + *name);
+}
+```
+
+```sh
+c++ -std=c++20 hello.cpp $(pkg-config --cflags --libs sparcli) -o hello
+```
+
 ---
 
 ## Installation
@@ -250,8 +278,8 @@ run it, the golden-file workflow, and the pre-commit checklist.
 
 ## Roadmap
 
-- **C++ wrapper** (`sparcli-cpp`): RAII wrappers over `ScText`, `ScTableData`,
-  `ScColumns`, `ScList`, `ScTree`, …
+- **C++ wrapper** — ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp)
+  (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
 - **Python bindings** (`sparcli-py`): `cffi`/`ctypes`-based wrapper with
   Pythonic constructors.
 - **Rust crate** (`sparcli-rs`): safe `&str`-friendly wrappers around the C API.

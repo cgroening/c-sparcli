@@ -1,8 +1,11 @@
 CC      = cc
+CXX     = c++
 AR      = ar
 # EXTRA_CFLAGS is an overridable hook for extra flags (e.g. CI uses
-# `make EXTRA_CFLAGS=-Werror` to treat warnings as errors).
+# `make EXTRA_CFLAGS=-Werror` to treat warnings as errors). It is applied to
+# both the C and the C++ (wrapper) builds.
 CFLAGS  = -std=c11 -Wall -Wextra -fPIC -Iinclude -Isrc $(EXTRA_CFLAGS)
+CXXFLAGS = -std=c++20 -Wall -Wextra -Iinclude $(EXTRA_CFLAGS)
 LDFLAGS =
 
 # Version. Keep in sync with SPARCLI_VERSION_* in include/sparcli_export.h.
@@ -139,9 +142,10 @@ EXAMPLES_BUILDDIR = build.examples.nosync
 EXAMPLES_SRC      = $(wildcard examples/*.c)
 EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SRC))
 
-HEADERS = $(shell find include -name '*.h')
+# Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
+HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -177,6 +181,7 @@ test:
 	$(MAKE) test-input ARGS=--logic
 	$(MAKE) test-input-style-check
 	$(MAKE) test-input-pty
+	$(MAKE) test-cpp
 
 # Visual output gallery: builds and runs the output suite for eyeballing.
 # ARGS: --no-animated (skip animations), --focus (focused subset), or both.
@@ -236,6 +241,14 @@ test-input-pty: $(SANITIZE_LIB)
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) $(PTY_TEST_SRC) $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) $(PTY_LDLIBS) -o $(PTY_TEST_BIN)
 	./$(PTY_TEST_BIN) $(ARGS)
+
+# C++ wrapper gate: compiles examples/cpp_demo.cpp against include/sparcli.hpp
+# with the C++20 toolchain and runs it headless. Guards the header from
+# silently breaking when the C API changes. Needs a C++ compiler.
+CPP_DEMO_BIN = $(EXAMPLES_BUILDDIR)/cpp_demo
+test-cpp: $(LIB) | $(EXAMPLES_BUILDDIR)
+	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
+	./$(CPP_DEMO_BIN) </dev/null
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.
 # Uses a separate build tree and a separate .a so it never contaminates the

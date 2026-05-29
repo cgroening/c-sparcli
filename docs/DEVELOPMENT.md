@@ -51,12 +51,12 @@ The suites split along the output/input boundary. Everything except
 
 ### `make test` — full non-interactive suite
 
-The canonical "is everything OK?" command. Runs all four headless gates in
-order — `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`,
-`test-input-pty` — and fails if any does. Command-line overrides propagate, so
-`make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The
-interactive widget suite (`make test-input`) needs a real TTY and is **not**
-included. The individual targets it chains are documented below.
+The canonical "is everything OK?" command. Runs all headless gates in order —
+`test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`,
+`test-input-pty`, `test-cpp` — and fails if any does. Command-line overrides
+propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings
+as errors. The interactive widget suite (`make test-input`) needs a real TTY
+and is **not** included. The individual targets it chains are documented below.
 
 ```sh
 make test                     # run every headless gate
@@ -127,6 +127,17 @@ textarea, and datepicker.
 
 ```sh
 make test-input-pty
+```
+
+### `make test-cpp` — C++ wrapper gate
+
+Compiles `examples/cpp_demo.cpp` against the header-only C++20 wrapper
+(`include/sparcli.hpp`) and runs it headless. Guards the wrapper from silently
+breaking when the C API changes. Needs a C++ compiler (`$(CXX)`, default `c++`).
+
+```sh
+make test-cpp                    # compile + run the C++ demo headless
+make test-cpp EXTRA_CFLAGS=-Werror
 ```
 
 ### `make sanitize` — output suite under ASan/UBSan
@@ -246,10 +257,17 @@ src/output/   panel, rule, list, tree, columns, kv, alert, badge,
 src/tty/      raw mode + signal restore, key decoder, in-place redraw
 src/input/    prompt engine, line editor, confirm, text/password/number,
               textarea, select, fuzzy, datepicker, theme
-include/{core,output,input}/   public headers (sparcli.h is the umbrella)
+include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
+include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 ```
+
+The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin,
+header-only layer: RAII handle classes, owned strings where the C API borrows
+(tables), `std::optional`/`std::vector` returns for input, and a `.get()`
+escape hatch to the C API. It is verified by `make test-cpp`. Keep it in sync
+when you add or change public C functions.
 
 The **output/input boundary is physical**: `src/core` and `src/output` are
 stream-oriented and write through the redirectable `sc_output_stream()`;
