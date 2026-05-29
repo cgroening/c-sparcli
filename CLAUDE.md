@@ -13,6 +13,9 @@ make test-input   # INPUT logic+widget suite (tests/input/logic/) — interactiv
                   # logic tests (key decoder, line editor) for CI.
 make test-input-style # INPUT style snapshots (tests/input/style/) — NON-interactive:
                   # renders every widget in many styles; safe in CI.
+make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
+                  # widget onto a pseudo-terminal and feeds canned keys — gives
+                  # interactive coverage with no human. Runs headless (CI).
 make clean        # removes build trees, .a, shared libs, test binaries
 ```
 
@@ -560,6 +563,29 @@ sequences (arrows, Home/End, Delete, PageUp/Down, Shift-Tab) and multi-byte
 UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
 UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
 `SC_KEY_ESC` via a 25 ms poll timeout.
+
+### Terminal safety / robustness
+
+The input side manipulates global terminal state, so `src/tty/term.c` is
+defensive about always handing back a usable terminal:
+
+- **Restore-on-signal:** raw mode + cursor are restored on `SIGINT`/`SIGTERM`/
+  `SIGHUP`/`SIGQUIT` (then the signal is re-raised with the default handler) and
+  via `atexit`. Crash signals (SIGSEGV/ABRT/…) are intentionally **not** trapped,
+  so debuggers/sanitizers keep their handlers; `atexit` covers clean exits.
+- **Resize:** `SIGWINCH` sets a flag; `sc_tty_read_key` returns `SC_KEY_RESIZE`
+  (the blocking `read` is interrupted, `EINTR`), and `sc_prompt_run` clears and
+  repaints so content reflows. Other `EINTR` retries transparently.
+- **Height clamp:** `sc_screen_draw` never draws more lines than the terminal
+  has rows, so a frame taller than the window can't scroll the screen and break
+  the cursor-up arithmetic (widgets also bound their own height).
+- **No nesting:** `sc_prompt_run` refuses to run while another prompt is active
+  (single global TTY session) and returns `SC_INPUT_ERROR` rather than corrupt
+  state. Not thread-safe (like `sc_set_output`). The key buffer is reset at
+  `sc_tty_begin` so stale bytes never leak between prompts.
+- **Coverage:** `make test-input-pty` drives every interactive widget over a
+  PTY under ASan/UBSan (headless), complementing the pure-logic and snapshot
+  suites.
 
 ### Widgets
 

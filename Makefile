@@ -26,11 +26,13 @@ ifeq ($(UNAME_S),Darwin)
                      -install_name $(LIBDIR)/$(SHLIB_SONAME) \
                      -compatibility_version $(VERSION_MAJOR) \
                      -current_version $(VERSION)
+    PTY_LDLIBS    :=             # forkpty lives in libSystem on macOS
 else
     SHLIB         := libsparcli.so.$(VERSION)
     SHLIB_SONAME  := libsparcli.so.$(VERSION_MAJOR)
     SHLIB_LINK    := libsparcli.so
     SHLIB_LDFLAGS := -shared -Wl,-soname,$(SHLIB_SONAME)
+    PTY_LDLIBS    := -lutil      # forkpty
 endif
 
 # ── Core (foundation: color, text, print, output stream, render) ──────────
@@ -117,6 +119,12 @@ STYLE_TEST_SRC = tests/input/style/test_style_main.c \
                  tests/input/style/test_style_datepicker.c
 STYLE_TEST_BIN = tests/input/style/test_style_main
 
+# ── Self-driving PTY suite: runs the interactive widgets under a pseudo-
+# terminal (no human needed). Built with the sanitizers so it also gives
+# AddressSanitizer/UBSan coverage of the interactive code paths.
+PTY_TEST_SRC = tests/input/pty/test_pty.c
+PTY_TEST_BIN = tests/input/pty/test_pty
+
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
 EXAMPLES_BUILDDIR = build.examples.nosync
 EXAMPLES_SRC      = $(wildcard examples/*.c)
@@ -124,7 +132,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 
 HEADERS = $(shell find include -name '*.h')
 
-.PHONY: all test test-input test-input-style clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-input test-input-style test-input-pty clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -168,6 +176,14 @@ test-input: $(LIB)
 test-input-style: $(LIB)
 	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
 	./$(STYLE_TEST_BIN) $(ARGS)
+
+# Self-driving PTY suite under the sanitizers: exercises the interactive widgets
+# end-to-end (raw mode, key decoding, redraw) with no human and reports leaks /
+# UB. Linked against the sanitizer .a like `make sanitize`.
+test-input-pty: $(SANITIZE_LIB)
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) $(PTY_TEST_SRC) $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) $(PTY_LDLIBS) -o $(PTY_TEST_BIN)
+	./$(PTY_TEST_BIN) $(ARGS)
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.
 # Uses a separate build tree and a separate .a so it never contaminates the
@@ -228,4 +244,5 @@ clean:
 	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) $(EXAMPLES_BUILDDIR) \
 	       $(LIB) $(SANITIZE_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
-	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) $(SANITIZE_TEST_BIN)
+	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) \
+	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN)

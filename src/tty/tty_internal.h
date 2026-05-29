@@ -43,14 +43,24 @@ void sc_tty_puts(const char *s);
 /** Returns the descriptor used for terminal reads (shared with key.c). */
 int sc_tty_internal_fd(void);
 
+/** Returns the terminal height in rows (fallback 24 when unknown). */
+int sc_tty_rows(void);
+
+/** Returns and clears the pending-resize flag set by the SIGWINCH handler. */
+bool sc_tty_take_resize(void);
+
 
 /* ── Key input (key.c) ──────────────────────────────────────────────────── */
 
 /**
  * Blocks until a key is available on the terminal input fd and returns it
- * decoded. Returns a `SC_KEY_NONE` key on EOF/read error.
+ * decoded. Returns a `SC_KEY_NONE` key on EOF/read error, or a `SC_KEY_RESIZE`
+ * key when interrupted by a terminal resize.
  */
 ScKey sc_tty_read_key(void);
+
+/** Discards any buffered, not-yet-decoded input bytes (called at session start). */
+void sc_tty_input_reset(void);
 
 
 /* ── In-place multi-line redraw (screen.c) ──────────────────────────────── */

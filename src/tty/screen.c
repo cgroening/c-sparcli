@@ -12,6 +12,13 @@ static void cursor_up(int n) {
 }
 
 void sc_screen_draw(ScScreen *screen, char *const *lines, size_t n) {
+    /* Never draw more lines than fit on screen: a frame taller than the
+     * terminal would scroll and break the cursor-up arithmetic below. Cap to
+     * the window height; excess lines are truncated rather than corrupting the
+     * display. (Widgets bound their own height via `max_visible` etc.) */
+    int rows = sc_tty_rows();
+    if (rows > 0 && n > (size_t)rows) { n = (size_t)rows; }
+
     /* Rewind to the top-left of the previously drawn region and clear it. */
     if (screen->prev_lines > 0) {
         cursor_up(screen->prev_lines - 1);

@@ -1,5 +1,6 @@
 #include "tty_internal.h"
 
+#include <errno.h>
 #include <poll.h>
 #include <string.h>
 #include <unistd.h>
@@ -127,43 +128,53 @@ size_t sc_key_decode(const char *buf, size_t len, ScKey *out) {
 
 /* ── Buffered terminal reader ───────────────────────────────────────────── */
 
+static char   g_buf[64];
+static size_t g_buf_len = 0;
+
+void sc_tty_input_reset(void) {
+    g_buf_len = 0;
+}
+
 ScKey sc_tty_read_key(void) {
-    static char   buf[64];
-    static size_t buf_len = 0;
+    const ScKey none   = { .type = SC_KEY_NONE,   .codepoint = 0, .bytes = {0} };
+    const ScKey resize = { .type = SC_KEY_RESIZE, .codepoint = 0, .bytes = {0} };
 
     int fd = sc_tty_internal_fd();
     for (;;) {
         ScKey  key;
-        size_t used = sc_key_decode(buf, buf_len, &key);
+        size_t used = sc_key_decode(g_buf, g_buf_len, &key);
         if (used > 0) {
-            memmove(buf, buf + used, buf_len - used);
-            buf_len -= used;
+            memmove(g_buf, g_buf + used, g_buf_len - used);
+            g_buf_len -= used;
             return key;
         }
         /* A lone ESC is ambiguous: it may begin an escape sequence whose
          * remaining bytes are still in flight, or it may be the user pressing
          * Escape. Wait briefly; if nothing more arrives, treat it as Esc. */
-        if (buf_len > 0 && (unsigned char)buf[0] == 0x1b) {
+        if (g_buf_len > 0 && (unsigned char)g_buf[0] == 0x1b) {
             struct pollfd pfd = { .fd = fd, .events = POLLIN };
             int pr = poll(&pfd, 1, 25 /* ms */);
             if (pr == 0) {
-                memmove(buf, buf + 1, buf_len - 1);
-                buf_len -= 1;
+                memmove(g_buf, g_buf + 1, g_buf_len - 1);
+                g_buf_len -= 1;
                 ScKey esc = { .type = SC_KEY_ESC, .codepoint = 0, .bytes = {0} };
                 return esc;
             }
-            if (pr < 0) {
-                ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
-                return none;
-            }
+            if (pr < 0 && errno != EINTR) { return none; }
+            if (pr < 0 && sc_tty_take_resize()) { return resize; }
+            /* EINTR without resize, or data ready: fall through and read. */
         }
         /* Incomplete sequence (or empty buffer): pull more bytes. */
-        if (buf_len == sizeof buf) { buf_len = 0; }  /* overflow guard */
-        ssize_t r = read(fd, buf + buf_len, sizeof buf - buf_len);
-        if (r <= 0) {
-            ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
+        if (g_buf_len == sizeof g_buf) { g_buf_len = 0; }  /* overflow guard */
+        ssize_t r = read(fd, g_buf + g_buf_len, sizeof g_buf - g_buf_len);
+        if (r < 0) {
+            if (errno == EINTR) {
+                if (sc_tty_take_resize()) { return resize; }
+                continue;  /* other signal: retry the read */
+            }
             return none;
         }
-        buf_len += (size_t)r;
+        if (r == 0) { return none; }  /* EOF */
+        g_buf_len += (size_t)r;
     }
 }

@@ -64,6 +64,7 @@ typedef enum {
     SC_KEY_CTRL_K,
     SC_KEY_CTRL_U,
     SC_KEY_CTRL_W,
+    SC_KEY_RESIZE,     /**< Terminal was resized (SIGWINCH); repaint and continue. */
 } ScKeyType;
 
 /**
