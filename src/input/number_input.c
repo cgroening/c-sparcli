@@ -147,7 +147,7 @@ static ScRendered *number_render_boxed(NumberState *self) {
     ScPanelOpts panel_opts = {
         .border = self->opts.border,
         .title = { .text = self->prompt, .style = self->opts.prompt_style,
-                   .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+                   .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
     };
@@ -162,7 +162,7 @@ static ScRendered *number_render_boxed(NumberState *self) {
     if (range[0]) {
         panel_opts.subtitle = (ScTitle){ .text = range,
             .style = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .align = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM };
+            .halign = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM };
     }
 
     ScRendered *panel = sc_capture_panel_text(inner, panel_opts);

@@ -72,7 +72,7 @@ void test_trees(void) {
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
             .type = SC_BORDER_ROUNDED,
-            .connector_color = sc_ansi_color_from_rgb(100, 100, 100),
+            .connector_color = sc_color_from_rgb(100, 100, 100),
         });
         ScTextStyle root_style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_NONE
@@ -126,7 +126,7 @@ void test_trees(void) {
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
             .type = SC_BORDER_SINGLE,
-            .connector_color = sc_ansi_color_from_rgb(80, 80, 80),
+            .connector_color = sc_color_from_rgb(80, 80, 80),
         });
         ScTextStyle ok_icon = {
             SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE
@@ -226,7 +226,7 @@ void test_trees(void) {
 
         ScTree *thick_tree = sc_tree_new((ScTreeOpts){
             .type = SC_BORDER_THICK,
-            .connector_color = sc_ansi_color_from_rgb(120, 80, 200),
+            .connector_color = sc_color_from_rgb(120, 80, 200),
         });
         ScTreeNode *thick_root = sc_tree_add_str(
             thick_tree, NULL, "root (THICK, colored)", bold, NULL, plain
@@ -330,7 +330,7 @@ void test_trees(void) {
     {
         ScTree *tree = sc_tree_new((ScTreeOpts){
             .type = SC_BORDER_SINGLE,
-            .connector_color = sc_ansi_color_from_rgb(80, 140, 80),
+            .connector_color = sc_color_from_rgb(80, 140, 80),
         });
         ScTextStyle dir_style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE
@@ -413,7 +413,7 @@ void test_trees(void) {
                     SC_TEXT_ATTR_BOLD,
                     SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
                 },
-                .align = SC_ALIGN_CENTER,
+                .halign = SC_ALIGN_CENTER,
                 .pad = 1,
                 .pos = SC_POSITION_TOP,
             },

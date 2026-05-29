@@ -26,10 +26,10 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 
 Zero-init friendly: `(ScColor){0}` ≡ `SC_ANSI_COLOR_NONE`, so leaving any
 color field unset emits no escape codes. Construct explicit black with
-`SC_ANSI_COLOR_BLACK`; RGB with `sc_ansi_color_from_rgb(...)`.
+`SC_ANSI_COLOR_BLACK`; RGB with `sc_color_from_rgb(...)`.
 
 ```c
-ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
+ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
 ```
 
 Named macros: `SC_ANSI_COLOR_NONE`, `SC_ANSI_COLOR_BLACK`,
@@ -87,9 +87,9 @@ Used by panels, tables, rules, and column separators.
 typedef struct {
     const char      *text;  /* NULL = no title */
     ScTextStyle      style; /* text rendering (bold, color, …) */
-    ScHAlign         align; /* LEFT / CENTER / RIGHT */
+    ScHAlign         halign; /* LEFT / CENTER / RIGHT */
     int              pad;   /* spaces on each side of the title text */
-    ScTitlePosition  pos;   /* SC_POSITION_TOP / SC_POSITION_BOTTOM; unused for rules */
+    ScPosition  pos;   /* SC_POSITION_TOP / SC_POSITION_BOTTOM; unused for rules */
 } ScTitle;
 ```
 
@@ -97,8 +97,8 @@ Used directly everywhere a title is needed. `pos` is ignored by rules (no
 top/bottom distinction).
 
 Access paths:
-- `rule_opts.title.text` / `.style` / `.align` / `.pad`
-- `panel_opts.title.text` / `.style` / `.align` / `.pad` / `.pos`
+- `rule_opts.title.text` / `.style` / `.halign` / `.pad`
+- `panel_opts.title.text` / `.style` / `.halign` / `.pad` / `.pos`
 
 ---
 
@@ -118,9 +118,9 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | `title` | `ScTitle` | Title text, style, and position |
 | `title.text` | `const char *` | NULL = no title |
 | `title.style` | `ScTextStyle` | Text style (bold, color, …) |
-| `title.align` | `ScHAlign` | LEFT / CENTER / RIGHT |
+| `title.halign` | `ScHAlign` | LEFT / CENTER / RIGHT |
 | `title.pad` | `int` | Spaces on each side of the title text |
-| `title.pos` | `ScTitlePosition` | `SC_POSITION_TOP` / `SC_POSITION_BOTTOM` |
+| `title.pos` | `ScPosition` | `SC_POSITION_TOP` / `SC_POSITION_BOTTOM` |
 | `padding` | `ScEdges` | Inner content padding (top/right/bottom/left) |
 | `margin` | `ScEdges` | Outer margin |
 | `width` | `int` | 0 = auto-fit content |
@@ -134,7 +134,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 (zero-init) as "not set" — the same sentinel as `ScProgressBarOpts.fill_color`.
 A zero-initialized `ScPanelOpts` field means no background. Use
 `SC_ANSI_COLOR_NONE` or leave unset for no color; use
-`sc_ansi_color_from_rgb(...)` for a specific color.
+`sc_color_from_rgb(...)` for a specific color.
 
 ---
 
@@ -177,7 +177,7 @@ multiple times with different opts.
 | `footer.style` | `ScTextStyle` for footer cells |
 | `title` | `ScTitle` — table title |
 | `title.text` | Title string; `NULL` = no title |
-| `title.style` / `title.align` / `title.pad` / `title.pos` | Title text appearance and position |
+| `title.style` / `title.halign` / `title.pad` / `title.pos` | Title text appearance and position |
 | `cell_pad` | `ScEdges` — inner cell padding |
 | `margin` | `ScEdges` — outer table margin (top/right/bottom/left) |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
@@ -224,27 +224,32 @@ typedef struct {
 Per-column bg is the lowest-priority fallback: only applied when no row-level
 background is active (`row_bg.index == 0`).
 
-### ScCell macros
+### ScCell constructors
 
-| Macro | Description |
-|-------|-------------|
-| `SC_CELL(s)` | Plain string cell |
-| `SC_CELL_A(s, ha, va)` | String + horizontal + vertical alignment |
-| `SC_CELL_T(t)` | ScText cell |
-| `SC_CELL_TA(t, ha, va)` | ScText + alignment |
-| `SC_CELL_CS(s, cs)` | String + colspan |
-| `SC_CELL_CSA(s, cs, ha)` | String + colspan + horizontal alignment |
-| `SC_CELL_TCS(t, cs)` | ScText + colspan |
-| `SC_CELL_TCSA(t, cs, ha)` | ScText + colspan + horizontal alignment |
-| `SC_CELL_SKIP` | Placeholder cell covered by a colspan |
-| `SC_CELL_RS(s, rs)` | String + rowspan |
-| `SC_CELL_TRS(t, rs)` | ScText + rowspan |
-| `SC_ROW_SKIP` | Placeholder row covered by a rowspan |
-| `SC_CELL_M(s)` | Markup cell — see [Markup](#markup) |
+Cells are built with `static inline` helpers (**not** macros). Native C uses the
+terse inline forms; FFI bindings that cannot consume `static inline` functions or
+C99 compound literals call the exported descriptive variants instead.
 
-Colspan: set `colspan > 1` on the spanning cell; fill the remaining positions
-with `SC_CELL_SKIP`. Rowspan: set `rowspan > 1` on the spanning cell; fill the
-covered rows with `SC_ROW_SKIP` at the corresponding column position.
+| Inline helper | FFI variant | Description |
+|---------------|-------------|-------------|
+| `sc_cell(s)` | `sc_cell_from_str(s)` | Plain string cell |
+| `sc_cell_a(s, ha, va)` | `sc_cell_str_aligned(s, ha, va)` | String + h/v alignment |
+| `sc_cell_t(t)` | `sc_cell_from_text(t)` | ScText cell (not owned) |
+| `sc_cell_ta(t, ha, va)` | `sc_cell_text_aligned(t, ha, va)` | ScText + alignment |
+| `sc_cell_cs(s, cs)` | `sc_cell_colspan(s, cs)` | String + colspan |
+| `sc_cell_csa(s, cs, ha)` | — | String + colspan + halign |
+| `sc_cell_tcs(t, cs)` | — | ScText + colspan |
+| `sc_cell_tcsa(t, cs, ha)` | — | ScText + colspan + halign |
+| `sc_cell_skip()` | `sc_cell_skip_placeholder()` | Placeholder covered by a colspan |
+| `sc_cell_rs(s, rs)` | `sc_cell_rowspan(s, rs)` | String + rowspan |
+| `sc_cell_trs(t, rs)` | — | ScText + rowspan |
+| `sc_row_skip()` | `sc_row_skip_placeholder()` | Placeholder row covered by a rowspan |
+| `sc_cell_m(s)` | `sc_cell_from_markup(s)` | Markup cell (owns the parsed ScText) |
+
+Colspan: use `sc_cell_cs(s, n)` (sets `col_span = n`) on the spanning cell; fill
+the remaining positions with `sc_cell_skip()`. Rowspan: use `sc_cell_rs(s, n)`
+(sets `row_span = n`); fill the covered rows with `sc_row_skip()` at the
+corresponding column position.
 
 ---
 
@@ -263,13 +268,13 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 |-------|-------------|
 | `type` | `ScBorderType` — which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
-| `title` | `ScTitle` — title label (text, style, align, pad; pos ignored) |
+| `title` | `ScTitle` — title label (text, style, halign, pad; pos ignored) |
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` | `ScTextStyle` for the title text |
-| `title.align` | LEFT / CENTER / RIGHT (default CENTER) |
+| `title.halign` | LEFT / CENTER / RIGHT (default CENTER) |
 | `title.pad` | Spaces on each side of title, default 1 |
 | `width` | 0 = full terminal width; >0 = fixed width |
-| `align` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
+| `halign` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
 | `margin` | `ScEdges` — top/bottom = blank lines; left/right = indent |
 
 ---
@@ -317,7 +322,7 @@ typedef struct {
     int      min_w;      // 0 = none
     int      max_w;      // 0 = none
     int      fixed_w;    // 0 = auto; fixed_w > 0 ignores min_w/max_w
-    ScHAlign  align;      // content placement when col_w > content_w
+    ScHAlign  halign;      // content placement when col_w > content_w
     int      valign_set; // 1 = override ScColumnsOpts.valign for this column
     ScVAlign valign;     // per-column vertical alignment
     ScColor  bg;         // background for padding spaces and empty slots; zero-init = no color
@@ -557,6 +562,7 @@ and border.
 void sc_alert_str    (ScAlertType type, const char *content);
 void sc_alert_text   (ScAlertType type, const ScText *content);
 void sc_alert_info   (const char *content);
+void sc_alert_debug  (const char *content);
 void sc_alert_warning(const char *content);
 void sc_alert_error  (const char *content);
 void sc_alert_success(const char *content);
@@ -565,6 +571,7 @@ void sc_alert_success(const char *content);
 | Type | Icon | Color |
 |------|------|-------|
 | `SC_ALERT_INFO` | ℹ | Blue |
+| `SC_ALERT_DEBUG` | ⚙ | Magenta |
 | `SC_ALERT_WARNING` | ⚠ | Yellow |
 | `SC_ALERT_ERROR` | ✖ | Red |
 | `SC_ALERT_SUCCESS` | ✔ | Green |
@@ -708,9 +715,9 @@ sc_pad_str("Hello", (ScPadOpts){ .left = 8 });
 
 ```c
 /* width = 0 → sc_term_width(); width > 0 → fixed column count */
-void sc_align_print(const ScRendered *r, ScHAlign align, int width);
-void sc_align_str  (const char *s,       ScHAlign align, int width);
-void sc_align_text (const ScText *t,     ScHAlign align, int width);
+void sc_align_print(const ScRendered *r, ScHAlign halign, int width);
+void sc_align_str  (const char *s,       ScHAlign halign, int width);
+void sc_align_text (const ScText *t,     ScHAlign halign, int width);
 ```
 
 Aligns every line of the rendered output within `width` columns.
@@ -830,19 +837,19 @@ ScText *t = sc_markup_parse_opts(
 );
 ```
 
-### SC_CELL_M — markup in tables
+### sc_cell_m — markup in tables
 
 ```c
-#define SC_CELL_M(s)  /* creates an SC_CELL_MARKUP cell */
+static inline ScCell sc_cell_m(const char *s);  /* parses s as inline markup */
 ```
 
 The cell **owns** the parsed `ScText`; `sc_table_free` frees it
-automatically. No separate free needed.
+automatically. No separate free needed. (FFI variant: `sc_cell_from_markup(s)`.)
 
 ```c
 sc_table_add_row(t, (ScCell[]){
-    SC_CELL_M("[green]✔ OK[/]"),
-    SC_CELL_M("Build [bold]passed[/]"),
+    sc_cell_m("[green]✔ OK[/]"),
+    sc_cell_m("Build [bold]passed[/]"),
 }, 2);
 sc_table_free(t);  /* frees markup ScText automatically */
 ```

@@ -131,8 +131,8 @@ void test_markup(void) {
 
     printf("\n");
 
-    /* ── 10. SC_CELL_M in a table ── */
-    printf("--- Markup 10. SC_CELL_M in table ---\n");
+    /* ── 10. sc_cell_m in a table ── */
+    printf("--- Markup 10. sc_cell_m in table ---\n");
     {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Status", (ScColOpts){
@@ -185,7 +185,7 @@ void test_markup(void) {
             .title = {
                 .text = " Markup Demo ",
                 .style = bold_cyan,
-                .align = SC_ALIGN_CENTER,
+                .halign = SC_ALIGN_CENTER,
                 .pad = 1,
                 .pos = SC_POSITION_TOP,
             },

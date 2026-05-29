@@ -61,7 +61,7 @@ static ScTitle title_centered_top(const char *text, ScTextStyle style) {
     return (ScTitle){
         .text = text,
         .style = style,
-        .align = SC_ALIGN_CENTER,
+        .halign = SC_ALIGN_CENTER,
         .pad = 1,
         .pos = SC_POSITION_TOP,
     };
@@ -159,7 +159,7 @@ void test_tables(void) {
             .header.row = true,
             .header.style = bold,
             .striped = true,
-            .stripe_bg = sc_ansi_color_from_rgb(40, 40, 60),
+            .stripe_bg = sc_color_from_rgb(40, 40, 60),
             .cell_pad = { 0, 1, 0, 1 },
         });
         sc_table_free(table);
@@ -359,7 +359,7 @@ void test_tables(void) {
 
     /* ── 10. Thick border, golden color ── */
     {
-        ScColor gold = sc_ansi_color_from_rgb(255, 180, 0);
+        ScColor gold = sc_color_from_rgb(255, 180, 0);
         ScTextStyle bold_gold = { SC_TEXT_ATTR_BOLD, gold, SC_ANSI_COLOR_NONE };
 
         ScTableData *table = sc_table_new();
@@ -471,7 +471,7 @@ void test_tables(void) {
             .border = default_border(SC_BORDER_SINGLE),
             .header.row = true,
             .header.style = bold,
-            .footer.row_bg = sc_ansi_color_from_rgb(30, 40, 30),
+            .footer.row_bg = sc_color_from_rgb(30, 40, 30),
             .footer.style = bold,
             .title = title_centered_top(" Footer Row (Totals) ", bold_green),
             .cell_pad = { 0, 1, 0, 1 },
@@ -483,8 +483,8 @@ void test_tables(void) {
 
     /* ── 19. Per-row background ── */
     {
-        ScColor fail_bg = sc_ansi_color_from_rgb(60, 20, 20);
-        ScColor pass_bg = sc_ansi_color_from_rgb(20, 50, 20);
+        ScColor fail_bg = sc_color_from_rgb(60, 20, 20);
+        ScColor pass_bg = sc_color_from_rgb(20, 50, 20);
 
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Build", col_left);
@@ -529,12 +529,12 @@ void test_tables(void) {
 
     /* ── 20. Per-column background ── */
     {
-        ScColor pro_bg = sc_ansi_color_from_rgb(20, 45, 90);
-        ScColor enterprise_bg = sc_ansi_color_from_rgb(60, 40, 0);
-        ScColor header_bg = sc_ansi_color_from_rgb(30, 30, 50);
+        ScColor pro_bg = sc_color_from_rgb(20, 45, 90);
+        ScColor enterprise_bg = sc_color_from_rgb(60, 40, 0);
+        ScColor header_bg = sc_color_from_rgb(30, 30, 50);
         ScTextStyle header_style = {
             SC_TEXT_ATTR_BOLD,
-            sc_ansi_color_from_rgb(200, 200, 255),
+            sc_color_from_rgb(200, 200, 255),
             SC_ANSI_COLOR_NONE,
         };
 

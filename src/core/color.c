@@ -5,7 +5,7 @@
 typedef struct { int named; int rgb_prefix; } ColorLayer;
 
 
-ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
+ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 void sc_apply_colors(ScColor fg, ScColor bg);
 static void apply_fg(ScColor c);
 static void apply_bg(ScColor c);
@@ -19,7 +19,7 @@ static const ColorLayer SC_ANSI_COLOR_LAYER_BACKGROUND = {4, 48};
 /**
  * Creates a color from RGB values and returns an `ScColor` struct.
  */
-ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b) {
+ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b) {
     return (ScColor){ -1, r, g, b };
 }
 

@@ -85,24 +85,24 @@ void test_columns_basic(void) {
             columns, "Column A\nLine 2\nLine 3\nLine 4\nLine 5",
             (ScColItem){
                 .fixed_w = 22,
-                .align = SC_ALIGN_CENTER,
-                .bg = sc_ansi_color_from_rgb(70, 20, 20),
+                .halign = SC_ALIGN_CENTER,
+                .bg = sc_color_from_rgb(70, 20, 20),
             }
         );
         sc_columns_add_str(
             columns, "Column B\nLine 2\nLine 3",
             (ScColItem){
                 .fixed_w = 22,
-                .align = SC_ALIGN_CENTER,
-                .bg = sc_ansi_color_from_rgb(20, 60, 20),
+                .halign = SC_ALIGN_CENTER,
+                .bg = sc_color_from_rgb(20, 60, 20),
             }
         );
         sc_columns_add_str(
             columns, "Column C\nLine 2",
             (ScColItem){
                 .fixed_w = 22,
-                .align = SC_ALIGN_CENTER,
-                .bg = sc_ansi_color_from_rgb(20, 20, 70),
+                .halign = SC_ALIGN_CENTER,
+                .bg = sc_color_from_rgb(20, 20, 70),
             }
         );
         sc_columns_print(columns);
@@ -122,16 +122,16 @@ void test_columns_basic(void) {
             (ScPanelOpts){
                 .border = {
                     .type = SC_BORDER_ROUNDED,
-                    .color = sc_ansi_color_from_rgb(255, 100, 100),
-                    .bg = sc_ansi_color_from_rgb(100, 25, 25),
+                    .color = sc_color_from_rgb(255, 100, 100),
+                    .bg = sc_color_from_rgb(100, 25, 25),
                 },
-                .bg = sc_ansi_color_from_rgb(60, 15, 15),
+                .bg = sc_color_from_rgb(60, 15, 15),
                 .padding = { 0, 2, 0, 2 },
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){
                 .stretch = true,
-                .bg = sc_ansi_color_from_rgb(60, 15, 15),
+                .bg = sc_color_from_rgb(60, 15, 15),
             }
         );
         sc_columns_add_panel_str(
@@ -139,16 +139,16 @@ void test_columns_basic(void) {
             (ScPanelOpts){
                 .border = {
                     .type = SC_BORDER_ROUNDED,
-                    .color = sc_ansi_color_from_rgb(100, 255, 100),
-                    .bg = sc_ansi_color_from_rgb(25, 100, 25),
+                    .color = sc_color_from_rgb(100, 255, 100),
+                    .bg = sc_color_from_rgb(25, 100, 25),
                 },
-                .bg = sc_ansi_color_from_rgb(15, 60, 15),
+                .bg = sc_color_from_rgb(15, 60, 15),
                 .padding = { 0, 2, 0, 2 },
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){
                 .stretch = true,
-                .bg = sc_ansi_color_from_rgb(15, 60, 15),
+                .bg = sc_color_from_rgb(15, 60, 15),
             }
         );
         sc_columns_add_panel_str(
@@ -156,16 +156,16 @@ void test_columns_basic(void) {
             (ScPanelOpts){
                 .border = {
                     .type = SC_BORDER_ROUNDED,
-                    .color = sc_ansi_color_from_rgb(100, 100, 255),
-                    .bg = sc_ansi_color_from_rgb(25, 25, 100),
+                    .color = sc_color_from_rgb(100, 100, 255),
+                    .bg = sc_color_from_rgb(25, 25, 100),
                 },
-                .bg = sc_ansi_color_from_rgb(15, 15, 60),
+                .bg = sc_color_from_rgb(15, 15, 60),
                 .padding = { 0, 2, 0, 2 },
                 .content_align = SC_ALIGN_CENTER,
             },
             (ScColItem){
                 .stretch = true,
-                .bg = sc_ansi_color_from_rgb(15, 15, 60),
+                .bg = sc_color_from_rgb(15, 15, 60),
             }
         );
         sc_columns_print(columns);
@@ -181,32 +181,32 @@ void test_columns_basic(void) {
             .valign = SC_VALIGN_TOP,
             .sep = {
                 .type = SC_BORDER_SINGLE,
-                .color = sc_ansi_color_from_rgb(200, 180, 100),
-                .bg = sc_ansi_color_from_rgb(60, 50, 10),
+                .color = sc_color_from_rgb(200, 180, 100),
+                .bg = sc_color_from_rgb(60, 50, 10),
             },
         });
         sc_columns_add_str(
             columns, "Column A\nLine 2\nLine 3\nLine 4\nLine 5",
             (ScColItem){
                 .fixed_w = 22,
-                .align = SC_ALIGN_CENTER,
-                .bg = sc_ansi_color_from_rgb(70, 20, 20),
+                .halign = SC_ALIGN_CENTER,
+                .bg = sc_color_from_rgb(70, 20, 20),
             }
         );
         sc_columns_add_str(
             columns, "Column B\nLine 2\nLine 3",
             (ScColItem){
                 .fixed_w = 22,
-                .align = SC_ALIGN_CENTER,
-                .bg = sc_ansi_color_from_rgb(20, 60, 20),
+                .halign = SC_ALIGN_CENTER,
+                .bg = sc_color_from_rgb(20, 60, 20),
             }
         );
         sc_columns_add_str(
             columns, "Column C\nLine 2",
             (ScColItem){
                 .fixed_w = 22,
-                .align = SC_ALIGN_CENTER,
-                .bg = sc_ansi_color_from_rgb(20, 20, 70),
+                .halign = SC_ALIGN_CENTER,
+                .bg = sc_color_from_rgb(20, 20, 70),
             }
         );
         sc_columns_print(columns);

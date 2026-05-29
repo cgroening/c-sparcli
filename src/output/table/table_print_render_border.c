@@ -52,7 +52,7 @@ static void render_title_inner(
     );
         static void split_title_fill(
             int inner_width, int title_length, int title_pad,
-            ScHAlign align, int *left_fill, int *right_fill
+            ScHAlign halign, int *left_fill, int *right_fill
         );
     static void render_title_plain_fill(
         int inner_width, const char *fill_char, ScColor outer_color
@@ -419,7 +419,7 @@ static void render_title_with_fill(
     int left_fill, right_fill;
     split_title_fill(
         table->inner_width, title_length, title_pad,
-        table->opts.title.align, &left_fill, &right_fill
+        table->opts.title.halign, &left_fill, &right_fill
     );
 
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
@@ -440,22 +440,22 @@ static void render_title_with_fill(
 }
 
 /**
- * Distributes the fill characters around the title text per `align`.
+ * Distributes the fill characters around the title text per `halign`.
  * Both `*left_fill` and `*right_fill` are clamped to `>= 0`.
  */
 static void split_title_fill(
     int inner_width, int title_length, int title_pad,
-    ScHAlign align, int *left_fill, int *right_fill
+    ScHAlign halign, int *left_fill, int *right_fill
 ) {
     int total_fill = inner_width - title_length - 2 * title_pad;
     if (total_fill < 0) { total_fill = 0; }
 
     *left_fill = 1;
     *right_fill = total_fill - 1;
-    if (align == SC_ALIGN_CENTER) {
+    if (halign == SC_ALIGN_CENTER) {
         *left_fill = total_fill / 2;
         *right_fill = total_fill - *left_fill;
-    } else if (align == SC_ALIGN_RIGHT) {
+    } else if (halign == SC_ALIGN_RIGHT) {
         *left_fill = total_fill - 1;
         *right_fill = 1;
     }

@@ -67,7 +67,7 @@ void test_align(void) {
             .title = {
                 .text = " Summary ",
                 .style = bold_magenta,
-                .align = SC_ALIGN_CENTER,
+                .halign = SC_ALIGN_CENTER,
                 .pad = 1,
                 .pos = SC_POSITION_TOP,
             },
@@ -89,7 +89,7 @@ void test_align(void) {
                 .type = SC_BORDER_SINGLE,
                 .color = SC_ANSI_COLOR_YELLOW,
                 .title.style = bold_yellow,
-                .title.align = SC_ALIGN_CENTER,
+                .title.halign = SC_ALIGN_CENTER,
                 .width = 40,
             }
         );
@@ -150,7 +150,7 @@ void test_align(void) {
                 .title = {
                     .text = " Left (padded) ",
                     .style = bold_cyan,
-                    .align = SC_ALIGN_CENTER,
+                    .halign = SC_ALIGN_CENTER,
                     .pad = 1,
                     .pos = SC_POSITION_TOP,
                 },
@@ -171,7 +171,7 @@ void test_align(void) {
                 .title = {
                     .text = " Right (captured) ",
                     .style = bold_green,
-                    .align = SC_ALIGN_CENTER,
+                    .halign = SC_ALIGN_CENTER,
                     .pad = 1,
                     .pos = SC_POSITION_TOP,
                 },
@@ -201,12 +201,12 @@ void test_align(void) {
     {
         ScRendered *top = sc_capture_rule_str("Top", (ScRuleOpts){
             .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_CYAN,
-            .title.style = bold_cyan, .title.align = SC_ALIGN_CENTER,
+            .title.style = bold_cyan, .title.halign = SC_ALIGN_CENTER,
             .title.pad = 1, .width = 30,
         });
         ScRendered *bottom = sc_capture_rule_str("Bottom", (ScRuleOpts){
             .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_NONE,
-            .title.style = bold_green, .title.align = SC_ALIGN_CENTER,
+            .title.style = bold_green, .title.halign = SC_ALIGN_CENTER,
             .title.pad = 1, .width = 30,
         });
         ScRendered *parts[] = { top, bottom };

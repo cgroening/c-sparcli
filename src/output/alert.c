@@ -98,7 +98,7 @@ static ScPanelOpts build_panel_options(
             .style = {
                 SC_TEXT_ATTR_BOLD, color, SC_ANSI_COLOR_NONE
             },
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad = 1,
             .pos = SC_POSITION_TOP },
         .padding = {0, 1, 0, 1},

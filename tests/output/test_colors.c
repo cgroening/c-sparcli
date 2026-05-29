@@ -73,10 +73,10 @@ static Example *get_basic_examples(size_t *count) {
 static Example *get_combination_examples(size_t *count) {
     ScTextStyle blk_on_ylw = { attr.BOLD, clr.BLACK, clr.YELLOW };
     ScTextStyle orange_rgb = {
-        attr.NONE, sc_ansi_color_from_rgb(255, 192, 0), clr.NONE
+        attr.NONE, sc_color_from_rgb(255, 192, 0), clr.NONE
     };
     ScTextStyle rgb_bg = {
-        attr.ITALIC, clr.WHITE, sc_ansi_color_from_rgb(80, 0, 120)
+        attr.ITALIC, clr.WHITE, sc_color_from_rgb(80, 0, 120)
     };
 
     static Example examples[3];

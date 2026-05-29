@@ -9,7 +9,7 @@ SPARCLI_BEGIN_DECLS
 /**
  * Marker style used in front of each list item.
  */
-typedef enum {
+typedef enum ScListMarker {
     SC_LIST_BULLET,   /**< Fixed character (default `•`); see `ScListOpts.bullet` */
     SC_LIST_NUMBER,   /**< `1`, `2`, `3`, … (decimal counter) */
     SC_LIST_ALPHA_LC, /**< `a`, `b`, `c`, … (lowercase Latin letters) */

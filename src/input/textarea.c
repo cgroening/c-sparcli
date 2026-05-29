@@ -151,7 +151,7 @@ static ScRendered *render_boxed(const Textarea *self) {
     ScPanelOpts opts = {
         .border = self->opts.border,
         .title = { .text = self->prompt, .style = self->opts.prompt_style,
-                   .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+                   .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
     };

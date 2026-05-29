@@ -35,7 +35,7 @@ SPARCLI_BEGIN_DECLS
  * SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC  =  0b0001 | 0b0010  =  0b0011
  * @endcode
  */
-typedef enum {
+typedef enum ScTextAttribute {
     SC_TEXT_ATTR_NONE   = 0,
     SC_TEXT_ATTR_BOLD   = 1 << 0,
     SC_TEXT_ATTR_DIM    = 1 << 1,
@@ -55,7 +55,7 @@ typedef enum {
  * sc_print("hi", (ScTextStyle){ SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, ... });
  * @endcode
  */
-typedef struct {
+typedef struct ScTextAttributeNs {
     ScTextAttribute NONE, BOLD, DIM, ITALIC, UNDER;
 } ScTextAttributeNs;
 
@@ -72,9 +72,12 @@ SPARCLI_EXPORT extern const ScTextAttributeNs ScTextAttributeNs_;
  * ScColor Struct - Represents a terminal color, either as a named ANSI color
  * or RGB.
  */
-typedef struct {
-    int index;  /**< 0 = not set (zero-init); -1 = RGB mode; 1-8 = ANSI color */
-    uint8_t r, g, b;  /**< RGB values (0-255) used if index == -1 */
+typedef struct ScColor {
+    /** `0` = not set (zero-init); `-1` = RGB mode; `1`-`8` = ANSI color. */
+    int index;
+
+    /** RGB values (0-255), used when `index == -1`. */
+    uint8_t r, g, b;
 } ScColor;
 
 /**
@@ -108,7 +111,7 @@ typedef struct {
  * sc_print("hi", (ScTextStyle){ ..., clr.RED, clr.NONE });
  * @endcode
  */
-typedef struct {
+typedef struct ScAnsiColorNs {
     ScColor NONE, BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE;
 } ScAnsiColorNs;
 
@@ -124,17 +127,22 @@ SPARCLI_EXPORT extern const ScAnsiColorNs ScAnsiColorNs_;
 /**
  * ScTextStyle Struct - Combines text attributes and colors for terminal output.
  */
-typedef struct {
-    ScTextAttribute attr;  /**< Text attribute flags (bold, italic, etc.) */
-    ScColor fg;            /**< Foreground color (ANSI index or RGB) */
-    ScColor bg;            /**< Background color (ANSI index or RGB) */
+typedef struct ScTextStyle {
+    /** Text attribute flags (bold, italic, …). */
+    ScTextAttribute attr;
+
+    /** Foreground color (ANSI index or RGB). */
+    ScColor fg;
+
+    /** Background color (ANSI index or RGB). */
+    ScColor bg;
 } ScTextStyle;
 
 /**
  * ScBorderType Enum - Styles for border around components (none, ASCII,
  * single, double, etc.).
  */
-typedef enum {
+typedef enum ScBorderType {
     SC_BORDER_NONE,
     SC_BORDER_ASCII,
     SC_BORDER_SINGLE,
@@ -146,27 +154,28 @@ typedef enum {
 /**
  * ScPosition Enum - Position of the title in a component (top or bottom).
  */
-typedef enum {
-    SC_POSITION_TOP, SC_POSITION_BOTTOM, SC_POSITION_LEFT, SC_POSITION_RIGHT
+typedef enum ScPosition {
+    SC_POSITION_TOP,
+    SC_POSITION_BOTTOM,
 } ScPosition;
 
 /**
  * ScHAlign Enum - Horizontal alignment options (left, center, right) for text
  * and components.
  */
-typedef enum { SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT } ScHAlign;
+typedef enum ScHAlign { SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT } ScHAlign;
 
 /**
  * ScVAlign Enum - Vertical alignment options (top, middle, bottom) for text
  * and components.
  */
-typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
+typedef enum ScVAlign { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
 
 /**
  * ScEdges Struct - Represents box-model insets (top, right, bottom, left) for
  * layout purposes. Zero-initialization means no inset.
  */
-typedef struct { int top; int right; int bottom; int left; } ScEdges;
+typedef struct ScEdges { int top; int right; int bottom; int left; } ScEdges;
 
 /**
  * ScSpacing Struct - Combines padding and margin insets for layout.
@@ -174,30 +183,43 @@ typedef struct { int top; int right; int bottom; int left; } ScEdges;
  * Both `padding` and `margin` are `ScEdges`, so they each have
  * top/right/bottom/left values. Zero-initialization means no padding/margin.
  */
-typedef struct { ScEdges padding; ScEdges margin; } ScSpacing;
+typedef struct ScSpacing { ScEdges padding; ScEdges margin; } ScSpacing;
 
 /**
  * ScBorderStyle Struct - Groups the three visual properties of a border:
  * character style, foreground color, and background color.
  */
-typedef struct {
-    ScBorderType type;   /**< Border character set (none, ASCII, single, …) */
-    ScColor      color;  /**< Foreground color of border characters */
-    ScColor      bg;     /**< Background color of border characters;
-                              zero-init = none */
+typedef struct ScBorderStyle {
+    /** Border character set (none, ASCII, single, …). */
+    ScBorderType type;
+
+    /** Foreground color of border characters. */
+    ScColor color;
+
+    /** Background color of border characters; zero-init = none. */
+    ScColor bg;
 } ScBorderStyle;
 
 /**
- * ScTitle Struct - All visual properties of a component title: text,
- * rendering, alignment, padding and position.
- * Used directly by ScRuleOpts (pos is ignored for rules) and by panels/tables.
+ * All visual properties of a component title: text, rendering, alignment,
+ * padding and position. Used directly by ScRuleOpts (pos is ignored for
+ * rules) and by panels/tables.
  */
-typedef struct {
-    const char  *text;  /**< Title string; NULL = no title */
-    ScTextStyle  style; /**< Text style (bold, color, …) applied to the title */
-    ScHAlign     align; /**< Horizontal placement of the title */
-    int          pad;   /**< Spaces on each side of the title text */
-    ScPosition pos;  /**< SC_POSITION_TOP/SC_POSITION_BOTTOM; unused for rules */
+typedef struct ScTitle {
+    /** Title string; `NULL` = no title. */
+    const char *text;
+
+    /** Text style (bold, color, …) applied to the title. */
+    ScTextStyle style;
+
+    /** Horizontal placement of the title. */
+    ScHAlign halign;
+
+    /** Spaces on each side of the title text. */
+    int pad;
+
+    /** `SC_POSITION_TOP` / `SC_POSITION_BOTTOM`; unused for rules. */
+    ScPosition pos;
 } ScTitle;
 
 
@@ -212,7 +234,7 @@ typedef struct {
  * @param b  Blue channel (0-255).
  * @return   An `ScColor` with `index = -1` and the given RGB values.
  */
-SPARCLI_EXPORT ScColor sc_ansi_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
+SPARCLI_EXPORT ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 
 
 /* ── Functional variants of the SC_ANSI_COLOR_* macros (FFI-friendly) ──── */
@@ -254,10 +276,10 @@ SPARCLI_EXPORT ScTextStyle sc_text_style(
  * before the text, then always emits a reset escape (`\\033[0m`) afterwards
  * to prevent styling from leaking into subsequent output.
  *
- * @param text  Null-terminated string to print. Must not be `NULL`.
- * @param opts  Style and color options. Use `SC_TEXT_ATTR_NONE` to emit no
- *              attribute codes. Use `SC_ANSI_COLOR_NONE` for fg/bg to emit no
- *              color codes.
+ * @param raw_str  Null-terminated string to print. Must not be `NULL`.
+ * @param style    Style and color options. Use `SC_TEXT_ATTR_NONE` to emit no
+ *                 attribute codes. Use `SC_ANSI_COLOR_NONE` for fg/bg to emit
+ *                 no color codes.
  *
  * @note The reset is always emitted, even when `opts` doesn't carry
  * any formatting.
@@ -275,8 +297,8 @@ SPARCLI_EXPORT void sc_print(const char *raw_str, ScTextStyle style);
  *
  * Equivalent to `sc_print` followed by `\\n`.
  *
- * @param text  Null-terminated string to print. Must not be `NULL`.
- * @param opts  Style and color options. See @ref sc_print for details.
+ * @param raw_str  Null-terminated string to print. Must not be `NULL`.
+ * @param style    Style and color options. See @ref sc_print for details.
  */
 SPARCLI_EXPORT void sc_println(const char *raw_str, ScTextStyle style);
 

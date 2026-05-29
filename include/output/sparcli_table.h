@@ -36,13 +36,13 @@ typedef struct ScCell {
      */
     ScText *text;
 
-    /** When `true`, `align` overrides the column's horizontal alignment. */
-    bool align_set;
+    /** When `true`, `halign` overrides the column's horizontal alignment. */
+    bool halign_set;
 
     /**
-     * Horizontal alignment override; effective only when `align_set` is `true`.
+     * Horizontal alignment override; effective only when `halign_set` is `true`.
      */
-    ScHAlign align;
+    ScHAlign halign;
 
     /** When `true`, `valign` overrides the column's vertical alignment. */
     bool valign_set;
@@ -75,7 +75,7 @@ static inline ScCell sc_cell(const char *s) {
  */
 static inline ScCell sc_cell_a(const char *s, ScHAlign ha, ScVAlign va) {
     return (ScCell){ .kind = SC_CELL_STR, .str = s,
-                     .align_set = true, .align = ha,
+                     .halign_set = true, .halign = ha,
                      .valign_set = true, .valign = va };
 }
 
@@ -90,7 +90,7 @@ static inline ScCell sc_cell_t(ScText *t) {
  */
 static inline ScCell sc_cell_ta(ScText *t, ScHAlign ha, ScVAlign va) {
     return (ScCell){ .kind = SC_CELL_TEXT, .text = t,
-                     .align_set = true, .align = ha,
+                     .halign_set = true, .halign = ha,
                      .valign_set = true, .valign = va };
 }
 
@@ -102,7 +102,7 @@ static inline ScCell sc_cell_cs(const char *s, int cs) {
 /** Creates a plain-string colspan cell with explicit horizontal alignment. */
 static inline ScCell sc_cell_csa(const char *s, int cs, ScHAlign ha) {
     return (ScCell){ .kind = SC_CELL_STR, .str = s,
-                     .align_set = true, .align = ha, .col_span = cs };
+                     .halign_set = true, .halign = ha, .col_span = cs };
 }
 
 /** Creates a rich-text cell spanning `cs` columns (not owned). */
@@ -116,7 +116,7 @@ static inline ScCell sc_cell_tcs(ScText *t, int cs) {
  */
 static inline ScCell sc_cell_tcsa(ScText *t, int cs, ScHAlign ha) {
     return (ScCell){ .kind = SC_CELL_TEXT, .text = t,
-                     .align_set = true, .align = ha, .col_span = cs };
+                     .halign_set = true, .halign = ha, .col_span = cs };
 }
 
 /** Creates a placeholder cell covered by a preceding colspan. */

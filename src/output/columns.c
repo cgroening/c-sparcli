@@ -907,10 +907,10 @@ static void render_content_cell(
     if (spare < 0) { spare = 0; }
     int left_pad = 0;
     int right_pad = spare;
-    if (item.align == SC_ALIGN_CENTER) {
+    if (item.halign == SC_ALIGN_CENTER) {
         left_pad = spare / 2;
         right_pad = spare - left_pad;
-    } else if (item.align == SC_ALIGN_RIGHT) {
+    } else if (item.halign == SC_ALIGN_RIGHT) {
         left_pad = spare;
         right_pad = 0;
     }

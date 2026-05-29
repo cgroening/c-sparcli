@@ -41,7 +41,7 @@ static ScTitle title_centered_top(const char *text, ScTextStyle style) {
     return (ScTitle){
         .text = text,
         .style = style,
-        .align = SC_ALIGN_CENTER,
+        .halign = SC_ALIGN_CENTER,
         .pad = 1,
         .pos = SC_POSITION_TOP,
     };
@@ -243,15 +243,15 @@ void test_columns(void) {
         });
         sc_columns_add_str(
             columns, "Left column\nwith two lines",
-            (ScColItem){ .align = SC_ALIGN_LEFT }
+            (ScColItem){ .halign = SC_ALIGN_LEFT }
         );
         sc_columns_add_str(
             columns, "Centered column",
-            (ScColItem){ .align = SC_ALIGN_CENTER }
+            (ScColItem){ .halign = SC_ALIGN_CENTER }
         );
         sc_columns_add_str(
             columns, "Right column\nalso two lines",
-            (ScColItem){ .align = SC_ALIGN_RIGHT }
+            (ScColItem){ .halign = SC_ALIGN_RIGHT }
         );
         sc_columns_print(columns);
         sc_columns_free(columns);
@@ -309,7 +309,7 @@ void test_columns(void) {
 
     printf("\n");
 
-    /* ── 6. min_w / max_w / fixed_w + item.align ── */
+    /* ── 6. min_w / max_w / fixed_w + item.halign ── */
     {
         ScColumns *columns = sc_columns_new((ScColumnsOpts){
             .gap = 2,
@@ -317,15 +317,15 @@ void test_columns(void) {
         });
         sc_columns_add_str(
             columns, "fixed=20\nshort",
-            (ScColItem){ .fixed_w = 20, .align = SC_ALIGN_LEFT }
+            (ScColItem){ .fixed_w = 20, .halign = SC_ALIGN_LEFT }
         );
         sc_columns_add_str(
             columns, "min=12, auto-width",
-            (ScColItem){ .min_w = 12, .align = SC_ALIGN_CENTER }
+            (ScColItem){ .min_w = 12, .halign = SC_ALIGN_CENTER }
         );
         sc_columns_add_str(
             columns, "max=10, this text is longer than the limit",
-            (ScColItem){ .max_w = 10, .align = SC_ALIGN_RIGHT }
+            (ScColItem){ .max_w = 10, .halign = SC_ALIGN_RIGHT }
         );
         sc_columns_print(columns);
         sc_columns_free(columns);
@@ -409,7 +409,7 @@ void test_columns(void) {
             .gap = 3,
             .sep = {
                 .type = SC_BORDER_DOUBLE,
-                .color = sc_ansi_color_from_rgb(80, 80, 140),
+                .color = sc_color_from_rgb(80, 80, 140),
             },
         });
         sc_columns_add_table(columns, revenue, revenue_opts, (ScColItem){ 0 });

@@ -446,7 +446,7 @@ static bool consume_rgb_value(
     if (!parse_rgb_channel(&cursor, &blue)) { return false; }
     if (cursor >= end || *cursor != ')') { return false; }
 
-    *out = sc_ansi_color_from_rgb(
+    *out = sc_color_from_rgb(
         (uint8_t)red, (uint8_t)green, (uint8_t)blue
     );
     *cursor_ref = cursor + 1;

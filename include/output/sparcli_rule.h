@@ -26,7 +26,7 @@ typedef struct ScRuleOpts {
     int width;
 
     /** Horizontal placement of the rule when `width > 0`. */
-    ScHAlign align;
+    ScHAlign halign;
 
     /** Outer margin; top/bottom = blank lines, left/right = indent spaces. */
     ScEdges margin;

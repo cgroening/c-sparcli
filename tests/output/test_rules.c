@@ -33,7 +33,7 @@ void test_rules(void) {
     });
     sc_rule_str(NULL, (ScRuleOpts){
         .type = SC_BORDER_THICK,
-        .color = sc_ansi_color_from_rgb(180, 60, 60)
+        .color = sc_color_from_rgb(180, 60, 60)
     });
 
     printf("\n");
@@ -44,21 +44,21 @@ void test_rules(void) {
         .title.style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_LEFT,
+        .title.halign = SC_ALIGN_LEFT,
     });
     sc_rule_str("Middle", (ScRuleOpts){
         .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
     });
     sc_rule_str("Right", (ScRuleOpts){
         .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_RIGHT,
+        .title.halign = SC_ALIGN_RIGHT,
     });
 
     printf("\n");
@@ -70,7 +70,7 @@ void test_rules(void) {
         .title.style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
         .title.pad = 2,
     });
     sc_rule_str("Warning", (ScRuleOpts){
@@ -79,17 +79,17 @@ void test_rules(void) {
         .title.style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
     });
     sc_rule_str("Error", (ScRuleOpts){
         .type = SC_BORDER_THICK,
-        .color = sc_ansi_color_from_rgb(200, 50, 50),
+        .color = sc_color_from_rgb(200, 50, 50),
         .title.style = {
             SC_TEXT_ATTR_BOLD,
-            sc_ansi_color_from_rgb(200, 50, 50),
+            sc_color_from_rgb(200, 50, 50),
             SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
         .title.pad = 2,
     });
 
@@ -101,24 +101,24 @@ void test_rules(void) {
         .title.style = {
             SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
-        .width = 40, .align = SC_ALIGN_LEFT,
+        .title.halign = SC_ALIGN_CENTER,
+        .width = 40, .halign = SC_ALIGN_LEFT,
     });
     sc_rule_str("centered rule", (ScRuleOpts){
         .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style = {
             SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
-        .width = 40, .align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
+        .width = 40, .halign = SC_ALIGN_CENTER,
     });
     sc_rule_str("right-aligned rule", (ScRuleOpts){
         .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE,
         .title.style = {
             SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
-        .width = 40, .align = SC_ALIGN_RIGHT,
+        .title.halign = SC_ALIGN_CENTER,
+        .width = 40, .halign = SC_ALIGN_RIGHT,
     });
 
     printf("\n");
@@ -130,7 +130,7 @@ void test_rules(void) {
         .title.style = {
             SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE
         },
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
         .margin = {1, 8, 1, 8},
     });
 
@@ -146,7 +146,7 @@ void test_rules(void) {
         sc_rule_text(t, (ScRuleOpts){
             .type = SC_BORDER_SINGLE,
             .color = SC_ANSI_COLOR_NONE,
-            .title.align = SC_ALIGN_CENTER,
+            .title.halign = SC_ALIGN_CENTER,
         });
         sc_text_free(t);
     }

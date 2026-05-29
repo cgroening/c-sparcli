@@ -9,7 +9,7 @@ static void print_padded_line(
     const char *line, int left_pad, int right_pad
 );
 
-static int get_align_left_pad(ScHAlign align, int spare);
+static int get_align_left_pad(ScHAlign halign, int spare);
 
 
 /* ── Padding ─────────────────────────────────────────────────────────────── */
@@ -39,14 +39,14 @@ void sc_pad_text(const ScText *text, ScPadOpts opts) {
 
 /* ── Alignment ───────────────────────────────────────────────────────────── */
 
-void sc_align_print(const ScRendered *rendered, ScHAlign align, int width) {
+void sc_align_print(const ScRendered *rendered, ScHAlign halign, int width) {
     if (!rendered) { return; }
     if (width <= 0) { width = sc_terminal_width(); }
 
     for (size_t i = 0; i < rendered->line_count; i++) {
         int spare = width - rendered->column_widths[i];
         if (spare < 0) { spare = 0; }
-        int left_pad = get_align_left_pad(align, spare);
+        int left_pad = get_align_left_pad(halign, spare);
 
         sc_print_spaces(left_pad);
         fputs(rendered->lines[i], sc_output_stream());
@@ -54,15 +54,15 @@ void sc_align_print(const ScRendered *rendered, ScHAlign align, int width) {
     }
 }
 
-void sc_align_str(const char *str, ScHAlign align, int width) {
+void sc_align_str(const char *str, ScHAlign halign, int width) {
     ScRendered *rendered = sc_capture_str(str);
-    sc_align_print(rendered, align, width);
+    sc_align_print(rendered, halign, width);
     sc_rendered_free(rendered);
 }
 
-void sc_align_text(const ScText *text, ScHAlign align, int width) {
+void sc_align_text(const ScText *text, ScHAlign halign, int width) {
     ScRendered *rendered = sc_capture_text(text);
-    sc_align_print(rendered, align, width);
+    sc_align_print(rendered, halign, width);
     sc_rendered_free(rendered);
 }
 
@@ -84,8 +84,8 @@ static void print_padded_line(
  * width `(width - spare)` within `width` columns: `spare` for RIGHT,
  * `spare / 2` for CENTER, `0` for LEFT.
  */
-static int get_align_left_pad(ScHAlign align, int spare) {
-    if (align == SC_ALIGN_RIGHT)  { return spare; }
-    if (align == SC_ALIGN_CENTER) { return spare / 2; }
+static int get_align_left_pad(ScHAlign halign, int spare) {
+    if (halign == SC_ALIGN_RIGHT)  { return spare; }
+    if (halign == SC_ALIGN_CENTER) { return spare / 2; }
     return 0;
 }

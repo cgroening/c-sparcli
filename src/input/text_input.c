@@ -239,7 +239,7 @@ static ScRendered *render_boxed(TextState *self) {
     ScPanelOpts opts = {
         .border = self->border,
         .title = { .text = self->prompt, .style = self->prompt_style,
-                   .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+                   .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
     };
@@ -254,7 +254,7 @@ static ScRendered *render_boxed(TextState *self) {
     if (!self->hide_char_count) {
         counter_str(counter, sizeof counter, self, true);
         opts.subtitle = (ScTitle){ .text = counter,
-            .style = resolve_count_style(self), .align = SC_ALIGN_RIGHT,
+            .style = resolve_count_style(self), .halign = SC_ALIGN_RIGHT,
             .pad = 1, .pos = SC_POSITION_BOTTOM };
     }
 

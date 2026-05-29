@@ -45,7 +45,7 @@ static void section_rule(const char *title) {
         .type        = SC_BORDER_DOUBLE,
         .color       = SC_ANSI_COLOR_NONE,
         .title.style = s_bold,
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
         .title.pad   = 1,
         .margin      = { 1, 0, 1, 0 },
     });
@@ -60,7 +60,7 @@ static ScRendered *capture_titled_rule(
         .type        = type,
         .color       = color,
         .title.style = style,
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
         .title.pad   = 1,
         .width       = width,
     });
@@ -87,7 +87,7 @@ static void shot_hero(void) {
             .title  = {
                 .text  = " sparcli ",
                 .style = s_b_cyan,
-                .align = SC_ALIGN_CENTER,
+                .halign = SC_ALIGN_CENTER,
                 .pad   = 1,
                 .pos   = SC_POSITION_TOP,
             },
@@ -102,7 +102,7 @@ static void shot_hero(void) {
 
     /* Middle: striped table on the left, mini-list on the right. */
     {
-        ScColor stripe = sc_ansi_color_from_rgb(40, 40, 60);
+        ScColor stripe = sc_color_from_rgb(40, 40, 60);
 
         ScTableData *t = sc_table_new();
         sc_table_add_column(t, "Service", (ScColOpts){
@@ -143,7 +143,7 @@ static void shot_hero(void) {
             .striped      = true,
             .stripe_bg    = stripe,
             .title        = { .text = " Overview ", .style = s_b_magenta,
-                              .align = SC_ALIGN_CENTER, .pad = 1,
+                              .halign = SC_ALIGN_CENTER, .pad = 1,
                               .pos = SC_POSITION_TOP },
             .cell_pad     = { 0, 1, 0, 1 },
         };
@@ -264,7 +264,7 @@ static void shot_quickstart(void) {
         .border  = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE },
         .title   = {
             .text  = " Greeting ",
-            .align = SC_ALIGN_CENTER,
+            .halign = SC_ALIGN_CENTER,
             .pad   = 1,
             .pos   = SC_POSITION_TOP,
         },
@@ -284,7 +284,7 @@ static void gallery_panel(void) {
             .title   = {
                 .text  = " Panel ",
                 .style = s_b_cyan,
-                .align = SC_ALIGN_LEFT,
+                .halign = SC_ALIGN_LEFT,
                 .pad   = 1,
                 .pos   = SC_POSITION_TOP,
             },
@@ -316,9 +316,9 @@ static void gallery_table(void) {
         .header.row   = true,
         .header.style = s_bold,
         .striped      = true,
-        .stripe_bg    = sc_ansi_color_from_rgb(40, 40, 60),
+        .stripe_bg    = sc_color_from_rgb(40, 40, 60),
         .title        = { .text = " Table ", .style = s_b_cyan,
-                          .align = SC_ALIGN_CENTER, .pad = 1,
+                          .halign = SC_ALIGN_CENTER, .pad = 1,
                           .pos = SC_POSITION_TOP },
         .cell_pad     = { 0, 1, 0, 1 },
     });
@@ -330,7 +330,7 @@ static void gallery_rule(void) {
         .type        = SC_BORDER_SINGLE,
         .color       = SC_ANSI_COLOR_CYAN,
         .title.style = s_b_cyan,
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
         .title.pad   = 1,
     });
 }
@@ -526,14 +526,14 @@ static void shot_markup(void) {
     ScPanelOpts left_opts = {
         .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE },
         .title  = { .text = " Markup source ", .style = s_b_cyan,
-                    .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding       = { 0, 2, 0, 2 },
         .content_align = SC_ALIGN_LEFT,
     };
     ScPanelOpts right_opts = {
         .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE },
         .title  = { .text = " Rendered ", .style = s_b_green,
-                    .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding       = { 0, 2, 0, 2 },
         .content_align = SC_ALIGN_LEFT,
     };

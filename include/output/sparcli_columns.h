@@ -29,7 +29,7 @@ typedef struct ScColItem {
     int fixed_w;
 
     /** Horizontal placement of the content when the column is wider. */
-    ScHAlign align;
+    ScHAlign halign;
 
     /** When `true`, `valign` overrides `ScColumnsOpts.valign` for this column. */
     bool valign_set;

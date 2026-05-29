@@ -25,7 +25,7 @@ static void rule(const char *title) {
     sc_rule_str(title, (ScRuleOpts){
         .type        = SC_BORDER_DOUBLE,
         .title.style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-        .title.align = SC_ALIGN_CENTER,
+        .title.halign = SC_ALIGN_CENTER,
     });
 }
 

@@ -22,7 +22,7 @@ void test_panels(void) {
         .title = {
             .text  = "Title",
             .style = bold_ttl,
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
@@ -36,7 +36,7 @@ void test_panels(void) {
         .title = {
             .text  = "Title",
             .style = bold_ttl,
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
@@ -50,7 +50,7 @@ void test_panels(void) {
         .title = {
             .text  = "Info",
             .style = bold_ttl,
-            .align = SC_ALIGN_CENTER,
+            .halign = SC_ALIGN_CENTER,
             .pad   = 4,
             .pos   = SC_POSITION_TOP
         },
@@ -66,7 +66,7 @@ void test_panels(void) {
         .title = {
             .text  = "Warning",
             .style = bold_ttl,
-            .align = SC_ALIGN_RIGHT,
+            .halign = SC_ALIGN_RIGHT,
             .pad   = 1,
             .pos   = SC_POSITION_BOTTOM
         },
@@ -78,13 +78,13 @@ void test_panels(void) {
     // Rounded border, no title, RGB border color
     sc_panel_str("Rounded, no title", (ScPanelOpts){
         .title = {
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
         .border  = {
             .type  = SC_BORDER_ROUNDED,
-            .color = sc_ansi_color_from_rgb(180, 100, 255) },
+            .color = sc_color_from_rgb(180, 100, 255) },
         .bg      = SC_ANSI_COLOR_NONE,
         .content_align = SC_ALIGN_LEFT,
     });
@@ -94,7 +94,7 @@ void test_panels(void) {
         .title = {
             .text  = "Thick",
             .style = bold_ttl,
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
@@ -117,7 +117,7 @@ void test_panels(void) {
         .title = {
             .text  = "Styled Content",
             .style = on_blue,
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad   = 0,
             .pos   = SC_POSITION_TOP
         },
@@ -128,7 +128,7 @@ void test_panels(void) {
     sc_text_free(t);
 
     // Panel with content background color
-    ScColor dark_blue = sc_ansi_color_from_rgb(20, 30, 60);
+    ScColor dark_blue = sc_color_from_rgb(20, 30, 60);
     ScTextStyle bold_on_dark_blue = {
         SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, dark_blue
     };
@@ -136,7 +136,7 @@ void test_panels(void) {
         .title = {
             .text  = "With bg",
             .style = bold_on_dark_blue,
-            .align = SC_ALIGN_LEFT,
+            .halign = SC_ALIGN_LEFT,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
@@ -155,14 +155,14 @@ void test_panels(void) {
         .title = {
             .text  = "border_bg",
             .style = bold_ttl,
-            .align = SC_ALIGN_CENTER,
+            .halign = SC_ALIGN_CENTER,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
         .border  = {
             .type = SC_BORDER_THICK,
             .color = SC_ANSI_COLOR_WHITE,
-            .bg = sc_ansi_color_from_rgb(80, 0, 120)
+            .bg = sc_color_from_rgb(80, 0, 120)
         },
         .bg      = SC_ANSI_COLOR_NONE,
         .content_align = SC_ALIGN_LEFT,
@@ -177,7 +177,7 @@ void test_panels(void) {
             .title = {
                 .text  = "Full Width",
                 .style = bold_ttl,
-                .align = SC_ALIGN_CENTER,
+                .halign = SC_ALIGN_CENTER,
                 .pad   = 1,
                 .pos   = SC_POSITION_TOP
             },
@@ -195,7 +195,7 @@ void test_panels(void) {
         .title = {
             .text  = "Right-Aligned Content",
             .style = bold_ttl,
-            .align = SC_ALIGN_RIGHT,
+            .halign = SC_ALIGN_RIGHT,
             .pad   = 1,
             .pos   = SC_POSITION_TOP
         },
@@ -209,11 +209,11 @@ void test_panels(void) {
     sc_panel_str("Body content here.", (ScPanelOpts){
         .title = {
             .text  = "Title", .style = bold_ttl,
-            .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP
+            .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP
         },
         .subtitle = {
             .text  = "(caption)", .style = plain,
-            .align = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM
+            .halign = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM
         },
         .border        = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE },
         .padding       = { .left = 1, .right = 1 },

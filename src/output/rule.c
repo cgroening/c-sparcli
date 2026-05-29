@@ -153,10 +153,10 @@ static int get_indentation(Rule *self) {
         if (spare < 0) {
             spare = 0;
         }
-        if (self->opts.align == SC_ALIGN_CENTER) {
+        if (self->opts.halign == SC_ALIGN_CENTER) {
             indentation += spare / 2;
         }
-        else if (self->opts.align == SC_ALIGN_RIGHT) {
+        else if (self->opts.halign == SC_ALIGN_RIGHT) {
             indentation += spare;
         }
     }
@@ -166,7 +166,7 @@ static int get_indentation(Rule *self) {
 /**
  * Prints one rule line with `self->title` embedded: fill chars on both sides,
  * separated from the title by `self->title_padding` spaces on each side.
- * The left/right fill counts are split according to `self->opts.title.align`.
+ * The left/right fill counts are split according to `self->opts.title.halign`.
  */
 static void print_rule_line_with_title(Rule *self) {
     FillSplit fill_split = get_fill_split(self);
@@ -189,7 +189,7 @@ static void print_rule_line_with_title(Rule *self) {
 
 /**
  * Splits fill characters into left and right counts according to
- * `self->opts.title.align`; both values are clamped to `>= 0`.
+ * `self->opts.title.halign`; both values are clamped to `>= 0`.
  */
 static FillSplit get_fill_split(Rule *self) {
     int fill_total = self->effective_width - self->title_width -
@@ -199,10 +199,10 @@ static FillSplit get_fill_split(Rule *self) {
     }
 
     FillSplit fill_split;
-    if (self->opts.title.align == SC_ALIGN_LEFT) {
+    if (self->opts.title.halign == SC_ALIGN_LEFT) {
         fill_split.left = 1;
         fill_split.right = fill_total - 1;
-    } else if (self->opts.title.align == SC_ALIGN_RIGHT) {
+    } else if (self->opts.title.halign == SC_ALIGN_RIGHT) {
         fill_split.left = fill_total - 1;
         fill_split.right = 1;
     } else {

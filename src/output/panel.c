@@ -470,7 +470,7 @@ static void render_panel_border(Panel *panel, ScPosition pos) {
 /**
  * Renders a horizontal border line with an optional inline title.
  *
- * Distributes remaining dashes around the title per `title.align`,
+ * Distributes remaining dashes around the title per `title.halign`,
  * guaranteeing at least one dash on each side. Pad spaces are printed
  * using the title style's own background color.
  */
@@ -487,9 +487,9 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
         if (dashes < 0) { dashes = 0; }
 
         int left_dashes, right_dashes;
-        if (title.align == SC_ALIGN_LEFT) {
+        if (title.halign == SC_ALIGN_LEFT) {
             left_dashes = 1; right_dashes = dashes - 1;
-        } else if (title.align == SC_ALIGN_RIGHT) {
+        } else if (title.halign == SC_ALIGN_RIGHT) {
             left_dashes = dashes - 1; right_dashes = 1;
         } else {  // CENTER
             left_dashes = dashes / 2; right_dashes = dashes - left_dashes;

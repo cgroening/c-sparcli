@@ -22,7 +22,7 @@ SPARCLI_BEGIN_DECLS
  * ScPanelOpts opts = {
  *     .border  = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
  *     .title   = {
- *         .text = "Status", .align = SC_ALIGN_CENTER, .pad = 1,
+ *         .text = "Status", .halign = SC_ALIGN_CENTER, .pad = 1,
  *         .pos  = SC_POSITION_TOP
  *     },
  *     .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },
@@ -32,22 +32,40 @@ SPARCLI_BEGIN_DECLS
  * sc_panel_str("All systems operational.", opts);
  * @endcode
  */
-typedef struct {
-    ScBorderStyle border; /**< Border tyoe, foreground and background color */
-    ScColor  bg;          /**< Content area background;
-                               zero-init ({0,0,0,0}) = no color */
-    ScTitle  title;       /**< Title bar: text, style, alignment, padding and
-                               position */
-    ScTitle  subtitle;    /**< Optional second title on the edge selected by its
-                               own `pos`; zero-init (`text == NULL`) = none.
-                               Use it for the opposite edge from `title`, e.g. a
-                               top title plus a bottom-right caption. */
-    bool     full_width;  /**< When true, stretches to terminal width (overrides
-                               width); computed as terminal_width - 2 */
-    int      width;          /**< Panel width; 0 = auto-fit to content */
-    ScHAlign content_align;  /**< Horizontal alignment of content lines */
-    ScEdges  padding;        /**< Inner spacing (top/right/bottom/left) */
-    ScEdges  margin;         /**< Outer spacing (top/right/bottom/left) */
+typedef struct ScPanelOpts {
+    /** Border type, foreground and background color. */
+    ScBorderStyle border;
+
+    /** Content area background; zero-init (`{0,0,0,0}`) = no color. */
+    ScColor bg;
+
+    /** Title bar: text, style, alignment, padding and position. */
+    ScTitle title;
+
+    /**
+     * Optional second title on the edge selected by its own `pos`; zero-init
+     * (`text == NULL`) = none. Use it for the opposite edge from `title`, e.g.
+     * a top title plus a bottom-right caption.
+     */
+    ScTitle subtitle;
+
+    /**
+     * When `true`, stretches to terminal width (overrides `width`); computed
+     * as `terminal_width - 2`.
+     */
+    bool full_width;
+
+    /** Panel width; `0` = auto-fit to content. */
+    int width;
+
+    /** Horizontal alignment of content lines. */
+    ScHAlign content_align;
+
+    /** Inner spacing (top/right/bottom/left). */
+    ScEdges padding;
+
+    /** Outer spacing (top/right/bottom/left). */
+    ScEdges margin;
 } ScPanelOpts;
 
 

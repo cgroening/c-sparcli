@@ -372,7 +372,7 @@ static void resolve_cell_align(
     const ScTableData *data = self->table->table_data;
     *out_halign = data->columns[col].opts.halign;
     *out_valign = data->columns[col].opts.valign;
-    if (self->cells[col].align_set)  { *out_halign = self->cells[col].align; }
+    if (self->cells[col].halign_set)  { *out_halign = self->cells[col].halign; }
     if (self->cells[col].valign_set) { *out_valign = self->cells[col].valign; }
 }
 
