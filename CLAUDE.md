@@ -656,6 +656,32 @@ ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
 The same `ScRendered *` can be passed to multiple print functions (e.g. first
 `sc_pad_print`, then `sc_align_print`).
 
+### sc_vstack — stack widgets vertically in one column
+
+```c
+ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap);
+```
+
+Concatenates `n` captured renderings top-to-bottom into a single `ScRendered`,
+with `gap` blank lines between adjacent parts. This is how you place **two (or
+more) widgets one above the other inside a single column** — capture each
+widget, `sc_vstack` them, then `sc_columns_add_rendered` the result.
+
+Inputs are **not** consumed: the caller still owns every `parts[i]` and frees
+them (and the returned value) with `sc_rendered_free`. Returns `NULL` when
+`n == 0`; `gap` is clamped to `>= 0`. `max_column_width` of the result is the
+widest line across all parts.
+
+```c
+ScRendered *r_list  = sc_capture_list(list);
+ScRendered *r_rule  = sc_capture_rule_str("More", rule_opts);
+ScRendered *parts[] = { r_list, r_rule };
+ScRendered *col     = sc_vstack((const ScRendered *const *)parts, 2, 1);
+
+sc_columns_add_rendered(cols, col, (ScColItem){ 0 });  /* list above the rule */
+/* free col, r_list, r_rule individually */
+```
+
 ---
 
 ## Padding

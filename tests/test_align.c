@@ -193,4 +193,38 @@ void test_align(void) {
         sc_table_free(left_table);
         sc_table_free(right_table);
     }
+
+    printf("\n");
+
+    /* ── 6. sc_vstack: two widgets stacked in one column ── */
+    printf("--- Align 6. sc_vstack column (rule over rule, gap=1) ---\n");
+    {
+        ScRendered *top = sc_capture_rule_str("Top", (ScRuleOpts){
+            .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_CYAN,
+            .title.style = bold_cyan, .title.align = SC_ALIGN_CENTER,
+            .title.pad = 1, .width = 30,
+        });
+        ScRendered *bottom = sc_capture_rule_str("Bottom", (ScRuleOpts){
+            .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_NONE,
+            .title.style = bold_green, .title.align = SC_ALIGN_CENTER,
+            .title.pad = 1, .width = 30,
+        });
+        ScRendered *parts[] = { top, bottom };
+        ScRendered *stacked = sc_vstack(
+            (const ScRendered *const *)parts, 2, 1
+        );
+
+        ScColumns *columns = sc_columns_new((ScColumnsOpts){
+            .gap = 3,
+            .sep = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
+        });
+        sc_columns_add_str     (columns, "left column", (ScColItem){ 0 });
+        sc_columns_add_rendered(columns, stacked,       (ScColItem){ 0 });
+        sc_columns_print(columns);
+        sc_columns_free(columns);
+
+        sc_rendered_free(stacked);
+        sc_rendered_free(top);
+        sc_rendered_free(bottom);
+    }
 }

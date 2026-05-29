@@ -56,4 +56,22 @@ ScRendered *sc_capture_rule_str(const char *title, ScRuleOpts opts);
 /** Captures a horizontal rule with a rich-text title. */
 ScRendered *sc_capture_rule_text(const ScText *title, ScRuleOpts opts);
 
+/**
+ * Stacks captured renderings vertically into a single `ScRendered`.
+ *
+ * Lines from `parts[0]` come first, then `gap` blank lines, then `parts[1]`,
+ * and so on. The result's `max_column_width` is the widest line across all
+ * parts. This is the building block for placing two (or more) widgets one
+ * above the other inside a single `sc_columns_add_rendered` column.
+ *
+ * The inputs are **not** consumed: the caller still owns every `parts[i]`
+ * and must free them (and the returned value) with `sc_rendered_free`.
+ *
+ * @param parts  Array of `n` non-NULL `ScRendered` pointers, top to bottom.
+ * @param n      Number of parts; returns NULL when 0.
+ * @param gap    Blank lines inserted between adjacent parts (clamped to >= 0).
+ * @return       Heap-allocated `ScRendered`; free with `sc_rendered_free`.
+ */
+ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap);
+
 SPARCLI_END_DECLS

@@ -537,6 +537,50 @@ ScRendered *sc_capture_rule_text(const ScText *title, ScRuleOpts opts) {
     return capture_render(render_rule_text_ctx, &ctx);
 }
 
+ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap) {
+    if (n == 0) { return NULL; }
+    if (gap < 0) { gap = 0; }
+
+    size_t total = 0;
+    for (size_t i = 0; i < n; i++) {
+        total += parts[i]->line_count;
+        if (i + 1 < n) { total += (size_t)gap; }
+    }
+
+    ScRendered *out = malloc(sizeof(ScRendered));
+    if (!out) { return NULL; }
+    out->lines            = malloc(total * sizeof(char *));
+    out->column_widths    = malloc(total * sizeof(int));
+    out->line_count       = total;
+    out->max_column_width = 0;
+    if (!out->lines || !out->column_widths) {
+        free(out->lines);
+        free(out->column_widths);
+        free(out);
+        return NULL;
+    }
+
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < parts[i]->line_count; j++) {
+            out->lines[k]         = strdup(parts[i]->lines[j]);
+            out->column_widths[k] = parts[i]->column_widths[j];
+            if (parts[i]->column_widths[j] > out->max_column_width) {
+                out->max_column_width = parts[i]->column_widths[j];
+            }
+            k++;
+        }
+        if (i + 1 < n) {
+            for (int g = 0; g < gap; g++) {
+                out->lines[k]         = strdup("");
+                out->column_widths[k] = 0;
+                k++;
+            }
+        }
+    }
+    return out;
+}
+
 
 /* ── Stretch (panel filler) ──────────────────────────────────────────────── */
 
