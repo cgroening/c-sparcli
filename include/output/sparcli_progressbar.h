@@ -8,7 +8,7 @@ SPARCLI_BEGIN_DECLS
 /**
  * Visual style of the progress bar's fill and empty cells.
  */
-typedef enum {
+typedef enum ScProgressType {
     SC_PROGRESS_BLOCK,  /**< `█` fill, `░` empty (Unicode blocks) */
     SC_PROGRESS_ASCII,  /**< `=` fill with `>` edge, space empty */
     SC_PROGRESS_LINE,   /**< `━` fill, `╌` empty (heavy horizontal) */

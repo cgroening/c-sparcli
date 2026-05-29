@@ -7,7 +7,7 @@
 SPARCLI_BEGIN_DECLS
 
 /**
- * ScRendered Struct - A captured, line-split rendering of any widget.
+ * A captured, line-split rendering of any widget.
  *
  * Produced by the `sc_capture_*` family of functions. Each line retains its
  * original ANSI escape codes; `column_widths` holds the corresponding visible
@@ -17,7 +17,7 @@ SPARCLI_BEGIN_DECLS
  * Pass to `sc_pad_print()`, `sc_align_print()` or `sc_columns_add_rendered()`.
  * Free with `sc_rendered_free()`.
  */
-typedef struct {
+typedef struct ScRendered {
     char   **lines;          /**< Heap-allocated strings, ANSI codes included. */
     int     *column_widths;  /**< Visible column width per line, parallel to lines. */
     size_t   line_count;        /**< Number of lines. */

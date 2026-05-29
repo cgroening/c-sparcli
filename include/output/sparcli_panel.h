@@ -7,7 +7,7 @@ SPARCLI_BEGIN_DECLS
 
 
 /**
- * ScPanelOpts Struct - Layout and visual options for a bordered content panel.
+ * Layout and visual options for a bordered content panel.
  *
  * Zero-initialize to get sensible defaults: no border, no background, no title,
  * auto width, no padding, and no margin.

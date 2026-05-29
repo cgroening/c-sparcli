@@ -2,7 +2,7 @@
 #include "internal.h"
 
 
-typedef struct { int named; int rgb_prefix; } ColorLayer;
+typedef struct ColorLayer { int named; int rgb_prefix; } ColorLayer;
 
 
 ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);

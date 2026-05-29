@@ -275,63 +275,75 @@ static ScRendered *capture_render(void (*render_fn)(void *), void *ctx) {
 
 /* ── Render thunks for each widget type ──────────────────────────────────── */
 
-typedef struct { const ScTableData *table; ScTableOpts opts; } CtxTable;
+typedef struct CtxTable {
+    const ScTableData *table;
+    ScTableOpts opts;
+} CtxTable;
 static void render_table_ctx(void *p) {
     CtxTable *ctx = p;
     sc_table_print(ctx->table, ctx->opts);
 }
 
-typedef struct { const char *content; ScPanelOpts opts; } CtxPanelStr;
+typedef struct CtxPanelStr {
+    const char *content;
+    ScPanelOpts opts;
+} CtxPanelStr;
 static void render_panel_str_ctx(void *p) {
     CtxPanelStr *ctx = p;
     sc_panel_str(ctx->content, ctx->opts);
 }
 
-typedef struct { const ScText *content; ScPanelOpts opts; } CtxPanelText;
+typedef struct CtxPanelText {
+    const ScText *content;
+    ScPanelOpts opts;
+} CtxPanelText;
 static void render_panel_text_ctx(void *p) {
     CtxPanelText *ctx = p;
     sc_panel_text(ctx->content, ctx->opts);
 }
 
-typedef struct { const ScText *text; } CtxText;
+typedef struct CtxText { const ScText *text; } CtxText;
 static void render_text_ctx(void *p) {
     sc_print_text(((CtxText *)p)->text);
 }
 
-typedef struct { const char *str; } CtxStr;
+typedef struct CtxStr { const char *str; } CtxStr;
 static void render_str_ctx(void *p) {
     const char *str = ((CtxStr *)p)->str;
     fputs(str, sc_output_stream());
     if (str[0] && str[strlen(str) - 1] != '\n') { fputc('\n', sc_output_stream()); }
 }
 
-typedef struct { const ScColumns *columns; } CtxColumns;
+typedef struct CtxColumns { const ScColumns *columns; } CtxColumns;
 static void render_columns_ctx(void *p) {
     sc_columns_print(((CtxColumns *)p)->columns);
 }
 
-typedef struct { const ScTree *tree; } CtxTree;
+typedef struct CtxTree { const ScTree *tree; } CtxTree;
 static void render_tree_ctx(void *p) {
     sc_tree_print(((CtxTree *)p)->tree);
 }
 
-typedef struct { const ScList *list; } CtxList;
+typedef struct CtxList { const ScList *list; } CtxList;
 static void render_list_ctx(void *p) {
     sc_list_print(((CtxList *)p)->list);
 }
 
-typedef struct { const ScKV *kv; } CtxKV;
+typedef struct CtxKV { const ScKV *kv; } CtxKV;
 static void render_kv_ctx(void *p) {
     sc_kv_print(((CtxKV *)p)->kv);
 }
 
-typedef struct { const char *title; ScRuleOpts opts; } CtxRuleStr;
+typedef struct CtxRuleStr { const char *title; ScRuleOpts opts; } CtxRuleStr;
 static void render_rule_str_ctx(void *p) {
     CtxRuleStr *ctx = p;
     sc_rule_str(ctx->title, ctx->opts);
 }
 
-typedef struct { const ScText *title; ScRuleOpts opts; } CtxRuleText;
+typedef struct CtxRuleText {
+    const ScText *title;
+    ScRuleOpts opts;
+} CtxRuleText;
 static void render_rule_text_ctx(void *p) {
     CtxRuleText *ctx = p;
     sc_rule_text(ctx->title, ctx->opts);

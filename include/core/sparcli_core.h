@@ -25,8 +25,7 @@ SPARCLI_BEGIN_DECLS
 /** @} */
 
 /**
- * ScTextAttribute Enum - Text attributes flags for terminal output (none,
- * bold, etc.).
+ * Text attribute flags for terminal output (none, bold, etc.).
  *
  * Each flag occupies exactly one bit so styles can be combined with |.
  *
@@ -52,7 +51,8 @@ typedef enum ScTextAttribute {
  * ScTextAttributeNs attr = ScTextAttributeNs_;
  * sc_print("hi", (ScTextStyle){ attr.BOLD | attr.ITALIC, ... });
  * // vs.
- * sc_print("hi", (ScTextStyle){ SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, ... });
+ * sc_print("hi", (ScTextStyle){
+ *     SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, ... });
  * @endcode
  */
 typedef struct ScTextAttributeNs {
@@ -69,8 +69,7 @@ typedef struct ScTextAttributeNs {
 SPARCLI_EXPORT extern const ScTextAttributeNs ScTextAttributeNs_;
 
 /**
- * ScColor Struct - Represents a terminal color, either as a named ANSI color
- * or RGB.
+ * Represents a terminal color, either as a named ANSI color or RGB.
  */
 typedef struct ScColor {
     /** `0` = not set (zero-init); `-1` = RGB mode; `1`-`8` = ANSI color. */
@@ -125,7 +124,7 @@ typedef struct ScAnsiColorNs {
 SPARCLI_EXPORT extern const ScAnsiColorNs ScAnsiColorNs_;
 
 /**
- * ScTextStyle Struct - Combines text attributes and colors for terminal output.
+ * Combines text attributes and colors for terminal output.
  */
 typedef struct ScTextStyle {
     /** Text attribute flags (bold, italic, …). */
@@ -139,8 +138,7 @@ typedef struct ScTextStyle {
 } ScTextStyle;
 
 /**
- * ScBorderType Enum - Styles for border around components (none, ASCII,
- * single, double, etc.).
+ * Styles for border around components (none, ASCII, single, double, etc.).
  */
 typedef enum ScBorderType {
     SC_BORDER_NONE,
@@ -152,7 +150,7 @@ typedef enum ScBorderType {
 } ScBorderType;
 
 /**
- * ScPosition Enum - Position of the title in a component (top or bottom).
+ * Position of the title in a component (top or bottom).
  */
 typedef enum ScPosition {
     SC_POSITION_TOP,
@@ -160,25 +158,27 @@ typedef enum ScPosition {
 } ScPosition;
 
 /**
- * ScHAlign Enum - Horizontal alignment options (left, center, right) for text
- * and components.
+ * Horizontal alignment options (left, center, right) for text and components.
  */
-typedef enum ScHAlign { SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT } ScHAlign;
+typedef enum ScHAlign {
+    SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT
+} ScHAlign;
 
 /**
- * ScVAlign Enum - Vertical alignment options (top, middle, bottom) for text
- * and components.
+ * Vertical alignment options (top, middle, bottom) for text and components.
  */
-typedef enum ScVAlign { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
+typedef enum ScVAlign {
+    SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM
+} ScVAlign;
 
 /**
- * ScEdges Struct - Represents box-model insets (top, right, bottom, left) for
- * layout purposes. Zero-initialization means no inset.
+ * Represents box-model insets (top, right, bottom, left) for layout
+ * purposes. Zero-initialization means no inset.
  */
 typedef struct ScEdges { int top; int right; int bottom; int left; } ScEdges;
 
 /**
- * ScSpacing Struct - Combines padding and margin insets for layout.
+ * Combines padding and margin insets for layout.
  *
  * Both `padding` and `margin` are `ScEdges`, so they each have
  * top/right/bottom/left values. Zero-initialization means no padding/margin.
@@ -186,8 +186,8 @@ typedef struct ScEdges { int top; int right; int bottom; int left; } ScEdges;
 typedef struct ScSpacing { ScEdges padding; ScEdges margin; } ScSpacing;
 
 /**
- * ScBorderStyle Struct - Groups the three visual properties of a border:
- * character style, foreground color, and background color.
+ * Groups the three visual properties of a border: character style,
+ * foreground color, and background color.
  */
 typedef struct ScBorderStyle {
     /** Border character set (none, ASCII, single, …). */
@@ -237,7 +237,7 @@ typedef struct ScTitle {
 SPARCLI_EXPORT ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 
 
-/* ── Functional variants of the SC_ANSI_COLOR_* macros (FFI-friendly) ──── */
+/* ── Functional variants of the SC_ANSI_COLOR_* macros (FFI-friendly) ── */
 
 /**
  * These eight functions return the predefined ANSI color constants as

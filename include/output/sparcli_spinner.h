@@ -8,7 +8,7 @@ SPARCLI_BEGIN_DECLS
 /**
  * Animation style of the spinner character.
  */
-typedef enum {
+typedef enum ScSpinnerType {
     SC_SPINNER_BRAILLE, /**< `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` (10 frames, Braille dots) */
     SC_SPINNER_PIPE,    /**< `|/-\` (4 frames, ASCII) */
     SC_SPINNER_DOTS,    /**< `⣾⣽⣻⢿⡿⣟⣯⣷` (8 frames, dense Braille) */

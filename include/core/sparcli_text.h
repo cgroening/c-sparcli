@@ -9,19 +9,19 @@
 SPARCLI_BEGIN_DECLS
 
 /**
- * ScSpan - A single styled run of text within an ScText.
+ * A single styled run of text within an ScText.
  *
  * `raw_str` holds the raw UTF-8 bytes (no ANSI codes); the style is
  * applied at render time. A span may contain newlines to produce
  * multi-line output.
  */
-typedef struct {
+typedef struct ScSpan {
     char       *raw_str;  /**< Heap-allocated UTF-8 string, no ANSI codes. */
     ScTextStyle style;    /**< Style applied at render time. */
 } ScSpan;
 
 /**
- * ScText - A sequence of styled text spans.
+ * A sequence of styled text spans.
  *
  * Opaque type; construct via `sc_text_new`, free via `sc_text_free`,
  * inspect via the accessors below. Layout is implementation-defined and

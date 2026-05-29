@@ -21,7 +21,7 @@ typedef struct Rule {
 } Rule;
 
 /** Left and right fill character counts for a titled rule line. */
-typedef struct {
+typedef struct FillSplit {
     int left;
     int right;
 } FillSplit;

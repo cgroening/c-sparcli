@@ -7,11 +7,11 @@ SPARCLI_BEGIN_DECLS
 
 
 /**
- * ScAlertType – Visual style preset for an alert panel.
+ * Visual style preset for an alert panel.
  *
  * Each variant selects a distinct icon, label, and accent color.
  */
-typedef enum {
+typedef enum ScAlertType {
     SC_ALERT_INFO,     /**< ℹ  Blue    - informational message */
     SC_ALERT_DEBUG,    /**< ⚙  Magenta - debugging output      */
     SC_ALERT_WARNING,  /**< ⚠  Yellow  - non-fatal warning     */

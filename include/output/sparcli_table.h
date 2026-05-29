@@ -11,7 +11,7 @@ SPARCLI_BEGIN_DECLS
  * Discriminator tag for `ScCell.kind`:
  * determines which content field is active.
  */
-typedef enum {
+typedef enum ScCellKind {
     /**< Plain C-string cell; content is in `ScCell.str`. */
     SC_CELL_STR,
 

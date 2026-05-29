@@ -83,7 +83,7 @@ extern const TableBorderCharacter border_char_sets[];
 /* ── Render-time context types ───────────────────────────────────────────── */
 
 /** Indicates which section a row belongs to during rendering. */
-typedef enum {
+typedef enum RowSection {
     ROW_SECTION_DATA,
     ROW_SECTION_HEADER,
     ROW_SECTION_FOOTER,

@@ -7,9 +7,9 @@
 
 
 /**
- * HBorder – Bundles the arguments passed to `render_horizontal_border`.
+ * Bundles the arguments passed to `render_horizontal_border`.
  */
-typedef struct {
+typedef struct HBorder {
     ScBorderStyle border_style;  /**< Border style (type, color and bg) */
     int           inner_width;   /**< Number of chars between the edge chars. */
     const char   *left_edge_character;   /**< Left corner character */
@@ -17,9 +17,9 @@ typedef struct {
 } HBorder;
 
 /**
- * PLineLayout – Layout parameters for a content line within the panel interior.
+ * Layout parameters for a content line within the panel interior.
  */
-typedef struct {
+typedef struct PLineLayout {
     int      inner_width;    /**< Chars between the vertical edge characters */
     int      pad_left;          /**< Left content padding in columns */
     int      pad_right;          /**< Right content padding in columns */
@@ -27,9 +27,9 @@ typedef struct {
 } PLineLayout;
 
 /**
- * PLineView – All parameters needed to render one panel row (content or empty).
+ * All parameters needed to render one panel row (content or empty).
  */
-typedef struct {
+typedef struct PLineView {
     /** Interior width, padding, and alignment */
     PLineLayout   layout;
 
@@ -42,12 +42,12 @@ typedef struct {
 
 
 /**
- * Panel – Internal rendering context for a panel.
+ * Internal rendering context for a panel.
  *
  * Holds both the caller-supplied inputs and all derived layout values so that
  * helper functions only need a single `Panel *` argument.
  */
-typedef struct {
+typedef struct Panel {
     /** Content to render inside the panel (not owned) */
     const ScText *text;
 
@@ -80,9 +80,9 @@ typedef struct {
 } Panel;
 
 /**
- * ParseBuf – Accumulator used while splitting `ScText` spans into `PLines`.
+ * Accumulator used while splitting `ScText` spans into `PLines`.
  */
-typedef struct {
+typedef struct ParseBuf {
     ScRenderSpan       *spans;     /**< Growing span buffer for the current line */
     size_t       span_count;    /**< Spans written into `spans` */
     size_t       span_capacity;  /**< Allocated capacity of `spans` */
