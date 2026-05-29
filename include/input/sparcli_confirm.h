@@ -17,20 +17,42 @@ SPARCLI_BEGIN_DECLS
  * Zero-initialized opts give a sensible prompt: "No" preselected, default
  * labels, accent in the terminal's default color.
  */
-typedef struct {
-    bool        default_yes;      /**< Initial selection (`false` = No). */
-    const char *yes_label;        /**< Label for the affirmative; `NULL` = "Yes". */
-    const char *no_label;         /**< Label for the negative;    `NULL` = "No". */
-    ScTextStyle prompt_style;     /**< Style for the question text. */
-    ScColor     accent;           /**< Highlight color of the selected option. */
-    ScTextStyle selected_style;   /**< Style of the selected option; zero-init =
-                                       bold black-on-`accent`. */
-    ScTextStyle unselected_style; /**< Style of the unselected option; zero-init = dim. */
-    ScTextStyle summary_style;    /**< Style of the persistent summary line. */
-    bool        hide_summary;     /**< Suppress the post-confirm summary line. */
-    const char *hint;             /**< Key-hint footer; `NULL` = sensible default. */
-    bool        hide_hint;        /**< Suppress the key-hint footer. */
-    ScTextStyle hint_style;       /**< Style of the footer; zero-init = dim. */
+typedef struct ScConfirmOpts {
+    /** Initial selection (`false` = No). */
+    bool default_yes;
+
+    /** Label for the affirmative; `NULL` = "Yes". */
+    const char *yes_label;
+
+    /** Label for the negative; `NULL` = "No". */
+    const char *no_label;
+
+    /** Style for the question text. */
+    ScTextStyle prompt_style;
+
+    /** Highlight color of the selected option. */
+    ScColor accent;
+
+    /** Style of the selected option; zero-init = bold black-on-`accent`. */
+    ScTextStyle selected_style;
+
+    /** Style of the unselected option; zero-init = dim. */
+    ScTextStyle unselected_style;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-confirm summary line. */
+    bool hide_summary;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
 } ScConfirmOpts;
 
 /**

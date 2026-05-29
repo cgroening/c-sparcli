@@ -16,24 +16,54 @@ SPARCLI_BEGIN_DECLS
  */
 
 /** Options for `sc_number_input`. */
-typedef struct {
-    double      initial;       /**< Starting value. */
-    double      min;           /**< Lower bound (used when `max > min`). */
-    double      max;           /**< Upper bound; `max <= min` = unbounded. */
-    double      step;          /**< Up/Down increment; `0` = 1. */
-    int         decimals;      /**< Fractional digits shown; `0` = integer. */
-    ScTextStyle prompt_style;  /**< Style for the prompt label. */
-    ScTextStyle value_style;   /**< Style for the value. */
-    ScTextStyle cursor_style;  /**< Cursor cell; zero-init = black-on-white. */
-    ScTextStyle summary_style; /**< Style of the persistent summary line. */
-    bool        hide_summary;  /**< Suppress the post-entry summary line. */
-    const char *hint;          /**< Key-hint footer; `NULL` = sensible default. */
-    bool        hide_hint;     /**< Suppress the key-hint footer. */
-    ScTextStyle hint_style;    /**< Style of the footer; zero-init = dim. */
-    bool        boxed;         /**< Render inside a bordered panel (prompt = top
-                                    title; range/footer below the box). */
-    ScBorderStyle border;      /**< Box border (boxed mode); zero-init type = rounded. */
-    int         width;         /**< Box width; 0 = full terminal width. */
+typedef struct ScNumberOpts {
+    /** Starting value. */
+    double initial;
+
+    /** Lower bound (used when `max > min`). */
+    double min;
+
+    /** Upper bound; `max <= min` = unbounded. */
+    double max;
+
+    /** Up/Down increment; `0` = 1. */
+    double step;
+
+    /** Fractional digits shown; `0` = integer. */
+    int decimals;
+
+    /** Style for the prompt label. */
+    ScTextStyle prompt_style;
+
+    /** Style for the value. */
+    ScTextStyle value_style;
+
+    /** Cursor cell; zero-init = black-on-white. */
+    ScTextStyle cursor_style;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-entry summary line. */
+    bool hide_summary;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
+
+    /** Render inside a bordered panel (prompt = top title, range/footer below). */
+    bool boxed;
+
+    /** Box border (boxed mode); zero-init type = rounded. */
+    ScBorderStyle border;
+
+    /** Box width; `0` = full terminal width. */
+    int width;
 } ScNumberOpts;
 
 /**

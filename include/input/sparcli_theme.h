@@ -17,21 +17,48 @@ SPARCLI_BEGIN_DECLS
  */
 
 /** Shared default styling. Any zero-init field falls through to the built-in default. */
-typedef struct {
-    ScColor       accent;         /**< Default highlight color. */
-    ScBorderStyle border;         /**< Default box border (text/password boxed mode). */
-    ScTextStyle   prompt_style;   /**< Default prompt/heading style. */
-    ScTextStyle   selected_style; /**< Default selected/cursor-row style. */
-    ScTextStyle   cursor_style;   /**< Default text-cursor cell style. */
-    ScTextStyle   count_style;    /**< Default counter style. */
-    ScTextStyle   summary_style;  /**< Default summary-line style. */
-    ScTextStyle   error_style;    /**< Default validation-error style. */
-    ScTextStyle   hint_style;     /**< Default key-hint footer style. */
-    const char   *cursor_marker;  /**< Default cursor-row marker. */
-    const char   *marker;         /**< Default non-cursor marker. */
-    const char   *checkbox_on;    /**< Default checked box (multi-select). */
-    const char   *checkbox_off;   /**< Default unchecked box (multi-select). */
-    bool          hide_hint;      /**< When true, suppress footers by default. */
+typedef struct ScInputTheme {
+    /** Default highlight color. */
+    ScColor accent;
+
+    /** Default box border (text/password boxed mode). */
+    ScBorderStyle border;
+
+    /** Default prompt/heading style. */
+    ScTextStyle prompt_style;
+
+    /** Default selected/cursor-row style. */
+    ScTextStyle selected_style;
+
+    /** Default text-cursor cell style. */
+    ScTextStyle cursor_style;
+
+    /** Default counter style. */
+    ScTextStyle count_style;
+
+    /** Default summary-line style. */
+    ScTextStyle summary_style;
+
+    /** Default validation-error style. */
+    ScTextStyle error_style;
+
+    /** Default key-hint footer style. */
+    ScTextStyle hint_style;
+
+    /** Default cursor-row marker. */
+    const char *cursor_marker;
+
+    /** Default non-cursor marker. */
+    const char *marker;
+
+    /** Default checked box (multi-select). */
+    const char *checkbox_on;
+
+    /** Default unchecked box (multi-select). */
+    const char *checkbox_off;
+
+    /** When true, suppress footers by default. */
+    bool hide_hint;
 } ScInputTheme;
 
 /**

@@ -20,29 +20,63 @@ SPARCLI_BEGIN_DECLS
  */
 
 /** Options for a fuzzy finder. */
-typedef struct {
-    const char        *prompt;        /**< Search-field label; `NULL` = "Search". */
-    int                max_visible;   /**< Max result rows shown; 0 = 10. */
-    ScColor            accent;        /**< Highlight color for the cursor row. */
-    bool               table;         /**< Render results as a table. */
-    const char *const *headers;       /**< Column headers (table view). */
-    size_t             n_cols;        /**< Number of columns (table view). */
+typedef struct ScFuzzyOpts {
+    /** Search-field label; `NULL` = "Search". */
+    const char *prompt;
 
-    /* Styling (all zero-init = current defaults). */
-    ScTextStyle        prompt_style;  /**< Search label; zero-init = bold in `accent`. */
-    ScTextStyle        selected_style;/**< List cursor row; zero-init = bold in `accent`. */
-    ScTextStyle        cursor_style;  /**< Query cursor cell; zero-init = black-on-white. */
-    ScTextStyle        counter_style; /**< "(n/total)" counter; zero-init = dim. */
-    const char        *cursor_marker; /**< List cursor prefix; `NULL` = "‣ ". */
-    const char        *marker;        /**< Other-row prefix;   `NULL` = "  ". */
-    ScTableOpts        table_opts;    /**< Table-view opts (table mode); zero-init =
-                                           single border + bold header. The cursor row
-                                           is highlighted with `accent` regardless. */
-    ScTextStyle        summary_style; /**< Style of the persistent summary line. */
-    bool               hide_summary;  /**< Suppress the post-pick summary line. */
-    const char        *hint;          /**< Key-hint footer; `NULL` = default. */
-    bool               hide_hint;     /**< Suppress the key-hint footer. */
-    ScTextStyle        hint_style;    /**< Style of the footer; zero-init = dim. */
+    /** Max result rows shown; `0` = 10. */
+    int max_visible;
+
+    /** Highlight color for the cursor row. */
+    ScColor accent;
+
+    /** Render results as a table. */
+    bool table;
+
+    /** Column headers (table view). */
+    const char *const *headers;
+
+    /** Number of columns (table view). */
+    size_t n_cols;
+
+    /** Search label; zero-init = bold in `accent`. */
+    ScTextStyle prompt_style;
+
+    /** List cursor row; zero-init = bold in `accent`. */
+    ScTextStyle selected_style;
+
+    /** Query cursor cell; zero-init = black-on-white. */
+    ScTextStyle cursor_style;
+
+    /** "(n/total)" counter; zero-init = dim. */
+    ScTextStyle counter_style;
+
+    /** List cursor prefix; `NULL` = "‣ ". */
+    const char *cursor_marker;
+
+    /** Other-row prefix; `NULL` = "  ". */
+    const char *marker;
+
+    /**
+     * Table-view opts (table mode); zero-init = single border + bold header.
+     * The cursor row is highlighted with `accent` regardless.
+     */
+    ScTableOpts table_opts;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-pick summary line. */
+    bool hide_summary;
+
+    /** Key-hint footer; `NULL` = default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */

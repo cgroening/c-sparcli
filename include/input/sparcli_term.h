@@ -28,7 +28,7 @@ SPARCLI_BEGIN_DECLS
  * Returned by every `sc_*` input widget. A pointer/result is only valid
  * when the status is `SC_INPUT_OK`.
  */
-typedef enum {
+typedef enum ScInputStatus {
     SC_INPUT_OK = 0,    /**< User confirmed a value (Enter / selection). */
     SC_INPUT_CANCELLED, /**< User aborted (Esc or Ctrl-C). */
     SC_INPUT_ERROR,     /**< Not a TTY, read error, or allocation failure. */
@@ -40,13 +40,13 @@ typedef enum {
  * Printable input (including multi-byte UTF-8) is reported as
  * `SC_KEY_CHAR`; everything else maps to a named control key.
  */
-typedef enum {
+typedef enum ScKeyType {
     SC_KEY_NONE = 0,
-    SC_KEY_CHAR,       /**< Printable codepoint; see `ScKey.codepoint`/`bytes`. */
+    SC_KEY_CHAR, /**< Printable codepoint; see `ScKey.codepoint`/`bytes`. */
     SC_KEY_ENTER,
     SC_KEY_ESC,
     SC_KEY_TAB,
-    SC_KEY_BACKTAB,    /**< Shift-Tab. */
+    SC_KEY_BACKTAB, /**< Shift-Tab. */
     SC_KEY_BACKSPACE,
     SC_KEY_DELETE,
     SC_KEY_UP,
@@ -64,16 +64,14 @@ typedef enum {
     SC_KEY_CTRL_K,
     SC_KEY_CTRL_U,
     SC_KEY_CTRL_W,
-    SC_KEY_RESIZE,     /**< Terminal was resized (SIGWINCH); repaint and continue. */
+    SC_KEY_RESIZE, /**< Terminal resized (SIGWINCH); repaint and continue. */
 } ScKeyType;
 
-/**
- * A single decoded key event.
- */
-typedef struct {
-    ScKeyType type;       /**< Logical key. */
-    uint32_t  codepoint;  /**< Unicode codepoint; valid for `SC_KEY_CHAR`. */
-    char      bytes[8];   /**< UTF-8 bytes of the char, NUL-terminated. */
+/** A single decoded key event. */
+typedef struct ScKey {
+    ScKeyType type;      /**< Logical key. */
+    uint32_t codepoint;  /**< Unicode codepoint; valid for `SC_KEY_CHAR`. */
+    char bytes[8];       /**< UTF-8 bytes of the char, NUL-terminated. */
 } ScKey;
 
 /**

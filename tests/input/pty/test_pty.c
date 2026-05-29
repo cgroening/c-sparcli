@@ -52,7 +52,9 @@ static int child_case(int c) {
         }
         case 3: {
             ScSelect *sl = sc_select_new((ScSelectOpts){ 0 });
-            sc_select_add(sl, "a"); sc_select_add(sl, "b"); sc_select_add(sl, "c");
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            sc_select_add(sl, "c");
             size_t idx[1] = { 0 }, n = 1;
             ScInputStatus s = sc_select_run(sl, idx, &n);
             int ok = (s == SC_INPUT_OK && idx[0] == 1);
@@ -73,7 +75,10 @@ static int child_case(int c) {
 
 /* ── Parent: drive the PTY ──────────────────────────────────────────────── */
 
-typedef struct { const char *name; const char *keys; } Case;
+typedef struct Case {
+    const char *name;
+    const char *keys;
+} Case;
 
 static const Case CASES[] = {
     { "confirm",  "y" },
@@ -93,7 +98,9 @@ static void msleep(int ms) {
 static void drain(int fd) {
     for (;;) {
         struct timeval tv = { 0, 40000 };
-        fd_set r; FD_ZERO(&r); FD_SET(fd, &r);
+        fd_set r;
+        FD_ZERO(&r);
+        FD_SET(fd, &r);
         if (select(fd + 1, &r, NULL, NULL, &tv) <= 0) { return; }
         char buf[4096];
         if (read(fd, buf, sizeof buf) <= 0) { return; }

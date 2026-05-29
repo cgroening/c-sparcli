@@ -7,10 +7,10 @@
 int g_input_failures = 0;
 
 
-typedef struct {
-    char  name[40];
+typedef struct Test {
+    char name[40];
     void (*function)(void);
-    int   interactive;  /* 1 = needs a real TTY */
+    int interactive;  /* 1 = needs a real TTY */
 } Test;
 
 

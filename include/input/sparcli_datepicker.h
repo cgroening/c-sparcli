@@ -18,30 +18,55 @@ SPARCLI_BEGIN_DECLS
  * an explicit value so it stays reachable (a bare `0` cannot mean both "unset"
  * and "Sunday").
  */
-typedef enum {
+typedef enum ScWeekStart {
     SC_WEEK_START_DEFAULT = 0, /**< Same as Monday. */
-    SC_WEEK_START_MONDAY  = 1,
-    SC_WEEK_START_SUNDAY  = 2,
+    SC_WEEK_START_MONDAY = 1,
+    SC_WEEK_START_SUNDAY = 2,
 } ScWeekStart;
 
 /** Options for `sc_datepicker`. */
-typedef struct {
-    const char *prompt;         /**< Heading above the calendar; may be `NULL`. */
-    ScWeekStart week_start;     /**< First weekday column; zero-init = Monday. */
-    ScColor     accent;         /**< Highlight color for the selected day. */
-    ScTextStyle prompt_style;   /**< Style of the heading; zero-init = bold. */
-    ScTextStyle header_style;   /**< Style of the "Month Year" line; zero-init =
-                                     bold in `accent`. */
-    ScTextStyle weekday_style;  /**< Style of the weekday row; zero-init = dim. */
-    ScTextStyle selected_style; /**< Style of the selected day; zero-init =
-                                     bold black-on-`accent`. */
-    const char *header_prev;    /**< Glyph left of the month; `NULL` = "‹". */
-    const char *header_next;    /**< Glyph right of the month; `NULL` = "›". */
-    ScTextStyle summary_style;  /**< Style of the persistent summary line. */
-    bool        hide_summary;   /**< Suppress the post-pick summary line. */
-    const char *hint;           /**< Key-hint footer; `NULL` = sensible default. */
-    bool        hide_hint;      /**< Suppress the key-hint footer. */
-    ScTextStyle hint_style;     /**< Style of the footer; zero-init = dim. */
+typedef struct ScDatePickerOpts {
+    /** Heading above the calendar; may be `NULL`. */
+    const char *prompt;
+
+    /** First weekday column; zero-init = Monday. */
+    ScWeekStart week_start;
+
+    /** Highlight color for the selected day. */
+    ScColor accent;
+
+    /** Style of the heading; zero-init = bold. */
+    ScTextStyle prompt_style;
+
+    /** Style of the "Month Year" line; zero-init = bold in `accent`. */
+    ScTextStyle header_style;
+
+    /** Style of the weekday row; zero-init = dim. */
+    ScTextStyle weekday_style;
+
+    /** Style of the selected day; zero-init = bold black-on-`accent`. */
+    ScTextStyle selected_style;
+
+    /** Glyph left of the month; `NULL` = "‹". */
+    const char *header_prev;
+
+    /** Glyph right of the month; `NULL` = "›". */
+    const char *header_next;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-pick summary line. */
+    bool hide_summary;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
 } ScDatePickerOpts;
 
 /**

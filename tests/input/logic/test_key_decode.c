@@ -7,7 +7,7 @@
 /** Decodes the whole of `seq` and checks the first key's type + byte count. */
 static void expect(const char *seq, ScKeyType type, size_t consumed,
                    const char *label) {
-    ScKey  k;
+    ScKey k;
     size_t used = sc_key_decode(seq, strlen(seq), &k);
     CHECK(k.type == type && used == consumed, label);
 }

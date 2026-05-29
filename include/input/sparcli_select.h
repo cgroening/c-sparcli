@@ -18,23 +18,51 @@ SPARCLI_BEGIN_DECLS
  */
 
 /** Options for a selection prompt. */
-typedef struct {
-    const char  *prompt;         /**< Heading above the list; may be `NULL`. */
-    bool         multi;          /**< `true` = multi-select with checkboxes. */
-    int          max_visible;    /**< Max rows shown at once; 0 = 10. */
-    ScTextStyle  prompt_style;   /**< Style for the heading. */
-    ScColor      accent;         /**< Highlight color for the cursor row. */
-    ScTextStyle  selected_style; /**< Style of the cursor row; zero-init =
-                                      bold in `accent`. */
-    const char  *cursor_marker;  /**< Prefix for the cursor row; `NULL` = "‣ ". */
-    const char  *marker;         /**< Prefix for other rows;     `NULL` = "  ". */
-    const char  *checkbox_on;    /**< Checked box (multi);   `NULL` = "[x] ". */
-    const char  *checkbox_off;   /**< Unchecked box (multi); `NULL` = "[ ] ". */
-    ScTextStyle  summary_style;  /**< Style of the persistent summary line. */
-    bool         hide_summary;   /**< Suppress the post-selection summary line. */
-    const char  *hint;           /**< Key-hint footer; `NULL` = sensible default. */
-    bool         hide_hint;      /**< Suppress the key-hint footer. */
-    ScTextStyle  hint_style;     /**< Style of the footer; zero-init = dim. */
+typedef struct ScSelectOpts {
+    /** Heading above the list; may be `NULL`. */
+    const char *prompt;
+
+    /** `true` = multi-select with checkboxes. */
+    bool multi;
+
+    /** Max rows shown at once; `0` = 10. */
+    int max_visible;
+
+    /** Style for the heading. */
+    ScTextStyle prompt_style;
+
+    /** Highlight color for the cursor row. */
+    ScColor accent;
+
+    /** Style of the cursor row; zero-init = bold in `accent`. */
+    ScTextStyle selected_style;
+
+    /** Prefix for the cursor row; `NULL` = "‣ ". */
+    const char *cursor_marker;
+
+    /** Prefix for other rows; `NULL` = "  ". */
+    const char *marker;
+
+    /** Checked box (multi); `NULL` = "[x] ". */
+    const char *checkbox_on;
+
+    /** Unchecked box (multi); `NULL` = "[ ] ". */
+    const char *checkbox_off;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-selection summary line. */
+    bool hide_summary;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
 } ScSelectOpts;
 
 /** Opaque selection instance; build with `sc_select_new`. */

@@ -16,21 +16,45 @@ SPARCLI_BEGIN_DECLS
  */
 
 /** Options for `sc_textarea`. */
-typedef struct {
-    const char *initial;       /**< Pre-filled multi-line value; `NULL` = empty. */
-    const char *placeholder;   /**< Dim hint shown while empty; may be `NULL`. */
-    ScTextStyle prompt_style;  /**< Style for the prompt heading. */
-    ScTextStyle value_style;   /**< Style for the entered text. */
-    ScTextStyle cursor_style;  /**< Cursor cell; zero-init = black-on-white. */
-    ScTextStyle summary_style; /**< Style of the persistent summary line. */
-    bool        hide_summary;  /**< Suppress the post-entry summary line. */
-    const char *hint;          /**< Key-hint footer; `NULL` = sensible default. */
-    bool        hide_hint;     /**< Suppress the key-hint footer. */
-    ScTextStyle hint_style;    /**< Style of the footer; zero-init = dim. */
-    bool        boxed;         /**< Render the editor inside a bordered panel
-                                    (prompt = top title, footer below the box). */
-    ScBorderStyle border;      /**< Box border (boxed mode); zero-init type = rounded. */
-    int         width;         /**< Box width; 0 = full terminal width. */
+typedef struct ScTextareaOpts {
+    /** Pre-filled multi-line value; `NULL` = empty. */
+    const char *initial;
+
+    /** Dim hint shown while empty; may be `NULL`. */
+    const char *placeholder;
+
+    /** Style for the prompt heading. */
+    ScTextStyle prompt_style;
+
+    /** Style for the entered text. */
+    ScTextStyle value_style;
+
+    /** Cursor cell; zero-init = black-on-white. */
+    ScTextStyle cursor_style;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-entry summary line. */
+    bool hide_summary;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
+
+    /** Render the editor inside a bordered panel (prompt = top title). */
+    bool boxed;
+
+    /** Box border (boxed mode); zero-init type = rounded. */
+    ScBorderStyle border;
+
+    /** Box width; `0` = full terminal width. */
+    int width;
 } ScTextareaOpts;
 
 /**

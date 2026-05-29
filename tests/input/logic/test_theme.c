@@ -2,7 +2,8 @@
 #include "sparcli.h"
 
 
-/* Demonstrates a global theme: widgets inherit accent/styles with zero-init opts. */
+/* Demonstrates a global theme: widgets inherit the accent/styles from zero-init
+ * opts. */
 void test_theme(void) {
     sc_input_set_theme(&(ScInputTheme){
         .accent       = SC_ANSI_COLOR_MAGENTA,
@@ -22,7 +23,8 @@ void test_theme(void) {
     sc_select_add(s, "Alpha");
     sc_select_add(s, "Beta");
     sc_select_add(s, "Gamma");
-    size_t idx[3]; size_t n = 3;
+    size_t idx[3];
+    size_t n = 3;
     st = sc_select_run(s, idx, &n);
     if (st == SC_INPUT_OK) { printf("  → %s\n", "selected"); }
     sc_select_free(s);

@@ -16,9 +16,13 @@ void test_select(void) {
     size_t idx[8];
     size_t n = 8;
     ScInputStatus st = sc_select_run(single, idx, &n);
-    if (st == SC_INPUT_OK) { printf("  → single: index %zu (%s)\n", idx[0], FRUITS[idx[0]]); }
-    else if (st == SC_INPUT_CANCELLED) { printf("  → single: cancelled\n"); }
-    else { printf("  → no TTY (skipped)\n"); }
+    if (st == SC_INPUT_OK) {
+        printf("  → single: index %zu (%s)\n", idx[0], FRUITS[idx[0]]);
+    } else if (st == SC_INPUT_CANCELLED) {
+        printf("  → single: cancelled\n");
+    } else {
+        printf("  → no TTY (skipped)\n");
+    }
     sc_select_free(single);
 
     /* Multi-select. */

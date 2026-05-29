@@ -41,41 +41,87 @@ SPARCLI_EXPORT bool sc_filter_alnum(uint32_t codepoint, void *ctx);
 SPARCLI_EXPORT bool sc_filter_no_space(uint32_t codepoint, void *ctx);
 
 /** Options for `sc_text_input`. */
-typedef struct {
-    const char  *initial;       /**< Pre-filled value; `NULL` = empty. */
-    const char  *placeholder;   /**< Dim hint shown while empty; may be `NULL`. */
-    ScTextStyle  prompt_style;  /**< Style for the prompt label. */
-    ScTextStyle  value_style;   /**< Style for the entered value. */
-    ScTextStyle  cursor_style;  /**< Style of the cursor cell; zero-init =
-                                     black-on-white. */
-    ScTextStyle  error_style;   /**< Style of the validation error line; zero-init = red. */
-    ScTextStyle  summary_style; /**< Style of the persistent summary line. */
-    bool         hide_summary;  /**< Suppress the post-entry summary line. */
-    int          max_chars;     /**< Max characters; 0 = unlimited (default).
-                                     When > 0 the input is capped and the counter
-                                     shows `count/max`. */
-    bool         hide_char_count;/**< Suppress the character counter (shown by
-                                     default below the field). */
-    ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
-    bool         boxed;         /**< Render the field inside a bordered panel:
-                                     prompt as the top title, counter on the
-                                     bottom-right border. */
-    ScBorderStyle border;       /**< Box border (boxed mode); zero-init type =
-                                     rounded. */
-    int          width;         /**< Field width in columns; 0 = terminal width.
-                                     Long values scroll horizontally. In boxed
-                                     mode this is the panel width. */
-    const char  *hint;          /**< Key-hint footer; `NULL` = sensible default. */
-    bool         hide_hint;     /**< Suppress the key-hint footer. */
-    ScTextStyle  hint_style;    /**< Style of the footer; zero-init = dim. */
-    ScCharFilter char_filter;   /**< Optional per-character input filter; may be `NULL`. */
-    void        *char_filter_ctx;/**< Opaque pointer passed to `char_filter`. */
-    const char *const *suggestions; /**< Autocomplete word list; may be `NULL`. The
-                                     first case-insensitive prefix match is shown as
-                                     dim ghost text; Tab accepts it. */
-    size_t       n_suggestions; /**< Number of entries in `suggestions`. */
-    ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
-    void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
+typedef struct ScTextInputOpts {
+    /** Pre-filled value; `NULL` = empty. */
+    const char *initial;
+
+    /** Dim hint shown while empty; may be `NULL`. */
+    const char *placeholder;
+
+    /** Style for the prompt label. */
+    ScTextStyle prompt_style;
+
+    /** Style for the entered value. */
+    ScTextStyle value_style;
+
+    /** Style of the cursor cell; zero-init = black-on-white. */
+    ScTextStyle cursor_style;
+
+    /** Style of the validation error line; zero-init = red. */
+    ScTextStyle error_style;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-entry summary line. */
+    bool hide_summary;
+
+    /**
+     * Max characters; `0` = unlimited. When `> 0` the input is capped and the
+     * counter shows `count/max`.
+     */
+    int max_chars;
+
+    /** Suppress the character counter (shown by default below the field). */
+    bool hide_char_count;
+
+    /** Style of the character counter; zero-init = dim. */
+    ScTextStyle count_style;
+
+    /**
+     * Render the field inside a bordered panel: prompt as the top title,
+     * counter on the bottom-right border.
+     */
+    bool boxed;
+
+    /** Box border (boxed mode); zero-init type = rounded. */
+    ScBorderStyle border;
+
+    /**
+     * Field width in columns; `0` = terminal width. Long values scroll
+     * horizontally. In boxed mode this is the panel width.
+     */
+    int width;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
+
+    /** Optional per-character input filter; may be `NULL`. */
+    ScCharFilter char_filter;
+
+    /** Opaque pointer passed to `char_filter`. */
+    void *char_filter_ctx;
+
+    /**
+     * Autocomplete word list; may be `NULL`. The first case-insensitive prefix
+     * match is shown as dim ghost text; Tab accepts it.
+     */
+    const char *const *suggestions;
+
+    /** Number of entries in `suggestions`. */
+    size_t n_suggestions;
+
+    /** Optional validator; may be `NULL`. */
+    ScValidateFn validate;
+
+    /** Opaque pointer passed to `validate`. */
+    void *validate_ctx;
 } ScTextInputOpts;
 
 /**
@@ -93,29 +139,66 @@ SPARCLI_EXPORT ScInputStatus sc_text_input(
 );
 
 /** Options for `sc_password_input`. */
-typedef struct {
-    const char  *placeholder;   /**< Dim hint shown while empty; may be `NULL`. */
-    const char  *mask;          /**< Glyph per character; `NULL` = "*". Empty
-                                     string ("") hides the length entirely. */
-    ScTextStyle  prompt_style;  /**< Style for the prompt label. */
-    ScTextStyle  cursor_style;  /**< Style of the cursor cell; zero-init =
-                                     black-on-white. */
-    ScTextStyle  error_style;   /**< Style of the validation error line; zero-init = red. */
-    ScTextStyle  summary_style; /**< Style of the persistent summary line. */
-    bool         hide_summary;  /**< Suppress the post-entry summary line. */
-    int          max_chars;     /**< Max characters; 0 = unlimited (default). */
-    bool         hide_char_count;/**< Suppress the character counter. */
-    ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
-    bool         boxed;         /**< Render the field inside a bordered panel. */
-    ScBorderStyle border;       /**< Box border (boxed mode); zero-init type = rounded. */
-    int          width;         /**< Field width; 0 = terminal width (boxed: panel width). */
-    const char  *hint;          /**< Key-hint footer; `NULL` = sensible default. */
-    bool         hide_hint;     /**< Suppress the key-hint footer. */
-    ScTextStyle  hint_style;    /**< Style of the footer; zero-init = dim. */
-    ScCharFilter char_filter;   /**< Optional per-character input filter; may be `NULL`. */
-    void        *char_filter_ctx;/**< Opaque pointer passed to `char_filter`. */
-    ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
-    void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
+typedef struct ScPasswordOpts {
+    /** Dim hint shown while empty; may be `NULL`. */
+    const char *placeholder;
+
+    /** Glyph per character; `NULL` = "*". Empty string ("") hides the length. */
+    const char *mask;
+
+    /** Style for the prompt label. */
+    ScTextStyle prompt_style;
+
+    /** Style of the cursor cell; zero-init = black-on-white. */
+    ScTextStyle cursor_style;
+
+    /** Style of the validation error line; zero-init = red. */
+    ScTextStyle error_style;
+
+    /** Style of the persistent summary line. */
+    ScTextStyle summary_style;
+
+    /** Suppress the post-entry summary line. */
+    bool hide_summary;
+
+    /** Max characters; `0` = unlimited. */
+    int max_chars;
+
+    /** Suppress the character counter. */
+    bool hide_char_count;
+
+    /** Style of the character counter; zero-init = dim. */
+    ScTextStyle count_style;
+
+    /** Render the field inside a bordered panel. */
+    bool boxed;
+
+    /** Box border (boxed mode); zero-init type = rounded. */
+    ScBorderStyle border;
+
+    /** Field width; `0` = terminal width (boxed: panel width). */
+    int width;
+
+    /** Key-hint footer; `NULL` = sensible default. */
+    const char *hint;
+
+    /** Suppress the key-hint footer. */
+    bool hide_hint;
+
+    /** Style of the footer; zero-init = dim. */
+    ScTextStyle hint_style;
+
+    /** Optional per-character input filter; may be `NULL`. */
+    ScCharFilter char_filter;
+
+    /** Opaque pointer passed to `char_filter`. */
+    void *char_filter_ctx;
+
+    /** Optional validator; may be `NULL`. */
+    ScValidateFn validate;
+
+    /** Opaque pointer passed to `validate`. */
+    void *validate_ctx;
 } ScPasswordOpts;
 
 /**
