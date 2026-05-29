@@ -34,11 +34,11 @@ ScInputStatus sc_tty_begin(void);
 /** Restores the saved terminal mode, shows the cursor, releases the fd. */
 void sc_tty_end(void);
 
-/** Writes `n` bytes to the terminal output fd. */
-void sc_tty_write(const char *bytes, size_t n);
+/** Writes `len` bytes to the terminal output fd. */
+void sc_tty_write(const char *bytes, size_t len);
 
 /** Writes a NUL-terminated string to the terminal output fd. */
-void sc_tty_puts(const char *s);
+void sc_tty_puts(const char *str);
 
 /** Returns the descriptor used for terminal reads (shared with key.c). */
 int sc_tty_internal_fd(void);
@@ -59,7 +59,10 @@ bool sc_tty_take_resize(void);
  */
 ScKey sc_tty_read_key(void);
 
-/** Discards any buffered, not-yet-decoded input bytes (called at session start). */
+/**
+ * Discards any buffered, not-yet-decoded input bytes (called at session
+ * start so stale bytes never leak between prompts).
+ */
 void sc_tty_input_reset(void);
 
 
@@ -69,19 +72,20 @@ void sc_tty_input_reset(void);
  * State for a multi-line in-place redraw region. Zero-initialize before the
  * first draw (`(ScScreen){0}`).
  */
-typedef struct {
-    int prev_lines; /**< Number of lines drawn by the previous `sc_screen_draw`. */
+typedef struct ScScreen {
+    /** Number of lines drawn by the previous `sc_screen_draw`. */
+    int prev_lines;
 } ScScreen;
 
 /**
  * Redraws the region in place: moves up over the previously drawn lines,
- * erases downward, then writes `lines[0..n)` separated by CR-LF (no
+ * erases downward, then writes `line_count` lines separated by CR-LF (no
  * trailing newline; the cursor ends on the last line).
  */
-void sc_screen_draw(ScScreen *screen, char *const *lines, size_t n);
+void sc_screen_draw(ScScreen *self, char *const *lines, size_t line_count);
 
 /**
  * Erases the drawn region and parks the cursor at its top-left, so the
  * caller can print a persistent summary line in its place.
  */
-void sc_screen_clear(ScScreen *screen);
+void sc_screen_clear(ScScreen *self);

@@ -1,7 +1,16 @@
 #include "input_internal.h"
 
 
-static ScInputTheme g_theme;  /* zero-init = no theme */
+static ScInputTheme g_theme;  /* zero-init = no theme installed */
+
+
+/* Field-merge helpers: each fills the target only when the caller left it
+ * unset, so per-call options always win over the theme. */
+static void m_color(ScColor *dst, ScColor src);
+static void m_style(ScTextStyle *dst, ScTextStyle src);
+static void m_glyph(const char **dst, const char *src);
+static void m_border(ScBorderStyle *dst, ScBorderStyle src);
+
 
 void sc_input_set_theme(const ScInputTheme *theme) {
     g_theme = theme ? *theme : (ScInputTheme){ 0 };
@@ -9,22 +18,6 @@ void sc_input_set_theme(const ScInputTheme *theme) {
 
 ScInputTheme sc_input_theme(void) {
     return g_theme;
-}
-
-
-/* ── Field-merge helpers: theme fills only what the caller left unset ────── */
-
-static void m_color(ScColor *dst, ScColor src) {
-    if (dst->index == 0 && src.index != 0) { *dst = src; }
-}
-static void m_style(ScTextStyle *dst, ScTextStyle src) {
-    if (!sc_style_set(*dst) && sc_style_set(src)) { *dst = src; }
-}
-static void m_glyph(const char **dst, const char *src) {
-    if (!*dst && src) { *dst = src; }
-}
-static void m_border(ScBorderStyle *dst, ScBorderStyle src) {
-    if (dst->type == SC_BORDER_NONE && src.type != SC_BORDER_NONE) { *dst = src; }
 }
 
 
@@ -118,4 +111,31 @@ void sc_theme_apply_datepicker(ScDatePickerOpts *o) {
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
     o->hide_hint = o->hide_hint || t.hide_hint;
+}
+
+
+/* ── Field-merge helpers ────────────────────────────────────────────────── */
+
+static void m_color(ScColor *dst, ScColor src) {
+    if (dst->index == 0 && src.index != 0) {
+        *dst = src;
+    }
+}
+
+static void m_style(ScTextStyle *dst, ScTextStyle src) {
+    if (!sc_style_set(*dst) && sc_style_set(src)) {
+        *dst = src;
+    }
+}
+
+static void m_glyph(const char **dst, const char *src) {
+    if (!*dst && src) {
+        *dst = src;
+    }
+}
+
+static void m_border(ScBorderStyle *dst, ScBorderStyle src) {
+    if (dst->type == SC_BORDER_NONE && src.type != SC_BORDER_NONE) {
+        *dst = src;
+    }
 }

@@ -25,8 +25,8 @@
  * default (zero-init `ScTextStyle` = "use default"). Self-contained so the
  * input layer needs no `internal.h` dependency.
  */
-static inline bool sc_style_set(ScTextStyle s) {
-    return s.attr != 0 || s.fg.index != 0 || s.bg.index != 0;
+static inline bool sc_style_set(ScTextStyle style) {
+    return style.attr != 0 || style.fg.index != 0 || style.bg.index != 0;
 }
 
 /**
@@ -36,21 +36,22 @@ static inline bool sc_style_set(ScTextStyle s) {
 static inline void sc_append_hint(
     ScText *text, const char *hint, bool hide, ScTextStyle style
 ) {
-    if (hide || !hint || !hint[0]) { return; }
-    ScTextStyle st = sc_style_set(style)
+    if (hide || !hint || !hint[0]) {
+        return;
+    }
+    ScTextStyle resolved = sc_style_set(style)
         ? style
-        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                         SC_ANSI_COLOR_NONE };
     sc_text_append(text, "\n", (ScTextStyle){ 0 });
-    sc_text_append(text, hint, st);
+    sc_text_append(text, hint, resolved);
 }
 
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
 
-/**
- * Per-widget behaviour passed to `sc_prompt_run`.
- */
-typedef struct {
+/** Per-widget behaviour passed to `sc_prompt_run`. */
+typedef struct ScPromptVTable {
     /** Render the current state into a fresh `ScRendered` (engine frees it). */
     ScRendered *(*render)(void *state);
     /** Handle one key; set `*done` to accept, `*cancel` to abort. */
@@ -77,18 +78,18 @@ ScInputStatus sc_prompt_run(const ScPromptVTable *vtable, void *state);
  * A growable UTF-8 edit buffer with a byte-offset cursor. Shared by the
  * text/password inputs and the fuzzy finder's query field.
  */
-typedef struct {
-    char  *buf;     /**< UTF-8 bytes, always NUL-terminated. */
+typedef struct ScLineEditor {
+    char *buf;      /**< UTF-8 bytes, always NUL-terminated. */
     size_t len;     /**< Bytes used (excluding the NUL). */
     size_t cap;     /**< Allocated capacity. */
-    size_t cursor;  /**< Cursor position as a byte offset into `buf`. */
+    size_t cursor;  /**< Cursor byte offset into `buf`. */
 } ScLineEditor;
 
-/** Initializes `e` with an optional initial value (copied). */
-void sc_le_init(ScLineEditor *e, const char *initial);
+/** Initializes `self` with an optional initial value (copied). */
+void sc_le_init(ScLineEditor *self, const char *initial);
 
-/** Releases the buffer owned by `e`. */
-void sc_le_free(ScLineEditor *e);
+/** Releases the buffer owned by `self`. */
+void sc_le_free(ScLineEditor *self);
 
 /**
  * Applies an editing key (insert char, backspace, delete, cursor motion,
@@ -96,7 +97,7 @@ void sc_le_free(ScLineEditor *e);
  * editor consumed, `false` for keys the widget should handle itself
  * (Enter, Esc, arrows the widget reserves, …).
  */
-bool sc_le_handle(ScLineEditor *e, ScKey key);
+bool sc_le_handle(ScLineEditor *self, ScKey key);
 
 /**
  * Appends the editor content to `text` as styled spans, including a
@@ -112,7 +113,7 @@ bool sc_le_handle(ScLineEditor *e, ScKey key);
  *                           horizontally and shows `‹`/`›` edge markers.
  */
 void sc_le_render_into(
-    const ScLineEditor *e, ScText *text,
+    const ScLineEditor *self, ScText *text,
     ScTextStyle value_style, ScTextStyle cursor_style, const char *mask,
     const char *placeholder, ScTextStyle placeholder_style, int field_width
 );
@@ -125,32 +126,32 @@ void sc_le_render_into(
  * `sc_text_input` (mask == NULL) and `sc_password_input` (mask != NULL), and
  * the snapshot builder. Zero-init fields select the built-in defaults.
  */
-typedef struct {
-    const char  *prompt;
-    const char  *initial;        /* prefilled value (live) / shown value (frame) */
-    const char  *placeholder;
-    const char  *mask;           /* NULL = plain text */
-    ScTextStyle  prompt_style;
-    ScTextStyle  value_style;
-    ScTextStyle  cursor_style;   /* zero-init = black-on-white */
-    ScTextStyle  error_style;    /* zero-init = red            */
-    ScTextStyle  count_style;    /* zero-init = dim            */
-    ScTextStyle  summary_style;
-    bool         hide_summary;
-    bool         hide_char_count;
-    int          max_chars;      /* 0 = unlimited */
-    bool         boxed;          /* render inside a bordered panel */
-    ScBorderStyle border;        /* box border; zero-init type = rounded */
-    int          width;          /* field width; 0 = terminal width */
-    const char  *hint;           /* key-hint footer; NULL = default */
-    bool         hide_hint;
-    ScTextStyle  hint_style;
+typedef struct ScTextEntryCfg {
+    const char *prompt;
+    const char *initial;       /**< Prefilled value (live) / shown value (frame). */
+    const char *placeholder;
+    const char *mask;          /**< NULL = plain text. */
+    ScTextStyle prompt_style;
+    ScTextStyle value_style;
+    ScTextStyle cursor_style;  /**< Zero-init = black-on-white. */
+    ScTextStyle error_style;   /**< Zero-init = red. */
+    ScTextStyle count_style;   /**< Zero-init = dim. */
+    ScTextStyle summary_style;
+    bool hide_summary;
+    bool hide_char_count;
+    int max_chars;             /**< 0 = unlimited. */
+    bool boxed;                /**< Render inside a bordered panel. */
+    ScBorderStyle border;      /**< Box border; zero-init type = rounded. */
+    int width;                 /**< Field width; 0 = terminal width. */
+    const char *hint;          /**< Key-hint footer; NULL = default. */
+    bool hide_hint;
+    ScTextStyle hint_style;
     ScCharFilter char_filter;
-    void        *char_filter_ctx;
+    void *char_filter_ctx;
     const char *const *suggestions;
-    size_t       n_suggestions;
+    size_t n_suggestions;
     bool (*validate)(const char *, void *, const char **);
-    void        *validate_ctx;
+    void *validate_ctx;
 } ScTextEntryCfg;
 
 /**

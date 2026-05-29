@@ -7,44 +7,75 @@
 #include <string.h>
 
 
-typedef struct { size_t idx; int score; } Match;
+/** One ranked candidate: its original add-order index and match score. */
+typedef struct Match {
+    size_t index;
+    int score;
+} Match;
 
+/** Incremental fuzzy finder over a set of (multi-field) rows. */
 struct ScFuzzy {
-    char       ***rows;       /* rows[i][c] = field c of row i */
-    size_t       *row_ncols;
-    size_t        count;
-    size_t        cap;
-    ScFuzzyOpts   opts;
-    ScColor       accent;
-    int           max_visible;
+    char ***rows;          /**< rows[i][c] = field c of row i. */
+    size_t *row_ncols;
+    size_t count;
+    size_t cap;
+    ScFuzzyOpts opts;
+    ScColor accent;
+    int max_visible;
 
-    /* runtime */
-    ScLineEditor  query;
-    Match        *matches;    /* filtered + ranked; size `count` */
-    size_t        match_n;
-    size_t        cursor;     /* index into matches */
-    size_t        top;
+    /* Runtime state for the active run. */
+    ScLineEditor query;
+    Match *matches;        /**< Filtered + ranked; capacity `count`. */
+    size_t match_n;
+    size_t cursor;         /**< Index into `matches`. */
+    size_t top;            /**< First visible match (scroll offset). */
 };
 
+static const char *const DEFAULT_HINT =
+    "type to filter \xc2\xb7 \xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
+    "enter select \xc2\xb7 esc cancel";
 
-static char *dup_str(const char *s) {
-    size_t n = strlen(s ? s : "");
-    char  *p = malloc(n + 1);
-    if (p) { memcpy(p, s ? s : "", n + 1); }
-    return p;
-}
+
+static void refilter(ScFuzzy *self);
+static ScRendered *fuzzy_render(void *state);
+    static ScRendered *render_query_line(ScFuzzy *self);
+    static ScRendered *render_list(ScFuzzy *self);
+        static void append_highlighted(ScText *text, const char *label,
+                                       const char *query, ScTextStyle base_style,
+                                       ScColor accent);
+    static ScRendered *render_table(ScFuzzy *self);
+    static ScRendered *render_scroll_hint(ScFuzzy *self);
+    static ScRendered *render_hint_footer(ScFuzzy *self);
+static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel);
+static int match_cmp(const void *a, const void *b);
+static void grow_rows(ScFuzzy *self);
+static size_t cp_len(unsigned char lead);
+static char *dup_str(const char *str);
+
 
 bool sc_fuzzy_match(const char *pattern, const char *str, int *score) {
-    if (!pattern || !pattern[0]) { if (score) { *score = 0; } return true; }
-    if (!str) { if (score) { *score = 0; } return false; }
+    if (!pattern || !pattern[0]) {
+        if (score) {
+            *score = 0;
+        }
+        return true;
+    }
+    if (!str) {
+        if (score) {
+            *score = 0;
+        }
+        return false;
+    }
 
-    const char *p = pattern, *s = str;
-    int total = 0, streak = 0;
+    const char *p = pattern;
+    const char *s = str;
+    int total = 0;
+    int streak = 0;
     while (*p && *s) {
         if (tolower((unsigned char)*p) == tolower((unsigned char)*s)) {
             total += 1 + streak;
             if (s == str || s[-1] == ' ' || s[-1] == '_' || s[-1] == '-') {
-                total += 2;  /* word-start bonus */
+                total += 2;   // word-start bonus
             }
             streak++;
             p++;
@@ -54,235 +85,331 @@ bool sc_fuzzy_match(const char *pattern, const char *str, int *score) {
         s++;
     }
     bool ok = (*p == '\0');
-    if (score) { *score = ok ? total : 0; }
+    if (score) {
+        *score = ok ? total : 0;
+    }
     return ok;
 }
 
 ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts) {
     sc_theme_apply_fuzzy(&opts);
-    ScFuzzy *f = calloc(1, sizeof *f);
-    if (!f) { return NULL; }
-    f->opts        = opts;
-    f->accent      = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
-    f->max_visible = opts.max_visible > 0 ? opts.max_visible : 10;
-    return f;
-}
-
-static void grow_rows(ScFuzzy *f) {
-    if (f->count != f->cap) { return; }
-    size_t cap = f->cap ? f->cap * 2 : 8;
-    char ***r  = realloc(f->rows, cap * sizeof *r);
-    size_t *nc = realloc(f->row_ncols, cap * sizeof *nc);
-    if (!r || !nc) { free(r); free(nc); return; }
-    f->rows = r; f->row_ncols = nc; f->cap = cap;
-}
-
-void sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n) {
-    if (!f || n == 0) { return; }
-    grow_rows(f);
-    char **row = malloc(n * sizeof *row);
-    if (!row) { return; }
-    for (size_t c = 0; c < n; c++) { row[c] = dup_str(fields[c]); }
-    f->rows[f->count]      = row;
-    f->row_ncols[f->count] = n;
-    f->count++;
-}
-
-void sc_fuzzy_add(ScFuzzy *f, const char *label) {
-    const char *one[1] = { label };
-    sc_fuzzy_add_row(f, one, 1);
-}
-
-void sc_fuzzy_free(ScFuzzy *f) {
-    if (!f) { return; }
-    for (size_t i = 0; i < f->count; i++) {
-        for (size_t c = 0; c < f->row_ncols[i]; c++) { free(f->rows[i][c]); }
-        free(f->rows[i]);
+    ScFuzzy *self = calloc(1, sizeof *self);
+    if (!self) {
+        return NULL;
     }
-    free(f->rows);
-    free(f->row_ncols);
-    free(f->matches);
-    free(f);
+    self->opts = opts;
+    self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
+    self->max_visible = opts.max_visible > 0 ? opts.max_visible : 10;
+    return self;
 }
 
-static int match_cmp(const void *a, const void *b) {
-    const Match *x = a, *y = b;
-    if (x->score != y->score) { return y->score - x->score; }  /* desc */
-    return (x->idx > y->idx) - (x->idx < y->idx);              /* asc  */
+void sc_fuzzy_add(ScFuzzy *self, const char *label) {
+    const char *one[1] = { label };
+    sc_fuzzy_add_row(self, one, 1);
+}
+
+void sc_fuzzy_add_row(ScFuzzy *self, const char *const *fields, size_t n) {
+    if (!self || n == 0) {
+        return;
+    }
+    grow_rows(self);
+    char **row = malloc(n * sizeof *row);
+    if (!row) {
+        return;
+    }
+    for (size_t c = 0; c < n; c++) {
+        row[c] = dup_str(fields[c]);
+    }
+    self->rows[self->count] = row;
+    self->row_ncols[self->count] = n;
+    self->count++;
+}
+
+void sc_fuzzy_free(ScFuzzy *self) {
+    if (!self) {
+        return;
+    }
+    for (size_t i = 0; i < self->count; i++) {
+        for (size_t c = 0; c < self->row_ncols[i]; c++) {
+            free(self->rows[i][c]);
+        }
+        free(self->rows[i]);
+    }
+    free(self->rows);
+    free(self->row_ncols);
+    free(self->matches);
+    free(self);
+}
+
+ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
+    if (!self || !out_index || self->count == 0) {
+        return SC_INPUT_ERROR;
+    }
+
+    sc_le_init(&self->query, NULL);
+    if (!self->query.buf) {
+        return SC_INPUT_ERROR;
+    }
+    self->matches = malloc(self->count * sizeof *self->matches);
+    if (!self->matches) {
+        sc_le_free(&self->query);
+        return SC_INPUT_ERROR;
+    }
+    self->cursor = 0;
+    self->top = 0;
+    refilter(self);
+
+    ScPromptVTable vtable = {
+        .render = fuzzy_render,
+        .on_key = fuzzy_on_key,
+    };
+    ScInputStatus status = sc_prompt_run(&vtable, self);
+
+    if (status == SC_INPUT_OK) {
+        size_t row_index = self->matches[self->cursor].index;
+        *out_index = row_index;
+        if (!self->opts.hide_summary) {
+            const char *prompt = self->opts.prompt ? self->opts.prompt : "Search";
+            size_t size = strlen(prompt) + strlen(self->rows[row_index][0]) + 4;
+            char *line = malloc(size);
+            if (line) {
+                snprintf(line, size, "? %s %s", prompt,
+                         self->rows[row_index][0]);
+                sc_println(line, self->opts.summary_style);
+                free(line);
+            }
+        }
+    }
+    sc_le_free(&self->query);
+    return status;
+}
+
+ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
+    if (!self || self->count == 0) {
+        return NULL;
+    }
+    sc_le_init(&self->query, query);
+    self->matches = malloc(self->count * sizeof *self->matches);
+    if (!self->query.buf || !self->matches) {
+        sc_le_free(&self->query);
+        free(self->matches);
+        self->matches = NULL;
+        return NULL;
+    }
+    self->cursor = 0;
+    self->top = 0;
+    refilter(self);
+    ScRendered *rendered = fuzzy_render(self);
+    sc_le_free(&self->query);
+    free(self->matches);
+    self->matches = NULL;
+    return rendered;
 }
 
 /** Recomputes the filtered/ranked match list from the current query. */
-static void refilter(ScFuzzy *f) {
-    const char *q = f->query.buf;
-    f->match_n = 0;
-    for (size_t i = 0; i < f->count; i++) {
+static void refilter(ScFuzzy *self) {
+    const char *query = self->query.buf;
+    self->match_n = 0;
+    for (size_t i = 0; i < self->count; i++) {
         int score = 0;
-        if (sc_fuzzy_match(q, f->rows[i][0], &score)) {
-            f->matches[f->match_n].idx   = i;
-            f->matches[f->match_n].score = score;
-            f->match_n++;
+        if (sc_fuzzy_match(query, self->rows[i][0], &score)) {
+            self->matches[self->match_n].index = i;
+            self->matches[self->match_n].score = score;
+            self->match_n++;
         }
     }
-    qsort(f->matches, f->match_n, sizeof *f->matches, match_cmp);
-    if (f->cursor >= f->match_n) { f->cursor = f->match_n ? f->match_n - 1 : 0; }
-    size_t visible = (size_t)f->max_visible;
-    if (f->cursor < f->top)                { f->top = f->cursor; }
-    else if (f->cursor >= f->top + visible) { f->top = f->cursor - visible + 1; }
-    if (f->match_n <= visible) { f->top = 0; }
+    qsort(self->matches, self->match_n, sizeof *self->matches, match_cmp);
+    if (self->cursor >= self->match_n) {
+        self->cursor = self->match_n ? self->match_n - 1 : 0;
+    }
+    size_t visible = (size_t)self->max_visible;
+    if (self->cursor < self->top) {
+        self->top = self->cursor;
+    } else if (self->cursor >= self->top + visible) {
+        self->top = self->cursor - visible + 1;
+    }
+    if (self->match_n <= visible) {
+        self->top = 0;
+    }
 }
 
-/** Builds the query/prompt line as a captured rendering. */
-static ScRendered *render_query_line(ScFuzzy *f) {
-    ScText *t = sc_text_new();
-    if (!t) { return NULL; }
-    const char *prompt = f->opts.prompt ? f->opts.prompt : "Search";
-    ScTextStyle ps = sc_style_set(f->opts.prompt_style)
-        ? f->opts.prompt_style
-        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE };
-    sc_text_append(t, prompt, ps);
-    sc_text_append(t, " ", (ScTextStyle){ 0 });
+static ScRendered *fuzzy_render(void *state) {
+    ScFuzzy *self = state;
+    ScRendered *query = render_query_line(self);
+    ScRendered *body = self->opts.table ? render_table(self) : render_list(self);
+    if (!query || !body) {
+        sc_rendered_free(query);
+        sc_rendered_free(body);
+        return NULL;
+    }
+    ScRendered *scroll = render_scroll_hint(self);
+    ScRendered *footer = render_hint_footer(self);
+
+    const ScRendered *parts[4];
+    size_t count = 0;
+    parts[count++] = query;
+    parts[count++] = body;
+    if (scroll) {
+        parts[count++] = scroll;
+    }
+    if (footer) {
+        parts[count++] = footer;
+    }
+    ScRendered *stacked = sc_vstack(parts, count, 0);
+    sc_rendered_free(query);
+    sc_rendered_free(body);
+    sc_rendered_free(scroll);
+    sc_rendered_free(footer);
+    return stacked;
+}
+
+/** Builds the query/prompt line (query field scrolls when long). */
+static ScRendered *render_query_line(ScFuzzy *self) {
+    ScText *text = sc_text_new();
+    if (!text) {
+        return NULL;
+    }
+    const char *prompt = self->opts.prompt ? self->opts.prompt : "Search";
+    ScTextStyle prompt_style = sc_style_set(self->opts.prompt_style)
+        ? self->opts.prompt_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
+    sc_text_append(text, prompt, prompt_style);
+    sc_text_append(text, " ", (ScTextStyle){ 0 });
 
     char counter[48];
-    snprintf(counter, sizeof counter, "  (%zu/%zu)", f->match_n, f->count);
+    snprintf(counter, sizeof counter, "  (%zu/%zu)", self->match_n, self->count);
 
-    /* Query field = line width − prompt − space − counter, so a long query
-     * scrolls horizontally instead of overflowing the line. */
-    int prompt_w  = (int)sc_utf8_string_length(prompt, strlen(prompt));
+    // Query field = line width − prompt − space − counter.
+    int prompt_w = (int)sc_utf8_string_length(prompt, strlen(prompt));
     int counter_w = (int)sc_utf8_string_length(counter, strlen(counter));
     int field = sc_terminal_width() - prompt_w - 1 - counter_w;
-    if (field < 1) { field = 1; }
-    sc_le_render_into(&f->query, t, (ScTextStyle){ 0 }, f->opts.cursor_style,
-                      NULL, NULL, (ScTextStyle){ 0 }, field);
+    if (field < 1) {
+        field = 1;
+    }
+    sc_le_render_into(&self->query, text, (ScTextStyle){ 0 },
+                      self->opts.cursor_style, NULL, NULL, (ScTextStyle){ 0 },
+                      field);
 
-    ScTextStyle cst = sc_style_set(f->opts.counter_style)
-        ? f->opts.counter_style
-        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    sc_text_append(t, counter, cst);
+    ScTextStyle counter_style = sc_style_set(self->opts.counter_style)
+        ? self->opts.counter_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                         SC_ANSI_COLOR_NONE };
+    sc_text_append(text, counter, counter_style);
 
-    ScRendered *r = sc_capture_text(t);
-    sc_text_free(t);
-    return r;
+    ScRendered *rendered = sc_capture_text(text);
+    sc_text_free(text);
+    return rendered;
 }
 
-/** Byte length of the UTF-8 codepoint led by `c`. */
-static size_t cp_len(unsigned char c) {
-    if ((c & 0x80) == 0x00) { return 1; }
-    if ((c & 0xE0) == 0xC0) { return 2; }
-    if ((c & 0xF0) == 0xE0) { return 3; }
-    return 4;
+/** List view: one row per match, matched characters emphasized. */
+static ScRendered *render_list(ScFuzzy *self) {
+    ScText *text = sc_text_new();
+    if (!text) {
+        return NULL;
+    }
+    size_t visible = (size_t)self->max_visible;
+    size_t end = self->top + visible;
+    if (end > self->match_n) {
+        end = self->match_n;
+    }
+
+    ScTextStyle selected_style = sc_style_set(self->opts.selected_style)
+        ? self->opts.selected_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
+    const char *cursor_marker = self->opts.cursor_marker
+        ? self->opts.cursor_marker : "\xe2\x80\xa3 ";
+    const char *marker = self->opts.marker ? self->opts.marker : "  ";
+
+    for (size_t i = self->top; i < end; i++) {
+        bool on_cursor = (i == self->cursor);
+        ScTextStyle row = on_cursor ? selected_style : (ScTextStyle){ 0 };
+        sc_text_append(text, on_cursor ? cursor_marker : marker, row);
+        append_highlighted(text, self->rows[self->matches[i].index][0],
+                           self->query.buf, row, self->accent);
+        if (i + 1 < end) {
+            sc_text_append(text, "\n", (ScTextStyle){ 0 });
+        }
+    }
+    ScRendered *rendered = sc_capture_text(text);
+    sc_text_free(text);
+    return rendered;
 }
 
 /**
- * Appends `label` codepoint-by-codepoint, emphasizing the characters that the
- * (greedy, case-insensitive) query subsequence matches — the same matching
- * order as `sc_fuzzy_match`.
+ * Appends `label` codepoint-by-codepoint, emphasizing the characters the
+ * (greedy, case-insensitive) query subsequence matches — same order as
+ * `sc_fuzzy_match`.
  */
-static void append_highlighted(
-    ScText *t, const char *label, const char *query,
-    ScTextStyle base, ScColor accent
-) {
-    const char *p = (query && query[0]) ? query : NULL;
+static void append_highlighted(ScText *text, const char *label,
+                               const char *query, ScTextStyle base_style,
+                               ScColor accent) {
+    const char *pattern = (query && query[0]) ? query : NULL;
     const char *s = label;
     while (*s) {
-        size_t n = cp_len((unsigned char)*s);
-        char g[8];
-        memcpy(g, s, n);
-        g[n] = '\0';
+        size_t len = cp_len((unsigned char)*s);
+        char glyph[8];
+        memcpy(glyph, s, len);
+        glyph[len] = '\0';
 
-        bool hit = p && *p
-            && tolower((unsigned char)*p) == tolower((unsigned char)*s);
-        ScTextStyle st = base;
+        bool hit = pattern && *pattern
+            && tolower((unsigned char)*pattern) == tolower((unsigned char)*s);
+        ScTextStyle style = base_style;
         if (hit) {
-            st.attr |= SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER;
-            if (base.fg.index == 0) { st.fg = accent; }
-            p++;
+            style.attr |= SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER;
+            if (base_style.fg.index == 0) {
+                style.fg = accent;
+            }
+            pattern++;
         }
-        sc_text_append(t, g, st);
-        s += n;
+        sc_text_append(text, glyph, style);
+        s += len;
     }
 }
 
-/** Builds a dim "↑ first–last/total ↓" line, or NULL when nothing is hidden. */
-static ScRendered *render_scroll_hint(ScFuzzy *f) {
-    size_t visible = (size_t)f->max_visible;
-    size_t end = f->top + visible;
-    if (end > f->match_n) { end = f->match_n; }
-    if (f->top == 0 && end >= f->match_n) { return NULL; }
-
-    char buf[80];
-    snprintf(buf, sizeof buf, "  %s %zu\xe2\x80\x93%zu/%zu %s",
-             f->top > 0       ? "\xe2\x86\x91" : " ",
-             f->top + 1, end, f->match_n,
-             end < f->match_n ? "\xe2\x86\x93" : " ");
-    ScText *t = sc_text_new();
-    if (!t) { return NULL; }
-    sc_text_append(t, buf,
-        (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
-    ScRendered *r = sc_capture_text(t);
-    sc_text_free(t);
-    return r;
-}
-
-static ScRendered *render_list(ScFuzzy *f) {
-    ScText *t = sc_text_new();
-    if (!t) { return NULL; }
-    size_t visible = (size_t)f->max_visible;
-    size_t end = f->top + visible;
-    if (end > f->match_n) { end = f->match_n; }
-
-    ScTextStyle sel = sc_style_set(f->opts.selected_style)
-        ? f->opts.selected_style
-        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE };
-    const char *cur_mk = f->opts.cursor_marker ? f->opts.cursor_marker : "\xe2\x80\xa3 ";
-    const char *mk     = f->opts.marker        ? f->opts.marker        : "  ";
-
-    for (size_t k = f->top; k < end; k++) {
-        bool cur = (k == f->cursor);
-        ScTextStyle row = cur ? sel : (ScTextStyle){ 0 };
-        sc_text_append(t, cur ? cur_mk : mk, row);
-        append_highlighted(t, f->rows[f->matches[k].idx][0], f->query.buf,
-                           row, f->accent);
-        if (k + 1 < end) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
+/** Table view: visible matches as a sparcli table, cursor row via row-bg. */
+static ScRendered *render_table(ScFuzzy *self) {
+    ScTableData *table = sc_table_new();
+    if (!table) {
+        return NULL;
     }
-    ScRendered *r = sc_capture_text(t);
-    sc_text_free(t);
-    return r;
-}
-
-static ScRendered *render_table(ScFuzzy *f) {
-    ScTableData *tbl = sc_table_new();
-    if (!tbl) { return NULL; }
-    size_t cols = f->opts.n_cols ? f->opts.n_cols : 1;
+    size_t cols = self->opts.n_cols ? self->opts.n_cols : 1;
     for (size_t c = 0; c < cols; c++) {
-        const char *h = (f->opts.headers && c < f->opts.n_cols)
-                      ? f->opts.headers[c] : "";
-        sc_table_add_column(tbl, h, (ScColOpts){ .word_wrap = false });
+        const char *header = (self->opts.headers && c < self->opts.n_cols)
+            ? self->opts.headers[c] : "";
+        sc_table_add_column(table, header, (ScColOpts){ .word_wrap = false });
     }
 
-    size_t visible = (size_t)f->max_visible;
-    size_t end = f->top + visible;
-    if (end > f->match_n) { end = f->match_n; }
+    size_t visible = (size_t)self->max_visible;
+    size_t end = self->top + visible;
+    if (end > self->match_n) {
+        end = self->match_n;
+    }
 
-    for (size_t k = f->top; k < end; k++) {
-        size_t ri = f->matches[k].idx;
+    for (size_t i = self->top; i < end; i++) {
+        size_t row_index = self->matches[i].index;
         ScCell *cells = calloc(cols, sizeof *cells);
-        if (!cells) { break; }
-        for (size_t c = 0; c < cols; c++) {
-            const char *v = (c < f->row_ncols[ri]) ? f->rows[ri][c] : "";
-            cells[c] = sc_cell(v);
+        if (!cells) {
+            break;
         }
-        if (k == f->cursor) {
-            sc_table_add_row_bg(tbl, cells, cols, f->accent);
+        for (size_t c = 0; c < cols; c++) {
+            const char *value = (c < self->row_ncols[row_index])
+                ? self->rows[row_index][c] : "";
+            cells[c] = sc_cell(value);
+        }
+        if (i == self->cursor) {
+            sc_table_add_row_bg(table, cells, cols, self->accent);
         } else {
-            sc_table_add_row(tbl, cells, cols);
+            sc_table_add_row(table, cells, cols);
         }
         free(cells);
     }
 
-    /* Start from the caller's table_opts; fill the original defaults only for
-     * the fields left zero-init, so callers can override border/header etc. */
-    ScTableOpts opts = f->opts.table_opts;
-    if (opts.border.type == SC_BORDER_NONE) { opts.border.type = SC_BORDER_SINGLE; }
+    // Start from the caller's table_opts; fill the original defaults only for
+    // the fields left zero-init, so callers can override border/header etc.
+    ScTableOpts opts = self->opts.table_opts;
+    if (opts.border.type == SC_BORDER_NONE) {
+        opts.border.type = SC_BORDER_SINGLE;
+    }
     if (!opts.header.row) {
         opts.header.row = true;
         if (!sc_style_set(opts.header.style)) {
@@ -290,117 +417,141 @@ static ScRendered *render_table(ScFuzzy *f) {
                 SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         }
     }
-    ScRendered *r = sc_capture_table(tbl, opts);
-    sc_table_free(tbl);
-    return r;
+    ScRendered *rendered = sc_capture_table(table, opts);
+    sc_table_free(table);
+    return rendered;
+}
+
+/** Builds a dim "↑ first–last/total ↓" line, or NULL when nothing is hidden. */
+static ScRendered *render_scroll_hint(ScFuzzy *self) {
+    size_t visible = (size_t)self->max_visible;
+    size_t end = self->top + visible;
+    if (end > self->match_n) {
+        end = self->match_n;
+    }
+    if (self->top == 0 && end >= self->match_n) {
+        return NULL;
+    }
+
+    char buf[80];
+    snprintf(buf, sizeof buf, "  %s %zu\xe2\x80\x93%zu/%zu %s",
+             self->top > 0       ? "\xe2\x86\x91" : " ",
+             self->top + 1, end, self->match_n,
+             end < self->match_n ? "\xe2\x86\x93" : " ");
+    ScText *text = sc_text_new();
+    if (!text) {
+        return NULL;
+    }
+    sc_text_append(text, buf, (ScTextStyle){ SC_TEXT_ATTR_DIM,
+                   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+    ScRendered *rendered = sc_capture_text(text);
+    sc_text_free(text);
+    return rendered;
 }
 
 /** Builds the key-hint footer line, or NULL when suppressed. */
-static ScRendered *render_hint_footer(ScFuzzy *f) {
-    if (f->opts.hide_hint) { return NULL; }
-    const char *hint = f->opts.hint ? f->opts.hint
-        : "type to filter \xc2\xb7 \xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 enter select \xc2\xb7 esc cancel";
-    ScText *t = sc_text_new();
-    if (!t) { return NULL; }
-    ScTextStyle st = sc_style_set(f->opts.hint_style)
-        ? f->opts.hint_style
-        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    sc_text_append(t, hint, st);
-    ScRendered *r = sc_capture_text(t);
-    sc_text_free(t);
-    return r;
-}
-
-static ScRendered *fuzzy_render(void *state) {
-    ScFuzzy *f = state;
-    ScRendered *query = render_query_line(f);
-    ScRendered *body  = (f->opts.table) ? render_table(f) : render_list(f);
-    if (!query || !body) { sc_rendered_free(query); sc_rendered_free(body); return NULL; }
-    ScRendered *scroll = render_scroll_hint(f);
-    ScRendered *foot   = render_hint_footer(f);
-
-    const ScRendered *parts[4];
-    size_t n = 0;
-    parts[n++] = query;
-    parts[n++] = body;
-    if (scroll) { parts[n++] = scroll; }
-    if (foot)   { parts[n++] = foot; }
-    ScRendered *stacked = sc_vstack(parts, n, 0);
-    sc_rendered_free(query);
-    sc_rendered_free(body);
-    sc_rendered_free(scroll);
-    sc_rendered_free(foot);
-    return stacked;
+static ScRendered *render_hint_footer(ScFuzzy *self) {
+    if (self->opts.hide_hint) {
+        return NULL;
+    }
+    const char *hint = self->opts.hint ? self->opts.hint : DEFAULT_HINT;
+    ScText *text = sc_text_new();
+    if (!text) {
+        return NULL;
+    }
+    ScTextStyle style = sc_style_set(self->opts.hint_style)
+        ? self->opts.hint_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                         SC_ANSI_COLOR_NONE };
+    sc_text_append(text, hint, style);
+    ScRendered *rendered = sc_capture_text(text);
+    sc_text_free(text);
+    return rendered;
 }
 
 static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     (void)cancel;
-    ScFuzzy *f = state;
+    ScFuzzy *self = state;
     switch (key.type) {
         case SC_KEY_UP:
         case SC_KEY_BACKTAB:
-            if (f->cursor > 0) { f->cursor--; }
+            if (self->cursor > 0) {
+                self->cursor--;
+            }
             break;
         case SC_KEY_DOWN:
         case SC_KEY_TAB:
-            if (f->cursor + 1 < f->match_n) { f->cursor++; }
+            if (self->cursor + 1 < self->match_n) {
+                self->cursor++;
+            }
             break;
         case SC_KEY_ENTER:
-            if (f->match_n > 0) { *done = true; }
+            if (self->match_n > 0) {
+                *done = true;
+            }
             return;
         default:
-            if (sc_le_handle(&f->query, key)) { f->cursor = 0; refilter(f); }
+            if (sc_le_handle(&self->query, key)) {
+                self->cursor = 0;
+                refilter(self);
+            }
             return;
     }
-    size_t visible = (size_t)f->max_visible;
-    if (f->cursor < f->top)                { f->top = f->cursor; }
-    else if (f->cursor >= f->top + visible) { f->top = f->cursor - visible + 1; }
+    size_t visible = (size_t)self->max_visible;
+    if (self->cursor < self->top) {
+        self->top = self->cursor;
+    } else if (self->cursor >= self->top + visible) {
+        self->top = self->cursor - visible + 1;
+    }
 }
 
-ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index) {
-    if (!f || !out_index || f->count == 0) { return SC_INPUT_ERROR; }
-
-    sc_le_init(&f->query, NULL);
-    if (!f->query.buf) { return SC_INPUT_ERROR; }
-    f->matches = malloc(f->count * sizeof *f->matches);
-    if (!f->matches) { sc_le_free(&f->query); return SC_INPUT_ERROR; }
-    f->cursor = 0; f->top = 0;
-    refilter(f);
-
-    ScPromptVTable vt = { .render = fuzzy_render, .on_key = fuzzy_on_key };
-    ScInputStatus status = sc_prompt_run(&vt, f);
-
-    if (status == SC_INPUT_OK) {
-        size_t ri = f->matches[f->cursor].idx;
-        *out_index = ri;
-        if (!f->opts.hide_summary) {
-            const char *prompt = f->opts.prompt ? f->opts.prompt : "Search";
-            size_t n = strlen(prompt) + strlen(f->rows[ri][0]) + 4;
-            char  *line = malloc(n);
-            if (line) {
-                snprintf(line, n, "? %s %s", prompt, f->rows[ri][0]);
-                sc_println(line, f->opts.summary_style);
-                free(line);
-            }
-        }
+/** qsort comparator: score descending, then add-order ascending. */
+static int match_cmp(const void *a, const void *b) {
+    const Match *left = a;
+    const Match *right = b;
+    if (left->score != right->score) {
+        return right->score - left->score;
     }
-    sc_le_free(&f->query);
-    return status;
+    return (left->index > right->index) - (left->index < right->index);
 }
 
-ScRendered *sc_fuzzy_frame(ScFuzzy *f, const char *query) {
-    if (!f || f->count == 0) { return NULL; }
-    sc_le_init(&f->query, query);
-    f->matches = malloc(f->count * sizeof *f->matches);
-    if (!f->query.buf || !f->matches) {
-        sc_le_free(&f->query);
-        free(f->matches); f->matches = NULL;
-        return NULL;
+/** Grows the row arrays when full. */
+static void grow_rows(ScFuzzy *self) {
+    if (self->count != self->cap) {
+        return;
     }
-    f->cursor = 0; f->top = 0;
-    refilter(f);
-    ScRendered *r = fuzzy_render(f);
-    sc_le_free(&f->query);
-    free(f->matches); f->matches = NULL;
-    return r;
+    size_t cap = self->cap ? self->cap * 2 : 8;
+    char ***rows = realloc(self->rows, cap * sizeof *rows);
+    size_t *ncols = realloc(self->row_ncols, cap * sizeof *ncols);
+    if (!rows || !ncols) {
+        free(rows);
+        free(ncols);
+        return;
+    }
+    self->rows = rows;
+    self->row_ncols = ncols;
+    self->cap = cap;
+}
+
+/** Byte length of the UTF-8 codepoint led by `lead`. */
+static size_t cp_len(unsigned char lead) {
+    if ((lead & 0x80) == 0x00) {
+        return 1;
+    }
+    if ((lead & 0xE0) == 0xC0) {
+        return 2;
+    }
+    if ((lead & 0xF0) == 0xE0) {
+        return 3;
+    }
+    return 4;
+}
+
+static char *dup_str(const char *str) {
+    size_t size = strlen(str ? str : "") + 1;
+    char *copy = malloc(size);
+    if (copy) {
+        memcpy(copy, str ? str : "", size);
+    }
+    return copy;
 }

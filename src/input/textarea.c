@@ -5,265 +5,415 @@
 #include <string.h>
 
 
-typedef struct {
-    const char    *prompt;
-    char          *buf;
-    size_t         len;
-    size_t         cap;
-    size_t         cursor;   /* byte offset */
+/** Render-time state for a single multi-line textarea. */
+typedef struct Textarea {
+    const char *prompt;
+    char *buf;
+    size_t len;
+    size_t cap;
+    size_t cursor;         /**< Byte offset of the cursor. */
     ScTextareaOpts opts;
 } Textarea;
 
+static const char *const DEFAULT_HINT =
+    "ctrl-d submit \xc2\xb7 enter newline \xc2\xb7 esc cancel";
 
-/* ── UTF-8 boundaries ───────────────────────────────────────────────────── */
 
-static size_t prev_b(const char *b, size_t off) {
-    if (off == 0) { return 0; }
-    size_t i = off - 1;
-    while (i > 0 && ((unsigned char)b[i] & 0xC0) == 0x80) { i--; }
-    return i;
+static bool init_state(Textarea *self, const char *prompt,
+                       ScTextareaOpts opts, const char *content);
+static ScRendered *ta_render(void *state);
+    static ScRendered *render_inline(const Textarea *self);
+    static ScRendered *render_boxed(const Textarea *self);
+        static void append_content(const Textarea *self, ScText *text,
+                                   int width);
+        static const char *ta_hint(const Textarea *self);
+static void ta_on_key(void *state, ScKey key, bool *done, bool *cancel);
+    static void insert(Textarea *self, const char *bytes, size_t len);
+        static bool ensure_cap(Textarea *self, size_t extra);
+    static void del_range(Textarea *self, size_t from, size_t to);
+    static void move_vertical(Textarea *self, int direction);
+        static size_t col_of(const Textarea *self, size_t off);
+        static size_t offset_at_col(const Textarea *self, size_t line_begin,
+                                    size_t col);
+    static size_t line_start(const Textarea *self, size_t off);
+    static size_t line_end(const Textarea *self, size_t off);
+static size_t prev_b(const char *buf, size_t off);
+static size_t next_b(const char *buf, size_t len, size_t off);
+
+
+ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
+    if (!prompt || !out) {
+        return SC_INPUT_ERROR;
+    }
+    sc_theme_apply_textarea(&opts);
+
+    Textarea state;
+    if (!init_state(&state, prompt, opts, opts.initial)) {
+        return SC_INPUT_ERROR;
+    }
+
+    ScPromptVTable vtable = {
+        .render = ta_render,
+        .on_key = ta_on_key,
+    };
+    ScInputStatus status = sc_prompt_run(&vtable, &state);
+    if (status != SC_INPUT_OK) {
+        free(state.buf);
+        return status;
+    }
+
+    *out = state.buf;   // hand ownership to the caller
+    if (!opts.hide_summary) {
+        // Count lines for a compact summary (don't echo the whole body).
+        size_t lines = state.len ? 1 : 0;
+        for (size_t i = 0; i < state.len; i++) {
+            if (state.buf[i] == '\n') {
+                lines++;
+            }
+        }
+        char line[96];
+        snprintf(line, sizeof line, "? %s (%zu line%s)", prompt, lines,
+                 lines == 1 ? "" : "s");
+        sc_println(line, opts.summary_style);
+    }
+    return SC_INPUT_OK;
 }
-static size_t next_b(const char *b, size_t len, size_t off) {
-    if (off >= len) { return len; }
-    size_t i = off + 1;
-    while (i < len && ((unsigned char)b[i] & 0xC0) == 0x80) { i++; }
-    return i;
+
+ScRendered *sc_textarea_frame(const char *prompt, const char *content,
+                              ScTextareaOpts opts) {
+    Textarea state;
+    if (!init_state(&state, prompt, opts, content)) {
+        return NULL;
+    }
+    ScRendered *rendered = ta_render(&state);
+    free(state.buf);
+    return rendered;
 }
 
-/* ── Buffer editing ─────────────────────────────────────────────────────── */
-
-static bool ensure(Textarea *a, size_t extra) {
-    if (a->len + extra + 1 <= a->cap) { return true; }
-    size_t cap = a->cap ? a->cap : 32;
-    while (cap < a->len + extra + 1) { cap *= 2; }
-    char *p = realloc(a->buf, cap);
-    if (!p) { return false; }
-    a->buf = p; a->cap = cap;
+/** Initializes `self` with `content` (cursor at end). */
+static bool init_state(Textarea *self, const char *prompt,
+                       ScTextareaOpts opts, const char *content) {
+    self->prompt = prompt;
+    self->opts = opts;
+    size_t len = content ? strlen(content) : 0;
+    self->cap = len + 32;
+    self->buf = malloc(self->cap);
+    if (!self->buf) {
+        return false;
+    }
+    if (len) {
+        memcpy(self->buf, content, len);
+    }
+    self->buf[len] = '\0';
+    self->len = len;
+    self->cursor = len;
     return true;
 }
-static void insert(Textarea *a, const char *bytes, size_t n) {
-    if (n == 0 || !ensure(a, n)) { return; }
-    memmove(a->buf + a->cursor + n, a->buf + a->cursor, a->len - a->cursor);
-    memcpy(a->buf + a->cursor, bytes, n);
-    a->len += n; a->cursor += n; a->buf[a->len] = '\0';
-}
-static void del_range(Textarea *a, size_t from, size_t to) {
-    if (to <= from) { return; }
-    memmove(a->buf + from, a->buf + to, a->len - to);
-    a->len -= (to - from); a->cursor = from; a->buf[a->len] = '\0';
+
+static ScRendered *ta_render(void *state) {
+    Textarea *self = state;
+    return self->opts.boxed ? render_boxed(self) : render_inline(self);
 }
 
-/* ── Line geometry ──────────────────────────────────────────────────────── */
-
-static size_t line_start(const Textarea *a, size_t off) {
-    while (off > 0 && a->buf[off - 1] != '\n') { off--; }
-    return off;
-}
-static size_t line_end(const Textarea *a, size_t off) {
-    while (off < a->len && a->buf[off] != '\n') { off++; }
-    return off;
-}
-/** Codepoint column of `off` within its line. */
-static size_t col_of(const Textarea *a, size_t off) {
-    size_t ls = line_start(a, off), col = 0;
-    for (size_t i = ls; i < off; i = next_b(a->buf, a->len, i)) { col++; }
-    return col;
-}
-/** Byte offset of column `col` on the line starting at `ls`. */
-static size_t offset_at_col(const Textarea *a, size_t ls, size_t col) {
-    size_t i = ls, c = 0, le = line_end(a, ls);
-    while (c < col && i < le) { i = next_b(a->buf, a->len, i); c++; }
-    return i;
-}
-
-static void move_vertical(Textarea *a, int dir) {
-    size_t col = col_of(a, a->cursor);
-    size_t ls  = line_start(a, a->cursor);
-    if (dir < 0) {
-        if (ls == 0) { return; }
-        size_t prev_ls = line_start(a, ls - 1);
-        a->cursor = offset_at_col(a, prev_ls, col);
-    } else {
-        size_t le = line_end(a, a->cursor);
-        if (le >= a->len) { return; }
-        a->cursor = offset_at_col(a, le + 1, col);
+/** Inline: prompt line, content, footer. */
+static ScRendered *render_inline(const Textarea *self) {
+    ScText *text = sc_text_new();
+    if (!text) {
+        return NULL;
     }
+    if (self->prompt) {
+        sc_text_append(text, self->prompt, self->opts.prompt_style);
+        sc_text_append(text, "\n", (ScTextStyle){ 0 });
+    }
+    int width = self->opts.width > 0 ? self->opts.width : sc_terminal_width();
+    append_content(self, text, width);
+    sc_append_hint(text, ta_hint(self), self->opts.hide_hint,
+                   self->opts.hint_style);
+    ScRendered *rendered = sc_capture_text(text);
+    sc_text_free(text);
+    return rendered;
 }
 
-/* ── Render ─────────────────────────────────────────────────────────────── */
+/** Boxed: content inside a panel (prompt = top title), footer stacked below. */
+static ScRendered *render_boxed(const Textarea *self) {
+    ScText *inner = sc_text_new();
+    if (!inner) {
+        return NULL;
+    }
+    int panel_width = self->opts.width > 0 ? self->opts.width
+                                           : sc_terminal_width() - 2;
+    int field = panel_width - 4;   // interior minus borders + padding
+    if (field < 1) {
+        field = 1;
+    }
+    append_content(self, inner, field);
+
+    ScPanelOpts opts = {
+        .border = self->opts.border,
+        .title = { .text = self->prompt, .style = self->opts.prompt_style,
+                   .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+        .padding = { .left = 1, .right = 1 },
+        .content_align = SC_ALIGN_LEFT,
+    };
+    if (opts.border.type == SC_BORDER_NONE) {
+        opts.border.type = SC_BORDER_ROUNDED;
+    }
+    if (self->opts.width > 0) {
+        opts.width = self->opts.width;
+    } else {
+        opts.full_width = true;
+    }
+
+    ScRendered *panel = sc_capture_panel_text(inner, opts);
+    sc_text_free(inner);
+    if (!panel || self->opts.hide_hint) {
+        return panel;
+    }
+
+    ScText *footer_text = sc_text_new();
+    if (!footer_text) {
+        return panel;
+    }
+    ScTextStyle hint_style = sc_style_set(self->opts.hint_style)
+        ? self->opts.hint_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                         SC_ANSI_COLOR_NONE };
+    sc_text_append(footer_text, ta_hint(self), hint_style);
+    ScRendered *footer = sc_capture_text(footer_text);
+    sc_text_free(footer_text);
+    if (!footer) {
+        return panel;
+    }
+
+    const ScRendered *parts[2] = { panel, footer };
+    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    sc_rendered_free(panel);
+    sc_rendered_free(footer);
+    return stacked;
+}
 
 /**
  * Appends the multi-line content (cursor cell marked, hard newlines preserved).
  * When `width > 0`, logical lines are soft-wrapped at that column so long lines
- * never overflow; the cursor is emitted inline, so it lands on the right wrapped
- * row automatically. (Navigation stays logical-line based.)
+ * never overflow; the cursor is emitted inline, so it lands on the right
+ * wrapped row automatically. (Navigation stays logical-line based.)
  */
-static void append_content(const Textarea *a, ScText *t, int width) {
-    ScTextStyle cur = sc_style_set(a->opts.cursor_style) ? a->opts.cursor_style
-        : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_WHITE };
+static void append_content(const Textarea *self, ScText *text, int width) {
+    ScTextStyle cursor_style = sc_style_set(self->opts.cursor_style)
+        ? self->opts.cursor_style
+        : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                         SC_ANSI_COLOR_WHITE };
 
-    if (a->len == 0 && a->opts.placeholder && a->opts.placeholder[0]) {
-        sc_text_append(t, " ", cur);
-        sc_text_append(t, a->opts.placeholder,
-            (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+    if (self->len == 0 && self->opts.placeholder && self->opts.placeholder[0]) {
+        sc_text_append(text, " ", cursor_style);
+        sc_text_append(text, self->opts.placeholder, (ScTextStyle){
+            SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
         return;
     }
     int col = 0;
     size_t i = 0;
-    while (i < a->len) {
-        if (a->buf[i] == '\n') {
-            if (i == a->cursor) { sc_text_append(t, " ", cur); }
-            sc_text_append(t, "\n", (ScTextStyle){ 0 });
-            i++; col = 0;
+    while (i < self->len) {
+        if (self->buf[i] == '\n') {
+            if (i == self->cursor) {
+                sc_text_append(text, " ", cursor_style);
+            }
+            sc_text_append(text, "\n", (ScTextStyle){ 0 });
+            i++;
+            col = 0;
             continue;
         }
-        if (width > 0 && col >= width) {       /* soft wrap */
-            sc_text_append(t, "\n", (ScTextStyle){ 0 });
+        if (width > 0 && col >= width) {   // soft wrap
+            sc_text_append(text, "\n", (ScTextStyle){ 0 });
             col = 0;
         }
-        size_t e = next_b(a->buf, a->len, i);
-        char g[8]; memcpy(g, a->buf + i, e - i); g[e - i] = '\0';
-        sc_text_append(t, g, (i == a->cursor) ? cur : a->opts.value_style);
-        i = e; col++;
+        size_t end = next_b(self->buf, self->len, i);
+        char glyph[8];
+        memcpy(glyph, self->buf + i, end - i);
+        glyph[end - i] = '\0';
+        sc_text_append(text, glyph,
+                       (i == self->cursor) ? cursor_style : self->opts.value_style);
+        i = end;
+        col++;
     }
-    if (a->cursor == a->len) {
-        if (width > 0 && col >= width) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
-        sc_text_append(t, " ", cur);           /* trailing cursor */
+    if (self->cursor == self->len) {
+        if (width > 0 && col >= width) {
+            sc_text_append(text, "\n", (ScTextStyle){ 0 });
+        }
+        sc_text_append(text, " ", cursor_style);   // trailing cursor
     }
 }
 
-static const char *ta_hint(const Textarea *a) {
-    return a->opts.hint ? a->opts.hint
-        : "ctrl-d submit \xc2\xb7 enter newline \xc2\xb7 esc cancel";
-}
-
-/** Inline: prompt line, content, footer. */
-static ScRendered *render_inline(const Textarea *a) {
-    ScText *t = sc_text_new();
-    if (!t) { return NULL; }
-    if (a->prompt) {
-        sc_text_append(t, a->prompt, a->opts.prompt_style);
-        sc_text_append(t, "\n", (ScTextStyle){ 0 });
-    }
-    int width = a->opts.width > 0 ? a->opts.width : sc_terminal_width();
-    append_content(a, t, width);
-    sc_append_hint(t, ta_hint(a), a->opts.hide_hint, a->opts.hint_style);
-    ScRendered *r = sc_capture_text(t);
-    sc_text_free(t);
-    return r;
-}
-
-/** Boxed: content inside a panel (prompt = top title), footer stacked below. */
-static ScRendered *render_boxed(const Textarea *a) {
-    ScText *inner = sc_text_new();
-    if (!inner) { return NULL; }
-    int panel_w = a->opts.width > 0 ? a->opts.width : sc_terminal_width() - 2;
-    int field = panel_w - 4;             /* interior minus borders + padding */
-    if (field < 1) { field = 1; }
-    append_content(a, inner, field);
-
-    ScPanelOpts opts = {
-        .border        = a->opts.border,
-        .title         = { .text = a->prompt, .style = a->opts.prompt_style,
-                           .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
-        .padding       = { .left = 1, .right = 1 },
-        .content_align = SC_ALIGN_LEFT,
-    };
-    if (opts.border.type == SC_BORDER_NONE) { opts.border.type = SC_BORDER_ROUNDED; }
-    if (a->opts.width > 0) { opts.width = a->opts.width; } else { opts.full_width = true; }
-
-    ScRendered *panel = sc_capture_panel_text(inner, opts);
-    sc_text_free(inner);
-    if (!panel) { return NULL; }
-    if (a->opts.hide_hint) { return panel; }
-
-    ScText *ft = sc_text_new();
-    if (!ft) { return panel; }
-    ScTextStyle hs = sc_style_set(a->opts.hint_style) ? a->opts.hint_style
-        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    sc_text_append(ft, ta_hint(a), hs);
-    ScRendered *foot = sc_capture_text(ft);
-    sc_text_free(ft);
-    if (!foot) { return panel; }
-
-    const ScRendered *parts[2] = { panel, foot };
-    ScRendered *stacked = sc_vstack(parts, 2, 0);
-    sc_rendered_free(panel);
-    sc_rendered_free(foot);
-    return stacked;
-}
-
-static ScRendered *ta_render(void *state) {
-    Textarea *a = state;
-    return a->opts.boxed ? render_boxed(a) : render_inline(a);
+static const char *ta_hint(const Textarea *self) {
+    return self->opts.hint ? self->opts.hint : DEFAULT_HINT;
 }
 
 static void ta_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     (void)cancel;
-    Textarea *a = state;
+    Textarea *self = state;
     switch (key.type) {
-        case SC_KEY_CHAR:      insert(a, key.bytes, strlen(key.bytes)); break;
-        case SC_KEY_ENTER:     insert(a, "\n", 1); break;
-        case SC_KEY_CTRL_D:    *done = true; break;
+        case SC_KEY_CHAR:
+            insert(self, key.bytes, strlen(key.bytes));
+            break;
+        case SC_KEY_ENTER:
+            insert(self, "\n", 1);
+            break;
+        case SC_KEY_CTRL_D:
+            *done = true;
+            break;
         case SC_KEY_BACKSPACE:
-            if (a->cursor > 0) { del_range(a, prev_b(a->buf, a->cursor), a->cursor); }
+            if (self->cursor > 0) {
+                del_range(self, prev_b(self->buf, self->cursor), self->cursor);
+            }
             break;
         case SC_KEY_DELETE:
-            if (a->cursor < a->len) { del_range(a, a->cursor, next_b(a->buf, a->len, a->cursor)); }
+            if (self->cursor < self->len) {
+                del_range(self, self->cursor,
+                          next_b(self->buf, self->len, self->cursor));
+            }
             break;
-        case SC_KEY_LEFT:      a->cursor = prev_b(a->buf, a->cursor); break;
-        case SC_KEY_RIGHT:     a->cursor = next_b(a->buf, a->len, a->cursor); break;
-        case SC_KEY_UP:        move_vertical(a, -1); break;
-        case SC_KEY_DOWN:      move_vertical(a, +1); break;
-        case SC_KEY_HOME:      a->cursor = line_start(a, a->cursor); break;
-        case SC_KEY_END:       a->cursor = line_end(a, a->cursor); break;
-        default: break;
+        case SC_KEY_LEFT:
+            self->cursor = prev_b(self->buf, self->cursor);
+            break;
+        case SC_KEY_RIGHT:
+            self->cursor = next_b(self->buf, self->len, self->cursor);
+            break;
+        case SC_KEY_UP:
+            move_vertical(self, -1);
+            break;
+        case SC_KEY_DOWN:
+            move_vertical(self, +1);
+            break;
+        case SC_KEY_HOME:
+            self->cursor = line_start(self, self->cursor);
+            break;
+        case SC_KEY_END:
+            self->cursor = line_end(self, self->cursor);
+            break;
+        default:
+            break;
     }
 }
 
-ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
-    if (!prompt || !out) { return SC_INPUT_ERROR; }
-    sc_theme_apply_textarea(&opts);
+/** Inserts `len` bytes at the cursor and advances it. */
+static void insert(Textarea *self, const char *bytes, size_t len) {
+    if (len == 0 || !ensure_cap(self, len)) {
+        return;
+    }
+    memmove(self->buf + self->cursor + len, self->buf + self->cursor,
+            self->len - self->cursor);
+    memcpy(self->buf + self->cursor, bytes, len);
+    self->len += len;
+    self->cursor += len;
+    self->buf[self->len] = '\0';
+}
 
-    Textarea a = { .prompt = prompt, .opts = opts };
-    size_t n = opts.initial ? strlen(opts.initial) : 0;
-    a.cap = n + 32;
-    a.buf = malloc(a.cap);
-    if (!a.buf) { return SC_INPUT_ERROR; }
-    if (n) { memcpy(a.buf, opts.initial, n); }
-    a.buf[n] = '\0'; a.len = n; a.cursor = n;
+/** Grows the buffer to hold `extra` more bytes plus the NUL. */
+static bool ensure_cap(Textarea *self, size_t extra) {
+    if (self->len + extra + 1 <= self->cap) {
+        return true;
+    }
+    size_t cap = self->cap ? self->cap : 32;
+    while (cap < self->len + extra + 1) {
+        cap *= 2;
+    }
+    char *grown = realloc(self->buf, cap);
+    if (!grown) {
+        return false;
+    }
+    self->buf = grown;
+    self->cap = cap;
+    return true;
+}
 
-    ScPromptVTable vt = { .render = ta_render, .on_key = ta_on_key };
-    ScInputStatus status = sc_prompt_run(&vt, &a);
+/** Deletes bytes `[from, to)` and moves the cursor to `from`. */
+static void del_range(Textarea *self, size_t from, size_t to) {
+    if (to <= from) {
+        return;
+    }
+    memmove(self->buf + from, self->buf + to, self->len - to);
+    self->len -= (to - from);
+    self->cursor = from;
+    self->buf[self->len] = '\0';
+}
 
-    if (status == SC_INPUT_OK) {
-        *out = a.buf;  /* hand ownership to the caller */
-        if (!opts.hide_summary) {
-            /* Count lines for a compact summary (don't echo the whole body). */
-            size_t lines = a.len ? 1 : 0;
-            for (size_t i = 0; i < a.len; i++) { if (a.buf[i] == '\n') { lines++; } }
-            char line[96];
-            snprintf(line, sizeof line, "? %s (%zu line%s)",
-                     prompt, lines, lines == 1 ? "" : "s");
-            sc_println(line, opts.summary_style);
+/** Moves the cursor one logical line up (`direction < 0`) or down, same column. */
+static void move_vertical(Textarea *self, int direction) {
+    size_t col = col_of(self, self->cursor);
+    size_t begin = line_start(self, self->cursor);
+    if (direction < 0) {
+        if (begin == 0) {
+            return;
         }
-        return SC_INPUT_OK;
+        size_t prev_begin = line_start(self, begin - 1);
+        self->cursor = offset_at_col(self, prev_begin, col);
+    } else {
+        size_t end = line_end(self, self->cursor);
+        if (end >= self->len) {
+            return;
+        }
+        self->cursor = offset_at_col(self, end + 1, col);
     }
-    free(a.buf);
-    return status;
 }
 
-ScRendered *sc_textarea_frame(
-    const char *prompt, const char *content, ScTextareaOpts opts
-) {
-    Textarea a = { .prompt = prompt, .opts = opts };
-    size_t n = content ? strlen(content) : 0;
-    a.cap = n + 1;
-    a.buf = malloc(a.cap);
-    if (!a.buf) { return NULL; }
-    if (n) { memcpy(a.buf, content, n); }
-    a.buf[n] = '\0'; a.len = n; a.cursor = n;
-    ScRendered *r = ta_render(&a);
-    free(a.buf);
-    return r;
+/** Codepoint column of `off` within its line. */
+static size_t col_of(const Textarea *self, size_t off) {
+    size_t begin = line_start(self, off);
+    size_t col = 0;
+    for (size_t i = begin; i < off; i = next_b(self->buf, self->len, i)) {
+        col++;
+    }
+    return col;
+}
+
+/** Byte offset of column `col` on the line starting at `line_begin`. */
+static size_t offset_at_col(const Textarea *self, size_t line_begin,
+                            size_t col) {
+    size_t i = line_begin;
+    size_t count = 0;
+    size_t end = line_end(self, line_begin);
+    while (count < col && i < end) {
+        i = next_b(self->buf, self->len, i);
+        count++;
+    }
+    return i;
+}
+
+/** Byte offset of the start of the line containing `off`. */
+static size_t line_start(const Textarea *self, size_t off) {
+    while (off > 0 && self->buf[off - 1] != '\n') {
+        off--;
+    }
+    return off;
+}
+
+/** Byte offset of the newline (or end) terminating the line at `off`. */
+static size_t line_end(const Textarea *self, size_t off) {
+    while (off < self->len && self->buf[off] != '\n') {
+        off++;
+    }
+    return off;
+}
+
+/** Byte offset of the codepoint boundary before `off`. */
+static size_t prev_b(const char *buf, size_t off) {
+    if (off == 0) {
+        return 0;
+    }
+    size_t i = off - 1;
+    while (i > 0 && ((unsigned char)buf[i] & 0xC0) == 0x80) {
+        i--;
+    }
+    return i;
+}
+
+/** Byte offset of the codepoint boundary after `off`. */
+static size_t next_b(const char *buf, size_t len, size_t off) {
+    if (off >= len) {
+        return len;
+    }
+    size_t i = off + 1;
+    while (i < len && ((unsigned char)buf[i] & 0xC0) == 0x80) {
+        i++;
+    }
+    return i;
 }
