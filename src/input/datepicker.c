@@ -7,8 +7,11 @@
 
 /** Render-time state for a single date picker. */
 typedef struct DateState {
-    struct tm cur;         /**< The viewed/selected date. */
-    int week_start;        /**< WDAYS offset: 0 = Sunday, 1 = Monday. */
+    /** The viewed/selected date. */
+    struct tm cur;
+
+    /** WDAYS offset: 0 = Sunday, 1 = Monday. */
+    int week_start;
     ScColor accent;
     ScDatePickerOpts opts;
 } DateState;

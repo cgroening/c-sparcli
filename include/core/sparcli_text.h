@@ -16,8 +16,11 @@ SPARCLI_BEGIN_DECLS
  * multi-line output.
  */
 typedef struct ScSpan {
-    char       *raw_str;  /**< Heap-allocated UTF-8 string, no ANSI codes. */
-    ScTextStyle style;    /**< Style applied at render time. */
+    /** Heap-allocated UTF-8 string, no ANSI codes. */
+    char *raw_str;
+
+    /** Style applied at render time. */
+    ScTextStyle style;
 } ScSpan;
 
 /**

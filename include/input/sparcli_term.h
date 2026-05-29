@@ -71,9 +71,14 @@ typedef enum ScKeyType {
 
 /** A single decoded key event. */
 typedef struct ScKey {
-    ScKeyType type;      /**< Logical key. */
-    uint32_t codepoint;  /**< Unicode codepoint; valid for `SC_KEY_CHAR`. */
-    char bytes[8];       /**< UTF-8 bytes of the char, NUL-terminated. */
+    /** Logical key. */
+    ScKeyType type;
+
+    /** Unicode codepoint; valid for `SC_KEY_CHAR`. */
+    uint32_t codepoint;
+
+    /** UTF-8 bytes of the char, NUL-terminated. */
+    char bytes[8];
 } ScKey;
 
 /**

@@ -39,12 +39,8 @@ void test_align(void) {
     printf("--- Align 3. Center-aligned table ---\n");
     {
         ScTableData *table = sc_table_new();
-        sc_table_add_column(table, "Item", (ScColOpts){
-            0, 0, 0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(table, "Total", (ScColOpts){
-            0, 0, 0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
+        sc_table_add_column(table, "Item", (ScColOpts){ 0 });
+        sc_table_add_column(table, "Total", (ScColOpts){ .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Passed"), sc_cell("147")
         }, 2);
@@ -106,12 +102,8 @@ void test_align(void) {
     printf("--- Align 5. columns_add_rendered: pad left + align center ---\n");
     {
         ScTableData *left_table = sc_table_new();
-        sc_table_add_column(left_table, "A", (ScColOpts){
-            0, 0, 8, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(left_table, "B", (ScColOpts){
-            0, 0, 6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
+        sc_table_add_column(left_table, "A", (ScColOpts){ .fixed_width = 8 });
+        sc_table_add_column(left_table, "B", (ScColOpts){ .fixed_width = 6, .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(left_table, (ScCell[]){
             sc_cell("Alpha"), sc_cell("10")
         }, 2);
@@ -120,12 +112,8 @@ void test_align(void) {
         }, 2);
 
         ScTableData *right_table = sc_table_new();
-        sc_table_add_column(right_table, "X", (ScColOpts){
-            0, 0, 8, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(right_table, "Y", (ScColOpts){
-            0, 0, 6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
+        sc_table_add_column(right_table, "X", (ScColOpts){ .fixed_width = 8 });
+        sc_table_add_column(right_table, "Y", (ScColOpts){ .fixed_width = 6, .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(right_table, (ScCell[]){
             sc_cell("Gamma"), sc_cell("30")
         }, 2);

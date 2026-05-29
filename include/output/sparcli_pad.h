@@ -15,10 +15,17 @@ SPARCLI_BEGIN_DECLS
  * they have no visible effect on a plain terminal.
  */
 typedef struct ScPadOpts {
-    int top;    /**< Blank lines printed before the content. */
-    int right;  /**< Spaces appended to each content line. */
-    int bottom; /**< Blank lines printed after the content. */
-    int left;   /**< Spaces prepended to each content line. */
+    /** Blank lines printed before the content. */
+    int top;
+
+    /** Spaces appended to each content line. */
+    int right;
+
+    /** Blank lines printed after the content. */
+    int bottom;
+
+    /** Spaces prepended to each content line. */
+    int left;
 } ScPadOpts;
 
 

@@ -20,11 +20,3 @@ FILE *sc_output_stream(void) {
 void sc_output_set_stream(FILE *out) {
     current_output = out;
 }
-
-void sc_output_with_stream(FILE *out, void (*fn)(void *ctx), void *ctx) {
-    if (!fn) { return; }
-    FILE *saved = current_output;
-    current_output = out;
-    fn(ctx);
-    current_output = saved;
-}

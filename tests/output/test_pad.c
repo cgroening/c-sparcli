@@ -21,12 +21,8 @@ void test_pad(void) {
     printf("--- Pad 2. Table with top=1, bottom=1, left=4 ---\n");
     {
         ScTableData *table = sc_table_new();
-        sc_table_add_column(table, "Name", (ScColOpts){
-            0, 0, 0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(table, "Score", (ScColOpts){
-            0, 0, 0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
+        sc_table_add_column(table, "Name", (ScColOpts){ 0 });
+        sc_table_add_column(table, "Score", (ScColOpts){ .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Alice"), sc_cell("9800")
         }, 2);

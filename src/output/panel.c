@@ -7,23 +7,46 @@
 
 
 /**
+ * Combines padding and margin insets for layout. Both are `ScEdges`
+ * (top/right/bottom/left); zero-initialization means no padding/margin.
+ */
+typedef struct ScSpacing {
+    ScEdges padding;
+    ScEdges margin;
+} ScSpacing;
+
+/**
  * Bundles the arguments passed to `render_horizontal_border`.
  */
 typedef struct HBorder {
-    ScBorderStyle border_style;  /**< Border style (type, color and bg) */
-    int           inner_width;   /**< Number of chars between the edge chars. */
-    const char   *left_edge_character;   /**< Left corner character */
-    const char   *right_edge_character;  /**< Right corner character */
+    /** Border style (type, color and bg) */
+    ScBorderStyle border_style;
+
+    /** Number of chars between the edge chars. */
+    int           inner_width;
+
+    /** Left corner character */
+    const char   *left_edge_character;
+
+    /** Right corner character */
+    const char   *right_edge_character;
 } HBorder;
 
 /**
  * Layout parameters for a content line within the panel interior.
  */
 typedef struct PLineLayout {
-    int      inner_width;    /**< Chars between the vertical edge characters */
-    int      pad_left;          /**< Left content padding in columns */
-    int      pad_right;          /**< Right content padding in columns */
-    ScHAlign content_align;  /**< Horizontal alignment of the content */
+    /** Chars between the vertical edge characters */
+    int      inner_width;
+
+    /** Left content padding in columns */
+    int      pad_left;
+
+    /** Right content padding in columns */
+    int      pad_right;
+
+    /** Horizontal alignment of the content */
+    ScHAlign content_align;
 } PLineLayout;
 
 /**
@@ -83,16 +106,29 @@ typedef struct Panel {
  * Accumulator used while splitting `ScText` spans into `ScRenderLine`s.
  */
 typedef struct ParseBuf {
-    ScRenderSpan       *spans;     /**< Growing span buffer for the current line */
-    size_t       span_count;    /**< Spans written into `spans` */
-    size_t       span_capacity;  /**< Allocated capacity of `spans` */
-    size_t       span_width;    /**< Visible column width accumulated for the
-                                 current line */
-    ScTextStyle  style;     /**< Style of the source span currently
-                                 being scanned */
-    ScRenderLine       *lines;     /**< Growing array of completed lines */
-    size_t       line_count;    /**< Lines written into `lines` */
-    size_t       line_capacity;  /**< Allocated capacity of `lines` */
+    /** Growing span buffer for the current line */
+    ScRenderSpan       *spans;
+
+    /** Spans written into `spans` */
+    size_t       span_count;
+
+    /** Allocated capacity of `spans` */
+    size_t       span_capacity;
+
+    /** Visible column width accumulated for the current line */
+    size_t       span_width;
+
+    /** Style of the source span currently being scanned */
+    ScTextStyle  style;
+
+    /** Growing array of completed lines */
+    ScRenderLine       *lines;
+
+    /** Lines written into `lines` */
+    size_t       line_count;
+
+    /** Allocated capacity of `lines` */
+    size_t       line_capacity;
 } ParseBuf;
 
 

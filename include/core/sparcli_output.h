@@ -35,23 +35,4 @@ SPARCLI_EXPORT FILE *sc_output_stream(void);
  */
 SPARCLI_EXPORT void sc_output_set_stream(FILE *out);
 
-
-/* ── Explicit-stream variants ──────────────────────────────────────────── */
-
-/**
- * Convenience: runs `fn()` with `sc_output_set_stream(out)` active, then
- * restores the previous stream.
- *
- * Useful for scoping a block of output to a specific stream without
- * manually saving and restoring. Returns after `fn()` has run; `out` may be
- * `NULL` to render to stdout temporarily.
- *
- * @param out   Target stream; `NULL` resolves to `stdout`.
- * @param fn    Function to run with the output redirected.
- * @param ctx   Opaque pointer passed to `fn`.
- */
-SPARCLI_EXPORT void sc_output_with_stream(
-    FILE *out, void (*fn)(void *ctx), void *ctx
-);
-
 SPARCLI_END_DECLS

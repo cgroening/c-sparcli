@@ -11,7 +11,9 @@ typedef struct Textarea {
     char *buf;
     size_t len;
     size_t cap;
-    size_t cursor;         /**< Byte offset of the cursor. */
+
+    /** Byte offset of the cursor. */
+    size_t cursor;
     ScTextareaOpts opts;
 } Textarea;
 

@@ -365,15 +365,9 @@ void test_trees(void) {
         sc_tree_add_str(tree, lib, "api.ts", file_style, "· ", file_icon);
 
         ScTableData *table = sc_table_new();
-        sc_table_add_column(table, "File", (ScColOpts){
-            0, 0, 0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(table, "Lines", (ScColOpts){
-            0, 0, 0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(table, "Size", (ScColOpts){
-            0, 0, 0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
+        sc_table_add_column(table, "File", (ScColOpts){ 0 });
+        sc_table_add_column(table, "Lines", (ScColOpts){ .halign = SC_ALIGN_RIGHT });
+        sc_table_add_column(table, "Size", (ScColOpts){ .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Button.tsx"), sc_cell("142"), sc_cell("3.2 KB")
         }, 3);

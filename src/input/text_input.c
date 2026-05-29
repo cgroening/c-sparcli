@@ -32,7 +32,9 @@ typedef struct TextState {
     size_t n_suggestions;
     bool (*validate)(const char *, void *, const char **);
     void *validate_ctx;
-    const char *error;   /**< Current validation error, or NULL. */
+
+    /** Current validation error, or NULL. */
+    const char *error;
 } TextState;
 
 static const char *const DEFAULT_HINT = "enter submit \xc2\xb7 esc cancel";

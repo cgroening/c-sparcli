@@ -12,21 +12,40 @@
 /** Invariant render state for one `sc_le_render_into` call (parameter group). */
 typedef struct CellView {
     const ScLineEditor *editor;
-    const size_t *offsets;     /**< Codepoint boundary offsets, size cp_count+1. */
-    size_t cp_count;           /**< Number of codepoints in the buffer. */
-    size_t cursor_cp;          /**< Codepoint index of the cursor. */
-    bool cursor_at_end;        /**< Cursor sits past the last codepoint. */
-    const char *mask;          /**< Mask glyph, or NULL to show raw text. */
+
+    /** Codepoint boundary offsets, size cp_count+1. */
+    const size_t *offsets;
+
+    /** Number of codepoints in the buffer. */
+    size_t cp_count;
+
+    /** Codepoint index of the cursor. */
+    size_t cursor_cp;
+
+    /** Cursor sits past the last codepoint. */
+    bool cursor_at_end;
+
+    /** Mask glyph, or NULL to show raw text. */
+    const char *mask;
     ScTextStyle value_style;
-    ScTextStyle cursor_cell;   /**< Resolved style of the cursor cell. */
+
+    /** Resolved style of the cursor cell. */
+    ScTextStyle cursor_cell;
 } CellView;
 
 /** Result of fitting the value window around the cursor at a field width. */
 typedef struct ScrollWindow {
-    size_t start;              /**< First visible codepoint index. */
-    int content;               /**< Visible codepoint columns (markers excluded). */
-    bool left_marker;          /**< Show the `‹` marker. */
-    bool right_marker;         /**< Show the `›` marker. */
+    /** First visible codepoint index. */
+    size_t start;
+
+    /** Visible codepoint columns (markers excluded). */
+    int content;
+
+    /** Show the `‹` marker. */
+    bool left_marker;
+
+    /** Show the `›` marker. */
+    bool right_marker;
 } ScrollWindow;
 
 

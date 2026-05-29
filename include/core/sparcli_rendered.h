@@ -18,10 +18,17 @@ SPARCLI_BEGIN_DECLS
  * Free with `sc_rendered_free()`.
  */
 typedef struct ScRendered {
-    char   **lines;          /**< Heap-allocated strings, ANSI codes included. */
-    int     *column_widths;  /**< Visible column width per line, parallel to lines. */
-    size_t   line_count;        /**< Number of lines. */
-    int      max_column_width;  /**< Maximum visible width across all lines. */
+    /** Heap-allocated strings, ANSI codes included. */
+    char **lines;
+
+    /** Visible column width per line, parallel to lines. */
+    int *column_widths;
+
+    /** Number of lines. */
+    size_t line_count;
+
+    /** Maximum visible width across all lines. */
+    int max_column_width;
 } ScRendered;
 
 SPARCLI_EXPORT void sc_rendered_free(ScRendered *r);

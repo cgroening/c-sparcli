@@ -54,6 +54,7 @@ static inline void sc_append_hint(
 typedef struct ScPromptVTable {
     /** Render the current state into a fresh `ScRendered` (engine frees it). */
     ScRendered *(*render)(void *state);
+
     /** Handle one key; set `*done` to accept, `*cancel` to abort. */
     void (*on_key)(void *state, ScKey key, bool *done, bool *cancel);
 } ScPromptVTable;
@@ -79,10 +80,17 @@ ScInputStatus sc_prompt_run(const ScPromptVTable *vtable, void *state);
  * text/password inputs and the fuzzy finder's query field.
  */
 typedef struct ScLineEditor {
-    char *buf;      /**< UTF-8 bytes, always NUL-terminated. */
-    size_t len;     /**< Bytes used (excluding the NUL). */
-    size_t cap;     /**< Allocated capacity. */
-    size_t cursor;  /**< Cursor byte offset into `buf`. */
+    /** UTF-8 bytes, always NUL-terminated. */
+    char *buf;
+
+    /** Bytes used (excluding the NUL). */
+    size_t len;
+
+    /** Allocated capacity. */
+    size_t cap;
+
+    /** Cursor byte offset into `buf`. */
+    size_t cursor;
 } ScLineEditor;
 
 /** Initializes `self` with an optional initial value (copied). */
@@ -128,22 +136,42 @@ void sc_le_render_into(
  */
 typedef struct ScTextEntryCfg {
     const char *prompt;
-    const char *initial;       /**< Prefilled value (live) / shown value (frame). */
+
+    /** Prefilled value (live) / shown value (frame). */
+    const char *initial;
     const char *placeholder;
-    const char *mask;          /**< NULL = plain text. */
+
+    /** NULL = plain text. */
+    const char *mask;
     ScTextStyle prompt_style;
     ScTextStyle value_style;
-    ScTextStyle cursor_style;  /**< Zero-init = black-on-white. */
-    ScTextStyle error_style;   /**< Zero-init = red. */
-    ScTextStyle count_style;   /**< Zero-init = dim. */
+
+    /** Zero-init = black-on-white. */
+    ScTextStyle cursor_style;
+
+    /** Zero-init = red. */
+    ScTextStyle error_style;
+
+    /** Zero-init = dim. */
+    ScTextStyle count_style;
     ScTextStyle summary_style;
     bool hide_summary;
     bool hide_char_count;
-    int max_chars;             /**< 0 = unlimited. */
-    bool boxed;                /**< Render inside a bordered panel. */
-    ScBorderStyle border;      /**< Box border; zero-init type = rounded. */
-    int width;                 /**< Field width; 0 = terminal width. */
-    const char *hint;          /**< Key-hint footer; NULL = default. */
+
+    /** 0 = unlimited. */
+    int max_chars;
+
+    /** Render inside a bordered panel. */
+    bool boxed;
+
+    /** Box border; zero-init type = rounded. */
+    ScBorderStyle border;
+
+    /** Field width; 0 = terminal width. */
+    int width;
+
+    /** Key-hint footer; NULL = default. */
+    const char *hint;
     bool hide_hint;
     ScTextStyle hint_style;
     ScCharFilter char_filter;

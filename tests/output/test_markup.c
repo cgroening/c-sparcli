@@ -135,12 +135,8 @@ void test_markup(void) {
     printf("--- Markup 10. sc_cell_m in table ---\n");
     {
         ScTableData *table = sc_table_new();
-        sc_table_add_column(table, "Status", (ScColOpts){
-            0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
-        sc_table_add_column(table, "Message", (ScColOpts){
-            0, 0, 28, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-        });
+        sc_table_add_column(table, "Status", (ScColOpts){ .fixed_width = 14 });
+        sc_table_add_column(table, "Message", (ScColOpts){ .fixed_width = 28 });
         sc_table_add_row(table, (ScCell[]){
             sc_cell_m("[green]✔ OK[/]"),
             sc_cell_m("Build [bold]passed[/]"),

@@ -18,12 +18,8 @@ static const ScTextStyle bold_green = {
     SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE
 };
 
-static const ScColOpts col_left = {
-    0, 0, 0, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-};
-static const ScColOpts col_right = {
-    0, 0, 0, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
-};
+static const ScColOpts col_left = { .halign = SC_ALIGN_LEFT };
+static const ScColOpts col_right = { .halign = SC_ALIGN_RIGHT };
 
 
 /** Returns the common table border used by every demo table. */
