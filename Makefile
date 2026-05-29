@@ -70,7 +70,7 @@ PC_FILE           = sparcli.pc
 SANITIZE_BUILDDIR = build.sanitize.nosync
 SANITIZE_OBJ      = $(patsubst src/%.c,$(SANITIZE_BUILDDIR)/%.o,$(SRC))
 SANITIZE_LIB      = libsparcli-sanitize.a
-SANITIZE_TEST_BIN = tests/test_main_sanitize
+SANITIZE_TEST_BIN = tests/output/test_main_sanitize
 SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
 
 # ── Output test suite (tests/output/) — automatic, non-interactive ────────
