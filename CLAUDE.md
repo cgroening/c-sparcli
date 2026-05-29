@@ -559,8 +559,8 @@ the multi-line in-place redraw (`screen.c`).
 
 `sc_key_decode(buf, len, &key)` is a **pure, unit-tested** decoder
 (`ScKey { type, codepoint, bytes }`) handling control bytes, CSI/SS3
-sequences (arrows, Home/End, Delete, PageUp/Down, Shift-Tab) and multi-byte
-UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
+sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the
+`;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
 UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
 `SC_KEY_ESC` via a 25 ms poll timeout.
 
@@ -648,8 +648,9 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   each frame (cursor row via row-bg) and `sc_vstack`s query + body +
   scroll-indicator + footer.
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
-  `<`/`>` change month; zeroed `struct tm` seeds today. `week_start` is
-  `ScWeekStart`.
+  `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds
+  today. Month/year jumps keep the selected day, clamped to the target month's
+  last valid day (e.g. Jan 31 → Feb 28). `week_start` is `ScWeekStart`.
 - **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter
   select · esc cancel`) by default; override with `hint`, suppress with
   `hide_hint`, restyle with `hint_style`.

@@ -57,6 +57,8 @@ typedef enum ScKeyType {
     SC_KEY_END,
     SC_KEY_PAGEUP,
     SC_KEY_PAGEDOWN,
+    SC_KEY_SHIFT_PAGEUP,   /**< Shift+PageUp. */
+    SC_KEY_SHIFT_PAGEDOWN, /**< Shift+PageDown. */
     SC_KEY_CTRL_A,
     SC_KEY_CTRL_C,
     SC_KEY_CTRL_D,
@@ -80,7 +82,7 @@ typedef struct ScKey {
  * Pure function with no terminal dependency, so it is unit-testable: feed
  * it a byte sequence and inspect the resulting `ScKey`. Handles control
  * bytes, CSI/SS3 escape sequences (arrows, Home/End, Delete, PageUp/Down,
- * Shift-Tab) and UTF-8 multi-byte characters.
+ * Shift+PageUp/Down, Shift-Tab) and UTF-8 multi-byte characters.
  *
  * @param buf  Input bytes.
  * @param len  Number of valid bytes in `buf`.

@@ -73,7 +73,9 @@ typedef struct ScDatePickerOpts {
  * Prompts the user to pick a date from a month calendar.
  *
  * Arrow keys move by day/week; PageUp/PageDown (or `<`/`>`) change month;
- * Enter selects; Esc or Ctrl-C cancels.
+ * Shift+PageUp/PageDown change year; Enter selects; Esc or Ctrl-C cancels.
+ * Month/year jumps keep the selected day, clamped to the target month's last
+ * valid day (e.g. Jan 31 -> Feb 28).
  *
  * `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view
  * (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten

@@ -149,6 +149,16 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
         param = param * 10 + (buf[i] - '0');
         i++;
     }
+
+    // Optional modifier parameter (e.g. ESC [ 6 ; 2 ~ = Shift+PageDown).
+    int modifier = 0;
+    if (i < len && buf[i] == ';') {
+        i++;
+        while (i < len && buf[i] >= '0' && buf[i] <= '9') {
+            modifier = modifier * 10 + (buf[i] - '0');
+            i++;
+        }
+    }
     if (i >= len) {
         return 0;   // parameter not yet terminated
     }
@@ -156,12 +166,18 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
     char final = buf[i];
     if (final == '~') {
         switch (param) {
-            case 1: case 7: out->type = SC_KEY_HOME;     break;
-            case 3:         out->type = SC_KEY_DELETE;   break;
-            case 4: case 8: out->type = SC_KEY_END;      break;
-            case 5:         out->type = SC_KEY_PAGEUP;   break;
-            case 6:         out->type = SC_KEY_PAGEDOWN; break;
-            default:        out->type = SC_KEY_NONE;     break;
+            case 1: case 7: out->type = SC_KEY_HOME;   break;
+            case 3:         out->type = SC_KEY_DELETE; break;
+            case 4: case 8: out->type = SC_KEY_END;    break;
+            case 5:
+                out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEUP
+                                            : SC_KEY_PAGEUP;
+                break;
+            case 6:
+                out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEDOWN
+                                            : SC_KEY_PAGEDOWN;
+                break;
+            default:        out->type = SC_KEY_NONE;   break;
         }
         return i + 1;
     }

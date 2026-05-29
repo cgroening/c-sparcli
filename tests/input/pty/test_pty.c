@@ -68,6 +68,14 @@ static int child_case(int c) {
             free(t);
             return ok ? 0 : 1;
         }
+        case 5: {
+            time_t now = time(NULL);
+            struct tm *lt = localtime(&now);
+            int want_year = lt ? lt->tm_year + 1 : 0;
+            struct tm picked = { 0 };  /* zeroed -> seeds today */
+            ScInputStatus s = sc_datepicker(&picked, (ScDatePickerOpts){ 0 });
+            return (s == SC_INPUT_OK && picked.tm_year == want_year) ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -86,6 +94,7 @@ static const Case CASES[] = {
     { "number",   "\x1b[A\x1b[A\r" },   /* up, up, enter -> 20 */
     { "select",   "\x1b[B\r" },         /* down, enter -> index 1 */
     { "textarea", "a\rb\x04" },         /* a, newline, b, Ctrl-D -> "a\nb" */
+    { "datepicker", "\x1b[6;2~\r" },    /* shift+pgdn (year+1), enter */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

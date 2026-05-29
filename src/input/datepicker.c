@@ -22,7 +22,8 @@ static const char *const WDAYS[] = {
 };
 static const char *const DEFAULT_HINT =
     "\xe2\x86\x90/\xe2\x86\x92/\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
-    "pgup/pgdn month \xc2\xb7 enter select \xc2\xb7 esc cancel";
+    "pgup/pgdn month \xc2\xb7 shift+pgup/pgdn year \xc2\xb7 "
+    "enter select \xc2\xb7 esc cancel";
 
 
 static DateState make_state(const struct tm *seed, ScDatePickerOpts opts);
@@ -37,6 +38,7 @@ static ScRendered *date_render(void *state);
 static void date_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static void shift_day(DateState *self, int delta);
     static void shift_month(DateState *self, int delta);
+    static void shift_year(DateState *self, int delta);
 
 
 ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
@@ -214,13 +216,15 @@ static void date_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     (void)cancel;
     DateState *self = state;
     switch (key.type) {
-        case SC_KEY_LEFT:     shift_day(self, -1);   break;
-        case SC_KEY_RIGHT:    shift_day(self, +1);   break;
-        case SC_KEY_UP:       shift_day(self, -7);   break;
-        case SC_KEY_DOWN:     shift_day(self, +7);   break;
-        case SC_KEY_PAGEUP:   shift_month(self, -1); break;
-        case SC_KEY_PAGEDOWN: shift_month(self, +1); break;
-        case SC_KEY_ENTER:    *done = true;          return;
+        case SC_KEY_LEFT:           shift_day(self, -1);    break;
+        case SC_KEY_RIGHT:          shift_day(self, +1);    break;
+        case SC_KEY_UP:             shift_day(self, -7);    break;
+        case SC_KEY_DOWN:           shift_day(self, +7);    break;
+        case SC_KEY_PAGEUP:         shift_month(self, -1);  break;
+        case SC_KEY_PAGEDOWN:       shift_month(self, +1);  break;
+        case SC_KEY_SHIFT_PAGEUP:   shift_year(self, -1);   break;
+        case SC_KEY_SHIFT_PAGEDOWN: shift_year(self, +1);   break;
+        case SC_KEY_ENTER:          *done = true;           return;
         case SC_KEY_CHAR:
             if (key.bytes[0] == '<') {
                 shift_month(self, -1);
@@ -240,10 +244,42 @@ static void shift_day(DateState *self, int delta) {
     mktime(&self->cur);
 }
 
-/** Shifts the viewed month by `delta`, resetting to the first of the month. */
+/**
+ * Shifts the viewed month by `delta`, keeping the selected day where possible
+ * (clamped to the last valid day of the target month, e.g. Jan 31 -> Feb 28).
+ */
 static void shift_month(DateState *self, int delta) {
-    self->cur.tm_mon += delta;
-    self->cur.tm_mday = 1;
+    int month = self->cur.tm_mon + delta;
+    int year = self->cur.tm_year + 1900;
+    while (month < 0) {
+        month += 12;
+        year--;
+    }
+    while (month > 11) {
+        month -= 12;
+        year++;
+    }
+    int last_day = days_in_month(year, month);
+    if (self->cur.tm_mday > last_day) {
+        self->cur.tm_mday = last_day;
+    }
+    self->cur.tm_mon = month;
+    self->cur.tm_year = year - 1900;
+    self->cur.tm_hour = 12;
+    mktime(&self->cur);
+}
+
+/**
+ * Shifts the viewed year by `delta`, keeping the selected day where possible
+ * (clamped, so Feb 29 -> Feb 28 in a non-leap year).
+ */
+static void shift_year(DateState *self, int delta) {
+    int year = self->cur.tm_year + 1900 + delta;
+    int last_day = days_in_month(year, self->cur.tm_mon);
+    if (self->cur.tm_mday > last_day) {
+        self->cur.tm_mday = last_day;
+    }
+    self->cur.tm_year = year - 1900;
     self->cur.tm_hour = 12;
     mktime(&self->cur);
 }

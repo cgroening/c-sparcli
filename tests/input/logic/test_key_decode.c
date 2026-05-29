@@ -32,6 +32,8 @@ void test_key_decode(void) {
     expect("\x1b[3~", SC_KEY_DELETE,    4, "CSI delete");
     expect("\x1b[5~", SC_KEY_PAGEUP,    4, "CSI page-up");
     expect("\x1b[6~", SC_KEY_PAGEDOWN,  4, "CSI page-down");
+    expect("\x1b[5;2~", SC_KEY_SHIFT_PAGEUP,   6, "CSI shift page-up");
+    expect("\x1b[6;2~", SC_KEY_SHIFT_PAGEDOWN, 6, "CSI shift page-down");
     expect("\x1bOH",  SC_KEY_HOME,      3, "SS3 home");
 
     /* Multi-byte UTF-8: 'é' = 0xC3 0xA9, one codepoint, two bytes. */
