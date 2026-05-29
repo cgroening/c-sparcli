@@ -134,7 +134,7 @@ every macro — lives in [`docs/API.md`](docs/API.md).
 | **Progress bar** | `sc_progressbar_*` | Animated progress bar with thresholds and percent/value display. |
 | **Spinner** | `sc_spinner_*` | Animated activity indicator with success/failure finish. |
 | **Markup** | `sc_markup_*` | Rich-compatible `[bold red]…[/]` parser. |
-| **Capture** | `sc_capture_*` | Render any widget into a reusable in-memory buffer. |
+| **Capture** | `sc_capture_*`, `sc_vstack` | Render any widget into a reusable in-memory buffer; `sc_vstack` stacks several buffers into one column. |
 | **Pad** | `sc_pad_*` | Add top/right/bottom/left space around a rendered widget. |
 | **Align** | `sc_align_*` | Center- or right-align a rendered widget within a width. |
 
