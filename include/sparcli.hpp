@@ -17,6 +17,20 @@
  * exception thrown is `std::bad_alloc`, from a constructor when the underlying
  * `sc_*_new` returns NULL; everything else is exception-free.
  *
+ * Why it exists — two C-API footguns it removes:
+ * @code
+ * // C API: forgetting sc_table_free leaks; and the table BORROWS cell
+ * // strings, so a temporary dangles and is read later at print time:
+ * sc_table_add_row(t, (ScCell[]){
+ *     sc_cell(std::to_string(n).c_str()) }, 1);   // dangling after this stmt
+ *
+ * // Wrapper: RAII frees, and the cell string is copied into a table-owned
+ * // arena, so passing a temporary is safe:
+ * Table t;
+ * t.add_row({ std::to_string(n) });               // owned → no dangling
+ * @endcode
+ * (Verified by tests/cpp/test_cpp.cpp.)
+ *
  * @code
  * #include <sparcli.hpp>
  * using namespace sparcli;

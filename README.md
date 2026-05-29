@@ -100,6 +100,26 @@ int main() {
 c++ -std=c++20 hello.cpp $(pkg-config --cflags --libs sparcli) -o hello
 ```
 
+**Why the wrapper?** Two easy C-API mistakes simply can't happen with it:
+
+```cpp
+// C API — two footguns:
+ScTableData *t = sc_table_new();                      // 1) leaks if you forget
+                                                      //    sc_table_free(t)
+sc_table_add_row(t, (ScCell[]){                       // 2) the table BORROWS the
+    sc_cell(std::to_string(n).c_str()) }, 1);         //    string; the temporary
+                                                      //    dies here → dangling
+sc_table_print(t, (ScTableOpts){0});                  //    pointer read → garbage
+
+// C++ wrapper — RAII frees, and the cell string is copied into the table:
+sparcli::Table t;                                     // frees itself
+t.add_row({ std::to_string(n) });                     // owned → temporary is safe
+t.print();
+```
+
+These guarantees (auto-free, owned cell strings, surviving a move) are verified
+by [`tests/cpp/test_cpp.cpp`](tests/cpp/test_cpp.cpp).
+
 ---
 
 ## Installation
