@@ -579,10 +579,11 @@ defensive about always handing back a usable terminal:
 - **Height clamp:** `sc_screen_draw` never draws more lines than the terminal
   has rows, so a frame taller than the window can't scroll the screen and break
   the cursor-up arithmetic (widgets also bound their own height).
-- **No nesting:** `sc_prompt_run` refuses to run while another prompt is active
-  (single global TTY session) and returns `SC_INPUT_ERROR` rather than corrupt
-  state. Not thread-safe (like `sc_set_output`). The key buffer is reset at
-  `sc_tty_begin` so stale bytes never leak between prompts.
+- **One prompt at a time:** `sc_prompt_run` atomically claims a single global
+  TTY session (`atomic_bool`) and returns `SC_INPUT_ERROR` if one is already
+  running — so a nested or cross-thread call fails safely instead of corrupting
+  state. The key buffer is reset at `sc_tty_begin` so stale bytes never leak
+  between prompts.
 - **Coverage:** `make test-input-pty` drives every interactive widget over a
   PTY under ASan/UBSan (headless), complementing the pure-logic and snapshot
   suites.
@@ -708,6 +709,14 @@ Not part of the public API. Used by all source files that include `internal.h`:
 
 ## Key Invariants
 
+- **Concurrency:** the output target is **thread-local** (`_Thread_local
+  current_output` in `core/output.c`), so multiple threads may render/capture
+  concurrently to independent streams (TSan-clean; see `test_threads`). Each
+  widget object is per-instance, so independent objects are independent. The
+  **interactive input session is process-wide** (one terminal, process-global
+  signal handlers): only one prompt runs at a time, enforced by an atomic claim
+  in `sc_prompt_run` — a concurrent/nested attempt returns `SC_INPUT_ERROR`. The
+  global theme (`sc_input_set_theme`) is shared, set-once config.
 - **`SC_ANSI_COLOR_NONE` sentinel is `index = 0`**, identical to a zero-initialized `ScColor`. Any unset color field renders as "no color" automatically; no explicit assignment needed. Named colors use `index = 1..8` (BLACK..WHITE); RGB uses `index = -1`.
 - `sc_print()` always appends `\033[0m` (reset), even when opts are all-none.
   This is intentional to isolate styling.

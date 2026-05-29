@@ -29,9 +29,9 @@ SPARCLI_EXPORT FILE *sc_output_stream(void);
  *
  * @param out  Target stream, or `NULL` to revert to `stdout`.
  *
- * @note Not thread-safe: callers that switch streams across threads must
- * serialize the switch themselves. Once set, concurrent reads of the
- * stream pointer are safe.
+ * @note The output target is **thread-local**: each thread has its own, so
+ * threads may render/capture concurrently to independent streams without
+ * interfering. A thread that never calls this writes to `stdout`.
  */
 SPARCLI_EXPORT void sc_set_output(FILE *out);
 

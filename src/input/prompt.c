@@ -1,17 +1,23 @@
 #include "input_internal.h"
 
+#include <stdatomic.h>
 
-/* Guards against nested prompts: a single global terminal session exists, so a
- * widget invoked from inside another widget's loop would corrupt it. */
-static bool g_prompt_active = false;
+
+/* Guards against concurrent / nested prompts: a single process-wide terminal
+ * session exists (one keyboard, one screen, process-global signal handlers), so
+ * only one prompt may run at a time. The atomic claim makes a misuse from
+ * another thread fail safely (SC_INPUT_ERROR) instead of corrupting state. */
+static atomic_bool g_prompt_active = false;
 
 
 ScInputStatus sc_prompt_run(const ScPromptVTable *vtable, void *state) {
     if (!vtable || !vtable->render || !vtable->on_key) { return SC_INPUT_ERROR; }
-    if (g_prompt_active)               { return SC_INPUT_ERROR; }  /* no nesting */
-    if (!sc_input_available())         { return SC_INPUT_ERROR; }
-    if (sc_tty_begin() != SC_INPUT_OK) { return SC_INPUT_ERROR; }
-    g_prompt_active = true;
+    /* Atomically claim the single session; bail if one is already running. */
+    if (atomic_exchange(&g_prompt_active, true)) { return SC_INPUT_ERROR; }
+    if (!sc_input_available() || sc_tty_begin() != SC_INPUT_OK) {
+        atomic_store(&g_prompt_active, false);
+        return SC_INPUT_ERROR;
+    }
 
     ScScreen screen = { 0 };
     bool done = false, cancel = false;
@@ -39,7 +45,7 @@ ScInputStatus sc_prompt_run(const ScPromptVTable *vtable, void *state) {
 
     sc_screen_clear(&screen);
     sc_tty_end();
-    g_prompt_active = false;
+    atomic_store(&g_prompt_active, false);
 
     if (cancel) { return SC_INPUT_CANCELLED; }
     return status;

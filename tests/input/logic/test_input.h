@@ -27,6 +27,7 @@ extern int g_input_failures;
 void test_key_decode(void);
 void test_line_editor(void);
 void test_filters(void);
+void test_threads(void);
 
 /* Interactive widget tests (require a TTY). */
 void test_confirm(void);

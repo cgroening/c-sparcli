@@ -27,12 +27,14 @@ ifeq ($(UNAME_S),Darwin)
                      -compatibility_version $(VERSION_MAJOR) \
                      -current_version $(VERSION)
     PTY_LDLIBS    :=             # forkpty lives in libSystem on macOS
+    PTHREAD_LDLIBS :=            # pthreads in libSystem on macOS
 else
     SHLIB         := libsparcli.so.$(VERSION)
     SHLIB_SONAME  := libsparcli.so.$(VERSION_MAJOR)
     SHLIB_LINK    := libsparcli.so
     SHLIB_LDFLAGS := -shared -Wl,-soname,$(SHLIB_SONAME)
     PTY_LDLIBS    := -lutil      # forkpty
+    PTHREAD_LDLIBS := -lpthread
 endif
 
 # ── Core (foundation: color, text, print, output stream, render) ──────────
@@ -107,7 +109,8 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_theme.c \
                  tests/input/logic/test_line_editor.c \
                  tests/input/logic/test_key_decode.c \
-                 tests/input/logic/test_filters.c
+                 tests/input/logic/test_filters.c \
+                 tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
 
 # ── Input style snapshot suite (tests/input/style/) — non-interactive ─────
@@ -168,7 +171,7 @@ test: $(LIB)
 # Interactive input-widget test runner. Needs a real TTY, so it is a separate
 # target and is NOT part of `make test`. Run it directly in a terminal.
 test-input: $(LIB)
-	$(CC) $(CFLAGS) $(INPUT_TEST_SRC) $(LIB) $(LDFLAGS) -o $(INPUT_TEST_BIN)
+	$(CC) $(CFLAGS) $(INPUT_TEST_SRC) $(LIB) $(LDFLAGS) $(PTHREAD_LDLIBS) -o $(INPUT_TEST_BIN)
 	./$(INPUT_TEST_BIN) $(ARGS)
 
 # Non-interactive style snapshot runner: renders every widget in many styles.

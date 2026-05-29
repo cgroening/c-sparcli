@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
         { "Key Decoder",    test_key_decode,     0 },
         { "Line Editor",    test_line_editor,    0 },
         { "Char Filters",   test_filters,        0 },
+        { "Thread Safety",  test_threads,        0 },
         { "Confirm",        test_confirm,        1 },
         { "Text Input",     test_text_input,     1 },
         { "Password Input", test_password_input, 1 },
