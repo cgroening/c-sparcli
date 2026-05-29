@@ -245,7 +245,7 @@ static ScRendered *buffer_to_rendered(const char *buffer, size_t size) {
  * `ScRendered`.
  *
  * Uses POSIX `open_memstream` to back the capture stream with a memory
- * buffer, then swaps `sc_set_output()` around the call. Because all
+ * buffer, then swaps `sc_output_set_stream()` around the call. Because all
  * sparcli print paths go through `sc_output_stream()`, this leaves
  * `stdout` untouched — no `dup2(STDOUT_FILENO)` is needed. The previous
  * implementation hijacked the process-wide stdout file descriptor, which
@@ -261,10 +261,10 @@ static ScRendered *capture_render(void (*render_fn)(void *), void *ctx) {
     if (!mem) { return NULL; }
 
     FILE *saved = sc_output_stream();
-    sc_set_output(mem);
+    sc_output_set_stream(mem);
     render_fn(ctx);
     fflush(mem);
-    sc_set_output(saved);
+    sc_output_set_stream(saved);
     fclose(mem);
 
     ScRendered *rendered = buffer_to_rendered(buffer ? buffer : "", size);
@@ -602,7 +602,7 @@ static char *make_empty_panel_line(
     if (!mem) { return NULL; }
 
     FILE *saved = sc_output_stream();
-    sc_set_output(mem);
+    sc_output_set_stream(mem);
 
     sc_apply_colors(opts->border.color, opts->border.bg);
     fputs(vertical, mem);
@@ -621,7 +621,7 @@ static char *make_empty_panel_line(
     fputs(SC_ANSI_ESCAPE_CODE_RESET, mem);
 
     fflush(mem);
-    sc_set_output(saved);
+    sc_output_set_stream(saved);
     fclose(mem);
     return buffer ? buffer : strdup("");
 }

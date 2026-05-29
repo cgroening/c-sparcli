@@ -10,7 +10,7 @@ SPARCLI_BEGIN_DECLS
 /**
  * Returns the `FILE *` sparcli writes its output to.
  *
- * Defaults to `stdout` when `sc_set_output` has not been called (or the
+ * Defaults to `stdout` when `sc_output_set_stream` has not been called (or the
  * caller has reset the output to `NULL`). All sparcli print/render
  * functions go through this stream, so redirecting it lets callers
  * capture output into a memory buffer, a log file, or a custom stream
@@ -33,24 +33,24 @@ SPARCLI_EXPORT FILE *sc_output_stream(void);
  * threads may render/capture concurrently to independent streams without
  * interfering. A thread that never calls this writes to `stdout`.
  */
-SPARCLI_EXPORT void sc_set_output(FILE *out);
+SPARCLI_EXPORT void sc_output_set_stream(FILE *out);
 
 
 /* ── Explicit-stream variants ──────────────────────────────────────────── */
 
 /**
- * Convenience: runs `fn()` with `sc_set_output(out)` active, then
+ * Convenience: runs `fn()` with `sc_output_set_stream(out)` active, then
  * restores the previous stream.
  *
- * Used to build the `_to(FILE *)` variants in a uniform way. Returns
- * after `fn()` has run; `out` may be `NULL` to render to stdout
- * temporarily.
+ * Useful for scoping a block of output to a specific stream without
+ * manually saving and restoring. Returns after `fn()` has run; `out` may be
+ * `NULL` to render to stdout temporarily.
  *
  * @param out   Target stream; `NULL` resolves to `stdout`.
  * @param fn    Function to run with the output redirected.
  * @param ctx   Opaque pointer passed to `fn`.
  */
-SPARCLI_EXPORT void sc_with_output(
+SPARCLI_EXPORT void sc_output_with_stream(
     FILE *out, void (*fn)(void *ctx), void *ctx
 );
 
