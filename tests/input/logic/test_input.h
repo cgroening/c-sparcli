@@ -26,11 +26,15 @@ extern int g_input_failures;
 /* Pure-logic tests (non-interactive). */
 void test_key_decode(void);
 void test_line_editor(void);
+void test_filters(void);
 
 /* Interactive widget tests (require a TTY). */
 void test_confirm(void);
 void test_text_input(void);
 void test_password_input(void);
+void test_number(void);
+void test_textarea(void);
 void test_select(void);
 void test_fuzzy(void);
 void test_datepicker(void);
+void test_theme(void);

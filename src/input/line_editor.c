@@ -138,37 +138,34 @@ static ScTextStyle resolve_cursor_style(ScTextStyle override) {
     return (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_WHITE };
 }
 
-/**
- * Appends one displayed segment covering bytes `[from,to)` of the editor,
- * applying the mask if requested.
- */
-static void append_segment(
-    ScText *text, const char *buf, size_t from, size_t to,
-    const char *mask, ScTextStyle style
+/* Edge markers for a horizontally-scrolled field. */
+#define LE_MARK_LEFT  "\xe2\x80\xb9"  /* ‹ */
+#define LE_MARK_RIGHT "\xe2\x80\xba"  /* › */
+
+/** Appends one display cell `d` of the editor (a codepoint or mask glyph). */
+static void append_cell(
+    ScText *text, const ScLineEditor *e, const size_t *off, size_t ncp,
+    size_t d, size_t cur_i, bool cursor_end, const char *mask,
+    ScTextStyle value_style, ScTextStyle cursor_cell
 ) {
-    if (to <= from) { return; }
-    if (mask && mask[0] == '\0') { return; }  /* hidden mode: show nothing */
-    if (!mask) {
-        char *seg = malloc(to - from + 1);
-        if (!seg) { return; }
-        memcpy(seg, buf + from, to - from);
-        seg[to - from] = '\0';
-        sc_text_append(text, seg, style);
-        free(seg);
-        return;
-    }
-    /* Masked: emit one mask glyph per codepoint in the range. */
-    size_t i = from;
-    while (i < to) {
-        sc_text_append(text, mask, style);
-        i = next_boundary(buf, to, i);
+    bool is_cursor = cursor_end ? (d == ncp) : (d == cur_i);
+    ScTextStyle st = is_cursor ? cursor_cell : value_style;
+    if (d == ncp) { sc_text_append(text, " ", st); return; }  /* trailing cell */
+    if (mask) {
+        sc_text_append(text, mask, st);
+    } else {
+        char glyph[8];
+        size_t n = off[d + 1] - off[d];
+        memcpy(glyph, e->buf + off[d], n);
+        glyph[n] = '\0';
+        sc_text_append(text, glyph, st);
     }
 }
 
 void sc_le_render_into(
     const ScLineEditor *e, ScText *text,
     ScTextStyle value_style, ScTextStyle cursor_style, const char *mask,
-    const char *placeholder, ScTextStyle placeholder_style
+    const char *placeholder, ScTextStyle placeholder_style, int field_width
 ) {
     ScTextStyle cur = resolve_cursor_style(cursor_style);
 
@@ -179,26 +176,56 @@ void sc_le_render_into(
         }
         return;
     }
-
-    /* Left of cursor. */
-    append_segment(text, e->buf, 0, e->cursor, mask, value_style);
-
-    /* The character under the cursor (or a trailing block at end). */
-    if (e->cursor < e->len) {
-        size_t end = next_boundary(e->buf, e->len, e->cursor);
-        if (mask && mask[0]) {
-            sc_text_append(text, mask, cur);
-        } else if (mask && mask[0] == '\0') {
-            sc_text_append(text, " ", cur);
-        } else {
-            char glyph[8];
-            size_t n = end - e->cursor;
-            memcpy(glyph, e->buf + e->cursor, n);
-            glyph[n] = '\0';
-            sc_text_append(text, glyph, cur);
-        }
-        append_segment(text, e->buf, end, e->len, mask, value_style);
-    } else {
-        sc_text_append(text, " ", cur);  /* at end */
+    if (mask && mask[0] == '\0') {  /* hidden mode: show only the cursor */
+        sc_text_append(text, " ", cur);
+        return;
     }
+
+    /* Map codepoint boundaries so cells can be addressed by index. */
+    size_t ncp = 0;
+    for (size_t i = 0; i < e->len; i = next_boundary(e->buf, e->len, i)) { ncp++; }
+    size_t *off = malloc((ncp + 1) * sizeof *off);
+    if (!off) { return; }
+    { size_t i = 0, k = 0;
+      while (i < e->len) { off[k++] = i; i = next_boundary(e->buf, e->len, i); }
+      off[ncp] = e->len; }
+
+    size_t cur_i = 0;
+    for (size_t k = 0; k < ncp; k++) { if (off[k] < e->cursor) { cur_i = k + 1; } }
+    bool   cursor_end = (e->cursor == e->len);
+    size_t L = ncp + (cursor_end ? 1 : 0);
+
+    if (field_width <= 0 || L <= (size_t)field_width) {
+        for (size_t d = 0; d < L; d++) {
+            append_cell(text, e, off, ncp, d, cur_i, cursor_end, mask, value_style, cur);
+        }
+        free(off);
+        return;
+    }
+
+    /* Horizontal scroll: pick a window [start, start+content) containing the
+     * cursor, with edge markers in reserved columns (never over the cursor). */
+    int W = field_width;
+    bool lm = false, rm = false;
+    size_t start = 0;
+    for (int pass = 0; pass < 3; pass++) {
+        int content = W - (lm ? 1 : 0) - (rm ? 1 : 0);
+        if (content < 1) { content = 1; }
+        if (cur_i < start) { start = cur_i; }
+        else if (cur_i >= start + (size_t)content) { start = cur_i - (size_t)content + 1; }
+        lm = (start > 0);
+        rm = (start + (size_t)content < L);
+    }
+    int content = W - (lm ? 1 : 0) - (rm ? 1 : 0);
+    if (content < 1) { content = 1; }
+
+    ScTextStyle mark = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    if (lm) { sc_text_append(text, LE_MARK_LEFT, mark); }
+    size_t end = start + (size_t)content;
+    if (end > L) { end = L; }
+    for (size_t d = start; d < end; d++) {
+        append_cell(text, e, off, ncp, d, cur_i, cursor_end, mask, value_style, cur);
+    }
+    if (rm) { sc_text_append(text, LE_MARK_RIGHT, mark); }
+    free(off);
 }

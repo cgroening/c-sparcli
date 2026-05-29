@@ -39,6 +39,9 @@ typedef struct {
     const char *header_next;    /**< Glyph right of the month; `NULL` = "›". */
     ScTextStyle summary_style;  /**< Style of the persistent summary line. */
     bool        hide_summary;   /**< Suppress the post-pick summary line. */
+    const char *hint;           /**< Key-hint footer; `NULL` = sensible default. */
+    bool        hide_hint;      /**< Suppress the key-hint footer. */
+    ScTextStyle hint_style;     /**< Style of the footer; zero-init = dim. */
 } ScDatePickerOpts;
 
 /**

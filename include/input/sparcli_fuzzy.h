@@ -40,6 +40,9 @@ typedef struct {
                                            is highlighted with `accent` regardless. */
     ScTextStyle        summary_style; /**< Style of the persistent summary line. */
     bool               hide_summary;  /**< Suppress the post-pick summary line. */
+    const char        *hint;          /**< Key-hint footer; `NULL` = default. */
+    bool               hide_hint;     /**< Suppress the key-hint footer. */
+    ScTextStyle        hint_style;    /**< Style of the footer; zero-init = dim. */
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */

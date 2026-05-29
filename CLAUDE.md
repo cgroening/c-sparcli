@@ -567,6 +567,8 @@ UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
 ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts);
 ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts);     /* *out heap; free */
 ScInputStatus sc_password_input(const char *prompt, char **out, ScPasswordOpts opts);  /* *out heap; free */
+ScInputStatus sc_number_input(const char *prompt, double *out, ScNumberOpts opts);     /* min/max/step, ↑/↓ */
+ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts);        /* multi-line; Ctrl-D submits */
 ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts);                     /* io in/out */
 
 /* Opaque-handle widgets (variable items / per-run config) */
@@ -593,14 +595,35 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   Set `boxed = true` to render inside a panel (prompt = top title, counter =
   bottom-right border via the panel `subtitle`); `border` sets the box style
   (zero-init type = rounded) and `width` the panel width (0 = full terminal
-  width). A validation error stacks below the box via `sc_vstack`.
+  width). A validation error stacks below the box via `sc_vstack`. Long values
+  scroll horizontally within `width` with `‹`/`›` edge markers (line editor).
+  Optional input constraints: `char_filter` (built-ins `sc_filter_digits`,
+  `sc_filter_decimal`, `sc_filter_alpha`, `sc_filter_alnum`, `sc_filter_no_space`)
+  rejects disallowed keystrokes; `suggestions`/`n_suggestions` show a dim
+  autocomplete ghost that Tab accepts.
+- **NumberInput** (`number_input.c`) reuses the line editor with a decimal
+  filter; ↑/↓ step by `step`, value clamped to `[min, max]` when `max > min`,
+  formatted to `decimals` places.
+- **Textarea** (`textarea.c`, self-contained multi-line buffer): Enter inserts a
+  newline, Ctrl-D submits, arrows move across lines/cols, Home/End within a line.
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
-  move, Space toggles in multi-select.
-- **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; table view builds an
-  `ScTableData` of the visible rows each frame (cursor row via row-bg) and
-  `sc_vstack`s it under the query line.
+  move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` /
+  `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the
+  list scrolls beyond the viewport.
+- **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are
+  highlighted (bold+underline) in the list; table view builds an `ScTableData`
+  of the visible rows each frame (cursor row via row-bg) and `sc_vstack`s query
+  + body + scroll-indicator + footer.
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
-  `<`/`>` change month; zeroed `struct tm` seeds today.
+  `<`/`>` change month; zeroed `struct tm` seeds today. `week_start` is
+  `ScWeekStart`.
+- **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter
+  select · esc cancel`) by default; override with `hint`, suppress with
+  `hide_hint`, restyle with `hint_style`.
+- **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults
+  (accent, styles, markers, border, `hide_hint`) that every widget inherits for
+  any zero-init option. Precedence: per-call opts > theme > built-in default.
+  Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`).
 
 ### Styling (all opts fields are zero-init-friendly)
 

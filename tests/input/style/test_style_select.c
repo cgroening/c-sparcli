@@ -35,8 +35,8 @@ void style_select(void) {
         .checkbox_on = "[\xe2\x9c\x94] ",   /* [✔] */
         .checkbox_off = "[ ] ",
     }, items, n);
-    sc_select_check(c, 1, true);
-    sc_select_check(c, 3, true);
+    sc_select_set_checked(c, 1, true);
+    sc_select_set_checked(c, 3, true);
     style_show("multi-select: custom check glyph, two checked", sc_select_frame(c));
     sc_select_free(c);
 
@@ -48,4 +48,13 @@ void style_select(void) {
     }, items, n);
     style_show("prompt_style: bold underline green heading", sc_select_frame(d));
     sc_select_free(d);
+
+    /* Long list with a small viewport: shows the scroll indicator + footer. */
+    const char *many[] = { "Red", "Green", "Blue", "Yellow", "Cyan",
+                           "Magenta", "White", "Black" };
+    ScSelect *e = build((ScSelectOpts){ .prompt = "Pick a color", .max_visible = 4 },
+                        many, sizeof many / sizeof many[0]);
+    sc_select_set_cursor(e, 5);  /* scrolled into the middle */
+    style_show("scroll indicator (max_visible 4, cursor on #6)", sc_select_frame(e));
+    sc_select_free(e);
 }

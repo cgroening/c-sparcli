@@ -63,4 +63,24 @@ void test_text_input(void) {
     } else {
         printf("  → no TTY (skipped)\n");
     }
+
+    /* Autocomplete + a no-space filter (Tab accepts the dim ghost). */
+    static const char *const cmds[] = {
+        "commit", "checkout", "cherry-pick", "clone", "config"
+    };
+    char *cmd = NULL;
+    st = sc_text_input(
+        "Git command", &cmd,
+        (ScTextInputOpts){ .suggestions = cmds, .n_suggestions = 5,
+                           .char_filter = sc_filter_no_space,
+                           .hint = "tab to complete \xc2\xb7 enter submit" }
+    );
+    if (st == SC_INPUT_OK) {
+        printf("  → got: \"%s\"\n", cmd);
+        free(cmd);
+    } else if (st == SC_INPUT_CANCELLED) {
+        printf("  → cancelled\n");
+    } else {
+        printf("  → no TTY (skipped)\n");
+    }
 }

@@ -41,12 +41,16 @@ int main(int argc, char *argv[]) {
     static Test tests[] = {
         { "Key Decoder",    test_key_decode,     0 },
         { "Line Editor",    test_line_editor,    0 },
+        { "Char Filters",   test_filters,        0 },
         { "Confirm",        test_confirm,        1 },
         { "Text Input",     test_text_input,     1 },
         { "Password Input", test_password_input, 1 },
+        { "Number Input",   test_number,         1 },
+        { "Textarea",       test_textarea,       1 },
         { "Select",         test_select,         1 },
         { "Fuzzy Finder",   test_fuzzy,          1 },
         { "Date Picker",    test_datepicker,     1 },
+        { "Theme",          test_theme,          1 },
     };
     size_t count = sizeof tests / sizeof tests[0];
 

@@ -58,6 +58,7 @@ bool sc_fuzzy_match(const char *pattern, const char *str, int *score) {
 }
 
 ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts) {
+    sc_theme_apply_fuzzy(&opts);
     ScFuzzy *f = calloc(1, sizeof *f);
     if (!f) { return NULL; }
     f->opts        = opts;
@@ -140,7 +141,7 @@ static ScRendered *render_query_line(ScFuzzy *f) {
     sc_text_append(t, prompt, ps);
     sc_text_append(t, " ", (ScTextStyle){ 0 });
     sc_le_render_into(&f->query, t, (ScTextStyle){ 0 }, f->opts.cursor_style,
-                      NULL, NULL, (ScTextStyle){ 0 });
+                      NULL, NULL, (ScTextStyle){ 0 }, 0);
 
     char counter[48];
     snprintf(counter, sizeof counter, "  (%zu/%zu)", f->match_n, f->count);
@@ -149,6 +150,65 @@ static ScRendered *render_query_line(ScFuzzy *f) {
         : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     sc_text_append(t, counter, cst);
 
+    ScRendered *r = sc_capture_text(t);
+    sc_text_free(t);
+    return r;
+}
+
+/** Byte length of the UTF-8 codepoint led by `c`. */
+static size_t cp_len(unsigned char c) {
+    if ((c & 0x80) == 0x00) { return 1; }
+    if ((c & 0xE0) == 0xC0) { return 2; }
+    if ((c & 0xF0) == 0xE0) { return 3; }
+    return 4;
+}
+
+/**
+ * Appends `label` codepoint-by-codepoint, emphasizing the characters that the
+ * (greedy, case-insensitive) query subsequence matches — the same matching
+ * order as `sc_fuzzy_match`.
+ */
+static void append_highlighted(
+    ScText *t, const char *label, const char *query,
+    ScTextStyle base, ScColor accent
+) {
+    const char *p = (query && query[0]) ? query : NULL;
+    const char *s = label;
+    while (*s) {
+        size_t n = cp_len((unsigned char)*s);
+        char g[8];
+        memcpy(g, s, n);
+        g[n] = '\0';
+
+        bool hit = p && *p
+            && tolower((unsigned char)*p) == tolower((unsigned char)*s);
+        ScTextStyle st = base;
+        if (hit) {
+            st.attr |= SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER;
+            if (base.fg.index == 0) { st.fg = accent; }
+            p++;
+        }
+        sc_text_append(t, g, st);
+        s += n;
+    }
+}
+
+/** Builds a dim "↑ first–last/total ↓" line, or NULL when nothing is hidden. */
+static ScRendered *render_scroll_hint(ScFuzzy *f) {
+    size_t visible = (size_t)f->max_visible;
+    size_t end = f->top + visible;
+    if (end > f->match_n) { end = f->match_n; }
+    if (f->top == 0 && end >= f->match_n) { return NULL; }
+
+    char buf[80];
+    snprintf(buf, sizeof buf, "  %s %zu\xe2\x80\x93%zu/%zu %s",
+             f->top > 0       ? "\xe2\x86\x91" : " ",
+             f->top + 1, end, f->match_n,
+             end < f->match_n ? "\xe2\x86\x93" : " ");
+    ScText *t = sc_text_new();
+    if (!t) { return NULL; }
+    sc_text_append(t, buf,
+        (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
     return r;
@@ -171,7 +231,8 @@ static ScRendered *render_list(ScFuzzy *f) {
         bool cur = (k == f->cursor);
         ScTextStyle row = cur ? sel : (ScTextStyle){ 0 };
         sc_text_append(t, cur ? cur_mk : mk, row);
-        sc_text_append(t, f->rows[f->matches[k].idx][0], row);
+        append_highlighted(t, f->rows[f->matches[k].idx][0], f->query.buf,
+                           row, f->accent);
         if (k + 1 < end) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
     }
     ScRendered *r = sc_capture_text(t);
@@ -225,16 +286,41 @@ static ScRendered *render_table(ScFuzzy *f) {
     return r;
 }
 
+/** Builds the key-hint footer line, or NULL when suppressed. */
+static ScRendered *render_hint_footer(ScFuzzy *f) {
+    if (f->opts.hide_hint) { return NULL; }
+    const char *hint = f->opts.hint ? f->opts.hint
+        : "type to filter \xc2\xb7 \xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 enter select \xc2\xb7 esc cancel";
+    ScText *t = sc_text_new();
+    if (!t) { return NULL; }
+    ScTextStyle st = sc_style_set(f->opts.hint_style)
+        ? f->opts.hint_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    sc_text_append(t, hint, st);
+    ScRendered *r = sc_capture_text(t);
+    sc_text_free(t);
+    return r;
+}
+
 static ScRendered *fuzzy_render(void *state) {
     ScFuzzy *f = state;
     ScRendered *query = render_query_line(f);
     ScRendered *body  = (f->opts.table) ? render_table(f) : render_list(f);
     if (!query || !body) { sc_rendered_free(query); sc_rendered_free(body); return NULL; }
+    ScRendered *scroll = render_scroll_hint(f);
+    ScRendered *foot   = render_hint_footer(f);
 
-    const ScRendered *parts[2] = { query, body };
-    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    const ScRendered *parts[4];
+    size_t n = 0;
+    parts[n++] = query;
+    parts[n++] = body;
+    if (scroll) { parts[n++] = scroll; }
+    if (foot)   { parts[n++] = foot; }
+    ScRendered *stacked = sc_vstack(parts, n, 0);
     sc_rendered_free(query);
     sc_rendered_free(body);
+    sc_rendered_free(scroll);
+    sc_rendered_free(foot);
     return stacked;
 }
 

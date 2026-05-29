@@ -12,8 +12,11 @@
  */
 
 #include "input/sparcli_term.h"         // IWYU pragma: export
+#include "input/sparcli_theme.h"        // IWYU pragma: export
 #include "input/sparcli_confirm.h"      // IWYU pragma: export
 #include "input/sparcli_text_input.h"   // IWYU pragma: export
+#include "input/sparcli_number.h"       // IWYU pragma: export
+#include "input/sparcli_textarea.h"     // IWYU pragma: export
 #include "input/sparcli_select.h"       // IWYU pragma: export
 #include "input/sparcli_fuzzy.h"        // IWYU pragma: export
 #include "input/sparcli_datepicker.h"   // IWYU pragma: export

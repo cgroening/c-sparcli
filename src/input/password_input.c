@@ -4,6 +4,7 @@
 ScInputStatus sc_password_input(
     const char *prompt, char **out, ScPasswordOpts opts
 ) {
+    sc_theme_apply_password(&opts);
     ScTextEntryCfg cfg = {
         .prompt          = prompt,
         .placeholder     = opts.placeholder,
@@ -20,6 +21,11 @@ ScInputStatus sc_password_input(
         .boxed           = opts.boxed,
         .border          = opts.border,
         .width           = opts.width,
+        .hint            = opts.hint,
+        .hide_hint       = opts.hide_hint,
+        .hint_style      = opts.hint_style,
+        .char_filter     = opts.char_filter,
+        .char_filter_ctx = opts.char_filter_ctx,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
     };

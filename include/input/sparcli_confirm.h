@@ -28,6 +28,9 @@ typedef struct {
     ScTextStyle unselected_style; /**< Style of the unselected option; zero-init = dim. */
     ScTextStyle summary_style;    /**< Style of the persistent summary line. */
     bool        hide_summary;     /**< Suppress the post-confirm summary line. */
+    const char *hint;             /**< Key-hint footer; `NULL` = sensible default. */
+    bool        hide_hint;        /**< Suppress the key-hint footer. */
+    ScTextStyle hint_style;       /**< Style of the footer; zero-init = dim. */
 } ScConfirmOpts;
 
 /**

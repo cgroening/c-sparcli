@@ -28,6 +28,9 @@ void test_select(void) {
     for (size_t i = 0; i < sizeof FRUITS / sizeof FRUITS[0]; i++) {
         sc_select_add(multi, FRUITS[i]);
     }
+    sc_select_set_checked(multi, 0, true);  /* pre-check Apple */
+    sc_select_set_checked(multi, 2, true);  /* pre-check Cherry */
+    sc_select_set_cursor(multi, 2);         /* start the cursor on Cherry */
     n = 8;
     st = sc_select_run(multi, idx, &n);
     if (st == SC_INPUT_OK) {

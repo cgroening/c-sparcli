@@ -29,6 +29,21 @@ static inline bool sc_style_set(ScTextStyle s) {
     return s.attr != 0 || s.fg.index != 0 || s.bg.index != 0;
 }
 
+/**
+ * Appends the key-hint footer line (`\n` + dim hint) to `text`, unless hidden
+ * or empty. `hint` is the resolved string (widget default or caller override).
+ */
+static inline void sc_append_hint(
+    ScText *text, const char *hint, bool hide, ScTextStyle style
+) {
+    if (hide || !hint || !hint[0]) { return; }
+    ScTextStyle st = sc_style_set(style)
+        ? style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    sc_text_append(text, "\n", (ScTextStyle){ 0 });
+    sc_text_append(text, hint, st);
+}
+
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
 
@@ -92,11 +107,14 @@ bool sc_le_handle(ScLineEditor *e, ScKey key);
  * @param mask               When non-NULL, every character is rendered as
  *                           this glyph (password masking); "" hides content.
  * @param placeholder        Shown dim when the buffer is empty; may be NULL.
+ * @param field_width        Visible width in columns; 0 = unlimited. When the
+ *                           content is wider, a cursor-tracking window scrolls
+ *                           horizontally and shows `‹`/`›` edge markers.
  */
 void sc_le_render_into(
     const ScLineEditor *e, ScText *text,
     ScTextStyle value_style, ScTextStyle cursor_style, const char *mask,
-    const char *placeholder, ScTextStyle placeholder_style
+    const char *placeholder, ScTextStyle placeholder_style, int field_width
 );
 
 
@@ -123,7 +141,14 @@ typedef struct {
     int          max_chars;      /* 0 = unlimited */
     bool         boxed;          /* render inside a bordered panel */
     ScBorderStyle border;        /* box border; zero-init type = rounded */
-    int          width;          /* boxed: panel width; 0 = full terminal width */
+    int          width;          /* field width; 0 = terminal width */
+    const char  *hint;           /* key-hint footer; NULL = default */
+    bool         hide_hint;
+    ScTextStyle  hint_style;
+    ScCharFilter char_filter;
+    void        *char_filter_ctx;
+    const char *const *suggestions;
+    size_t       n_suggestions;
     bool (*validate)(const char *, void *, const char **);
     void        *validate_ctx;
 } ScTextEntryCfg;
@@ -147,6 +172,17 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out);
 ScRendered *sc_confirm_frame(const char *question, bool yes, ScConfirmOpts opts);
 ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg);
 ScRendered *sc_select_frame(ScSelect *select);
-void        sc_select_check(ScSelect *select, size_t index, bool on);
 ScRendered *sc_fuzzy_frame(ScFuzzy *fuzzy, const char *query);
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);
+
+
+/* ── Theme merge (theme.c): fills zero-init opts from the global theme ───── */
+
+void sc_theme_apply_confirm   (ScConfirmOpts    *o);
+void sc_theme_apply_text      (ScTextInputOpts  *o);
+void sc_theme_apply_password  (ScPasswordOpts   *o);
+void sc_theme_apply_number    (ScNumberOpts     *o);
+void sc_theme_apply_textarea  (ScTextareaOpts   *o);
+void sc_theme_apply_select    (ScSelectOpts     *o);
+void sc_theme_apply_fuzzy     (ScFuzzyOpts      *o);
+void sc_theme_apply_datepicker(ScDatePickerOpts *o);

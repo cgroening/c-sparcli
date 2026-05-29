@@ -120,6 +120,10 @@ static ScRendered *date_render(void *state) {
         }
     }
 
+    sc_append_hint(t, s->opts.hint ? s->opts.hint
+                   : "\xe2\x86\x90/\xe2\x86\x92/\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 pgup/pgdn month \xc2\xb7 enter select \xc2\xb7 esc cancel",
+                   s->opts.hide_hint, s->opts.hint_style);
+
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
     return r;
@@ -168,6 +172,7 @@ static DateState make_state(const struct tm *seed, ScDatePickerOpts opts) {
 
 ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
     if (!io) { return SC_INPUT_ERROR; }
+    sc_theme_apply_datepicker(&opts);
 
     DateState s = make_state(io, opts);
     ScPromptVTable vt = { .render = date_render, .on_key = date_on_key };

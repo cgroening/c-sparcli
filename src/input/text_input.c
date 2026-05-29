@@ -1,8 +1,10 @@
 #include "input_internal.h"
+#include "internal.h"   /* sc_terminal_width, sc_utf8_string_length */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>    /* strncasecmp */
 
 
 typedef struct {
@@ -20,10 +22,32 @@ typedef struct {
     bool         boxed;
     ScBorderStyle border;
     int          width;
+    const char  *hint;
+    bool         hide_hint;
+    ScTextStyle  hint_style;
+    ScCharFilter char_filter;
+    void        *char_filter_ctx;
+    const char *const *suggestions;
+    size_t       n_suggestions;
     bool (*validate)(const char *, void *, const char **);
     void        *validate_ctx;
     const char  *error;   /* current validation error, or NULL */
 } TextState;
+
+
+/** Returns the first suggestion that has the current value as a (case-
+ *  insensitive) strict prefix, or NULL. */
+static const char *best_suggestion(const TextState *s) {
+    if (s->ed.len == 0 || !s->suggestions) { return NULL; }
+    for (size_t i = 0; i < s->n_suggestions; i++) {
+        const char *sug = s->suggestions[i];
+        if (sug && strlen(sug) > s->ed.len
+            && strncasecmp(sug, s->ed.buf, s->ed.len) == 0) {
+            return sug;
+        }
+    }
+    return NULL;
+}
 
 
 static char *dup_str(const char *s) {
@@ -71,9 +95,18 @@ static ScRendered *render_inline(TextState *s) {
     sc_text_append(t, s->prompt, s->prompt_style);
     sc_text_append(t, " ", (ScTextStyle){ 0 });
 
+    /* Visible value window = line width − prompt − the separating space. */
+    int total = s->width > 0 ? s->width : sc_terminal_width();
+    int prompt_w = (int)sc_utf8_string_length(s->prompt, strlen(s->prompt));
+    int field = total - prompt_w - 1;
+    if (field < 1) { field = 1; }
+
     ScTextStyle ph = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     sc_le_render_into(&s->ed, t, s->value_style, s->cursor_style, s->mask,
-                      s->placeholder, ph);
+                      s->placeholder, ph, field);
+
+    const char *ghost = best_suggestion(s);
+    if (ghost) { sc_text_append(t, ghost + s->ed.len, ph); }  /* dim completion */
 
     if (!s->hide_char_count) {
         char buf[48];
@@ -87,6 +120,8 @@ static ScRendered *render_inline(TextState *s) {
         sc_text_append(t, "  ", (ScTextStyle){ 0 });
         sc_text_append(t, s->error, resolve_error_style(s));
     }
+    sc_append_hint(t, s->hint ? s->hint : "enter submit \xc2\xb7 esc cancel",
+                   s->hide_hint, s->hint_style);
 
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
@@ -98,9 +133,19 @@ static ScRendered *render_inline(TextState *s) {
 static ScRendered *render_boxed(TextState *s) {
     ScText *inner = sc_text_new();
     if (!inner) { return NULL; }
+
+    /* Clip the value to the panel's interior so it stays a single line
+     * (panel width − 2 borders − 2 padding). */
+    int panel_w = s->width > 0 ? s->width : sc_terminal_width() - 2;
+    int field = panel_w - 4;
+    if (field < 1) { field = 1; }
+
     ScTextStyle ph = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     sc_le_render_into(&s->ed, inner, s->value_style, s->cursor_style, s->mask,
-                      s->placeholder, ph);
+                      s->placeholder, ph, field);
+
+    const char *ghost = best_suggestion(s);
+    if (ghost) { sc_text_append(inner, ghost + s->ed.len, ph); }  /* dim completion */
 
     char counter[48];
     ScPanelOpts opts = {
@@ -121,21 +166,41 @@ static ScRendered *render_boxed(TextState *s) {
 
     ScRendered *panel = sc_capture_panel_text(inner, opts);
     sc_text_free(inner);
-    if (!panel || !s->error) { return panel; }
+    if (!panel) { return NULL; }
 
-    /* Stack the validation error beneath the box. */
-    ScText *et = sc_text_new();
-    if (!et) { return panel; }
-    sc_text_append(et, "  ", (ScTextStyle){ 0 });
-    sc_text_append(et, s->error, resolve_error_style(s));
-    ScRendered *er = sc_capture_text(et);
-    sc_text_free(et);
-    if (!er) { return panel; }
+    /* Stack an optional error line and the key-hint footer beneath the box. */
+    ScRendered *er = NULL;
+    if (s->error) {
+        ScText *et = sc_text_new();
+        if (et) {
+            sc_text_append(et, "  ", (ScTextStyle){ 0 });
+            sc_text_append(et, s->error, resolve_error_style(s));
+            er = sc_capture_text(et);
+            sc_text_free(et);
+        }
+    }
+    ScRendered *foot = NULL;
+    if (!s->hide_hint) {
+        ScText *ft = sc_text_new();
+        if (ft) {
+            ScTextStyle hs = sc_style_set(s->hint_style) ? s->hint_style
+                : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+            sc_text_append(ft, s->hint ? s->hint : "enter submit \xc2\xb7 esc cancel", hs);
+            foot = sc_capture_text(ft);
+            sc_text_free(ft);
+        }
+    }
+    if (!er && !foot) { return panel; }
 
-    const ScRendered *parts[2] = { panel, er };
-    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    const ScRendered *parts[3];
+    size_t n = 0;
+    parts[n++] = panel;
+    if (er)   { parts[n++] = er; }
+    if (foot) { parts[n++] = foot; }
+    ScRendered *stacked = sc_vstack(parts, n, 0);
     sc_rendered_free(panel);
     sc_rendered_free(er);
+    sc_rendered_free(foot);
     return stacked;
 }
 
@@ -151,6 +216,17 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     /* Enforce the character cap: ignore further printable input at the limit. */
     if (key.type == SC_KEY_CHAR && s->max_chars > 0
         && cp_count(s->ed.buf) >= (size_t)s->max_chars) {
+        return;
+    }
+    /* Apply the format filter: reject disallowed printable characters. */
+    if (key.type == SC_KEY_CHAR && s->char_filter
+        && !s->char_filter(key.codepoint, s->char_filter_ctx)) {
+        return;
+    }
+    /* Tab accepts the autocomplete suggestion, if any. */
+    if (key.type == SC_KEY_TAB) {
+        const char *sug = best_suggestion(s);
+        if (sug) { sc_le_free(&s->ed); sc_le_init(&s->ed, sug); s->error = NULL; }
         return;
     }
     if (sc_le_handle(&s->ed, key)) {
@@ -185,6 +261,13 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         .boxed           = cfg->boxed,
         .border          = cfg->border,
         .width           = cfg->width,
+        .hint            = cfg->hint,
+        .hide_hint       = cfg->hide_hint,
+        .hint_style      = cfg->hint_style,
+        .char_filter     = cfg->char_filter,
+        .char_filter_ctx = cfg->char_filter_ctx,
+        .suggestions     = cfg->suggestions,
+        .n_suggestions   = cfg->n_suggestions,
         .validate        = cfg->validate,
         .validate_ctx    = cfg->validate_ctx,
         .error           = NULL,
@@ -234,7 +317,28 @@ ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg) {
     return r;
 }
 
+/* ── Built-in character filters ─────────────────────────────────────────── */
+
+bool sc_filter_digits(uint32_t c, void *ctx) {
+    (void)ctx; return c >= '0' && c <= '9';
+}
+bool sc_filter_decimal(uint32_t c, void *ctx) {
+    (void)ctx; return (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '+';
+}
+bool sc_filter_alpha(uint32_t c, void *ctx) {
+    (void)ctx; return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+bool sc_filter_alnum(uint32_t c, void *ctx) {
+    (void)ctx;
+    return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+bool sc_filter_no_space(uint32_t c, void *ctx) {
+    (void)ctx; return c != ' ' && c != '\t';
+}
+
+
 ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts) {
+    sc_theme_apply_text(&opts);
     ScTextEntryCfg cfg = {
         .prompt          = prompt,
         .initial         = opts.initial,
@@ -252,6 +356,13 @@ ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts
         .boxed           = opts.boxed,
         .border          = opts.border,
         .width           = opts.width,
+        .hint            = opts.hint,
+        .hide_hint       = opts.hide_hint,
+        .hint_style      = opts.hint_style,
+        .char_filter     = opts.char_filter,
+        .char_filter_ctx = opts.char_filter_ctx,
+        .suggestions     = opts.suggestions,
+        .n_suggestions   = opts.n_suggestions,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
     };

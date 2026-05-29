@@ -22,6 +22,24 @@ SPARCLI_BEGIN_DECLS
  */
 typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out);
 
+/**
+ * Per-character input filter. Return `true` to accept the typed codepoint,
+ * `false` to reject it (the keystroke is ignored). Use it to constrain input
+ * to a format — digits only, no spaces, etc. Built-in filters below.
+ */
+typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
+
+/** Accepts ASCII digits `0`–`9` only. */
+SPARCLI_EXPORT bool sc_filter_digits(uint32_t codepoint, void *ctx);
+/** Accepts digits, a leading sign and a decimal point (`0-9`, `-`, `+`, `.`). */
+SPARCLI_EXPORT bool sc_filter_decimal(uint32_t codepoint, void *ctx);
+/** Accepts ASCII letters only. */
+SPARCLI_EXPORT bool sc_filter_alpha(uint32_t codepoint, void *ctx);
+/** Accepts ASCII letters and digits only. */
+SPARCLI_EXPORT bool sc_filter_alnum(uint32_t codepoint, void *ctx);
+/** Rejects whitespace; accepts everything else. */
+SPARCLI_EXPORT bool sc_filter_no_space(uint32_t codepoint, void *ctx);
+
 /** Options for `sc_text_input`. */
 typedef struct {
     const char  *initial;       /**< Pre-filled value; `NULL` = empty. */
@@ -44,8 +62,18 @@ typedef struct {
                                      bottom-right border. */
     ScBorderStyle border;       /**< Box border (boxed mode); zero-init type =
                                      rounded. */
-    int          width;         /**< Boxed mode: panel width; 0 = full terminal
-                                     width. (Inline mode: reserved.) */
+    int          width;         /**< Field width in columns; 0 = terminal width.
+                                     Long values scroll horizontally. In boxed
+                                     mode this is the panel width. */
+    const char  *hint;          /**< Key-hint footer; `NULL` = sensible default. */
+    bool         hide_hint;     /**< Suppress the key-hint footer. */
+    ScTextStyle  hint_style;    /**< Style of the footer; zero-init = dim. */
+    ScCharFilter char_filter;   /**< Optional per-character input filter; may be `NULL`. */
+    void        *char_filter_ctx;/**< Opaque pointer passed to `char_filter`. */
+    const char *const *suggestions; /**< Autocomplete word list; may be `NULL`. The
+                                     first case-insensitive prefix match is shown as
+                                     dim ghost text; Tab accepts it. */
+    size_t       n_suggestions; /**< Number of entries in `suggestions`. */
     ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
     void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScTextInputOpts;
@@ -80,7 +108,12 @@ typedef struct {
     ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
     bool         boxed;         /**< Render the field inside a bordered panel. */
     ScBorderStyle border;       /**< Box border (boxed mode); zero-init type = rounded. */
-    int          width;         /**< Boxed mode: panel width; 0 = full terminal width. */
+    int          width;         /**< Field width; 0 = terminal width (boxed: panel width). */
+    const char  *hint;          /**< Key-hint footer; `NULL` = sensible default. */
+    bool         hide_hint;     /**< Suppress the key-hint footer. */
+    ScTextStyle  hint_style;    /**< Style of the footer; zero-init = dim. */
+    ScCharFilter char_filter;   /**< Optional per-character input filter; may be `NULL`. */
+    void        *char_filter_ctx;/**< Opaque pointer passed to `char_filter`. */
     ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
     void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScPasswordOpts;

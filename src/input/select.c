@@ -26,6 +26,7 @@ static char *dup_str(const char *s) {
 }
 
 ScSelect *sc_select_new(ScSelectOpts opts) {
+    sc_theme_apply_select(&opts);
     ScSelect *s = calloc(1, sizeof *s);
     if (!s) { return NULL; }
     s->opts        = opts;
@@ -63,6 +64,22 @@ static void reframe(ScSelect *s) {
     else if (s->cursor >= s->top + visible)  { s->top = s->cursor - visible + 1; }
 }
 
+/**
+ * Appends a dim "↑ first–last/total ↓" line when the list scrolls beyond the
+ * viewport, so a long list never looks silently truncated.
+ */
+static void append_scroll_hint(ScText *t, size_t top, size_t end, size_t count) {
+    if (top == 0 && end >= count) { return; }
+    char buf[80];
+    snprintf(buf, sizeof buf, "  %s %zu\xe2\x80\x93%zu/%zu %s",
+             top > 0      ? "\xe2\x86\x91" : " ",          /* ↑ */
+             top + 1, end, count,
+             end < count  ? "\xe2\x86\x93" : " ");         /* ↓ */
+    sc_text_append(t, "\n", (ScTextStyle){ 0 });
+    sc_text_append(t, buf,
+        (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+}
+
 static ScRendered *select_render(void *state) {
     ScSelect *s = state;
     ScText *t = sc_text_new();
@@ -96,6 +113,13 @@ static ScRendered *select_render(void *state) {
         sc_text_append(t, s->items[i], row);
         if (i + 1 < end) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
     }
+
+    append_scroll_hint(t, s->top, end, s->count);
+
+    const char *hint = s->opts.hint ? s->opts.hint : (s->opts.multi
+        ? "\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 space toggle \xc2\xb7 enter confirm \xc2\xb7 esc cancel"
+        : "\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 enter select \xc2\xb7 esc cancel");
+    sc_append_hint(t, hint, s->opts.hide_hint, s->opts.hint_style);
 
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
@@ -157,6 +181,12 @@ ScRendered *sc_select_frame(ScSelect *s) {
     return select_render(s);
 }
 
-void sc_select_check(ScSelect *s, size_t index, bool on) {
+void sc_select_set_cursor(ScSelect *s, size_t index) {
+    if (!s || index >= s->count) { return; }
+    s->cursor = index;
+    reframe(s);
+}
+
+void sc_select_set_checked(ScSelect *s, size_t index, bool on) {
     if (s && index < s->count) { s->checked[index] = on; }
 }

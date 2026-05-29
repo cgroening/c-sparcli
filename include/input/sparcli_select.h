@@ -32,6 +32,9 @@ typedef struct {
     const char  *checkbox_off;   /**< Unchecked box (multi); `NULL` = "[ ] ". */
     ScTextStyle  summary_style;  /**< Style of the persistent summary line. */
     bool         hide_summary;   /**< Suppress the post-selection summary line. */
+    const char  *hint;           /**< Key-hint footer; `NULL` = sensible default. */
+    bool         hide_hint;      /**< Suppress the key-hint footer. */
+    ScTextStyle  hint_style;     /**< Style of the footer; zero-init = dim. */
 } ScSelectOpts;
 
 /** Opaque selection instance; build with `sc_select_new`. */
@@ -52,6 +55,18 @@ SPARCLI_EXPORT ScSelect *sc_select_new(ScSelectOpts opts);
  * @param label   Item label; copied internally.
  */
 SPARCLI_EXPORT void sc_select_add(ScSelect *select, const char *label);
+
+/**
+ * Pre-positions the cursor on `index` (clamped) before `sc_select_run`, so a
+ * sensible default is highlighted on first paint. No-op out of range.
+ */
+SPARCLI_EXPORT void sc_select_set_cursor(ScSelect *select, size_t index);
+
+/**
+ * Pre-checks or unchecks `index` (multi-select) before `sc_select_run`, to seed
+ * a default set of selected items. No-op out of range.
+ */
+SPARCLI_EXPORT void sc_select_set_checked(ScSelect *select, size_t index, bool on);
 
 /**
  * Runs the interactive selection.

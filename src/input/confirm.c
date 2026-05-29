@@ -47,6 +47,10 @@ static ScRendered *confirm_render(void *state) {
     sc_text_append(t, " ", (ScTextStyle){ 0 });
     append_option(t, s->no_label, !s->value, sel, unsel);
 
+    sc_append_hint(t, s->opts.hint ? s->opts.hint
+                   : "\xe2\x86\x90/\xe2\x86\x92 toggle \xc2\xb7 enter confirm \xc2\xb7 esc cancel",
+                   s->opts.hide_hint, s->opts.hint_style);
+
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
     return r;
@@ -91,6 +95,7 @@ static ConfirmState make_state(const char *question, bool value, ScConfirmOpts o
 
 ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts) {
     if (!question || !out) { return SC_INPUT_ERROR; }
+    sc_theme_apply_confirm(&opts);
 
     ConfirmState s = make_state(question, opts.default_yes, opts);
     ScPromptVTable vt = { .render = confirm_render, .on_key = confirm_on_key };
