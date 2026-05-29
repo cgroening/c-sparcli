@@ -26,6 +26,9 @@ run):
 make EXTRA_CFLAGS=-Werror
 ```
 
+`EXTRA_CFLAGS` takes any extra flags, so it also serves debug builds:
+`make EXTRA_CFLAGS='-g -O0'`.
+
 **Good to know:**
 
 - **Header-dependency tracking** is automatic (`-MMD -MP`): editing a header
@@ -35,6 +38,9 @@ make EXTRA_CFLAGS=-Werror
   never contaminates the normal artefacts.
 - Tests link against the **static** `libsparcli.a`, so running them never
   depends on the install path or the dynamic-loader search order.
+- **Linux and macOS** are both supported; the shared-library naming
+  (`.so`/`.dylib` + soname) and the `-lutil` link for `forkpty` (PTY suite) are
+  selected automatically by the Makefile.
 
 ---
 
@@ -193,12 +199,41 @@ cc myapp.c $(pkg-config --cflags --libs sparcli) -o myapp
 
 ---
 
+## Releasing a new version
+
+The version string lives in **three places that must stay in sync** — the most
+common release mistake is bumping only some of them:
+
+| Location | What it drives |
+|----------|----------------|
+| `Makefile` — `VERSION_MAJOR` / `_MINOR` / `_PATCH` | shared-library version + soname, `sparcli.pc` |
+| `include/core/sparcli_export.h` — `SPARCLI_VERSION_MAJOR` / `_MINOR` / `_PATCH` | compile-time constants; `sc_version()` / `sc_version_string()` |
+| `README.md` — the `![Version: …]` badge | the version shown on the project page |
+
+Checklist:
+
+1. `make test EXTRA_CFLAGS=-Werror` is green; regenerate goldens if rendering
+   changed intentionally.
+2. Bump the version in all **three** locations above.
+3. `make clean && make` — `sparcli.pc` and the soname pick up the new value;
+   confirm with `./build.examples.nosync/...` or a quick `sc_version_string()`
+   check.
+4. Commit, then tag and push: `git tag vX.Y.Z && git push --tags`.
+5. *(optional)* Write GitHub release notes / a CHANGELOG entry.
+
+Bumping the **major** changes the soname, so dependents must relink.
+
+---
+
 ## Examples
 
 ```sh
 make examples                            # build every examples/*.c
 make run-example EX=readme_screenshots   # build & run one example
 ```
+
+Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new
+`examples/foo.c` in makes `make run-example EX=foo` work — no Makefile edit.
 
 ---
 
@@ -226,6 +261,24 @@ under `include/<area>/`, and cross-includes use root-relative paths
 (`#include "core/sparcli_core.h"`, resolved via `-Iinclude`). The table renderer
 is split into sub-modules that are `#include`-chained from `table.c`, so only
 `src/output/table/table.c` appears in `SRC`.
+
+To **add public API**, declare it inside the header's
+`SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` block (these provide the `extern "C"`
+wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` — symbols are
+hidden by default, so an unmarked function won't be part of the shared-library
+ABI.
+
+### Adding a test
+
+- **Output test:** add `tests/output/test_foo.c`, append it to `TEST_SRC` in the
+  `Makefile`, and register it in `get_all_tests()` in `tests/output/test_main.c`.
+  If it renders deterministic output, regenerate the golden file afterwards
+  (`make test-output-golden`).
+- **Input logic/widget test:** add the source to `INPUT_TEST_SRC`, declare the
+  entry point in `tests/input/logic/test_input.h`, and add it to the runner
+  table in `tests/input/logic/test_input_main.c` (mark it `interactive` or not).
+- **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/`
+  runner, then `make test-input-style-golden`.
 
 See [`../CLAUDE.md`](../CLAUDE.md) for the full module map and type reference.
 
