@@ -137,6 +137,7 @@ ScCell sc_cell_from_markup(const char *markup) {
 
 
 void sc_table_free(ScTableData *table_data) {
+    if (!table_data) { return; }
     for (size_t i = 0; i < table_data->column_count; i++) {
         free(table_data->columns[i].header);
     }
