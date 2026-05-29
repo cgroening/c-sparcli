@@ -1,4 +1,5 @@
 #include "input_internal.h"
+#include "internal.h"   /* sc_terminal_width, sc_utf8_string_length */
 
 #include <ctype.h>
 #include <stdio.h>
@@ -140,11 +141,19 @@ static ScRendered *render_query_line(ScFuzzy *f) {
         : (ScTextStyle){ SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE };
     sc_text_append(t, prompt, ps);
     sc_text_append(t, " ", (ScTextStyle){ 0 });
-    sc_le_render_into(&f->query, t, (ScTextStyle){ 0 }, f->opts.cursor_style,
-                      NULL, NULL, (ScTextStyle){ 0 }, 0);
 
     char counter[48];
     snprintf(counter, sizeof counter, "  (%zu/%zu)", f->match_n, f->count);
+
+    /* Query field = line width − prompt − space − counter, so a long query
+     * scrolls horizontally instead of overflowing the line. */
+    int prompt_w  = (int)sc_utf8_string_length(prompt, strlen(prompt));
+    int counter_w = (int)sc_utf8_string_length(counter, strlen(counter));
+    int field = sc_terminal_width() - prompt_w - 1 - counter_w;
+    if (field < 1) { field = 1; }
+    sc_le_render_into(&f->query, t, (ScTextStyle){ 0 }, f->opts.cursor_style,
+                      NULL, NULL, (ScTextStyle){ 0 }, field);
+
     ScTextStyle cst = sc_style_set(f->opts.counter_style)
         ? f->opts.counter_style
         : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };

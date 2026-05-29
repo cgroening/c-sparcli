@@ -1,4 +1,5 @@
 #include "input_internal.h"
+#include "internal.h"   /* sc_terminal_width */
 
 #include <stdlib.h>
 #include <string.h>
@@ -91,8 +92,13 @@ static void move_vertical(Textarea *a, int dir) {
 
 /* ── Render ─────────────────────────────────────────────────────────────── */
 
-/** Appends the multi-line content (cursor cell marked, newlines preserved). */
-static void append_content(const Textarea *a, ScText *t) {
+/**
+ * Appends the multi-line content (cursor cell marked, hard newlines preserved).
+ * When `width > 0`, logical lines are soft-wrapped at that column so long lines
+ * never overflow; the cursor is emitted inline, so it lands on the right wrapped
+ * row automatically. (Navigation stays logical-line based.)
+ */
+static void append_content(const Textarea *a, ScText *t, int width) {
     ScTextStyle cur = sc_style_set(a->opts.cursor_style) ? a->opts.cursor_style
         : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_WHITE };
 
@@ -102,20 +108,28 @@ static void append_content(const Textarea *a, ScText *t) {
             (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
         return;
     }
+    int col = 0;
     size_t i = 0;
     while (i < a->len) {
         if (a->buf[i] == '\n') {
             if (i == a->cursor) { sc_text_append(t, " ", cur); }
             sc_text_append(t, "\n", (ScTextStyle){ 0 });
-            i++;
+            i++; col = 0;
             continue;
+        }
+        if (width > 0 && col >= width) {       /* soft wrap */
+            sc_text_append(t, "\n", (ScTextStyle){ 0 });
+            col = 0;
         }
         size_t e = next_b(a->buf, a->len, i);
         char g[8]; memcpy(g, a->buf + i, e - i); g[e - i] = '\0';
         sc_text_append(t, g, (i == a->cursor) ? cur : a->opts.value_style);
-        i = e;
+        i = e; col++;
     }
-    if (a->cursor == a->len) { sc_text_append(t, " ", cur); }  /* trailing */
+    if (a->cursor == a->len) {
+        if (width > 0 && col >= width) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
+        sc_text_append(t, " ", cur);           /* trailing cursor */
+    }
 }
 
 static const char *ta_hint(const Textarea *a) {
@@ -131,7 +145,8 @@ static ScRendered *render_inline(const Textarea *a) {
         sc_text_append(t, a->prompt, a->opts.prompt_style);
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
     }
-    append_content(a, t);
+    int width = a->opts.width > 0 ? a->opts.width : sc_terminal_width();
+    append_content(a, t, width);
     sc_append_hint(t, ta_hint(a), a->opts.hide_hint, a->opts.hint_style);
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
@@ -142,7 +157,10 @@ static ScRendered *render_inline(const Textarea *a) {
 static ScRendered *render_boxed(const Textarea *a) {
     ScText *inner = sc_text_new();
     if (!inner) { return NULL; }
-    append_content(a, inner);
+    int panel_w = a->opts.width > 0 ? a->opts.width : sc_terminal_width() - 2;
+    int field = panel_w - 4;             /* interior minus borders + padding */
+    if (field < 1) { field = 1; }
+    append_content(a, inner, field);
 
     ScPanelOpts opts = {
         .border        = a->opts.border,

@@ -19,6 +19,7 @@ void style_show_flush(const char *caption, ScRendered *frame);
 
 void style_confirm(void);
 void style_text(void);
+void style_number(void);
 void style_textarea(void);
 void style_select(void);
 void style_fuzzy(void);

@@ -630,19 +630,23 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   autocomplete ghost that Tab accepts.
 - **NumberInput** (`number_input.c`) reuses the line editor with a decimal
   filter; ↑/↓ step by `step`, value clamped to `[min, max]` when `max > min`,
-  formatted to `decimals` places.
+  formatted to `decimals` places. `boxed = true` renders inside a panel (range
+  shown on the bottom-right border); `border`/`width` as for text input.
 - **Textarea** (`textarea.c`, self-contained multi-line buffer): Enter inserts a
   newline, Ctrl-D submits, arrows move across lines/cols, Home/End within a line.
-  `boxed = true` renders the editor inside a panel (prompt = top title, footer
-  stacked below); `border`/`width` as for text input.
+  Long logical lines **soft-wrap** to the field width (char-level; cursor stays
+  correct; navigation remains logical-line based). `boxed = true` renders the
+  editor inside a panel (prompt = top title, footer stacked below); `border`/
+  `width` as for text input.
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
   move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` /
   `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the
   list scrolls beyond the viewport.
 - **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are
-  highlighted (bold+underline) in the list; table view builds an `ScTableData`
-  of the visible rows each frame (cursor row via row-bg) and `sc_vstack`s query
-  + body + scroll-indicator + footer.
+  highlighted (bold+underline) in the list; the query field scrolls horizontally
+  (`‹`/`›`) when long; table view builds an `ScTableData` of the visible rows
+  each frame (cursor row via row-bg) and `sc_vstack`s query + body +
+  scroll-indicator + footer.
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
   `<`/`>` change month; zeroed `struct tm` seeds today. `week_start` is
   `ScWeekStart`.

@@ -30,6 +30,10 @@ typedef struct {
     const char *hint;          /**< Key-hint footer; `NULL` = sensible default. */
     bool        hide_hint;     /**< Suppress the key-hint footer. */
     ScTextStyle hint_style;    /**< Style of the footer; zero-init = dim. */
+    bool        boxed;         /**< Render inside a bordered panel (prompt = top
+                                    title; range/footer below the box). */
+    ScBorderStyle border;      /**< Box border (boxed mode); zero-init type = rounded. */
+    int         width;         /**< Box width; 0 = full terminal width. */
 } ScNumberOpts;
 
 /**

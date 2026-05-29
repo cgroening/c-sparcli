@@ -26,4 +26,11 @@ void style_textarea(void) {
     style_show_flush("textarea: boxed full width (flush-left)",
         sc_textarea_frame("Body", "spanning the whole terminal width\nsecond line",
             (ScTextareaOpts){ .boxed = true }));
+
+    /* Soft-wrap: a single long logical line wraps to fit the narrow box. */
+    style_show("textarea: long line soft-wraps inside the box",
+        sc_textarea_frame("Wrap",
+            "This is one very long logical line that must soft-wrap inside the "
+            "narrow box instead of overflowing its right border.",
+            (ScTextareaOpts){ .boxed = true, .width = 34 }));
 }
