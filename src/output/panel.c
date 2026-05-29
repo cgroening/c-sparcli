@@ -80,7 +80,7 @@ typedef struct Panel {
 } Panel;
 
 /**
- * Accumulator used while splitting `ScText` spans into `PLines`.
+ * Accumulator used while splitting `ScText` spans into `ScRenderLine`s.
  */
 typedef struct ParseBuf {
     ScRenderSpan       *spans;     /**< Growing span buffer for the current line */

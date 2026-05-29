@@ -9,8 +9,7 @@
 
 /**
  * Per-row render context. Built once at the top of `render_row` and passed
- * to every helper as `Row *self`. Replaces the previous nested context
- * chain (`RowDrawCtx` → `RowRenderCtx`/`ColumnLines`/`CellDrawCtx`/…).
+ * to every helper as `Row *self`.
  */
 typedef struct Row {
     /** Outer render context (column widths, padding, opts, …). */

@@ -714,7 +714,7 @@ sc_pad_str("Hello", (ScPadOpts){ .left = 8 });
 ## Align
 
 ```c
-/* width = 0 → sc_term_width(); width > 0 → fixed column count */
+/* width = 0 → sc_terminal_width(); width > 0 → fixed column count */
 void sc_align_print(const ScRendered *r, ScHAlign halign, int width);
 void sc_align_str  (const char *s,       ScHAlign halign, int width);
 void sc_align_text (const ScText *t,     ScHAlign halign, int width);
@@ -871,9 +871,9 @@ power users:
 | Helper | Description |
 |--------|-------------|
 | `sc_apply_colors(fg, bg)` | Emits ANSI fg/bg escapes; skips if `index == 0` (zero-init / `SC_ANSI_COLOR_NONE`) |
-| `sc_term_width()` | Terminal width via `ioctl(TIOCGWINSZ)`, fallback 80 |
-| `sc_utf8_vis_w(s, byte_len)` | Visible column count of a UTF-8 byte sequence |
-| `sc_utf8_trim_to_cols(s, max_cols)` | Byte count that fits within `max_cols` columns |
+| `sc_terminal_width()` | Terminal width via `ioctl(TIOCGWINSZ)`, fallback 80 |
+| `sc_utf8_string_length(string, byte_length)` | Visible column count of a UTF-8 byte sequence |
+| `sc_utf8_trim_to_cols(string, max_columns)` | Byte count that fits within `max_columns` columns |
 
 ---
 

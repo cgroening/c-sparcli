@@ -108,7 +108,7 @@ static inline int sc_terminal_width(void) {
 }
 
 /**
- * Counts visible terminal columns in the first `byte_len` bytes of a UTF-8
+ * Counts visible terminal columns in the first `byte_length` bytes of a UTF-8
  * string.
  *
  * Must be used instead of `strlen()` whenever a display width for

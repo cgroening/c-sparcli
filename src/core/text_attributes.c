@@ -31,12 +31,12 @@ static const struct {
 };
 
 /**
- * Writes ANSI escape codes for all set flags in parameter `style` to stdout.
+ * Writes ANSI escape codes for all set flags in `attr` to stdout.
  *
  * Multiple flags may be combined:
  * `SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC` emits both codes in sequence.
  *
- * @param style  Bitmask of `SC_TEXT_ATTR_*` flags.
+ * @param attr  Bitmask of `SC_TEXT_ATTR_*` flags.
  */
 void sc_apply_style(ScTextAttribute attr) {
     if (!attr) { return; }
