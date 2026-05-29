@@ -8,7 +8,8 @@ ScInputStatus sc_password_input(
     ScTextStyle value_style = { 0 };  /* masked glyphs use the default color */
     return sc_text_entry(
         prompt, out, NULL, opts.placeholder, mask,
-        opts.prompt_style, value_style,
+        opts.prompt_style, value_style, opts.cursor_style,
+        opts.error_style, opts.summary_style, opts.hide_summary,
         opts.validate, opts.validate_ctx
     );
 }

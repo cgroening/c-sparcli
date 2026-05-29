@@ -13,11 +13,32 @@ SPARCLI_BEGIN_DECLS
  * @brief Interactive month-calendar date picker.
  */
 
+/**
+ * First column of the week. Zero-init selects the default (Monday); Sunday is
+ * an explicit value so it stays reachable (a bare `0` cannot mean both "unset"
+ * and "Sunday").
+ */
+typedef enum {
+    SC_WEEK_START_DEFAULT = 0, /**< Same as Monday. */
+    SC_WEEK_START_MONDAY  = 1,
+    SC_WEEK_START_SUNDAY  = 2,
+} ScWeekStart;
+
 /** Options for `sc_datepicker`. */
 typedef struct {
-    const char *prompt;     /**< Heading above the calendar; may be `NULL`. */
-    int         week_start; /**< 0 = Sunday, 1 = Monday (default). */
-    ScColor     accent;     /**< Highlight color for the selected day. */
+    const char *prompt;         /**< Heading above the calendar; may be `NULL`. */
+    ScWeekStart week_start;     /**< First weekday column; zero-init = Monday. */
+    ScColor     accent;         /**< Highlight color for the selected day. */
+    ScTextStyle prompt_style;   /**< Style of the heading; zero-init = bold. */
+    ScTextStyle header_style;   /**< Style of the "Month Year" line; zero-init =
+                                     bold in `accent`. */
+    ScTextStyle weekday_style;  /**< Style of the weekday row; zero-init = dim. */
+    ScTextStyle selected_style; /**< Style of the selected day; zero-init =
+                                     bold black-on-`accent`. */
+    const char *header_prev;    /**< Glyph left of the month; `NULL` = "‹". */
+    const char *header_next;    /**< Glyph right of the month; `NULL` = "›". */
+    ScTextStyle summary_style;  /**< Style of the persistent summary line. */
+    bool        hide_summary;   /**< Suppress the post-pick summary line. */
 } ScDatePickerOpts;
 
 /**

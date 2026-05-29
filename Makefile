@@ -90,17 +90,27 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_markup.c
 TEST_BIN = tests/output/test_main
 
-# ── Input test suite (tests/input/) — interactive, needs a real TTY ───────
-INPUT_TEST_SRC = tests/input/test_input_main.c \
-                 tests/input/test_confirm.c \
-                 tests/input/test_text_input.c \
-                 tests/input/test_password_input.c \
-                 tests/input/test_select.c \
-                 tests/input/test_fuzzy.c \
-                 tests/input/test_datepicker.c \
-                 tests/input/test_line_editor.c \
-                 tests/input/test_key_decode.c
-INPUT_TEST_BIN = tests/input/test_input_main
+# ── Input logic + widget suite (tests/input/logic/) — interactive ─────────
+# (`ARGS=--logic` runs only the non-interactive logic tests, suitable for CI.)
+INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
+                 tests/input/logic/test_confirm.c \
+                 tests/input/logic/test_text_input.c \
+                 tests/input/logic/test_password_input.c \
+                 tests/input/logic/test_select.c \
+                 tests/input/logic/test_fuzzy.c \
+                 tests/input/logic/test_datepicker.c \
+                 tests/input/logic/test_line_editor.c \
+                 tests/input/logic/test_key_decode.c
+INPUT_TEST_BIN = tests/input/logic/test_input_main
+
+# ── Input style snapshot suite (tests/input/style/) — non-interactive ─────
+STYLE_TEST_SRC = tests/input/style/test_style_main.c \
+                 tests/input/style/test_style_confirm.c \
+                 tests/input/style/test_style_text.c \
+                 tests/input/style/test_style_select.c \
+                 tests/input/style/test_style_fuzzy.c \
+                 tests/input/style/test_style_datepicker.c
+STYLE_TEST_BIN = tests/input/style/test_style_main
 
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
 EXAMPLES_BUILDDIR = build.examples.nosync
@@ -109,7 +119,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 
 HEADERS = $(shell find include -name '*.h')
 
-.PHONY: all test test-input clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-input test-input-style clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -147,6 +157,12 @@ test: $(LIB)
 test-input: $(LIB)
 	$(CC) $(CFLAGS) $(INPUT_TEST_SRC) $(LIB) $(LDFLAGS) -o $(INPUT_TEST_BIN)
 	./$(INPUT_TEST_BIN) $(ARGS)
+
+# Non-interactive style snapshot runner: renders every widget in many styles.
+# Safe to run anywhere (no TTY required).
+test-input-style: $(LIB)
+	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
+	./$(STYLE_TEST_BIN) $(ARGS)
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.
 # Uses a separate build tree and a separate .a so it never contaminates the
@@ -207,4 +223,4 @@ clean:
 	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) $(EXAMPLES_BUILDDIR) \
 	       $(LIB) $(SANITIZE_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
-	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(SANITIZE_TEST_BIN)
+	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) $(SANITIZE_TEST_BIN)

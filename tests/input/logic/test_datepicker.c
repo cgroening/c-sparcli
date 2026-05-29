@@ -8,7 +8,8 @@ void test_datepicker(void) {
     struct tm picked = { 0 };  /* zeroed → seeds today */
     ScInputStatus st = sc_datepicker(
         &picked,
-        (ScDatePickerOpts){ .prompt = "Pick a date", .week_start = 1,
+        (ScDatePickerOpts){ .prompt = "Pick a date",
+                            .week_start = SC_WEEK_START_MONDAY,
                             .accent = SC_ANSI_COLOR_BLUE }
     );
 

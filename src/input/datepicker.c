@@ -6,10 +6,11 @@
 
 
 typedef struct {
-    struct tm cur;     /* the viewed/selected date */
-    int       week_start;
-    ScColor   accent;
-    const char *prompt;
+    struct tm        cur;        /* the viewed/selected date */
+    int              week_start;
+    ScColor          accent;
+    const char      *prompt;
+    ScDatePickerOpts opts;
 } DateState;
 
 static const char *MONTHS[] = {
@@ -62,26 +63,37 @@ static ScRendered *date_render(void *state) {
     int sel  = s->cur.tm_mday;
     int lead = (first_weekday(s->cur) - s->week_start + 7) % 7;
 
+    ScTextStyle prompt_st = sc_style_set(s->opts.prompt_style)
+        ? s->opts.prompt_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle header_st = sc_style_set(s->opts.header_style)
+        ? s->opts.header_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, s->accent, SC_ANSI_COLOR_NONE };
+    ScTextStyle weekday_st = sc_style_set(s->opts.weekday_style)
+        ? s->opts.weekday_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScTextStyle selected_st = sc_style_set(s->opts.selected_style)
+        ? s->opts.selected_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, s->accent };
+    const char *prev = s->opts.header_prev ? s->opts.header_prev : "\xe2\x80\xb9"; /* ‹ */
+    const char *next = s->opts.header_next ? s->opts.header_next : "\xe2\x80\xba"; /* › */
+
     ScText *t = sc_text_new();
     if (!t) { return NULL; }
 
     if (s->prompt) {
-        sc_text_append(t, s->prompt, (ScTextStyle){ SC_TEXT_ATTR_BOLD,
-                       SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+        sc_text_append(t, s->prompt, prompt_st);
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
     }
 
-    char header[64];
-    snprintf(header, sizeof header, "  \xe2\x80\xb9 %s %d \xe2\x80\xba",
-             MONTHS[mon0], year);          /* ‹ Month Year › */
-    sc_text_append(t, header, (ScTextStyle){ SC_TEXT_ATTR_BOLD, s->accent,
-                   SC_ANSI_COLOR_NONE });
+    char header[96];
+    snprintf(header, sizeof header, "  %s %s %d %s", prev, MONTHS[mon0], year, next);
+    sc_text_append(t, header, header_st);
     sc_text_append(t, "\n", (ScTextStyle){ 0 });
 
     /* Weekday header row. */
-    ScTextStyle dimst = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
     for (int c = 0; c < 7; c++) {
-        sc_text_append(t, WDAYS[(s->week_start + c) % 7], dimst);
+        sc_text_append(t, WDAYS[(s->week_start + c) % 7], weekday_st);
         if (c < 6) { sc_text_append(t, " ", (ScTextStyle){ 0 }); }
     }
     sc_text_append(t, "\n", (ScTextStyle){ 0 });
@@ -96,8 +108,7 @@ static ScRendered *date_render(void *state) {
         char cell[8];
         snprintf(cell, sizeof cell, "%2d", day);
         if (day == sel) {
-            ScTextStyle hl = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, s->accent };
-            sc_text_append(t, cell, hl);
+            sc_text_append(t, cell, selected_st);
         } else {
             sc_text_append(t, cell, (ScTextStyle){ 0 });
         }
@@ -134,26 +145,31 @@ static void date_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     }
 }
 
-ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
-    if (!io) { return SC_INPUT_ERROR; }
-
+/** Builds a DateState; a zeroed/NULL `seed` starts at today. */
+static DateState make_state(const struct tm *seed, ScDatePickerOpts opts) {
     DateState s = {
-        .week_start = (opts.week_start == 0) ? 1 : opts.week_start,  /* default Mon */
+        /* Internal offset into WDAYS[] (0 = Sunday, 1 = Monday). */
+        .week_start = (opts.week_start == SC_WEEK_START_SUNDAY) ? 0 : 1,
         .accent     = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN,
         .prompt     = opts.prompt,
+        .opts       = opts,
     };
-
-    /* A zeroed struct tm seeds today; otherwise honor the caller's date. */
-    if (io->tm_year == 0 && io->tm_mon == 0 && io->tm_mday == 0) {
+    if (!seed || (seed->tm_year == 0 && seed->tm_mon == 0 && seed->tm_mday == 0)) {
         time_t now = time(NULL);
         struct tm *lt = localtime(&now);
         if (lt) { s.cur = *lt; }
     } else {
-        s.cur = *io;
+        s.cur = *seed;
     }
     s.cur.tm_hour = 12;
     mktime(&s.cur);
+    return s;
+}
 
+ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
+    if (!io) { return SC_INPUT_ERROR; }
+
+    DateState s = make_state(io, opts);
     ScPromptVTable vt = { .render = date_render, .on_key = date_on_key };
     ScInputStatus status = sc_prompt_run(&vt, &s);
 
@@ -161,9 +177,18 @@ ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
         s.cur.tm_hour = 0; s.cur.tm_min = 0; s.cur.tm_sec = 0;
         mktime(&s.cur);
         *io = s.cur;
-        char buf[64];
-        strftime(buf, sizeof buf, "%Y-%m-%d", &s.cur);
-        printf("? %s %s\n", opts.prompt ? opts.prompt : "Date", buf);
+        if (!opts.hide_summary) {
+            char buf[64], line[128];
+            strftime(buf, sizeof buf, "%Y-%m-%d", &s.cur);
+            snprintf(line, sizeof line, "? %s %s",
+                     opts.prompt ? opts.prompt : "Date", buf);
+            sc_println(line, opts.summary_style);
+        }
     }
     return status;
+}
+
+ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts) {
+    DateState s = make_state(seed, opts);
+    return date_render(&s);
 }

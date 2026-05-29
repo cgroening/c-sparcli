@@ -24,13 +24,18 @@ typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out)
 
 /** Options for `sc_text_input`. */
 typedef struct {
-    const char  *initial;      /**< Pre-filled value; `NULL` = empty. */
-    const char  *placeholder;  /**< Dim hint shown while empty; may be `NULL`. */
-    ScTextStyle  prompt_style; /**< Style for the prompt label. */
-    ScTextStyle  value_style;  /**< Style for the entered value. */
-    int          width;        /**< Field width in columns; 0 = terminal width. */
-    ScValidateFn validate;     /**< Optional validator; may be `NULL`. */
-    void        *validate_ctx; /**< Opaque pointer passed to `validate`. */
+    const char  *initial;       /**< Pre-filled value; `NULL` = empty. */
+    const char  *placeholder;   /**< Dim hint shown while empty; may be `NULL`. */
+    ScTextStyle  prompt_style;  /**< Style for the prompt label. */
+    ScTextStyle  value_style;   /**< Style for the entered value. */
+    ScTextStyle  cursor_style;  /**< Style of the cursor cell; zero-init =
+                                     black-on-white. */
+    ScTextStyle  error_style;   /**< Style of the validation error line; zero-init = red. */
+    ScTextStyle  summary_style; /**< Style of the persistent summary line. */
+    bool         hide_summary;  /**< Suppress the post-entry summary line. */
+    int          width;         /**< Field width in columns; 0 = terminal width. */
+    ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
+    void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScTextInputOpts;
 
 /**
@@ -49,12 +54,17 @@ SPARCLI_EXPORT ScInputStatus sc_text_input(
 
 /** Options for `sc_password_input`. */
 typedef struct {
-    const char  *placeholder;  /**< Dim hint shown while empty; may be `NULL`. */
-    const char  *mask;         /**< Glyph per character; `NULL` = "*". Empty
-                                    string ("") hides the length entirely. */
-    ScTextStyle  prompt_style; /**< Style for the prompt label. */
-    ScValidateFn validate;     /**< Optional validator; may be `NULL`. */
-    void        *validate_ctx; /**< Opaque pointer passed to `validate`. */
+    const char  *placeholder;   /**< Dim hint shown while empty; may be `NULL`. */
+    const char  *mask;          /**< Glyph per character; `NULL` = "*". Empty
+                                     string ("") hides the length entirely. */
+    ScTextStyle  prompt_style;  /**< Style for the prompt label. */
+    ScTextStyle  cursor_style;  /**< Style of the cursor cell; zero-init =
+                                     black-on-white. */
+    ScTextStyle  error_style;   /**< Style of the validation error line; zero-init = red. */
+    ScTextStyle  summary_style; /**< Style of the persistent summary line. */
+    bool         hide_summary;  /**< Suppress the post-entry summary line. */
+    ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
+    void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScPasswordOpts;
 
 /**

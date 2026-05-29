@@ -7,11 +7,13 @@ feature-rich tables, horizontal rules, and multi-column side-by-side layouts.
 
 ```sh
 make            # builds libsparcli.a + shared lib + pkg-config
-make test       # compiles and runs the OUTPUT suite (tests/output/test_main)
-make test-input # compiles and runs the INPUT suite (tests/input/) — interactive,
-                # needs a real TTY. `make test-input ARGS=--logic` runs only the
-                # non-interactive logic tests (key decoder, line editor) for CI.
-make clean      # removes build trees, .a, shared libs, test binaries
+make test         # OUTPUT suite (tests/output/test_main)
+make test-input   # INPUT logic+widget suite (tests/input/logic/) — interactive,
+                  # needs a real TTY. `ARGS=--logic` runs only the non-interactive
+                  # logic tests (key decoder, line editor) for CI.
+make test-input-style # INPUT style snapshots (tests/input/style/) — NON-interactive:
+                  # renders every widget in many styles; safe in CI.
+make clean        # removes build trees, .a, shared libs, test binaries
 ```
 
 Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`
@@ -31,7 +33,7 @@ src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, confirm, text_input,
               password_input, select, fuzzy, datepicker
 include/core/    include/output/    include/input/      (sparcli.h stays at root)
-tests/output/    tests/input/
+tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
 ```
 
 Public headers live in `include/{core,output,input}/`; cross-includes use
@@ -591,8 +593,44 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
   `<`/`>` change month; zeroed `struct tm` seeds today.
 
-`ScConfirmOpts`/`ScSelectOpts`/`ScFuzzyOpts`/`ScDatePickerOpts` default their
-`accent` color when zero-init (`index == 0`).
+### Styling (all opts fields are zero-init-friendly)
+
+Every visual element is configurable through the widget's `Sc*Opts`; a
+zero-init field selects the built-in default, so existing zero-init callers are
+unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
+"caller-supplied vs default" for each `ScTextStyle`; glyph fields fall back when
+`NULL`.
+
+- **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget
+  `cursor_style` (text/password/fuzzy editor cell; default black-on-white),
+  `error_style` (text/password; default red), `selected_style` (select/fuzzy
+  cursor row), `prompt_style`/`counter_style` (fuzzy), `prompt_style`/
+  `header_style`/`weekday_style`/`selected_style` (datepicker), and a
+  `summary_style` on every widget.
+- **Glyphs:** `cursor_marker`/`marker` and `checkbox_on`/`checkbox_off`
+  (select), `cursor_marker`/`marker` (fuzzy list), `header_prev`/`header_next`
+  (datepicker).
+- **Summary line:** printed via `sc_println` over `sc_output_stream` (styled by
+  `summary_style`); set `hide_summary = true` to suppress it entirely.
+- **Fuzzy table view:** `ScFuzzyOpts.table_opts` is passed through to the table
+  renderer (border, header, padding, …); the cursor row is highlighted with
+  `accent` regardless. Zero-init `table_opts` → single border + bold header.
+- **Week start:** `ScDatePickerOpts.week_start` is an `ScWeekStart` enum
+  (`SC_WEEK_START_DEFAULT`=Monday, `…_MONDAY`, `…_SUNDAY`) — a plain `0` cannot
+  mean both "unset" and "Sunday", so Sunday is an explicit value.
+
+`accent` itself defaults per widget when zero-init (`index == 0`): green
+(confirm), cyan (select/fuzzy/datepicker).
+
+### Style snapshot tests
+
+Each widget exposes an **internal** frame builder (`sc_confirm_frame`,
+`sc_text_entry_frame`, `sc_select_frame`, `sc_fuzzy_frame`,
+`sc_datepicker_frame`; decls in `input_internal.h`) that runs the normal render
+path over a constructed state and returns the captured `ScRendered`. The
+`tests/input/style/` suite uses these to print every widget in many styles
+**without a TTY** (`make test-input-style`); `sc_pad_print` writes the frame to
+`sc_output_stream`.
 
 ## Internal Helpers (`src/internal.h`)
 

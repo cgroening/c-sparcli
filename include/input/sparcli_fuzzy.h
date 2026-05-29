@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/sparcli_core.h"
+#include "output/sparcli_table.h"
 #include "input/sparcli_term.h"
 
 #include <stddef.h>
@@ -20,12 +21,25 @@ SPARCLI_BEGIN_DECLS
 
 /** Options for a fuzzy finder. */
 typedef struct {
-    const char        *prompt;      /**< Search-field label; `NULL` = "Search". */
-    int                max_visible; /**< Max result rows shown; 0 = 10. */
-    ScColor            accent;      /**< Highlight color for the cursor row. */
-    bool               table;       /**< Render results as a table. */
-    const char *const *headers;     /**< Column headers (table view). */
-    size_t             n_cols;      /**< Number of columns (table view). */
+    const char        *prompt;        /**< Search-field label; `NULL` = "Search". */
+    int                max_visible;   /**< Max result rows shown; 0 = 10. */
+    ScColor            accent;        /**< Highlight color for the cursor row. */
+    bool               table;         /**< Render results as a table. */
+    const char *const *headers;       /**< Column headers (table view). */
+    size_t             n_cols;        /**< Number of columns (table view). */
+
+    /* Styling (all zero-init = current defaults). */
+    ScTextStyle        prompt_style;  /**< Search label; zero-init = bold in `accent`. */
+    ScTextStyle        selected_style;/**< List cursor row; zero-init = bold in `accent`. */
+    ScTextStyle        cursor_style;  /**< Query cursor cell; zero-init = black-on-white. */
+    ScTextStyle        counter_style; /**< "(n/total)" counter; zero-init = dim. */
+    const char        *cursor_marker; /**< List cursor prefix; `NULL` = "‣ ". */
+    const char        *marker;        /**< Other-row prefix;   `NULL` = "  ". */
+    ScTableOpts        table_opts;    /**< Table-view opts (table mode); zero-init =
+                                           single border + bold header. The cursor row
+                                           is highlighted with `accent` regardless. */
+    ScTextStyle        summary_style; /**< Style of the persistent summary line. */
+    bool               hide_summary;  /**< Suppress the post-pick summary line. */
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */

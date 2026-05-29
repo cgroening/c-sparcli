@@ -19,6 +19,17 @@
  */
 
 
+/**
+ * Returns `true` when a style carries any formatting. Used by every widget
+ * to decide whether a caller-supplied `*_style` overrides the built-in
+ * default (zero-init `ScTextStyle` = "use default"). Self-contained so the
+ * input layer needs no `internal.h` dependency.
+ */
+static inline bool sc_style_set(ScTextStyle s) {
+    return s.attr != 0 || s.fg.index != 0 || s.bg.index != 0;
+}
+
+
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
 
 /**
@@ -76,13 +87,15 @@ bool sc_le_handle(ScLineEditor *e, ScKey key);
  * Appends the editor content to `text` as styled spans, including a
  * reverse-style block at the cursor position.
  *
+ * @param cursor_style       Style of the cursor cell; when unset (zero-init)
+ *                           falls back to black-on-white.
  * @param mask               When non-NULL, every character is rendered as
  *                           this glyph (password masking); "" hides content.
  * @param placeholder        Shown dim when the buffer is empty; may be NULL.
  */
 void sc_le_render_into(
     const ScLineEditor *e, ScText *text,
-    ScTextStyle value_style, const char *mask,
+    ScTextStyle value_style, ScTextStyle cursor_style, const char *mask,
     const char *placeholder, ScTextStyle placeholder_style
 );
 
@@ -98,6 +111,28 @@ void sc_le_render_into(
 ScInputStatus sc_text_entry(
     const char *prompt, char **out,
     const char *initial, const char *placeholder, const char *mask,
-    ScTextStyle prompt_style, ScTextStyle value_style,
+    ScTextStyle prompt_style, ScTextStyle value_style, ScTextStyle cursor_style,
+    ScTextStyle error_style, ScTextStyle summary_style, bool hide_summary,
     bool (*validate)(const char *, void *, const char **), void *validate_ctx
 );
+
+
+/* ── Snapshot frame builders (used by the non-interactive style tests) ───── */
+
+/**
+ * Each widget exposes a frame builder that runs its normal render path over
+ * a constructed state and returns the captured `ScRendered`, so style tests
+ * can show a widget in a given style without entering the interactive loop.
+ * Print the result with `sc_pad_print(r, (ScPadOpts){0})`; free with
+ * `sc_rendered_free`.
+ */
+ScRendered *sc_confirm_frame(const char *question, bool yes, ScConfirmOpts opts);
+ScRendered *sc_text_entry_frame(
+    const char *prompt, const char *value, const char *placeholder,
+    const char *mask, ScTextStyle prompt_style, ScTextStyle value_style,
+    ScTextStyle cursor_style
+);
+ScRendered *sc_select_frame(ScSelect *select);
+void        sc_select_check(ScSelect *select, size_t index, bool on);
+ScRendered *sc_fuzzy_frame(ScFuzzy *fuzzy, const char *query);
+ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);

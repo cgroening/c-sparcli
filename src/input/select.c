@@ -73,19 +73,25 @@ static ScRendered *select_render(void *state) {
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
     }
 
+    ScTextStyle sel = sc_style_set(s->opts.selected_style)
+        ? s->opts.selected_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, s->accent, SC_ANSI_COLOR_NONE };
+    const char *cur_mk = s->opts.cursor_marker ? s->opts.cursor_marker : "\xe2\x80\xa3 ";
+    const char *mk     = s->opts.marker        ? s->opts.marker        : "  ";
+    const char *cb_on  = s->opts.checkbox_on   ? s->opts.checkbox_on   : "[x] ";
+    const char *cb_off = s->opts.checkbox_off  ? s->opts.checkbox_off  : "[ ] ";
+
     size_t visible = (size_t)s->max_visible;
     size_t end = s->top + visible;
     if (end > s->count) { end = s->count; }
 
     for (size_t i = s->top; i < end; i++) {
         bool on_cursor = (i == s->cursor);
-        ScTextStyle row = on_cursor
-            ? (ScTextStyle){ SC_TEXT_ATTR_BOLD, s->accent, SC_ANSI_COLOR_NONE }
-            : (ScTextStyle){ 0 };
+        ScTextStyle row = on_cursor ? sel : (ScTextStyle){ 0 };
 
-        sc_text_append(t, on_cursor ? "\xe2\x80\xa3 " : "  ", row);  /* ‣ */
+        sc_text_append(t, on_cursor ? cur_mk : mk, row);
         if (s->opts.multi) {
-            sc_text_append(t, s->checked[i] ? "[x] " : "[ ] ", row);
+            sc_text_append(t, s->checked[i] ? cb_on : cb_off, row);
         }
         sc_text_append(t, s->items[i], row);
         if (i + 1 < end) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
@@ -131,18 +137,26 @@ ScInputStatus sc_select_run(ScSelect *s, size_t *indices, size_t *count_io) {
 
     size_t cap = *count_io;
     size_t written = 0;
+    const char *prompt = s->opts.prompt ? s->opts.prompt : "selection";
+    char summary[256];
     if (s->opts.multi) {
         for (size_t i = 0; i < s->count && written < cap; i++) {
             if (s->checked[i]) { indices[written++] = i; }
         }
-        printf("? %s — %zu selected\n",
-               s->opts.prompt ? s->opts.prompt : "selection", written);
+        snprintf(summary, sizeof summary, "? %s — %zu selected", prompt, written);
     } else {
         if (cap >= 1) { indices[0] = s->cursor; written = 1; }
-        printf("? %s %s\n",
-               s->opts.prompt ? s->opts.prompt : "selection",
-               s->items[s->cursor]);
+        snprintf(summary, sizeof summary, "? %s %s", prompt, s->items[s->cursor]);
     }
+    if (!s->opts.hide_summary) { sc_println(summary, s->opts.summary_style); }
     *count_io = written;
     return SC_INPUT_OK;
+}
+
+ScRendered *sc_select_frame(ScSelect *s) {
+    return select_render(s);
+}
+
+void sc_select_check(ScSelect *s, size_t index, bool on) {
+    if (s && index < s->count) { s->checked[index] = on; }
 }

@@ -129,12 +129,13 @@ bool sc_le_handle(ScLineEditor *e, ScKey key) {
 
 /* ── Rendering ──────────────────────────────────────────────────────────── */
 
-/** Style of the block drawn at the cursor: inverse-ish (white bg). */
-static ScTextStyle cursor_style(ScTextStyle base) {
-    ScTextStyle s = base;
-    s.fg = SC_ANSI_COLOR_BLACK;
-    s.bg = SC_ANSI_COLOR_WHITE;
-    return s;
+/**
+ * Resolves the cursor-cell style: the caller-supplied `override` when it
+ * carries formatting, otherwise the default inverse-ish black-on-white.
+ */
+static ScTextStyle resolve_cursor_style(ScTextStyle override) {
+    if (sc_style_set(override)) { return override; }
+    return (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_WHITE };
 }
 
 /**
@@ -166,11 +167,13 @@ static void append_segment(
 
 void sc_le_render_into(
     const ScLineEditor *e, ScText *text,
-    ScTextStyle value_style, const char *mask,
+    ScTextStyle value_style, ScTextStyle cursor_style, const char *mask,
     const char *placeholder, ScTextStyle placeholder_style
 ) {
+    ScTextStyle cur = resolve_cursor_style(cursor_style);
+
     if (e->len == 0) {
-        sc_text_append(text, " ", cursor_style(value_style));  /* cursor */
+        sc_text_append(text, " ", cur);  /* cursor */
         if (placeholder && placeholder[0]) {
             sc_text_append(text, placeholder, placeholder_style);
         }
@@ -184,18 +187,18 @@ void sc_le_render_into(
     if (e->cursor < e->len) {
         size_t end = next_boundary(e->buf, e->len, e->cursor);
         if (mask && mask[0]) {
-            sc_text_append(text, mask, cursor_style(value_style));
+            sc_text_append(text, mask, cur);
         } else if (mask && mask[0] == '\0') {
-            sc_text_append(text, " ", cursor_style(value_style));
+            sc_text_append(text, " ", cur);
         } else {
             char glyph[8];
             size_t n = end - e->cursor;
             memcpy(glyph, e->buf + e->cursor, n);
             glyph[n] = '\0';
-            sc_text_append(text, glyph, cursor_style(value_style));
+            sc_text_append(text, glyph, cur);
         }
         append_segment(text, e->buf, end, e->len, mask, value_style);
     } else {
-        sc_text_append(text, " ", cursor_style(value_style));  /* at end */
+        sc_text_append(text, " ", cur);  /* at end */
     }
 }

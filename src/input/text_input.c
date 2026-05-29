@@ -12,6 +12,8 @@ typedef struct {
     const char  *mask;
     ScTextStyle  prompt_style;
     ScTextStyle  value_style;
+    ScTextStyle  cursor_style;
+    ScTextStyle  error_style;
     bool (*validate)(const char *, void *, const char **);
     void        *validate_ctx;
     const char  *error;   /* current validation error, or NULL */
@@ -34,10 +36,13 @@ static ScRendered *text_render(void *state) {
     sc_text_append(t, " ", (ScTextStyle){ 0 });
 
     ScTextStyle ph = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    sc_le_render_into(&s->ed, t, s->value_style, s->mask, s->placeholder, ph);
+    sc_le_render_into(&s->ed, t, s->value_style, s->cursor_style, s->mask,
+                      s->placeholder, ph);
 
     if (s->error) {
-        ScTextStyle err = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE };
+        ScTextStyle err = sc_style_set(s->error_style)
+            ? s->error_style
+            : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE };
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
         sc_text_append(t, "  ", (ScTextStyle){ 0 });
         sc_text_append(t, s->error, err);
@@ -68,10 +73,25 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     }
 }
 
+/** Prints the persistent summary line (value masked for secrets). */
+static void print_summary(
+    const char *prompt, const char *value, const char *mask,
+    ScTextStyle summary_style
+) {
+    const char *shown = mask ? "********" : value;
+    size_t n = strlen(prompt) + strlen(shown) + 2;
+    char  *line = malloc(n);
+    if (!line) { return; }
+    snprintf(line, n, "%s %s", prompt, shown);
+    sc_println(line, summary_style);
+    free(line);
+}
+
 ScInputStatus sc_text_entry(
     const char *prompt, char **out,
     const char *initial, const char *placeholder, const char *mask,
-    ScTextStyle prompt_style, ScTextStyle value_style,
+    ScTextStyle prompt_style, ScTextStyle value_style, ScTextStyle cursor_style,
+    ScTextStyle error_style, ScTextStyle summary_style, bool hide_summary,
     bool (*validate)(const char *, void *, const char **), void *validate_ctx
 ) {
     if (!prompt || !out) { return SC_INPUT_ERROR; }
@@ -82,6 +102,8 @@ ScInputStatus sc_text_entry(
         .mask         = mask,
         .prompt_style = prompt_style,
         .value_style  = value_style,
+        .cursor_style = cursor_style,
+        .error_style  = error_style,
         .validate     = validate,
         .validate_ctx = validate_ctx,
         .error        = NULL,
@@ -95,21 +117,40 @@ ScInputStatus sc_text_entry(
     if (status == SC_INPUT_OK) {
         *out = dup_str(s.ed.buf);
         if (!*out) { status = SC_INPUT_ERROR; }
-        else if (mask) {
-            printf("%s ********\n", prompt);          /* never echo a secret */
-        } else {
-            printf("%s %s\n", prompt, s.ed.buf);
+        else if (!hide_summary) {
+            print_summary(prompt, s.ed.buf, mask, summary_style);
         }
     }
     sc_le_free(&s.ed);
     return status;
 }
 
+ScRendered *sc_text_entry_frame(
+    const char *prompt, const char *value, const char *placeholder,
+    const char *mask, ScTextStyle prompt_style, ScTextStyle value_style,
+    ScTextStyle cursor_style
+) {
+    TextState s = {
+        .prompt       = prompt,
+        .placeholder  = placeholder,
+        .mask         = mask,
+        .prompt_style = prompt_style,
+        .value_style  = value_style,
+        .cursor_style = cursor_style,
+        .error        = NULL,
+    };
+    sc_le_init(&s.ed, value);
+    ScRendered *r = text_render(&s);
+    sc_le_free(&s.ed);
+    return r;
+}
+
 ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts) {
     (void)opts.width;  /* reserved for future field-width truncation */
     return sc_text_entry(
         prompt, out, opts.initial, opts.placeholder, NULL,
-        opts.prompt_style, opts.value_style,
+        opts.prompt_style, opts.value_style, opts.cursor_style,
+        opts.error_style, opts.summary_style, opts.hide_summary,
         opts.validate, opts.validate_ctx
     );
 }

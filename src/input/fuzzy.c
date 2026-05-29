@@ -134,16 +134,20 @@ static ScRendered *render_query_line(ScFuzzy *f) {
     ScText *t = sc_text_new();
     if (!t) { return NULL; }
     const char *prompt = f->opts.prompt ? f->opts.prompt : "Search";
-    ScTextStyle ps = { SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE };
+    ScTextStyle ps = sc_style_set(f->opts.prompt_style)
+        ? f->opts.prompt_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE };
     sc_text_append(t, prompt, ps);
     sc_text_append(t, " ", (ScTextStyle){ 0 });
-    sc_le_render_into(&f->query, t, (ScTextStyle){ 0 }, NULL, NULL,
-                      (ScTextStyle){ 0 });
+    sc_le_render_into(&f->query, t, (ScTextStyle){ 0 }, f->opts.cursor_style,
+                      NULL, NULL, (ScTextStyle){ 0 });
 
     char counter[48];
     snprintf(counter, sizeof counter, "  (%zu/%zu)", f->match_n, f->count);
-    ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-    sc_text_append(t, counter, dim);
+    ScTextStyle cst = sc_style_set(f->opts.counter_style)
+        ? f->opts.counter_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    sc_text_append(t, counter, cst);
 
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
@@ -157,12 +161,16 @@ static ScRendered *render_list(ScFuzzy *f) {
     size_t end = f->top + visible;
     if (end > f->match_n) { end = f->match_n; }
 
+    ScTextStyle sel = sc_style_set(f->opts.selected_style)
+        ? f->opts.selected_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE };
+    const char *cur_mk = f->opts.cursor_marker ? f->opts.cursor_marker : "\xe2\x80\xa3 ";
+    const char *mk     = f->opts.marker        ? f->opts.marker        : "  ";
+
     for (size_t k = f->top; k < end; k++) {
         bool cur = (k == f->cursor);
-        ScTextStyle row = cur
-            ? (ScTextStyle){ SC_TEXT_ATTR_BOLD, f->accent, SC_ANSI_COLOR_NONE }
-            : (ScTextStyle){ 0 };
-        sc_text_append(t, cur ? "\xe2\x80\xa3 " : "  ", row);
+        ScTextStyle row = cur ? sel : (ScTextStyle){ 0 };
+        sc_text_append(t, cur ? cur_mk : mk, row);
         sc_text_append(t, f->rows[f->matches[k].idx][0], row);
         if (k + 1 < end) { sc_text_append(t, "\n", (ScTextStyle){ 0 }); }
     }
@@ -201,12 +209,17 @@ static ScRendered *render_table(ScFuzzy *f) {
         free(cells);
     }
 
-    ScTableOpts opts = {
-        .border = { .type = SC_BORDER_SINGLE },
-        .header = { .row = true,
-                    .style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE,
-                               SC_ANSI_COLOR_NONE } },
-    };
+    /* Start from the caller's table_opts; fill the original defaults only for
+     * the fields left zero-init, so callers can override border/header etc. */
+    ScTableOpts opts = f->opts.table_opts;
+    if (opts.border.type == SC_BORDER_NONE) { opts.border.type = SC_BORDER_SINGLE; }
+    if (!opts.header.row) {
+        opts.header.row = true;
+        if (!sc_style_set(opts.header.style)) {
+            opts.header.style = (ScTextStyle){ SC_TEXT_ATTR_BOLD,
+                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        }
+    }
     ScRendered *r = sc_capture_table(tbl, opts);
     sc_table_free(tbl);
     return r;
@@ -265,9 +278,34 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index) {
     if (status == SC_INPUT_OK) {
         size_t ri = f->matches[f->cursor].idx;
         *out_index = ri;
-        printf("? %s %s\n", f->opts.prompt ? f->opts.prompt : "Search",
-               f->rows[ri][0]);
+        if (!f->opts.hide_summary) {
+            const char *prompt = f->opts.prompt ? f->opts.prompt : "Search";
+            size_t n = strlen(prompt) + strlen(f->rows[ri][0]) + 4;
+            char  *line = malloc(n);
+            if (line) {
+                snprintf(line, n, "? %s %s", prompt, f->rows[ri][0]);
+                sc_println(line, f->opts.summary_style);
+                free(line);
+            }
+        }
     }
     sc_le_free(&f->query);
     return status;
+}
+
+ScRendered *sc_fuzzy_frame(ScFuzzy *f, const char *query) {
+    if (!f || f->count == 0) { return NULL; }
+    sc_le_init(&f->query, query);
+    f->matches = malloc(f->count * sizeof *f->matches);
+    if (!f->query.buf || !f->matches) {
+        sc_le_free(&f->query);
+        free(f->matches); f->matches = NULL;
+        return NULL;
+    }
+    f->cursor = 0; f->top = 0;
+    refilter(f);
+    ScRendered *r = fuzzy_render(f);
+    sc_le_free(&f->query);
+    free(f->matches); f->matches = NULL;
+    return r;
 }
