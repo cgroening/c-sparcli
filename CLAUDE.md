@@ -6,22 +6,42 @@ feature-rich tables, horizontal rules, and multi-column side-by-side layouts.
 ## Build
 
 ```sh
-make          # builds libsparcli.a
-make test     # compiles and runs tests/test_main
-make clean    # removes .o, .a, test binary
+make            # builds libsparcli.a + shared lib + pkg-config
+make test       # compiles and runs the OUTPUT suite (tests/output/test_main)
+make test-input # compiles and runs the INPUT suite (tests/input/) — interactive,
+                # needs a real TTY. `make test-input ARGS=--logic` runs only the
+                # non-interactive logic tests (key decoder, line editor) for CI.
+make clean      # removes build trees, .a, shared libs, test binaries
 ```
 
-Compiler: `cc -std=c11 -Wall -Wextra -Iinclude`
+Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`
 
-Source files in `SRC` (Makefile):
+### Directory layout
+
+Sources are grouped by concern. The **output/input boundary is physical**:
+`src/output` (and `core`) is stream-oriented and writes through the
+redirectable `sc_output_stream()`; `src/tty` + `src/input` are tty-oriented
+and drive a real terminal in raw mode (never `sc_output_stream`).
+
 ```
-src/text_attributes.c  src/panel.c  src/color.c  src/text.c
-src/table/table.c  src/columns.c  src/rule.c  src/tree.c  src/list.c
-src/progressbar.c  src/spinner.c
-src/kv.c  src/alert.c  src/badge.c  src/util.c  src/pad.c  src/markup.c
+src/core/     color, text, print, output(stream), render_wrap, version
+src/output/   panel, rule, list, tree, columns, kv, alert, badge,
+              progressbar, spinner, markup, pad, util, + table/
+src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
+src/input/    prompt (loop engine), line_editor, confirm, text_input,
+              password_input, select, fuzzy, datepicker
+include/core/    include/output/    include/input/      (sparcli.h stays at root)
+tests/output/    tests/input/
 ```
 
-When adding a new source file, append it to `SRC` in the Makefile.
+Public headers live in `include/{core,output,input}/`; cross-includes use
+**root-relative paths** (`#include "core/sparcli_core.h"`), resolved via
+`-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` is the
+input-only sub-umbrella. `#include <sparcli.h>` is unchanged for users; only
+direct single-header includes moved.
+
+When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC`
+in the Makefile. The build tree mirrors `src/` automatically.
 
 ---
 
@@ -505,6 +525,74 @@ sc_spinner_free(s);
 ```
 
 ---
+
+## Input Widgets
+
+Interactive prompts. **Tty-oriented**, not stream-oriented: they open
+`/dev/tty` (fallback stdin/stdout), enter raw mode, read decoded keys, and
+redraw in place — they do **not** go through `sc_output_stream()`. Every
+widget returns `ScInputStatus` (`SC_INPUT_OK` / `SC_INPUT_CANCELLED` /
+`SC_INPUT_ERROR`); Esc and Ctrl-C always cancel; non-TTY contexts return
+`SC_INPUT_ERROR` (so callers can fall back to a default). On `SC_INPUT_OK`
+the interactive region is erased and a one-line summary is printed in its
+place. Header: `input/sparcli_input.h` (in the `sparcli.h` umbrella).
+
+### Architecture
+
+All widgets are thin state machines over one engine, `sc_prompt_run`
+(`src/input/prompt.c`), which owns the raw-mode + draw/read/dispatch loop.
+Each widget supplies an `ScPromptVTable { render, on_key }`; `render` builds
+a frame as an `ScText` and `sc_capture_text`s it — so input reuses the entire
+output renderer stack as its view layer. Shared pieces: `ScLineEditor`
+(`line_editor.c`, UTF-8 cursor/insert/delete/word-kill) backs text/password
+inputs and the fuzzy query; the TTY layer (`src/tty/`) provides raw mode +
+signal-safe restore (`term.c`), the escape-sequence decoder (`key.c`), and
+the multi-line in-place redraw (`screen.c`).
+
+### Key decoding
+
+`sc_key_decode(buf, len, &key)` is a **pure, unit-tested** decoder
+(`ScKey { type, codepoint, bytes }`) handling control bytes, CSI/SS3
+sequences (arrows, Home/End, Delete, PageUp/Down, Shift-Tab) and multi-byte
+UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
+UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
+`SC_KEY_ESC` via a 25 ms poll timeout.
+
+### Widgets
+
+```c
+ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts);
+ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts);     /* *out heap; free */
+ScInputStatus sc_password_input(const char *prompt, char **out, ScPasswordOpts opts);  /* *out heap; free */
+ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts);                     /* io in/out */
+
+/* Opaque-handle widgets (variable items / per-run config) */
+ScSelect *sc_select_new(ScSelectOpts opts);            /* opts.multi = true → checkboxes */
+void      sc_select_add(ScSelect *s, const char *label);
+ScInputStatus sc_select_run(ScSelect *s, size_t *indices, size_t *count_io); /* count_io in:cap out:written */
+void      sc_select_free(ScSelect *s);
+
+ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n_cols → table view */
+void      sc_fuzzy_add(ScFuzzy *f, const char *label);
+void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* fields[0] = match key */
+ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
+void      sc_fuzzy_free(ScFuzzy *f);
+bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
+```
+
+- **TextInput/Password** share `sc_text_entry` (`text_input.c`); password is
+  the masked variant (`opts.mask`, default `"*"`). Both accept an optional
+  `validate` callback that keeps the prompt open and shows an error line.
+- **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
+  move, Space toggles in multi-select.
+- **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; table view builds an
+  `ScTableData` of the visible rows each frame (cursor row via row-bg) and
+  `sc_vstack`s it under the query line.
+- **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
+  `<`/`>` change month; zeroed `struct tm` seeds today.
+
+`ScConfirmOpts`/`ScSelectOpts`/`ScFuzzyOpts`/`ScDatePickerOpts` default their
+`accent` color when zero-init (`index == 0`).
 
 ## Internal Helpers (`src/internal.h`)
 

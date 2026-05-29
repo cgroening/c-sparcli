@@ -1,0 +1,169 @@
+#include "tty_internal.h"
+
+#include <poll.h>
+#include <string.h>
+#include <unistd.h>
+
+
+/** Number of bytes a UTF-8 lead byte announces (1–4); 0 = invalid lead. */
+static size_t utf8_seq_len(unsigned char lead) {
+    if ((lead & 0x80) == 0x00) { return 1; }
+    if ((lead & 0xE0) == 0xC0) { return 2; }
+    if ((lead & 0xF0) == 0xE0) { return 3; }
+    if ((lead & 0xF8) == 0xF0) { return 4; }
+    return 0;
+}
+
+/** Fills `out` as a printable char from a complete UTF-8 sequence. */
+static void make_char(ScKey *out, const char *buf, size_t n) {
+    const unsigned char *b = (const unsigned char *)buf;
+    uint32_t cp = 0;
+    switch (n) {
+        case 1: cp = b[0]; break;
+        case 2: cp = ((uint32_t)(b[0] & 0x1F) << 6) | (b[1] & 0x3F); break;
+        case 3: cp = ((uint32_t)(b[0] & 0x0F) << 12)
+                   | ((uint32_t)(b[1] & 0x3F) << 6) | (b[2] & 0x3F); break;
+        default: cp = ((uint32_t)(b[0] & 0x07) << 18)
+                   | ((uint32_t)(b[1] & 0x3F) << 12)
+                   | ((uint32_t)(b[2] & 0x3F) << 6) | (b[3] & 0x3F); break;
+    }
+    out->type      = SC_KEY_CHAR;
+    out->codepoint = cp;
+    memcpy(out->bytes, buf, n);
+    out->bytes[n] = '\0';
+}
+
+/**
+ * Parses a CSI/SS3 escape sequence beginning at `buf` (which starts with
+ * ESC). Returns bytes consumed, or 0 if the sequence is incomplete.
+ */
+static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
+    if (len < 2) { return 0; }              /* need at least ESC + 1 */
+    char kind = buf[1];
+    if (kind != '[' && kind != 'O') {
+        out->type = SC_KEY_ESC;             /* ESC + unrelated byte */
+        return 1;                           /* consume only the ESC */
+    }
+    if (len < 3) { return 0; }
+
+    /* SS3 (ESC O x): function-key encodings for Home/End on some terminals. */
+    if (kind == 'O') {
+        switch (buf[2]) {
+            case 'H': out->type = SC_KEY_HOME; return 3;
+            case 'F': out->type = SC_KEY_END;  return 3;
+            default:  out->type = SC_KEY_ESC;  return 1;
+        }
+    }
+
+    /* CSI (ESC [ …). Collect an optional numeric parameter. */
+    size_t i   = 2;
+    int    num = 0;
+    bool   has_num = false;
+    while (i < len && buf[i] >= '0' && buf[i] <= '9') {
+        has_num = true;
+        num     = num * 10 + (buf[i] - '0');
+        i++;
+    }
+    if (i >= len) { return 0; }             /* parameter not yet terminated */
+
+    char final = buf[i];
+    if (final == '~') {
+        switch (num) {
+            case 1: case 7: out->type = SC_KEY_HOME;     break;
+            case 3:         out->type = SC_KEY_DELETE;   break;
+            case 4: case 8: out->type = SC_KEY_END;      break;
+            case 5:         out->type = SC_KEY_PAGEUP;   break;
+            case 6:         out->type = SC_KEY_PAGEDOWN; break;
+            default:        out->type = SC_KEY_NONE;     break;
+        }
+        return i + 1;
+    }
+    if (!has_num) {
+        switch (final) {
+            case 'A': out->type = SC_KEY_UP;      return i + 1;
+            case 'B': out->type = SC_KEY_DOWN;    return i + 1;
+            case 'C': out->type = SC_KEY_RIGHT;   return i + 1;
+            case 'D': out->type = SC_KEY_LEFT;    return i + 1;
+            case 'H': out->type = SC_KEY_HOME;    return i + 1;
+            case 'F': out->type = SC_KEY_END;     return i + 1;
+            case 'Z': out->type = SC_KEY_BACKTAB; return i + 1;
+            default:  break;
+        }
+    }
+    out->type = SC_KEY_NONE;                /* unrecognized CSI */
+    return i + 1;
+}
+
+size_t sc_key_decode(const char *buf, size_t len, ScKey *out) {
+    out->type      = SC_KEY_NONE;
+    out->codepoint = 0;
+    out->bytes[0]  = '\0';
+    if (len == 0) { return 0; }
+
+    unsigned char c = (unsigned char)buf[0];
+    switch (c) {
+        case 0x1b: return decode_escape(buf, len, out);
+        case '\r': case '\n': out->type = SC_KEY_ENTER;     return 1;
+        case '\t':            out->type = SC_KEY_TAB;       return 1;
+        case 0x7f: case 0x08: out->type = SC_KEY_BACKSPACE; return 1;
+        case 0x01:            out->type = SC_KEY_CTRL_A;    return 1;
+        case 0x03:            out->type = SC_KEY_CTRL_C;    return 1;
+        case 0x04:            out->type = SC_KEY_CTRL_D;    return 1;
+        case 0x05:            out->type = SC_KEY_CTRL_E;    return 1;
+        case 0x0b:            out->type = SC_KEY_CTRL_K;    return 1;
+        case 0x15:            out->type = SC_KEY_CTRL_U;    return 1;
+        case 0x17:            out->type = SC_KEY_CTRL_W;    return 1;
+        default: break;
+    }
+    if (c < 0x20) { out->type = SC_KEY_NONE; return 1; }  /* skip other ctrls */
+
+    size_t need = utf8_seq_len(c);
+    if (need == 0)    { out->type = SC_KEY_NONE; return 1; } /* bad lead byte */
+    if (len < need)   { return 0; }                          /* incomplete    */
+    make_char(out, buf, need);
+    return need;
+}
+
+
+/* ── Buffered terminal reader ───────────────────────────────────────────── */
+
+ScKey sc_tty_read_key(void) {
+    static char   buf[64];
+    static size_t buf_len = 0;
+
+    int fd = sc_tty_internal_fd();
+    for (;;) {
+        ScKey  key;
+        size_t used = sc_key_decode(buf, buf_len, &key);
+        if (used > 0) {
+            memmove(buf, buf + used, buf_len - used);
+            buf_len -= used;
+            return key;
+        }
+        /* A lone ESC is ambiguous: it may begin an escape sequence whose
+         * remaining bytes are still in flight, or it may be the user pressing
+         * Escape. Wait briefly; if nothing more arrives, treat it as Esc. */
+        if (buf_len > 0 && (unsigned char)buf[0] == 0x1b) {
+            struct pollfd pfd = { .fd = fd, .events = POLLIN };
+            int pr = poll(&pfd, 1, 25 /* ms */);
+            if (pr == 0) {
+                memmove(buf, buf + 1, buf_len - 1);
+                buf_len -= 1;
+                ScKey esc = { .type = SC_KEY_ESC, .codepoint = 0, .bytes = {0} };
+                return esc;
+            }
+            if (pr < 0) {
+                ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
+                return none;
+            }
+        }
+        /* Incomplete sequence (or empty buffer): pull more bytes. */
+        if (buf_len == sizeof buf) { buf_len = 0; }  /* overflow guard */
+        ssize_t r = read(fd, buf + buf_len, sizeof buf - buf_len);
+        if (r <= 0) {
+            ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
+            return none;
+        }
+        buf_len += (size_t)r;
+    }
+}

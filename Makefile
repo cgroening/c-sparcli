@@ -33,16 +33,27 @@ else
     SHLIB_LDFLAGS := -shared -Wl,-soname,$(SHLIB_SONAME)
 endif
 
-SRC     = src/output.c src/version.c src/text_attributes.c src/print.c src/panel.c src/color.c src/text.c \
-          src/table/table.c \
-          src/table/table_print.c \
-          src/table/table_print_init.c \
-          src/table/table_print_render.c \
-          src/table/table_print_render_cell.c \
-          src/table/table_print_render_border.c \
-          src/table/table_print_render_row.c \
-          src/render_wrap.c \
-          src/columns.c src/rule.c src/tree.c src/list.c src/progressbar.c src/spinner.c src/kv.c src/alert.c src/badge.c src/util.c src/pad.c src/markup.c
+# ── Core (foundation: color, text, print, output stream, render) ──────────
+SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
+          src/core/print.c src/core/color.c src/core/text.c src/core/render_wrap.c \
+          \
+          src/output/panel.c \
+          src/output/table/table.c \
+          src/output/table/table_print.c \
+          src/output/table/table_print_init.c \
+          src/output/table/table_print_render.c \
+          src/output/table/table_print_render_cell.c \
+          src/output/table/table_print_render_border.c \
+          src/output/table/table_print_render_row.c \
+          src/output/columns.c src/output/rule.c src/output/tree.c src/output/list.c \
+          src/output/progressbar.c src/output/spinner.c src/output/kv.c src/output/alert.c \
+          src/output/badge.c src/output/util.c src/output/pad.c src/output/markup.c \
+          \
+          src/tty/term.c src/tty/key.c src/tty/screen.c \
+          \
+          src/input/prompt.c src/input/line_editor.c src/input/confirm.c \
+          src/input/text_input.c src/input/password_input.c src/input/select.c \
+          src/input/fuzzy.c src/input/datepicker.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 LIB               = libsparcli.a
@@ -57,35 +68,48 @@ SANITIZE_LIB      = libsparcli-sanitize.a
 SANITIZE_TEST_BIN = tests/test_main_sanitize
 SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
 
-TEST_SRC = tests/test_main.c \
-           tests/test_text_attributes.c \
-           tests/test_colors.c \
-           tests/test_columns_basic.c \
-           tests/test_panels.c \
-           tests/test_tables.c \
-           tests/test_columns.c \
-           tests/test_rules.c \
-           tests/test_trees.c \
-           tests/test_lists.c \
-           tests/test_progressbar.c \
-           tests/test_spinner.c \
-           tests/test_kv.c \
-           tests/test_alert.c \
-           tests/test_badge.c \
-           tests/test_util.c \
-           tests/test_pad.c \
-           tests/test_align.c \
-           tests/test_markup.c
-TEST_BIN = tests/test_main
+# ── Output test suite (tests/output/) — automatic, non-interactive ────────
+TEST_SRC = tests/output/test_main.c \
+           tests/output/test_text_attributes.c \
+           tests/output/test_colors.c \
+           tests/output/test_columns_basic.c \
+           tests/output/test_panels.c \
+           tests/output/test_tables.c \
+           tests/output/test_columns.c \
+           tests/output/test_rules.c \
+           tests/output/test_trees.c \
+           tests/output/test_lists.c \
+           tests/output/test_progressbar.c \
+           tests/output/test_spinner.c \
+           tests/output/test_kv.c \
+           tests/output/test_alert.c \
+           tests/output/test_badge.c \
+           tests/output/test_util.c \
+           tests/output/test_pad.c \
+           tests/output/test_align.c \
+           tests/output/test_markup.c
+TEST_BIN = tests/output/test_main
+
+# ── Input test suite (tests/input/) — interactive, needs a real TTY ───────
+INPUT_TEST_SRC = tests/input/test_input_main.c \
+                 tests/input/test_confirm.c \
+                 tests/input/test_text_input.c \
+                 tests/input/test_password_input.c \
+                 tests/input/test_select.c \
+                 tests/input/test_fuzzy.c \
+                 tests/input/test_datepicker.c \
+                 tests/input/test_line_editor.c \
+                 tests/input/test_key_decode.c
+INPUT_TEST_BIN = tests/input/test_input_main
 
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
 EXAMPLES_BUILDDIR = build.examples.nosync
 EXAMPLES_SRC      = $(wildcard examples/*.c)
 EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SRC))
 
-HEADERS = $(wildcard include/*.h)
+HEADERS = $(shell find include -name '*.h')
 
-.PHONY: all test clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-input clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -117,6 +141,12 @@ $(BUILDDIR):
 test: $(LIB)
 	$(CC) $(CFLAGS) $(TEST_SRC) $(LIB) $(LDFLAGS) -o $(TEST_BIN)
 	./$(TEST_BIN) $(ARGS)
+
+# Interactive input-widget test runner. Needs a real TTY, so it is a separate
+# target and is NOT part of `make test`. Run it directly in a terminal.
+test-input: $(LIB)
+	$(CC) $(CFLAGS) $(INPUT_TEST_SRC) $(LIB) $(LDFLAGS) -o $(INPUT_TEST_BIN)
+	./$(INPUT_TEST_BIN) $(ARGS)
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.
 # Uses a separate build tree and a separate .a so it never contaminates the
@@ -158,7 +188,11 @@ install: $(LIB) $(SHLIB) $(PC_FILE)
 	cd "$(DESTDIR)$(LIBDIR)" && \
 	    ln -sf $(SHLIB) $(SHLIB_SONAME) && \
 	    ln -sf $(SHLIB_SONAME) $(SHLIB_LINK)
-	install -m 644 $(HEADERS) "$(DESTDIR)$(INCLUDEDIR)/"
+	for h in $(HEADERS); do \
+	    rel=$${h#include/}; \
+	    install -d "$(DESTDIR)$(INCLUDEDIR)/$$(dirname $$rel)"; \
+	    install -m 644 $$h "$(DESTDIR)$(INCLUDEDIR)/$$rel"; \
+	done
 	install -m 644 $(PC_FILE) "$(DESTDIR)$(PKGCONFIGDIR)/"
 
 uninstall:
@@ -167,10 +201,10 @@ uninstall:
 	rm -f "$(DESTDIR)$(LIBDIR)/$(SHLIB_SONAME)"
 	rm -f "$(DESTDIR)$(LIBDIR)/$(SHLIB_LINK)"
 	rm -f "$(DESTDIR)$(PKGCONFIGDIR)/$(PC_FILE)"
-	for h in $(HEADERS); do rm -f "$(DESTDIR)$(INCLUDEDIR)/$$(basename $$h)"; done
+	for h in $(HEADERS); do rm -f "$(DESTDIR)$(INCLUDEDIR)/$${h#include/}"; done
 
 clean:
 	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) $(EXAMPLES_BUILDDIR) \
 	       $(LIB) $(SANITIZE_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
-	       $(PC_FILE) $(TEST_BIN) $(SANITIZE_TEST_BIN)
+	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(SANITIZE_TEST_BIN)
