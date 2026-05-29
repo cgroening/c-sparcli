@@ -7,19 +7,31 @@ feature-rich tables, horizontal rules, and multi-column side-by-side layouts.
 
 ```sh
 make            # builds libsparcli.a + shared lib + pkg-config
-make test         # OUTPUT suite (tests/output/test_main)
+make test         # FULL non-interactive suite: chains the four headless gates
+                  # below (test-output-check, test-input ARGS=--logic,
+                  # test-input-style-check, test-input-pty). The canonical check.
+make test-output  # OUTPUT gallery (tests/output/test_main), printed for eyeballing.
+                  # ARGS=--focus / --no-animated (and the combo).
+make test-output-check / -golden   # OUTPUT golden-file diff / regenerate snapshot
 make test-input   # INPUT logic+widget suite (tests/input/logic/) — interactive,
                   # needs a real TTY. `ARGS=--logic` runs only the non-interactive
-                  # logic tests (key decoder, line editor) for CI.
+                  # logic tests (key decoder, line editor, filters, threads) for CI.
 make test-input-style # INPUT style snapshots (tests/input/style/) — NON-interactive:
                   # renders every widget in many styles; safe in CI.
+make test-input-style-check / -golden  # style golden-file diff / regenerate
 make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
                   # widget onto a pseudo-terminal and feeds canned keys — gives
                   # interactive coverage with no human. Runs headless (CI).
+make sanitize     # OUTPUT suite under ASan/UBSan
+make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
+make examples / run-example EX=<name>   # build all / build+run one examples/*.c
 make clean        # removes build trees, .a, shared libs, test binaries
 ```
 
-Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`
+Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`. The build tracks header
+dependencies (`-MMD -MP`), so editing a header rebuilds dependents without
+`make clean`. Golden-file tests (`*-check`) diff rendered output against
+committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
 
 ### Directory layout
 

@@ -225,8 +225,9 @@ tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
 
 ```sh
 make            # static + shared + pkg-config
-make test       # build and run the output test suite
-make sanitize   # rebuild and run tests under AddressSanitizer + UBSan
+make test       # run the full non-interactive test suite (all headless gates)
+make test-output # visual output gallery (ARGS=--focus / --no-animated)
+make test-input # interactive widget suite (needs a real terminal)
 make clean
 ```
 

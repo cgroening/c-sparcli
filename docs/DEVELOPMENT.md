@@ -43,22 +43,36 @@ make EXTRA_CFLAGS=-Werror
 The suites split along the output/input boundary. Everything except
 `make test-input` (which needs a real terminal) runs headless.
 
-### `make test` — output suite
+### `make test` — full non-interactive suite
 
-Non-interactive renderer tests in `tests/output/`. Prints to stdout for visual
-inspection; also gated by a golden file (below).
+The canonical "is everything OK?" command. Runs all four headless gates in
+order — `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`,
+`test-input-pty` — and fails if any does. Command-line overrides propagate, so
+`make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The
+interactive widget suite (`make test-input`) needs a real TTY and is **not**
+included. The individual targets it chains are documented below.
 
 ```sh
-make test                              # all output tests
-make test ARGS=--no-animated           # skip the spinner/progress animations
-make test ARGS=--focus                 # run only the focused subset
-make test ARGS="--focus --no-animated" # combine flags
+make test                     # run every headless gate
+make test EXTRA_CFLAGS=-Werror
 ```
 
-Covers: text attributes, colors, panels, alerts, tables, rules, trees, lists,
-progress bar, spinner, key-value pairs, badges, utilities, padding, alignment,
-markup, and columns (basic + advanced). The two *animated* cases (progress bar,
-spinner) are skipped by `--no-animated`.
+### `make test-output` — output gallery
+
+The output renderer suite in `tests/output/`, printed to stdout for visual
+inspection (the golden-file gate below is the automated check). Covers: text
+attributes, colors, panels, alerts, tables, rules, trees, lists, progress bar,
+spinner, key-value pairs, badges, utilities, padding, alignment, markup, and
+columns (basic + advanced).
+
+```sh
+make test-output                              # all output tests
+make test-output ARGS=--no-animated           # skip the spinner/progress animations
+make test-output ARGS=--focus                 # run only the focused subset
+make test-output ARGS="--focus --no-animated" # combine flags
+```
+
+The two *animated* cases (progress bar, spinner) are skipped by `--no-animated`.
 
 ### `make test-output-check` — output golden-file gate
 
@@ -133,29 +147,22 @@ back to 80). When you change rendering **on purpose**:
 
 ### After a change — run these
 
-Copy-paste block to validate a change. The first five are headless (safe to run
-anywhere, including over a pipe); the rest need a real terminal.
+Copy-paste block to validate a change.
 
 ```sh
-# 1. Build clean, warnings as errors.
-make EXTRA_CFLAGS=-Werror
+# 1. Build + every headless gate, warnings as errors (the main check).
+make test EXTRA_CFLAGS=-Werror
 
-# 2. Headless gates — all must pass.
-make test-output-check       EXTRA_CFLAGS=-Werror   # output golden-file diff
-make test-input ARGS=--logic EXTRA_CFLAGS=-Werror   # input logic + thread safety
-make test-input-style-check  EXTRA_CFLAGS=-Werror   # style snapshot diff
-make test-input-pty          EXTRA_CFLAGS=-Werror   # interactive paths under ASan/UBSan
-
-# 3. If you changed rendering on purpose, regenerate + review + commit the golden:
+# 2. If you changed rendering on purpose, regenerate + review + commit the golden:
 make test-output-golden
 make test-input-style-golden
 
-# 4. Examples still build (and try the input widgets by hand):
+# 3. Examples still build (and try the input widgets by hand):
 make examples                          # compile every examples/*.c
 make run-example EX=readme_screenshots # output gallery
 make run-example EX=input_demo         # interactive walkthrough of all input widgets
 
-# 5. Interactive widget suite (needs a real terminal):
+# 4. Interactive widget suite (needs a real terminal):
 make test-input
 ```
 
@@ -243,11 +250,7 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
 ## Pre-commit checklist
 
-1. `make EXTRA_CFLAGS=-Werror` — builds clean, no warnings.
-2. The headless gates are green:
-   - `make test-output-check`
-   - `make test-input ARGS=--logic`
-   - `make test-input-style-check`
-   - `make test-input-pty`
-3. If you changed rendering on purpose, regenerate the affected golden file and
-   commit it.
+1. `make test EXTRA_CFLAGS=-Werror` — builds clean (no warnings) and all four
+   headless gates pass.
+2. If you changed rendering on purpose, regenerate the affected golden file
+   (`make test-output-golden` / `make test-input-style-golden`) and commit it.

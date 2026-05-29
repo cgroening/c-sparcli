@@ -141,7 +141,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 
 HEADERS = $(shell find include -name '*.h')
 
-.PHONY: all test test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty clean install uninstall sanitize pkgconfig shared examples run-example
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
@@ -168,9 +168,21 @@ $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
-# Test executable is linked against the static .a so it never depends on the
-# install path / dyld search order of the shared library.
-test: $(LIB)
+# Full non-interactive test suite: every headless gate. This is the canonical
+# "is everything OK?" command (also what CI would run). The interactive widget
+# suite (`make test-input`) needs a real TTY and is intentionally NOT included.
+# Command-line overrides (e.g. EXTRA_CFLAGS=-Werror) propagate to each sub-make.
+test:
+	$(MAKE) test-output-check
+	$(MAKE) test-input ARGS=--logic
+	$(MAKE) test-input-style-check
+	$(MAKE) test-input-pty
+
+# Visual output gallery: builds and runs the output suite for eyeballing.
+# ARGS: --no-animated (skip animations), --focus (focused subset), or both.
+# Linked against the static .a so it never depends on the install path / dyld
+# search order of the shared library.
+test-output: $(LIB)
 	$(CC) $(CFLAGS) $(TEST_SRC) $(LIB) $(LDFLAGS) -o $(TEST_BIN)
 	./$(TEST_BIN) $(ARGS)
 
