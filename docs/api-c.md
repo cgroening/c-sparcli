@@ -5,12 +5,6 @@ Full reference for every public type, function, option struct, and macro of the
 installation, linking and a quick-start example, see the
 [main README](../README.md).
 
-> Note: A dedicated **Tree** (`sc_tree_*`) section is not yet included below;
-> see `include/sparcli_tree.h` and the `sc_columns_add_tree` integration point
-> in the [Columns](#columns) section.
-
----
-
 ## Core Types
 
 ### ScColor
@@ -412,6 +406,54 @@ not the marker).
 `indent` adds further indentation relative to that base.
 
 **Integration with ScColumns:** use `sc_columns_add_list(cl, list, item)`.
+
+---
+
+## Tree
+
+Hierarchical tree view with box-drawing connectors and vertical continuation
+guides. Nodes are added under an optional parent; a `NULL` parent makes a root.
+
+```c
+ScTree     *sc_tree_new (ScTreeOpts opts);
+ScTreeNode *sc_tree_add_str (ScTree *tree, ScTreeNode *parent,
+                             const char *str, ScTextStyle style,
+                             const char *prefix, ScTextStyle prefix_style);
+ScTreeNode *sc_tree_add_text(ScTree *tree, ScTreeNode *parent,
+                             const ScText *text,
+                             const char *prefix, ScTextStyle prefix_style);
+void        sc_tree_print(const ScTree *tree);
+void        sc_tree_free (ScTree *tree);
+```
+
+`ScTree` and `ScTreeNode` are opaque; nodes are owned by the tree (freed by
+`sc_tree_free`). `sc_tree_add_str` copies `str` and `prefix`; `sc_tree_add_text`
+**borrows** the `ScText` (not owned — keep it alive until print/free). `prefix`
+may be `NULL`.
+
+### ScTreeOpts
+
+| Field | Description |
+|-------|-------------|
+| `type` | `ScBorderType` — connector box-drawing set (branches and guides) |
+| `connector_color` | Connector color; `SC_ANSI_COLOR_NONE` = no escape codes |
+| `indent` | Spaces between the connector and node text; default `1` |
+| `no_guide` | `bool` — suppress vertical continuation guides under finished branches |
+
+**Usage:**
+
+```c
+ScTree *tree = sc_tree_new((ScTreeOpts){ .type = SC_BORDER_SINGLE });
+ScTreeNode *root = sc_tree_add_str(tree, NULL, "project",
+                                   (ScTextStyle){0}, NULL, (ScTextStyle){0});
+sc_tree_add_str(tree, root, "src",     (ScTextStyle){0}, NULL, (ScTextStyle){0});
+sc_tree_add_str(tree, root, "include", (ScTextStyle){0}, NULL, (ScTextStyle){0});
+sc_tree_print(tree);
+sc_tree_free(tree);
+```
+
+**Integration with ScColumns / Capture:** use `sc_columns_add_tree(cl, tree, item)`
+or `sc_capture_tree(tree)`.
 
 ---
 
