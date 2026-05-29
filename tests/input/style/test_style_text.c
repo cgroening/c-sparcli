@@ -54,4 +54,38 @@ void style_text(void) {
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Username:", .initial = "neo",
             .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE } }));
+
+    /* ── Boxed mode (panel): prompt on top, counter on bottom-right ── */
+
+    style_show("boxed: fixed width 30, counter (count only)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Name", .initial = "Ada Lovelace", .boxed = true, .width = 30 }));
+
+    style_show("boxed: fixed width 30, counter with max",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Tweet", .initial = "hello world", .max_chars = 40,
+            .boxed = true, .width = 30 }));
+
+    style_show("boxed: counter hidden",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Note", .initial = "no counter", .hide_char_count = true,
+            .boxed = true, .width = 30 }));
+
+    style_show("boxed: double border + cyan prompt",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Host", .initial = "localhost", .max_chars = 24,
+            .boxed = true, .width = 30,
+            .border = { .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_BLUE },
+            .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE } }));
+
+    style_show("boxed: password, fixed width 30",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Password", .initial = "hunter2", .mask = "*",
+            .boxed = true, .width = 30 }));
+
+    /* Full-width box spans the whole terminal, so it is printed flush-left
+     * (indenting it would push the right border past the terminal edge). */
+    style_show_flush("boxed: full width (default), flush-left",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Search", .initial = "query", .boxed = true }));
 }

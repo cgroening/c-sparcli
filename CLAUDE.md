@@ -150,6 +150,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | `title.align` | `ScHAlign` | LEFT / CENTER / RIGHT |
 | `title.pad` | `int` | Spaces on each side of the title text |
 | `title.pos` | `ScTitlePosition` | `SC_POSITION_TOP` / `SC_POSITION_BOTTOM` |
+| `subtitle` | `ScTitle` | Optional second title on the edge given by its own `.pos`; zero-init (`text == NULL`) = none. Use for the opposite edge from `title` (e.g. top title + bottom-right caption). |
 | `padding` | `ScEdges` | Inner content padding (top/right/bottom/left) |
 | `margin` | `ScEdges` | Outer margin |
 | `width` | `int` | 0 = auto-fit content |
@@ -589,6 +590,10 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   field by default — `count` (no limit) or `count/max` when `max_chars > 0`,
   which also caps input. Hide it with `hide_char_count`; style it via
   `count_style` (default dim). Counts UTF-8 codepoints, not bytes.
+  Set `boxed = true` to render inside a panel (prompt = top title, counter =
+  bottom-right border via the panel `subtitle`); `border` sets the box style
+  (zero-init type = rounded) and `width` the panel width (0 = full terminal
+  width). A validation error stacks below the box via `sc_vstack`.
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
   move, Space toggles in multi-select.
 - **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; table view builds an

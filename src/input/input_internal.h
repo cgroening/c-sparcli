@@ -121,6 +121,9 @@ typedef struct {
     bool         hide_summary;
     bool         hide_char_count;
     int          max_chars;      /* 0 = unlimited */
+    bool         boxed;          /* render inside a bordered panel */
+    ScBorderStyle border;        /* box border; zero-init type = rounded */
+    int          width;          /* boxed: panel width; 0 = full terminal width */
     bool (*validate)(const char *, void *, const char **);
     void        *validate_ctx;
 } ScTextEntryCfg;

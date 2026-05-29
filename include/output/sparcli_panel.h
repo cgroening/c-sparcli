@@ -38,6 +38,10 @@ typedef struct {
                                zero-init ({0,0,0,0}) = no color */
     ScTitle  title;       /**< Title bar: text, style, alignment, padding and
                                position */
+    ScTitle  subtitle;    /**< Optional second title on the edge selected by its
+                               own `pos`; zero-init (`text == NULL`) = none.
+                               Use it for the opposite edge from `title`, e.g. a
+                               top title plus a bottom-right caption. */
     bool     full_width;  /**< When true, stretches to terminal width (overrides
                                width); computed as terminal_width - 2 */
     int      width;          /**< Panel width; 0 = auto-fit to content */

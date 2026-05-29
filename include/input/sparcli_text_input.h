@@ -39,7 +39,13 @@ typedef struct {
     bool         hide_char_count;/**< Suppress the character counter (shown by
                                      default below the field). */
     ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
-    int          width;         /**< Field width in columns; 0 = terminal width. */
+    bool         boxed;         /**< Render the field inside a bordered panel:
+                                     prompt as the top title, counter on the
+                                     bottom-right border. */
+    ScBorderStyle border;       /**< Box border (boxed mode); zero-init type =
+                                     rounded. */
+    int          width;         /**< Boxed mode: panel width; 0 = full terminal
+                                     width. (Inline mode: reserved.) */
     ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
     void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScTextInputOpts;
@@ -72,6 +78,9 @@ typedef struct {
     int          max_chars;     /**< Max characters; 0 = unlimited (default). */
     bool         hide_char_count;/**< Suppress the character counter. */
     ScTextStyle  count_style;   /**< Style of the character counter; zero-init = dim. */
+    bool         boxed;         /**< Render the field inside a bordered panel. */
+    ScBorderStyle border;       /**< Box border (boxed mode); zero-init type = rounded. */
+    int          width;         /**< Boxed mode: panel width; 0 = full terminal width. */
     ScValidateFn validate;      /**< Optional validator; may be `NULL`. */
     void        *validate_ctx;  /**< Opaque pointer passed to `validate`. */
 } ScPasswordOpts;

@@ -325,16 +325,25 @@ static void compute_inner_width(Panel *panel) {
 }
 
 /**
- * Returns the minimum inner width required to display the title inline
- * (title length + padding on both sides + one dash per corner), or 0 when
- * the panel has no title.
+ * Minimum inner width required to display one title inline (title length +
+ * padding on both sides + one dash per corner), or 0 when `title` has no text.
+ */
+static int one_title_min_width(ScTitle title) {
+    if (!title.text) { return 0; }
+    int len = (int)sc_utf8_string_length(title.text, strlen(title.text));
+    int pad = title.pad > 0 ? title.pad : 0;
+    return len + 2 * pad + 2;
+}
+
+/**
+ * Returns the minimum inner width needed for both the title and the optional
+ * subtitle (they may sit on different edges, so the panel must fit the wider
+ * of the two), or 0 when the panel has no titles.
  */
 static int panel_title_min_width(const Panel *panel) {
-    const char *title_text = panel->opts.title.text;
-    if (!title_text) { return 0; }
-    int title_len = (int)sc_utf8_string_length(title_text, strlen(title_text));
-    int pad = panel->opts.title.pad > 0 ? panel->opts.title.pad : 0;
-    return title_len + 2 * pad + 2;
+    int a = one_title_min_width(panel->opts.title);
+    int b = one_title_min_width(panel->opts.subtitle);
+    return a > b ? a : b;
 }
 
 /**
@@ -447,8 +456,14 @@ static void render_panel_border(Panel *panel, ScPosition pos) {
     HBorder hborder = (pos == SC_POSITION_TOP)
         ? panel->top_border : panel->bottom_border;
     sc_print_spaces(panel->spacing.margin.left);
-    ScTitle title = panel->opts.title;
-    if (title.pos != pos) { title.text = NULL; }
+    /* Pick whichever title belongs on this edge: primary first, else the
+     * optional subtitle, else none. */
+    ScTitle title = { 0 };
+    if (panel->opts.title.text && panel->opts.title.pos == pos) {
+        title = panel->opts.title;
+    } else if (panel->opts.subtitle.text && panel->opts.subtitle.pos == pos) {
+        title = panel->opts.subtitle;
+    }
     render_horizontal_border(hborder, title);
 }
 

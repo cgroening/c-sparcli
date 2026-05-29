@@ -3,14 +3,22 @@
 #include <stdio.h>
 
 
-void style_show(const char *caption, ScRendered *frame) {
+static void show(const char *caption, ScRendered *frame, int indent) {
     sc_println(caption, (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                                        SC_ANSI_COLOR_NONE });
     if (frame) {
-        sc_pad_print(frame, (ScPadOpts){ .left = 2 });
+        sc_pad_print(frame, (ScPadOpts){ .left = indent });
         sc_rendered_free(frame);
     }
     printf("\n");
+}
+
+void style_show(const char *caption, ScRendered *frame) {
+    show(caption, frame, 2);
+}
+
+void style_show_flush(const char *caption, ScRendered *frame) {
+    show(caption, frame, 0);
 }
 
 static void rule(const char *title) {

@@ -17,6 +17,9 @@ ScInputStatus sc_password_input(
         .hide_summary    = opts.hide_summary,
         .hide_char_count = opts.hide_char_count,
         .max_chars       = opts.max_chars,
+        .boxed           = opts.boxed,
+        .border          = opts.border,
+        .width           = opts.width,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
     };

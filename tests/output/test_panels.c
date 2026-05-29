@@ -204,4 +204,20 @@ void test_panels(void) {
         .content_align = SC_ALIGN_RIGHT,
         .full_width    = 1,
     });
+
+    // Top title + bottom-right subtitle (second title on the opposite edge)
+    sc_panel_str("Body content here.", (ScPanelOpts){
+        .title = {
+            .text  = "Title", .style = bold_ttl,
+            .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP
+        },
+        .subtitle = {
+            .text  = "(caption)", .style = plain,
+            .align = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM
+        },
+        .border        = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE },
+        .padding       = { .left = 1, .right = 1 },
+        .content_align = SC_ALIGN_LEFT,
+        .width         = 36,
+    });
 }

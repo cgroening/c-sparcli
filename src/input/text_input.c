@@ -17,6 +17,9 @@ typedef struct {
     ScTextStyle  count_style;
     bool         hide_char_count;
     int          max_chars;
+    bool         boxed;
+    ScBorderStyle border;
+    int          width;
     bool (*validate)(const char *, void *, const char **);
     void        *validate_ctx;
     const char  *error;   /* current validation error, or NULL */
@@ -39,8 +42,29 @@ static size_t cp_count(const char *s) {
     return n;
 }
 
-static ScRendered *text_render(void *state) {
-    TextState *s = state;
+/** Formats the character counter; `parens` wraps it as "(n)"/"(n/max)". */
+static void counter_str(char *buf, size_t cap, const TextState *s, bool parens) {
+    size_t n = cp_count(s->ed.buf);
+    const char *fmt_count = parens ? "(%zu)"    : "%zu";
+    const char *fmt_max   = parens ? "(%zu/%d)" : "%zu/%d";
+    if (s->max_chars > 0) { snprintf(buf, cap, fmt_max, n, s->max_chars); }
+    else                  { snprintf(buf, cap, fmt_count, n); }
+}
+
+static ScTextStyle resolve_count_style(const TextState *s) {
+    return sc_style_set(s->count_style)
+        ? s->count_style
+        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+}
+
+static ScTextStyle resolve_error_style(const TextState *s) {
+    return sc_style_set(s->error_style)
+        ? s->error_style
+        : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE };
+}
+
+/** Inline rendering: "prompt value", counter line, optional error line. */
+static ScRendered *render_inline(TextState *s) {
     ScText *t = sc_text_new();
     if (!t) { return NULL; }
 
@@ -51,35 +75,73 @@ static ScRendered *text_render(void *state) {
     sc_le_render_into(&s->ed, t, s->value_style, s->cursor_style, s->mask,
                       s->placeholder, ph);
 
-    /* Character counter, on its own line below the field. */
     if (!s->hide_char_count) {
         char buf[48];
-        size_t n = cp_count(s->ed.buf);
-        if (s->max_chars > 0) {
-            snprintf(buf, sizeof buf, "%zu/%d", n, s->max_chars);
-        } else {
-            snprintf(buf, sizeof buf, "%zu", n);
-        }
-        ScTextStyle cs = sc_style_set(s->count_style)
-            ? s->count_style
-            : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+        counter_str(buf, sizeof buf, s, false);
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
         sc_text_append(t, "  ", (ScTextStyle){ 0 });
-        sc_text_append(t, buf, cs);
+        sc_text_append(t, buf, resolve_count_style(s));
     }
-
     if (s->error) {
-        ScTextStyle err = sc_style_set(s->error_style)
-            ? s->error_style
-            : (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED, SC_ANSI_COLOR_NONE };
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
         sc_text_append(t, "  ", (ScTextStyle){ 0 });
-        sc_text_append(t, s->error, err);
+        sc_text_append(t, s->error, resolve_error_style(s));
     }
 
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
     return r;
+}
+
+/** Boxed rendering: value inside a panel, prompt as top title, counter on the
+ *  bottom-right border, optional error line stacked below the box. */
+static ScRendered *render_boxed(TextState *s) {
+    ScText *inner = sc_text_new();
+    if (!inner) { return NULL; }
+    ScTextStyle ph = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    sc_le_render_into(&s->ed, inner, s->value_style, s->cursor_style, s->mask,
+                      s->placeholder, ph);
+
+    char counter[48];
+    ScPanelOpts opts = {
+        .border        = s->border,
+        .title         = { .text = s->prompt, .style = s->prompt_style,
+                           .align = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
+        .padding       = { .left = 1, .right = 1 },
+        .content_align = SC_ALIGN_LEFT,
+    };
+    if (opts.border.type == SC_BORDER_NONE) { opts.border.type = SC_BORDER_ROUNDED; }
+    if (s->width > 0) { opts.width = s->width; } else { opts.full_width = true; }
+    if (!s->hide_char_count) {
+        counter_str(counter, sizeof counter, s, true);
+        opts.subtitle = (ScTitle){ .text = counter, .style = resolve_count_style(s),
+                                   .align = SC_ALIGN_RIGHT, .pad = 1,
+                                   .pos = SC_POSITION_BOTTOM };
+    }
+
+    ScRendered *panel = sc_capture_panel_text(inner, opts);
+    sc_text_free(inner);
+    if (!panel || !s->error) { return panel; }
+
+    /* Stack the validation error beneath the box. */
+    ScText *et = sc_text_new();
+    if (!et) { return panel; }
+    sc_text_append(et, "  ", (ScTextStyle){ 0 });
+    sc_text_append(et, s->error, resolve_error_style(s));
+    ScRendered *er = sc_capture_text(et);
+    sc_text_free(et);
+    if (!er) { return panel; }
+
+    const ScRendered *parts[2] = { panel, er };
+    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    sc_rendered_free(panel);
+    sc_rendered_free(er);
+    return stacked;
+}
+
+static ScRendered *text_render(void *state) {
+    TextState *s = state;
+    return s->boxed ? render_boxed(s) : render_inline(s);
 }
 
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
@@ -120,6 +182,9 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         .count_style     = cfg->count_style,
         .hide_char_count = cfg->hide_char_count,
         .max_chars       = cfg->max_chars,
+        .boxed           = cfg->boxed,
+        .border          = cfg->border,
+        .width           = cfg->width,
         .validate        = cfg->validate,
         .validate_ctx    = cfg->validate_ctx,
         .error           = NULL,
@@ -170,7 +235,6 @@ ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg) {
 }
 
 ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts) {
-    (void)opts.width;  /* reserved for future field-width truncation */
     ScTextEntryCfg cfg = {
         .prompt          = prompt,
         .initial         = opts.initial,
@@ -185,6 +249,9 @@ ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts
         .hide_summary    = opts.hide_summary,
         .hide_char_count = opts.hide_char_count,
         .max_chars       = opts.max_chars,
+        .boxed           = opts.boxed,
+        .border          = opts.border,
+        .width           = opts.width,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
     };
