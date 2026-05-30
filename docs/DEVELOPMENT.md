@@ -187,7 +187,8 @@ make test-cpp-golden                   # only if you changed the C++ wrapper
 
 # 3. Examples still build (and try the input widgets by hand):
 make examples                          # compile every examples/*.c
-make run-example EX=readme_screenshots # output gallery
+make run-example EX=readme_screenshots_output # output widget gallery (static)
+make run-example EX=readme_screenshots_input  # input widget gallery (static)
 make run-example EX=input_demo         # interactive walkthrough of all input widgets
 
 # 4. Interactive widget suite (needs a real terminal):
@@ -250,8 +251,9 @@ Bumping the **major** changes the soname, so dependents must relink.
 ## Examples
 
 ```sh
-make examples                            # build every examples/*.c
-make run-example EX=readme_screenshots   # build & run one example
+make examples                                 # build every examples/*.c
+make run-example EX=readme_screenshots_output # static gallery of output widgets
+make run-example EX=readme_screenshots_input  # static gallery of input widgets
 ```
 
 Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new

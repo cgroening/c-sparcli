@@ -1,18 +1,22 @@
 /*
- * readme_screenshots.c
+ * readme_screenshots_output.c
  *
- * Generates the four screenshots referenced in README.md:
+ * Generates the OUTPUT-widget screenshots referenced in README.md. Its input
+ * counterpart is readme_screenshots_input.c. Sections:
  *
  *   1  hero      – panel + striped table + two-column layout + progress bar
  *   2  quickstart – output of the Quick Start snippet
  *   3  gallery   – one representative state per widget
  *   4  markup    – before/after view of the inline markup syntax
  *
- * Build (after `make`):
- *   cc -std=c11 -Iinclude examples/readme_screenshots.c libsparcli.a -o readme_shots
+ * Build & run (after `make`):
+ *   make run-example EX=readme_screenshots_output
+ * or:
+ *   cc -std=c11 -Iinclude examples/readme_screenshots_output.c libsparcli.a \
+ *       -o readme_shots
  *
- * Run:
- *   ./readme_shots            # all four screenshots, separated by rules
+ * Run a single section by passing its number:
+ *   ./readme_shots            # all four sections, separated by rules
  *   ./readme_shots 1          # only the hero
  *   ./readme_shots 2          # only the quick-start snippet
  *   ./readme_shots 3          # only the widget gallery
