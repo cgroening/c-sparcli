@@ -89,8 +89,7 @@ int main(void) {
 cc hello.c $(pkg-config --cflags --libs sparcli) -o hello && ./hello
 ```
 
-> **Add Screenshot:** Rendered terminal output of the snippet above (the green
-> "Hello" line plus the rounded panel with centered title).
+![hello.c output](docs/images/output_quick_start.png)
 
 ### C++ (header-only)
 
@@ -210,10 +209,6 @@ every macro – lives in [`docs/api-c.md`](docs/api-c.md).
 | **Pad** | `sc_pad_*` | Add top/right/bottom/left space around a rendered widget. |
 | **Align** | `sc_align_*` | Center- or right-align a rendered widget within a width. |
 
-> **Add Screenshot:** One screenshot per widget (or a single collage), showing
-> Panel, Table, Rule, Columns, List, Tree, KV, Alert, Badge, ProgressBar and
-> Spinner each in a representative state.
-
 ---
 
 ## Input widgets
@@ -255,10 +250,6 @@ Build a runnable demo of every input widget with
 make run-example EX=input_demo
 ```
 
-> **Add Screenshot:** Each input widget mid-interaction – confirm, text /
-> password, number, multi-select (with checkboxes), the fuzzy finder, and the
-> month-grid date picker.
-
 ---
 
 ## Rich-compatible markup
@@ -289,8 +280,7 @@ inner content.
 Any widget that takes an `ScText *` accepts markup via `sc_markup_parse()`. For
 tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
 
-> **Add Screenshot:** Side-by-side "before / after": the raw markup string on
-> the left, the rendered terminal output on the right.
+![markup demo](docs/images/output_rich_markup.png)
 
 ---
 
