@@ -84,6 +84,8 @@ using MarkupOpts      = ScMarkupOpts;
 
 using AlertType       = ScAlertType;
 using InputStatus     = ScInputStatus;
+using HintLayout      = ScHintLayout;
+using HintPosition    = ScHintPosition;
 using ConfirmOpts     = ScConfirmOpts;
 using TextInputOpts   = ScTextInputOpts;
 using PasswordOpts    = ScPasswordOpts;

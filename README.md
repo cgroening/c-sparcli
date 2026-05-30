@@ -221,6 +221,10 @@ lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
 | **Date picker** | `sc_datepicker` | Month-grid calendar; day/week/month/year navigation. |
 | **Theme** | `sc_input_set_theme` | Process-wide style defaults inherited by every input widget. |
 
+Every widget shows a key-hint footer that is fully configurable: its layout
+(`hint_layout` — inline, stacked one-per-line, or hidden) and its placement
+(`hint_pos` — above, below, left, or right of the widget).
+
 ```c
 char *name = NULL;
 if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })

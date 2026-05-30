@@ -61,7 +61,8 @@ Aliases: `Color`, `TextStyle`, `TextAttribute`, `Title`, `Edges`, `BorderStyle`,
 `ColItem`, `ListOpts`, `TreeOpts`, `KVOpts`, `BadgeOpts`, `ProgressBarOpts`,
 `SpinnerOpts`, `PadOpts`, `MarkupOpts`, `ConfirmOpts`, `TextInputOpts`,
 `PasswordOpts`, `NumberOpts`, `TextareaOpts`, `SelectOpts`, `FuzzyOpts`,
-`DatePickerOpts`, `InputTheme`, `AlertType`, `InputStatus`).
+`DatePickerOpts`, `InputTheme`, `AlertType`, `InputStatus`, `HintLayout`,
+`HintPosition`).
 
 Colors use functions, not the `SC_ANSI_COLOR_*` compound-literal macros (which
 are non-standard in C++):
@@ -258,6 +259,12 @@ set_theme({ .accent = magenta() });  reset_theme();   // InputTheme theme();
 
 Text/number input constraints reuse the C filter functions via the opts
 (`.char_filter = sc_filter_digits`, etc.; see [api-c.md](api-c.md#input-widgets)).
+
+The key-hint footer is configured through the opts like any other field:
+`.hint_layout` (`SC_HINT_INLINE` / `SC_HINT_STACKED` / `SC_HINT_HIDDEN`) and
+`.hint_pos` (`SC_HINT_POS_TOP` / `_BOTTOM` / `_LEFT` / `_RIGHT`), e.g.
+`confirm("Deploy?", { .hint_pos = SC_HINT_POS_RIGHT })`. Both also work via the
+`InputTheme`. See [api-c.md](api-c.md#input-widgets).
 
 ## Escape hatch
 
