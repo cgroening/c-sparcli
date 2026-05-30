@@ -895,22 +895,27 @@ inline std::optional<std::string> take(char* out, InputStatus st) {
 inline std::optional<std::string> text_input(std::string_view prompt,
                                              TextInputOpts opts = {}) {
     char* out = nullptr;
-    return detail::take(
-        out, sc_text_input(detail::z(prompt).c_str(), &out, opts));
+    // Sequence the call before reading `out`: the evaluation order of function
+    // arguments is unspecified, so `take(out, sc_text_input(..., &out, ...))`
+    // could read `out` while it is still nullptr (losing the value and leaking
+    // the string the C call allocates).
+    const InputStatus st = sc_text_input(detail::z(prompt).c_str(), &out, opts);
+    return detail::take(out, st);
 }
 /** Masked entry. @return the secret, or nullopt. @see sc_password_input */
 inline std::optional<std::string> password_input(std::string_view prompt,
                                                  PasswordOpts opts = {}) {
     char* out = nullptr;
-    return detail::take(
-        out, sc_password_input(detail::z(prompt).c_str(), &out, opts));
+    const InputStatus st =
+        sc_password_input(detail::z(prompt).c_str(), &out, opts);
+    return detail::take(out, st);
 }
 /** Multi-line entry (Ctrl-D submits). @return the text, or nullopt. */
 inline std::optional<std::string> textarea(std::string_view prompt,
                                            TextareaOpts opts = {}) {
     char* out = nullptr;
-    return detail::take(
-        out, sc_textarea(detail::z(prompt).c_str(), &out, opts));
+    const InputStatus st = sc_textarea(detail::z(prompt).c_str(), &out, opts);
+    return detail::take(out, st);
 }
 /** Numeric entry. @return the value, or nullopt. @see sc_number_input */
 inline std::optional<double> number_input(std::string_view prompt,
