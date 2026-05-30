@@ -40,6 +40,7 @@
  */
 #include <sparcli.h>
 
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
@@ -118,6 +119,16 @@ namespace detail {
 // A NUL-terminated copy of a string_view, kept alive for a full expression.
 // (string_view is not guaranteed NUL-terminated, so we materialize.)
 inline std::string z(std::string_view s) { return std::string(s); }
+
+// Debug guard against using a moved-from handle: asserts the wrapped pointer is
+// non-null, then returns it. Wraps each C-call site so misuse aborts clearly in
+// debug builds; compiles to nothing under -DNDEBUG. (Destructors and move
+// assignment must still tolerate nullptr, so they do NOT use this.)
+template <class T>
+inline T* live(T* p) {
+    assert(p && "use of a moved-from sparcli handle");
+    return p;
+}
 }  // namespace detail
 
 /**
@@ -155,31 +166,35 @@ public:
 
     /** Appends a styled span (string copied). @see sc_text_append */
     Text& append(std::string_view s, TextStyle st = {}) {
-        sc_text_append(p_, detail::z(s).c_str(), st);
+        sc_text_append(detail::live(p_), detail::z(s).c_str(), st);
         return *this;
     }
     /** Appends parsed markup. @see sc_markup_append */
     Text& append_markup(std::string_view m) {
-        sc_markup_append(p_, detail::z(m).c_str());
+        sc_markup_append(detail::live(p_), detail::z(m).c_str());
         return *this;
     }
     /** Markup append with parser options. @see sc_markup_append_opts */
     Text& append_markup(std::string_view m, MarkupOpts opts) {
-        sc_markup_append_opts(p_, detail::z(m).c_str(), opts);
+        sc_markup_append_opts(detail::live(p_), detail::z(m).c_str(), opts);
         return *this;
     }
     /** Appends a styled badge token. @see sc_text_append_badge */
     Text& append_badge(std::string_view s, BadgeOpts opts = {}) {
-        sc_text_append_badge(p_, detail::z(s).c_str(), opts);
+        sc_text_append_badge(detail::live(p_), detail::z(s).c_str(), opts);
         return *this;
     }
 
     /** Prints to the current output stream. @see sc_print_text */
-    void        print()          const { sc_print_text(p_); }
+    void        print()          const { sc_print_text(detail::live(p_)); }
     /** Max visible column width across lines. @see sc_text_visible_width */
-    std::size_t visible_width()  const { return sc_text_visible_width(p_); }
+    std::size_t visible_width()  const {
+        return sc_text_visible_width(detail::live(p_));
+    }
     /** Number of spans. @see sc_text_span_count */
-    std::size_t span_count()     const { return sc_text_span_count(p_); }
+    std::size_t span_count()     const {
+        return sc_text_span_count(detail::live(p_));
+    }
 
     /** Borrowed underlying `ScText*` (escape hatch to the C API); not owned. */
     ScText*       get()       { return p_; }
@@ -209,9 +224,9 @@ public:
     Rendered& operator=(const Rendered&) = delete;
 
     /** Prints with padding. @see sc_pad_print */
-    void pad(PadOpts opts)            const { sc_pad_print(p_, opts); }
+    void pad(PadOpts opts)            const { sc_pad_print(detail::live(p_), opts); }
     /** Prints aligned within `w` columns. @see sc_align_print */
-    void align(HAlign a, int w = 0)   const { sc_align_print(p_, a, w); }
+    void align(HAlign a, int w = 0)   const { sc_align_print(detail::live(p_), a, w); }
 
     /** Borrowed underlying `ScRendered*` (escape hatch); not owned. */
     ScRendered*       get()       { return p_; }
@@ -244,7 +259,7 @@ public:
      */
     class Cell {
     public:
-        Cell(const char* s)        : str_(s) {}
+        Cell(const char* s)        : str_(s ? s : "") {}  // tolerate nullptr
         Cell(std::string s)        : str_(std::move(s)) {}
         Cell(std::string_view s)   : str_(s) {}
 
@@ -300,7 +315,7 @@ public:
     Table& add_column(std::string_view header, ColOpts opts = {}) {
         // The C side copies the header, so a transient c_str() is fine here;
         // only cell strings (borrowed until print) go through the arena.
-        sc_table_add_column(p_, detail::z(header).c_str(), opts);
+        sc_table_add_column(detail::live(p_), detail::z(header).c_str(), opts);
         return *this;
     }
     /** Adds a data row; cell strings are copied into the table-owned arena. */
@@ -311,7 +326,7 @@ public:
     /** Adds a data row with a background color. @see sc_table_add_row_bg */
     Table& add_row(std::vector<Cell> cells, Color bg) {
         auto sc = build(cells);
-        sc_table_add_row_bg(p_, sc.data(), sc.size(), bg);
+        sc_table_add_row_bg(detail::live(p_), sc.data(), sc.size(), bg);
         return *this;
     }
     /** Adds a footer row. @see sc_table_add_footer_row */
@@ -321,7 +336,9 @@ public:
     }
 
     /** Renders the table. @see sc_table_print, ScTableOpts */
-    void print(TableOpts opts = {}) const { sc_table_print(p_, opts); }
+    void print(TableOpts opts = {}) const {
+        sc_table_print(detail::live(p_), opts);
+    }
 
     /** Borrowed underlying `ScTableData*` (escape hatch); not owned. */
     ScTableData*       get()       { return p_; }
@@ -353,9 +370,9 @@ private:
     void emit(std::vector<Cell>& cells, Row which) {
         auto sc = build(cells);
         if (which == Row::Footer) {
-            sc_table_add_footer_row(p_, sc.data(), sc.size());
+            sc_table_add_footer_row(detail::live(p_), sc.data(), sc.size());
         } else {
-            sc_table_add_row(p_, sc.data(), sc.size());
+            sc_table_add_row(detail::live(p_), sc.data(), sc.size());
         }
     }
 
@@ -388,7 +405,8 @@ public:
     public:
         /** Attaches a sub-list (owned by the parent; shares its text arena). */
         List sub(ListOpts opts = {}) {
-            return List(sc_list_add_sub(p_, opts), /*owns=*/false, arena_);
+            return List(sc_list_add_sub(detail::live(p_), opts),
+                        /*owns=*/false, arena_);
         }
         /** Borrowed underlying `ScListItem*` (escape hatch); not owned. */
         ScListItem* get() const { return p_; }
@@ -424,18 +442,20 @@ public:
 
     /** Adds a string item (copied by the C side). @see sc_list_add_str */
     Item add(std::string_view s, TextStyle st = {}) {
-        return Item(sc_list_add_str(p_, detail::z(s).c_str(), st), arena_);
+        return Item(sc_list_add_str(detail::live(p_), detail::z(s).c_str(), st),
+                    arena_);
     }
     /** Adds a rich item; the list takes ownership of `t`. */
     Item add(Text t) {
         arena_->push_back(std::move(t));
-        return Item(sc_list_add_text(p_, arena_->back().get()), arena_);
+        return Item(sc_list_add_text(detail::live(p_), arena_->back().get()),
+                    arena_);
     }
     /** Adds a rich item from markup (owned by the list). */
     Item add_markup(std::string_view m) { return add(Text::markup(m)); }
 
     /** Renders the list. @see sc_list_print */
-    void print() const { sc_list_print(p_); }
+    void print() const { sc_list_print(detail::live(p_)); }
 
     /** Borrowed underlying `ScList*` (escape hatch); not owned. */
     ScList*       get()       { return p_; }
@@ -496,7 +516,7 @@ public:
     Node add(std::string_view s, Node parent = {}, TextStyle st = {},
              std::string_view prefix = {}, TextStyle prefix_st = {}) {
         return Node(sc_tree_add_str(
-            p_, parent.get(), detail::z(s).c_str(), st,
+            detail::live(p_), parent.get(), detail::z(s).c_str(), st,
             prefix.empty() ? nullptr : detail::z(prefix).c_str(), prefix_st));
     }
     /** Adds a rich node; the tree owns `t`. @see sc_tree_add_text */
@@ -504,7 +524,7 @@ public:
              std::string_view prefix = {}, TextStyle prefix_st = {}) {
         texts_.push_back(std::move(t));
         return Node(sc_tree_add_text(
-            p_, parent.get(), texts_.back().get(),
+            detail::live(p_), parent.get(), texts_.back().get(),
             prefix.empty() ? nullptr : detail::z(prefix).c_str(), prefix_st));
     }
     /** Adds a rich node from markup (owned by the tree). */
@@ -513,7 +533,7 @@ public:
         return add(Text::markup(m), parent, prefix, prefix_st);
     }
     /** Renders the tree. @see sc_tree_print */
-    void print() const { sc_tree_print(p_); }
+    void print() const { sc_tree_print(detail::live(p_)); }
 
     /** Borrowed underlying `ScTree*` (escape hatch); not owned. */
     ScTree*       get()       { return p_; }
@@ -545,11 +565,12 @@ public:
 
     /** Adds a key/value pair (both copied). @see sc_kv_add */
     Kv& add(std::string_view key, std::string_view value) {
-        sc_kv_add(p_, detail::z(key).c_str(), detail::z(value).c_str());
+        sc_kv_add(detail::live(p_), detail::z(key).c_str(),
+                  detail::z(value).c_str());
         return *this;
     }
     /** Renders the list. @see sc_kv_print */
-    void print() const { sc_kv_print(p_); }
+    void print() const { sc_kv_print(detail::live(p_)); }
 
     /** Borrowed underlying `ScKV*` (escape hatch); not owned. */
     ScKV*       get()       { return p_; }
@@ -584,38 +605,42 @@ public:
     /// @name Add the next column (the widget's rendering is captured eagerly).
     /// @{
     Columns& add(const Table& t, TableOpts o = {}, ColItem it = {}) {
-        sc_columns_add_table(p_, t.get(), o, it); return *this;
+        sc_columns_add_table(detail::live(p_), t.get(), o, it); return *this;
     }
     Columns& add_panel(std::string_view content, PanelOpts o = {},
                        ColItem it = {}) {
-        sc_columns_add_panel_str(p_, detail::z(content).c_str(), o, it);
+        sc_columns_add_panel_str(detail::live(p_), detail::z(content).c_str(),
+                                 o, it);
         return *this;
     }
     Columns& add_panel(const Text& content, PanelOpts o = {}, ColItem it = {}) {
-        sc_columns_add_panel_text(p_, content.get(), o, it); return *this;
+        sc_columns_add_panel_text(detail::live(p_), content.get(), o, it);
+        return *this;
     }
     Columns& add(const Text& t, ColItem it = {}) {
-        sc_columns_add_text(p_, t.get(), it); return *this;
+        sc_columns_add_text(detail::live(p_), t.get(), it); return *this;
     }
     Columns& add(std::string_view s, ColItem it = {}) {
-        sc_columns_add_str(p_, detail::z(s).c_str(), it); return *this;
+        sc_columns_add_str(detail::live(p_), detail::z(s).c_str(), it);
+        return *this;
     }
     Columns& add(const List& l, ColItem it = {}) {
-        sc_columns_add_list(p_, l.get(), it); return *this;
+        sc_columns_add_list(detail::live(p_), l.get(), it); return *this;
     }
     Columns& add(const Tree& t, ColItem it = {}) {
-        sc_columns_add_tree(p_, t.get(), it); return *this;
+        sc_columns_add_tree(detail::live(p_), t.get(), it); return *this;
     }
     Columns& add(const Columns& nested, ColItem it = {}) {
-        sc_columns_add_columns(p_, nested.get(), it); return *this;
+        sc_columns_add_columns(detail::live(p_), nested.get(), it);
+        return *this;
     }
     Columns& add(const Rendered& r, ColItem it = {}) {
-        sc_columns_add_rendered(p_, r.get(), it); return *this;
+        sc_columns_add_rendered(detail::live(p_), r.get(), it); return *this;
     }
     /// @}
 
     /** Renders the columns. @see sc_columns_print */
-    void print() const { sc_columns_print(p_); }
+    void print() const { sc_columns_print(detail::live(p_)); }
 
     /** Borrowed underlying `ScColumns*` (escape hatch); not owned. */
     ScColumns*       get()       { return p_; }
@@ -647,15 +672,15 @@ public:
 
     /** Sets the label (copied). @see sc_progressbar_set_label */
     void set_label(std::string_view l) {
-        sc_progressbar_set_label(p_, detail::z(l).c_str());
+        sc_progressbar_set_label(detail::live(p_), detail::z(l).c_str());
     }
     /** Redraws in place. `max == 0` → `value` is a 0..1 ratio. */
     void draw(double value, double max = 0.0) {
-        sc_progressbar_draw(p_, value, max);
+        sc_progressbar_draw(detail::live(p_), value, max);
     }
     /** Finalizes the bar (ends the line). @see sc_progressbar_finish */
     void finish(double value, double max = 0.0) {
-        sc_progressbar_finish(p_, value, max);
+        sc_progressbar_finish(detail::live(p_), value, max);
     }
 
     /** Borrowed underlying `ScProgressBar*` (escape hatch); not owned. */
@@ -687,13 +712,13 @@ public:
 
     /** Updates the label mid-animation (copied). @see sc_spinner_set_label */
     void set_label(std::string_view l) {
-        sc_spinner_set_label(p_, detail::z(l).c_str());
+        sc_spinner_set_label(detail::live(p_), detail::z(l).c_str());
     }
     /** Advances to the next frame. @see sc_spinner_tick */
-    void tick() { sc_spinner_tick(p_); }
+    void tick() { sc_spinner_tick(detail::live(p_)); }
     /** Ends with ✔/✖ and a final label. @see sc_spinner_finish */
     void finish(bool success, std::string_view label) {
-        sc_spinner_finish(p_, success, detail::z(label).c_str());
+        sc_spinner_finish(detail::live(p_), success, detail::z(label).c_str());
     }
 
     /** Borrowed underlying `ScSpinner*` (escape hatch); not owned. */
@@ -971,13 +996,16 @@ public:
 
     /** Appends a selectable item (label copied). @see sc_select_add */
     Select& add(std::string_view label) {
-        sc_select_add(p_, detail::z(label).c_str()); ++count_; return *this;
+        sc_select_add(detail::live(p_), detail::z(label).c_str());
+        ++count_; return *this;
     }
     /** Pre-positions the cursor. @see sc_select_set_cursor */
-    void set_cursor(std::size_t index) { sc_select_set_cursor(p_, index); }
+    void set_cursor(std::size_t index) {
+        sc_select_set_cursor(detail::live(p_), index);
+    }
     /** Pre-checks an item (multi-select). @see sc_select_set_checked */
     void set_checked(std::size_t index, bool on = true) {
-        sc_select_set_checked(p_, index, on);
+        sc_select_set_checked(detail::live(p_), index, on);
     }
 
     /**
@@ -987,7 +1015,7 @@ public:
     std::optional<std::vector<std::size_t>> run() {
         std::vector<std::size_t> idx(count_ ? count_ : 1);
         std::size_t n = idx.size();
-        if (sc_select_run(p_, idx.data(), &n) != SC_INPUT_OK)
+        if (sc_select_run(detail::live(p_), idx.data(), &n) != SC_INPUT_OK)
             return std::nullopt;
         idx.resize(n);
         return idx;
@@ -1029,20 +1057,21 @@ public:
 
     /** Adds a single-field item (copied). @see sc_fuzzy_add */
     Fuzzy& add(std::string_view label) {
-        sc_fuzzy_add(p_, detail::z(label).c_str()); return *this;
+        sc_fuzzy_add(detail::live(p_), detail::z(label).c_str()); return *this;
     }
     /** Adds a multi-field row; `fields[0]` is the match key. */
     Fuzzy& add_row(const std::vector<std::string>& fields) {
         std::vector<const char*> ptrs;
         ptrs.reserve(fields.size());
         for (const auto& f : fields) ptrs.push_back(f.c_str());
-        sc_fuzzy_add_row(p_, ptrs.data(), ptrs.size());
+        sc_fuzzy_add_row(detail::live(p_), ptrs.data(), ptrs.size());
         return *this;
     }
     /** Runs the finder. @return the add-order index, or nullopt. */
     std::optional<std::size_t> run() {
         std::size_t out = 0;
-        if (sc_fuzzy_run(p_, &out) != SC_INPUT_OK) return std::nullopt;
+        if (sc_fuzzy_run(detail::live(p_), &out) != SC_INPUT_OK)
+            return std::nullopt;
         return out;
     }
 

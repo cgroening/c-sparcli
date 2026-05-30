@@ -130,6 +130,11 @@ All are move-only (non-copyable); the destructor frees the underlying `sc_*`
 object. Each exposes `.get()` for the raw C handle (escape hatch). Constructors
 throw `std::bad_alloc` on allocation failure.
 
+Calling a method on a **moved-from** handle is a use-after-move: in debug builds
+it trips an `assert` ("use of a moved-from sparcli handle"); under `-DNDEBUG`
+the assert compiles away (so it is undefined behavior, as usual). Destroying or
+move-assigning into a moved-from handle is always safe.
+
 ### Text – rich multi-span text (`ScText`)
 
 ```cpp

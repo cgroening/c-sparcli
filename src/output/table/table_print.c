@@ -24,7 +24,7 @@ static void table_cleanup(Table *table);
 
 
 void sc_table_print(const ScTableData *table_data, ScTableOpts opts) {
-    if (!table_data->column_count) { return; }
+    if (!table_data || !table_data->column_count) { return; }
 
     Table table = { 0 };
     table_init(&table, table_data, opts);

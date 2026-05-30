@@ -66,6 +66,19 @@ static void test_table_owns_temporaries() {
     CHECK(contains(out, "OK"),    "table: markup cell renders");
 }
 
+// A null `const char*` cell must not crash (treated as empty), not std::string
+// from nullptr (UB).
+static void test_table_null_cell() {
+    std::string out = render([] {
+        Table t;
+        t.add_column("A");
+        t.add_column("B");
+        t.add_row({ static_cast<const char*>(nullptr), "ok" });
+        t.print();
+    });
+    CHECK(contains(out, "ok"), "table: null const char* cell is safe (empty)");
+}
+
 // Moving a Table after rows were added must keep the borrowed cell pointers
 // valid (the string arena lives behind a unique_ptr).
 static void test_table_survives_move() {
@@ -135,6 +148,7 @@ static void test_wrapper_matches_c() {
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
+    test_table_null_cell();
     test_table_survives_move();
     test_list_text_arena();
     test_tree_text_arena();
