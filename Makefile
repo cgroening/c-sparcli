@@ -245,22 +245,32 @@ test-input-pty: $(SANITIZE_LIB)
 # C++ wrapper gate (needs a C++ compiler). Three checks:
 #  1. the example compiles cleanly and its output matches a golden snapshot;
 #  2. the assertion suite (ownership / move-safety / C parity) passes, built
-#     under AddressSanitizer + UBSan so arena / RAII memory bugs are caught.
-CPP_DEMO_BIN = $(EXAMPLES_BUILDDIR)/cpp_demo
-CPP_TEST_BIN = $(EXAMPLES_BUILDDIR)/test_cpp
+#     under AddressSanitizer + UBSan so arena / RAII memory bugs are caught;
+#  3. a self-driving PTY test exercises the interactive string prompts
+#     (text_input / password_input / textarea) and asserts the returned value,
+#     guarding against the out-param sequencing bug those wrappers once had.
+CPP_DEMO_BIN     = $(EXAMPLES_BUILDDIR)/cpp_demo
+CPP_TEST_BIN     = $(EXAMPLES_BUILDDIR)/test_cpp
+CPP_PTY_TEST_BIN = $(EXAMPLES_BUILDDIR)/test_cpp_pty
 CPP_GOLDEN   = tests/cpp/expected.txt
 test-cpp: $(LIB) $(SANITIZE_LIB) | $(EXAMPLES_BUILDDIR)
 	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
-	./$(CPP_DEMO_BIN) </dev/null 2>/dev/null > $(EXAMPLES_BUILDDIR)/cpp.actual.txt
+	SPARCLI_DEMO_NONINTERACTIVE=1 ./$(CPP_DEMO_BIN) </dev/null 2>/dev/null \
+	    > $(EXAMPLES_BUILDDIR)/cpp.actual.txt
 	diff -u $(CPP_GOLDEN) $(EXAMPLES_BUILDDIR)/cpp.actual.txt
 	$(CXX) $(CXXFLAGS) $(SANITIZE_FLAGS) tests/cpp/test_cpp.cpp $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(CPP_TEST_BIN)
 	./$(CPP_TEST_BIN)
+	$(CXX) $(CXXFLAGS) $(SANITIZE_FLAGS) tests/cpp/test_cpp_pty.cpp \
+	    $(SANITIZE_LIB) $(LDFLAGS) $(SANITIZE_FLAGS) $(PTY_LDLIBS) \
+	    -o $(CPP_PTY_TEST_BIN)
+	./$(CPP_PTY_TEST_BIN)
 
 # Regenerate the C++ demo golden after an intentional rendering change.
 test-cpp-golden: $(LIB) | $(EXAMPLES_BUILDDIR)
 	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
-	./$(CPP_DEMO_BIN) </dev/null 2>/dev/null > $(CPP_GOLDEN)
+	SPARCLI_DEMO_NONINTERACTIVE=1 ./$(CPP_DEMO_BIN) </dev/null 2>/dev/null \
+	    > $(CPP_GOLDEN)
 	@echo "Regenerated $(CPP_GOLDEN)"
 
 # Build & run the test suite with AddressSanitizer + UndefinedBehaviorSanitizer.

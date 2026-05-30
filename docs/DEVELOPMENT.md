@@ -132,7 +132,7 @@ make test-input-pty
 
 ### `make test-cpp` – C++ wrapper gate
 
-Three checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a
+Four checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a
 C++ compiler (`$(CXX)`, default `c++`):
 
 1. **Compile** `examples/cpp_demo.cpp` (so the example never bit-rots).
@@ -141,6 +141,10 @@ C++ compiler (`$(CXX)`, default `c++`):
    ownership/lifetime guarantees (table built from temporaries, `Table` survives
    a move, List/Tree rich-text arenas) and that it renders like the C API. Built
    under **AddressSanitizer + UBSan** so arena/RAII/move memory bugs are caught.
+4. **PTY regression** `tests/cpp/test_cpp_pty.cpp` – drives the interactive
+   string prompts (`text_input` / `password_input` / `textarea`) over a
+   pseudo-terminal and asserts the returned value, so the out-param sequencing
+   those wrappers once got wrong stays fixed. Also under ASan/UBSan.
 
 ```sh
 make test-cpp                    # all three checks

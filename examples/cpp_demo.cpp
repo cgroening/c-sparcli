@@ -11,6 +11,7 @@
 
 #include <sparcli.hpp>
 
+#include <cstdlib>
 #include <string>
 
 using namespace sparcli;
@@ -145,7 +146,11 @@ static void input_demo() {
 
 int main() {
     output_demo();
-    if (input_available()) {
+    // The interactive section opens /dev/tty (so it runs even under a stdin/
+    // stdout redirect) and is non-deterministic, so it must not be part of the
+    // golden-diffed output: the Makefile sets SPARCLI_DEMO_NONINTERACTIVE for
+    // the golden run. Run it only with a terminal and when not suppressed.
+    if (input_available() && !std::getenv("SPARCLI_DEMO_NONINTERACTIVE")) {
         rule("Interactive widgets", { .type = SC_BORDER_DOUBLE });
         input_demo();
     }
