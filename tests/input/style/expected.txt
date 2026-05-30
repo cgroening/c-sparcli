@@ -120,6 +120,11 @@
   │[0m A[0md[0ma[0m[30m[47m [0m                       │[0m
   ╰[0m──────────────────────[0m [0m[2m(3)[0m [0m─[0m╯[0m
 
+[2mboxed: hint_pos right (stacked beside the box)[0m
+  ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m  [2menter submit[0m
+  │[0m A[0md[0ma[0m[30m[47m [0m                       │[0m  [2mesc cancel[0m  
+  ╰[0m──────────────────────[0m [0m[2m(3)[0m [0m─[0m╯[0m              
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════ [1mNumber[0m ════════════════════════════════════
@@ -363,6 +368,51 @@
   11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
   18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
   25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+
+[2mhint_pos: right, stacked (beside the grid)[0m
+  [1mPick a date[0m           [2m←/→/↑/↓ move[0m        
+  [1m[36m  ‹ May 2026 ›[0m        [2mpgup/pgdn month[0m     
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m  [2mshift+pgup/pgdn year[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m  [2menter select[0m        
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m  [2mesc cancel[0m          
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m                      
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m                      
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m                      
+
+[2mhint_pos: left, stacked[0m
+  [2m←/→/↑/↓ move[0m          [1mPick a date[0m         
+  [2mpgup/pgdn month[0m       [1m[36m  ‹ May 2026 ›[0m      
+  [2mshift+pgup/pgdn year[0m  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+  [2menter select[0m             [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+  [2mesc cancel[0m             4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+                        11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+                        18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+                        25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+
+[2mhint_pos: top, stacked (above the prompt)[0m
+  [2m←/→/↑/↓ move[0m
+  [2mpgup/pgdn month[0m
+  [2mshift+pgup/pgdn year[0m
+  [2menter select[0m
+  [2mesc cancel[0m
+  [1mPick a date[0m
+  [1m[36m  ‹ May 2026 ›[0m
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+
+[2mhint_pos: right, inline (one line beside)[0m
+  [1mPick a date[0m           [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+  [1m[36m  ‹ May 2026 ›[0m                                                                                         
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m                                                                                   
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m                                                                                   
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m                                                                                   
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m                                                                                   
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m                                                                                   
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m                                                                                   
 
 ════════════════════════════════════════════════════════════════════════════════
 

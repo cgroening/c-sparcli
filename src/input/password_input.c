@@ -23,6 +23,7 @@ ScInputStatus sc_password_input(
         .width           = opts.width,
         .hint            = opts.hint,
         .hint_layout     = opts.hint_layout,
+        .hint_pos        = opts.hint_pos,
         .hint_style      = opts.hint_style,
         .char_filter     = opts.char_filter,
         .char_filter_ctx = opts.char_filter_ctx,

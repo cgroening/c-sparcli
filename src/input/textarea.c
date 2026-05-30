@@ -129,11 +129,10 @@ static ScRendered *render_inline(const Textarea *self) {
     }
     int width = self->opts.width > 0 ? self->opts.width : sc_terminal_width();
     append_content(self, text, width);
-    sc_append_hint(text, ta_hint(self), self->opts.hint_layout,
-                   self->opts.hint_style, true);
-    ScRendered *rendered = sc_capture_text(text);
+    ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    return rendered;
+    return sc_compose_hint(body, ta_hint(self), self->opts.hint_layout,
+                           self->opts.hint_pos, self->opts.hint_style);
 }
 
 /** Boxed: content inside a panel (prompt = top title), footer stacked below. */
@@ -168,27 +167,11 @@ static ScRendered *render_boxed(const Textarea *self) {
 
     ScRendered *panel = sc_capture_panel_text(inner, opts);
     sc_text_free(inner);
-    if (!panel || sc_hint_resolved(self->opts.hint_layout) == SC_HINT_HIDDEN) {
-        return panel;
+    if (!panel) {
+        return NULL;
     }
-
-    ScText *footer_text = sc_text_new();
-    if (!footer_text) {
-        return panel;
-    }
-    sc_append_hint(footer_text, ta_hint(self), self->opts.hint_layout,
-                   self->opts.hint_style, false);
-    ScRendered *footer = sc_capture_text(footer_text);
-    sc_text_free(footer_text);
-    if (!footer) {
-        return panel;
-    }
-
-    const ScRendered *parts[2] = { panel, footer };
-    ScRendered *stacked = sc_vstack(parts, 2, 0);
-    sc_rendered_free(panel);
-    sc_rendered_free(footer);
-    return stacked;
+    return sc_compose_hint(panel, ta_hint(self), self->opts.hint_layout,
+                           self->opts.hint_pos, self->opts.hint_style);
 }
 
 /**

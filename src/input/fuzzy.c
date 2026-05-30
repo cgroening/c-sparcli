@@ -45,7 +45,6 @@ static ScRendered *fuzzy_render(void *state);
                                        ScColor accent);
     static ScRendered *render_table(ScFuzzy *self);
     static ScRendered *render_scroll_hint(ScFuzzy *self);
-    static ScRendered *render_hint_footer(ScFuzzy *self);
 static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel);
 static int match_cmp(const void *a, const void *b);
 static void grow_rows(ScFuzzy *self);
@@ -243,24 +242,25 @@ static ScRendered *fuzzy_render(void *state) {
         return NULL;
     }
     ScRendered *scroll = render_scroll_hint(self);
-    ScRendered *footer = render_hint_footer(self);
 
-    const ScRendered *parts[4];
+    const ScRendered *parts[3];
     size_t count = 0;
     parts[count++] = query;
     parts[count++] = body;
     if (scroll) {
         parts[count++] = scroll;
     }
-    if (footer) {
-        parts[count++] = footer;
-    }
     ScRendered *stacked = sc_vstack(parts, count, 0);
     sc_rendered_free(query);
     sc_rendered_free(body);
     sc_rendered_free(scroll);
-    sc_rendered_free(footer);
-    return stacked;
+    if (!stacked) {
+        return NULL;
+    }
+    return sc_compose_hint(stacked,
+                           self->opts.hint ? self->opts.hint : DEFAULT_HINT,
+                           self->opts.hint_layout, self->opts.hint_pos,
+                           self->opts.hint_style);
 }
 
 /** Builds the query/prompt line (query field scrolls when long). */
@@ -444,23 +444,6 @@ static ScRendered *render_scroll_hint(ScFuzzy *self) {
     }
     sc_text_append(text, buf, (ScTextStyle){ SC_TEXT_ATTR_DIM,
                    SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
-    ScRendered *rendered = sc_capture_text(text);
-    sc_text_free(text);
-    return rendered;
-}
-
-/** Builds the key-hint footer (one line, or stacked), or NULL when hidden. */
-static ScRendered *render_hint_footer(ScFuzzy *self) {
-    if (sc_hint_resolved(self->opts.hint_layout) == SC_HINT_HIDDEN) {
-        return NULL;
-    }
-    const char *hint = self->opts.hint ? self->opts.hint : DEFAULT_HINT;
-    ScText *text = sc_text_new();
-    if (!text) {
-        return NULL;
-    }
-    sc_append_hint(text, hint, self->opts.hint_layout, self->opts.hint_style,
-                   false);
     ScRendered *rendered = sc_capture_text(text);
     sc_text_free(text);
     return rendered;

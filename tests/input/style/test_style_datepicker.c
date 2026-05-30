@@ -58,4 +58,26 @@ void style_datepicker(void) {
     style_show("hint_layout: hidden (no footer)",
         sc_datepicker_frame(&seed, (ScDatePickerOpts){
             .prompt = "Pick a date", .hint_layout = SC_HINT_HIDDEN }));
+
+    /* ── Key-hint position: top / left / right (orthogonal to layout) ── */
+
+    style_show("hint_pos: right, stacked (beside the grid)",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_pos = SC_HINT_POS_RIGHT,
+            .hint_layout = SC_HINT_STACKED }));
+
+    style_show("hint_pos: left, stacked",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_pos = SC_HINT_POS_LEFT,
+            .hint_layout = SC_HINT_STACKED }));
+
+    style_show("hint_pos: top, stacked (above the prompt)",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_pos = SC_HINT_POS_TOP,
+            .hint_layout = SC_HINT_STACKED }));
+
+    style_show("hint_pos: right, inline (one line beside)",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_pos = SC_HINT_POS_RIGHT,
+            .hint_layout = SC_HINT_INLINE }));
 }

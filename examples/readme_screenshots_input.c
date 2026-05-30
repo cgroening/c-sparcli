@@ -118,7 +118,8 @@ static void hero_row_choices(void) {
     ScRendered *r_single = sc_select_frame(single);
 
     ScSelect *multi = sc_select_new((ScSelectOpts){
-        .prompt = "Targets", .multi = true, .accent = SC_ANSI_COLOR_GREEN });
+        .prompt = "Targets", .multi = true, .accent = SC_ANSI_COLOR_GREEN,
+        .hint_pos = SC_HINT_POS_RIGHT, .hint_layout = SC_HINT_STACKED });
     sc_select_add(multi, "web");
     sc_select_add(multi, "api");
     sc_select_add(multi, "worker");
@@ -175,14 +176,17 @@ static void hero_row_rich(void) {
                                                      .width = 28 });
 
     const char *cities[] = { "Tokyo", "Toronto", "London", "Boston", "Lisbon" };
-    ScFuzzy *fuzzy = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "City" });
+    ScFuzzy *fuzzy = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .hint_pos = SC_HINT_POS_RIGHT,
+        .hint_layout = SC_HINT_STACKED });
     for (size_t i = 0; i < sizeof cities / sizeof cities[0]; i++) {
         sc_fuzzy_add(fuzzy, cities[i]);
     }
     ScRendered *r_fuzzy = sc_fuzzy_frame(fuzzy, "to");
 
     ScRendered *r_date = sc_datepicker_frame(&seed, (ScDatePickerOpts){
-        .prompt = "Release date", .accent = SC_ANSI_COLOR_MAGENTA });
+        .prompt = "Release date", .accent = SC_ANSI_COLOR_MAGENTA,
+        .hint_pos = SC_HINT_POS_RIGHT, .hint_layout = SC_HINT_STACKED });
 
     ScColumns *cols = hero_columns();
     sc_columns_add_rendered(cols, r_textarea, (ScColItem){ 0 });

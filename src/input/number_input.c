@@ -116,12 +116,10 @@ static ScRendered *number_render_inline(NumberState *self) {
         sc_text_append(text, range, (ScTextStyle){ SC_TEXT_ATTR_DIM,
                        SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
     }
-    sc_append_hint(text, number_hint(self), self->opts.hint_layout,
-                   self->opts.hint_style, true);
-
-    ScRendered *rendered = sc_capture_text(text);
+    ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    return rendered;
+    return sc_compose_hint(body, number_hint(self), self->opts.hint_layout,
+                           self->opts.hint_pos, self->opts.hint_style);
 }
 
 /** Boxed: value inside a panel, range on the bottom border, footer below. */
@@ -167,27 +165,11 @@ static ScRendered *number_render_boxed(NumberState *self) {
 
     ScRendered *panel = sc_capture_panel_text(inner, panel_opts);
     sc_text_free(inner);
-    if (!panel || sc_hint_resolved(self->opts.hint_layout) == SC_HINT_HIDDEN) {
-        return panel;
+    if (!panel) {
+        return NULL;
     }
-
-    ScText *footer_text = sc_text_new();
-    if (!footer_text) {
-        return panel;
-    }
-    sc_append_hint(footer_text, number_hint(self), self->opts.hint_layout,
-                   self->opts.hint_style, false);
-    ScRendered *footer = sc_capture_text(footer_text);
-    sc_text_free(footer_text);
-    if (!footer) {
-        return panel;
-    }
-
-    const ScRendered *parts[2] = { panel, footer };
-    ScRendered *stacked = sc_vstack(parts, 2, 0);
-    sc_rendered_free(panel);
-    sc_rendered_free(footer);
-    return stacked;
+    return sc_compose_hint(panel, number_hint(self), self->opts.hint_layout,
+                           self->opts.hint_pos, self->opts.hint_style);
 }
 
 /** Writes "[min–max]" into `buf`, or an empty string when unbounded. */

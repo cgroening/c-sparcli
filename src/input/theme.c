@@ -31,6 +31,9 @@ void sc_theme_apply_confirm(ScConfirmOpts *o) {
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
+    }
 }
 
 void sc_theme_apply_text(ScTextInputOpts *o) {
@@ -44,6 +47,9 @@ void sc_theme_apply_text(ScTextInputOpts *o) {
     m_border(&o->border, t.border);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
+    }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
     }
 }
 
@@ -59,6 +65,9 @@ void sc_theme_apply_password(ScPasswordOpts *o) {
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
+    }
 }
 
 void sc_theme_apply_number(ScNumberOpts *o) {
@@ -71,6 +80,9 @@ void sc_theme_apply_number(ScNumberOpts *o) {
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
+    }
 }
 
 void sc_theme_apply_textarea(ScTextareaOpts *o) {
@@ -82,6 +94,9 @@ void sc_theme_apply_textarea(ScTextareaOpts *o) {
     m_border(&o->border, t.border);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
+    }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
     }
 }
 
@@ -99,6 +114,9 @@ void sc_theme_apply_select(ScSelectOpts *o) {
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
+    }
 }
 
 void sc_theme_apply_fuzzy(ScFuzzyOpts *o) {
@@ -115,6 +133,9 @@ void sc_theme_apply_fuzzy(ScFuzzyOpts *o) {
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
+    }
 }
 
 void sc_theme_apply_datepicker(ScDatePickerOpts *o) {
@@ -126,6 +147,9 @@ void sc_theme_apply_datepicker(ScDatePickerOpts *o) {
     m_style(&o->hint_style, t.hint_style);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
+    }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
     }
 }
 

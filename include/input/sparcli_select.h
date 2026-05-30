@@ -61,6 +61,9 @@ typedef struct ScSelectOpts {
     /** Key-hint footer layout: inline (default) / stacked / hidden. */
     ScHintLayout hint_layout;
 
+    /** Key-hint footer placement: top / bottom (default) / left / right. */
+    ScHintPosition hint_pos;
+
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
 } ScSelectOpts;

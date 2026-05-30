@@ -51,6 +51,22 @@ typedef enum ScHintLayout {
 } ScHintLayout;
 
 /**
+ * Placement of the key-hint footer relative to the widget body.
+ *
+ * Orthogonal to `ScHintLayout`: any position combines with inline or stacked.
+ * Left/right place the hint beside the widget, top-aligned. The zero-init
+ * `SC_HINT_POS_DEFAULT` inherits the theme, then resolves to bottom (the
+ * historical placement).
+ */
+typedef enum ScHintPosition {
+    SC_HINT_POS_DEFAULT = 0, /**< Unset: inherit theme, else bottom. */
+    SC_HINT_POS_TOP,         /**< Above the widget. */
+    SC_HINT_POS_BOTTOM,      /**< Below the widget (the default). */
+    SC_HINT_POS_LEFT,        /**< Left of the widget, top-aligned. */
+    SC_HINT_POS_RIGHT,       /**< Right of the widget, top-aligned. */
+} ScHintPosition;
+
+/**
  * Logical key identity produced by the escape-sequence decoder.
  *
  * Printable input (including multi-byte UTF-8) is reported as

@@ -145,12 +145,12 @@ static ScRendered *date_render(void *state) {
     append_weekday_row(text, self->week_start, weekday_style);
     append_day_grid(self, text, selected_style);
 
-    sc_append_hint(text, self->opts.hint ? self->opts.hint : DEFAULT_HINT,
-                   self->opts.hint_layout, self->opts.hint_style, true);
-
-    ScRendered *rendered = sc_capture_text(text);
+    ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    return rendered;
+    return sc_compose_hint(body,
+                           self->opts.hint ? self->opts.hint : DEFAULT_HINT,
+                           self->opts.hint_layout, self->opts.hint_pos,
+                           self->opts.hint_style);
 }
 
 /** Appends the weekday header row, rotated to start on `week_start`. */

@@ -674,7 +674,11 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   `hint_style`, and choose its layout with `hint_layout` (`ScHintLayout`:
   `SC_HINT_INLINE` one `·`-separated line / `SC_HINT_STACKED` one hint per line /
   `SC_HINT_HIDDEN` none; zero-init `SC_HINT_LAYOUT_DEFAULT` inherits the theme,
-  then inline). Stacked is rendered by splitting the hint on ` · `.
+  then inline). Stacked is rendered by splitting the hint on ` · `. Its
+  placement is `hint_pos` (`ScHintPosition`: `SC_HINT_POS_TOP`/`_BOTTOM`(default)/
+  `_LEFT`/`_RIGHT`; left/right sit beside the widget, top-aligned), orthogonal to
+  layout. `sc_compose_hint` (input_internal.h) builds the hint block and places
+  it: vstack for top/bottom, a 2-column `ScColumns` for left/right.
 - **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults
   (accent, styles, markers, border, `hint_layout`) that every widget inherits for
   any zero-init option. Precedence: per-call opts > theme > built-in default.

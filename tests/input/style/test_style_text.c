@@ -98,4 +98,10 @@ void style_text(void) {
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
             .hint_layout = SC_HINT_HIDDEN }));
+
+    /* hint_pos right on a boxed field: hint stacked beside the panel. */
+    style_show("boxed: hint_pos right (stacked beside the box)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
+            .hint_pos = SC_HINT_POS_RIGHT, .hint_layout = SC_HINT_STACKED }));
 }

@@ -60,6 +60,9 @@ typedef struct ScInputTheme {
 
     /** Default key-hint footer layout (inline / stacked / hidden). */
     ScHintLayout hint_layout;
+
+    /** Default key-hint footer placement (top / bottom / left / right). */
+    ScHintPosition hint_pos;
 } ScInputTheme;
 
 /**

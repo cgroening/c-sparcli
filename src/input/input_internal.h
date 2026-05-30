@@ -36,23 +36,29 @@ static inline ScHintLayout sc_hint_resolved(ScHintLayout layout) {
     return layout == SC_HINT_LAYOUT_DEFAULT ? SC_HINT_INLINE : layout;
 }
 
+/** Resolves the zero-init `DEFAULT` position to the built-in default (bottom). */
+static inline ScHintPosition sc_hint_pos_resolved(ScHintPosition pos) {
+    return pos == SC_HINT_POS_DEFAULT ? SC_HINT_POS_BOTTOM : pos;
+}
+
 /**
- * Appends the key-hint footer to `text` according to `layout`:
- * `SC_HINT_HIDDEN` appends nothing; `SC_HINT_INLINE` appends the hint verbatim
- * on one line; `SC_HINT_STACKED` appends one line per ` · `-separated item.
+ * Builds the key-hint footer as a standalone `ScRendered` per `layout`:
+ * `SC_HINT_INLINE` is one line, `SC_HINT_STACKED` is one line per ` · `-
+ * separated item. Returns NULL when hidden, empty, or on allocation failure.
+ * Independent of placement — `sc_hint_place` positions the result.
  *
- * `hint` is the resolved string (widget default or caller override); a NULL or
- * empty hint appends nothing. `lead_newline` prepends a newline before the
- * footer — true when appending under existing frame content (inline widgets),
- * false when building a standalone footer (boxed/fuzzy footers).
+ * `hint` is the resolved string (widget default or caller override).
  */
-static inline void sc_append_hint(
-    ScText *text, const char *hint, ScHintLayout layout, ScTextStyle style,
-    bool lead_newline
+static inline ScRendered *sc_hint_render(
+    const char *hint, ScHintLayout layout, ScTextStyle style
 ) {
     layout = sc_hint_resolved(layout);
     if (layout == SC_HINT_HIDDEN || !hint || !hint[0]) {
-        return;
+        return NULL;
+    }
+    ScText *text = sc_text_new();
+    if (!text) {
+        return NULL;
     }
     ScTextStyle resolved = sc_style_set(style)
         ? style
@@ -60,38 +66,91 @@ static inline void sc_append_hint(
                          SC_ANSI_COLOR_NONE };
 
     if (layout == SC_HINT_INLINE) {
-        if (lead_newline) {
-            sc_text_append(text, "\n", (ScTextStyle){ 0 });
-        }
         sc_text_append(text, hint, resolved);
-        return;
+    } else {
+        /* Stacked: split the hint on " · " and emit one item per line. */
+        const char *const separator = " \xc2\xb7 ";  /* space U+00B7 space */
+        const size_t separator_len = 4;
+        const char *cursor = hint;
+        bool first = true;
+        for (;;) {
+            const char *hit = strstr(cursor, separator);
+            size_t span = hit ? (size_t)(hit - cursor) : strlen(cursor);
+            if (!first) {
+                sc_text_append(text, "\n", (ScTextStyle){ 0 });
+            }
+            /* sc_text_append needs a NUL-terminated string; copy the item. */
+            char *item = malloc(span + 1);
+            if (item) {
+                memcpy(item, cursor, span);
+                item[span] = '\0';
+                sc_text_append(text, item, resolved);
+                free(item);
+            }
+            first = false;
+            if (!hit) {
+                break;
+            }
+            cursor = hit + separator_len;
+        }
     }
 
-    /* Stacked: split the hint on " · " and emit one item per line. */
-    const char *const separator = " \xc2\xb7 ";  /* space + U+00B7 + space */
-    const size_t separator_len = 4;
-    const char *cursor = hint;
-    bool first = true;
-    for (;;) {
-        const char *hit = strstr(cursor, separator);
-        size_t span = hit ? (size_t)(hit - cursor) : strlen(cursor);
-        if (lead_newline || !first) {
-            sc_text_append(text, "\n", (ScTextStyle){ 0 });
-        }
-        /* sc_text_append needs a NUL-terminated string; copy the one item. */
-        char *item = malloc(span + 1);
-        if (item) {
-            memcpy(item, cursor, span);
-            item[span] = '\0';
-            sc_text_append(text, item, resolved);
-            free(item);
-        }
-        first = false;
-        if (!hit) {
-            break;
-        }
-        cursor = hit + separator_len;
+    ScRendered *rendered = sc_capture_text(text);
+    sc_text_free(text);
+    return rendered;
+}
+
+/**
+ * Places the hint block around the widget body per `pos` and returns the
+ * composed frame. Top/bottom stack vertically; left/right sit beside the body,
+ * top-aligned, with a small gap. Both `body` and `hint` are consumed (freed).
+ * A NULL `hint` returns `body` unchanged.
+ */
+static inline ScRendered *sc_hint_place(
+    ScRendered *body, ScRendered *hint, ScHintPosition pos
+) {
+    if (!hint) {
+        return body;
     }
+    pos = sc_hint_pos_resolved(pos);
+
+    ScRendered *out = NULL;
+    if (pos == SC_HINT_POS_TOP || pos == SC_HINT_POS_BOTTOM) {
+        const ScRendered *parts[2];
+        parts[0] = (pos == SC_HINT_POS_TOP) ? hint : body;
+        parts[1] = (pos == SC_HINT_POS_TOP) ? body : hint;
+        out = sc_vstack(parts, 2, 0);
+    } else {
+        ScColumns *cols = sc_columns_new((ScColumnsOpts){
+            .gap = 2, .valign = SC_VALIGN_TOP,
+            .sep = { .type = SC_BORDER_NONE, .color = SC_ANSI_COLOR_NONE } });
+        if (cols) {
+            if (pos == SC_HINT_POS_LEFT) {
+                sc_columns_add_rendered(cols, hint, (ScColItem){ 0 });
+                sc_columns_add_rendered(cols, body, (ScColItem){ 0 });
+            } else {
+                sc_columns_add_rendered(cols, body, (ScColItem){ 0 });
+                sc_columns_add_rendered(cols, hint, (ScColItem){ 0 });
+            }
+            out = sc_capture_columns(cols);
+            sc_columns_free(cols);
+        }
+    }
+    sc_rendered_free(body);
+    sc_rendered_free(hint);
+    return out;
+}
+
+/**
+ * Composes a widget's `body` frame with its key-hint footer: builds the hint
+ * per `layout`, then places it per `pos`. Consumes `body`; returns the final
+ * frame. The single call every widget makes after assembling its body.
+ */
+static inline ScRendered *sc_compose_hint(
+    ScRendered *body, const char *hint, ScHintLayout layout,
+    ScHintPosition pos, ScTextStyle style
+) {
+    return sc_hint_place(body, sc_hint_render(hint, layout, style), pos);
 }
 
 
@@ -220,6 +279,7 @@ typedef struct ScTextEntryCfg {
     /** Key-hint footer; NULL = default. */
     const char *hint;
     ScHintLayout hint_layout;
+    ScHintPosition hint_pos;
     ScTextStyle hint_style;
     ScCharFilter char_filter;
     void *char_filter_ctx;

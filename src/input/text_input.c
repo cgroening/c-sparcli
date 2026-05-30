@@ -25,6 +25,7 @@ typedef struct TextState {
     int width;
     const char *hint;
     ScHintLayout hint_layout;
+    ScHintPosition hint_pos;
     ScTextStyle hint_style;
     ScCharFilter char_filter;
     void *char_filter_ctx;
@@ -78,6 +79,7 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .width           = opts.width,
         .hint            = opts.hint,
         .hint_layout     = opts.hint_layout,
+        .hint_pos        = opts.hint_pos,
         .hint_style      = opts.hint_style,
         .char_filter     = opts.char_filter,
         .char_filter_ctx = opts.char_filter_ctx,
@@ -145,6 +147,7 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         .width           = cfg->width,
         .hint            = cfg->hint,
         .hint_layout     = cfg->hint_layout,
+        .hint_pos        = cfg->hint_pos,
         .hint_style      = cfg->hint_style,
         .char_filter     = cfg->char_filter,
         .char_filter_ctx = cfg->char_filter_ctx,
@@ -201,12 +204,10 @@ static ScRendered *render_inline(TextState *self) {
         sc_text_append(text, "  ", (ScTextStyle){ 0 });
         sc_text_append(text, self->error, resolve_error_style(self));
     }
-    sc_append_hint(text, self->hint ? self->hint : DEFAULT_HINT,
-                   self->hint_layout, self->hint_style, true);
-
-    ScRendered *rendered = sc_capture_text(text);
+    ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    return rendered;
+    return sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
+                           self->hint_layout, self->hint_pos, self->hint_style);
 }
 
 /**
@@ -266,45 +267,31 @@ static ScRendered *render_boxed(TextState *self) {
         return NULL;
     }
 
-    // Stack an optional error line and the key-hint footer beneath the box.
-    ScRendered *error_rendered = NULL;
+    // Stack an optional validation-error line beneath the box; that combined
+    // block is the body the key-hint footer is then positioned around.
+    ScRendered *body = panel;
     if (self->error) {
         ScText *error_text = sc_text_new();
         if (error_text) {
             sc_text_append(error_text, "  ", (ScTextStyle){ 0 });
             sc_text_append(error_text, self->error, resolve_error_style(self));
-            error_rendered = sc_capture_text(error_text);
+            ScRendered *error_rendered = sc_capture_text(error_text);
             sc_text_free(error_text);
+            if (error_rendered) {
+                const ScRendered *parts[2] = { panel, error_rendered };
+                ScRendered *stacked = sc_vstack(parts, 2, 0);
+                if (stacked) {
+                    sc_rendered_free(panel);
+                    sc_rendered_free(error_rendered);
+                    body = stacked;
+                } else {
+                    sc_rendered_free(error_rendered);
+                }
+            }
         }
     }
-    ScRendered *footer = NULL;
-    if (sc_hint_resolved(self->hint_layout) != SC_HINT_HIDDEN) {
-        ScText *footer_text = sc_text_new();
-        if (footer_text) {
-            sc_append_hint(footer_text, self->hint ? self->hint : DEFAULT_HINT,
-                           self->hint_layout, self->hint_style, false);
-            footer = sc_capture_text(footer_text);
-            sc_text_free(footer_text);
-        }
-    }
-    if (!error_rendered && !footer) {
-        return panel;
-    }
-
-    const ScRendered *parts[3];
-    size_t count = 0;
-    parts[count++] = panel;
-    if (error_rendered) {
-        parts[count++] = error_rendered;
-    }
-    if (footer) {
-        parts[count++] = footer;
-    }
-    ScRendered *stacked = sc_vstack(parts, count, 0);
-    sc_rendered_free(panel);
-    sc_rendered_free(error_rendered);
-    sc_rendered_free(footer);
-    return stacked;
+    return sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
+                           self->hint_layout, self->hint_pos, self->hint_style);
 }
 
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
