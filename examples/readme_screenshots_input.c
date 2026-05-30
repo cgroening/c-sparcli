@@ -87,8 +87,8 @@ static ScColumns *hero_columns(void) {
 
 static void hero_intro_panel(void) {
     sc_panel_str(
-        "Interactive prompts, rendered statically — "
-        "confirm · text · number · select · fuzzy · date.",
+        "Interactive prompts — confirm · select · text · password · "
+        "number · textarea · fuzzy · date.",
         (ScPanelOpts){
             .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
             .title  = {
@@ -142,47 +142,76 @@ static void hero_row_choices(void) {
     sc_select_free(multi);
 }
 
-/* Row 2: boxed text, password and number fields (a uniform card look). */
+/* Row 2: boxed fields (uniform card look) — text, password, number, an empty
+ * field showing its placeholder, and one showing an autocomplete ghost. */
 static void hero_row_fields(void) {
     ScRendered *r_text = sc_text_entry_frame(&(ScTextEntryCfg){
         .prompt = "Service", .initial = "api-gateway",
-        .boxed = true, .width = 26 });
+        .boxed = true, .width = 22, .hint_layout = SC_HINT_STACKED });
 
     ScRendered *r_password = sc_text_entry_frame(&(ScTextEntryCfg){
         .prompt = "Password", .initial = "hunter2", .mask = "*",
-        .boxed = true, .width = 22 });
+        .boxed = true, .width = 18, .hint_layout = SC_HINT_STACKED });
 
     ScRendered *r_number = sc_number_frame("Replicas", 3,
-        (ScNumberOpts){ .min = 1, .max = 10, .boxed = true, .width = 20 });
+        (ScNumberOpts){ .min = 1, .max = 10, .boxed = true, .width = 16,
+                        .hint_layout = SC_HINT_STACKED });
+
+    // Empty field: shows the dim placeholder.
+    ScRendered *r_email = sc_text_entry_frame(&(ScTextEntryCfg){
+        .prompt = "Email", .placeholder = "you@example.com",
+        .boxed = true, .width = 24, .hint_layout = SC_HINT_STACKED });
+
+    // Typed prefix + a matching suggestion: shows the autocomplete ghost.
+    const char *regions[] = { "eu-central-1" };
+    ScRendered *r_region = sc_text_entry_frame(&(ScTextEntryCfg){
+        .prompt = "Region", .initial = "eu-",
+        .suggestions = regions, .n_suggestions = 1,
+        .boxed = true, .width = 24, .hint_layout = SC_HINT_STACKED });
 
     ScColumns *cols = hero_columns();
     sc_columns_add_rendered(cols, r_text,     (ScColItem){ 0 });
     sc_columns_add_rendered(cols, r_password, (ScColItem){ 0 });
     sc_columns_add_rendered(cols, r_number,   (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_email,    (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_region,   (ScColItem){ 0 });
     sc_columns_print(cols);
 
     sc_columns_free(cols);
     sc_rendered_free(r_text);
     sc_rendered_free(r_password);
     sc_rendered_free(r_number);
+    sc_rendered_free(r_email);
+    sc_rendered_free(r_region);
 }
 
-/* Row 3: a textarea, a fuzzy finder (list view) and a date picker. */
+/* Row 3: a textarea, a fuzzy finder (table view) and a date picker. */
 static void hero_row_rich(void) {
     struct tm seed = seed_date();
 
     ScRendered *r_textarea = sc_textarea_frame("Notes",
-        "first line\nsecond line", (ScTextareaOpts){ .boxed = true,
-                                                     .width = 28 });
+        "first line\nsecond line\nthird line",
+        (ScTextareaOpts){
+            .boxed = true, .width = 28,
+            .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN },
+            .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN,
+                              SC_ANSI_COLOR_NONE },
+            .hint_layout = SC_HINT_STACKED });
 
-    const char *cities[] = { "Tokyo", "Toronto", "London", "Boston", "Lisbon" };
+    // Two-column table; the query searches all columns by default, so "stat"
+    // matches the "Static" cells (highlighted). The selected row uses black
+    // text over the accent background.
+    const char *lang_headers[] = { "Programming language", "Typed" };
     ScFuzzy *fuzzy = sc_fuzzy_new((ScFuzzyOpts){
-        .prompt = "City", .hint_pos = SC_HINT_POS_RIGHT,
-        .hint_layout = SC_HINT_STACKED });
-    for (size_t i = 0; i < sizeof cities / sizeof cities[0]; i++) {
-        sc_fuzzy_add(fuzzy, cities[i]);
-    }
-    ScRendered *r_fuzzy = sc_fuzzy_frame(fuzzy, "to");
+        .prompt = "Language", .table = true,
+        .headers = lang_headers, .n_cols = 2,
+        .selected_style = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                            SC_ANSI_COLOR_NONE },
+        .hint_pos = SC_HINT_POS_RIGHT, .hint_layout = SC_HINT_STACKED });
+    sc_fuzzy_add_row(fuzzy, (const char *[]){ "C",    "Static" }, 2);
+    sc_fuzzy_add_row(fuzzy, (const char *[]){ "C++",  "Static" }, 2);
+    sc_fuzzy_add_row(fuzzy, (const char *[]){ "Rust", "Static" }, 2);
+    ScRendered *r_fuzzy = sc_fuzzy_frame(fuzzy, "stat");
 
     ScRendered *r_date = sc_datepicker_frame(&seed, (ScDatePickerOpts){
         .prompt = "Release date", .accent = SC_ANSI_COLOR_MAGENTA,

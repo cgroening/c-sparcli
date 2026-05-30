@@ -125,6 +125,11 @@
   │[0m A[0md[0ma[0m[30m[47m [0m                       │[0m  [2mesc cancel[0m  
   ╰[0m──────────────────────[0m [0m[2m(3)[0m [0m─[0m╯[0m              
 
+[2mautocomplete: ghost + 'tab complete' in the default hint[0m
+  Region:[0m [0me[0mu[0m-[0m[30m[47m [0m[2mcentral-1[0m
+    [0m[2m3[0m
+  [2mtab complete · enter submit · esc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════ [1mNumber[0m ════════════════════════════════════
@@ -284,6 +289,17 @@
   [2m↑/↓ move[0m
   [2menter select[0m
   [2mesc cancel[0m
+
+[2mfuzzy table: 'stat' highlights Static; cursor row black text[0m
+  [1m[36mLanguage[0m [0ms[0mt[0ma[0mt[0m[30m[47m [0m[2m  (2/4)[0m
+  ┌[0m────────────────────[0m┬[0m──────[0m┐[0m
+  │[0m[1mProgramming language[0m│[0m[1mTyped[0m │[0m
+  ├[0m────────────────────[0m┼[0m──────[0m┤[0m
+  │[0m[30m[46mC[0m[46m                   [0m│[0m[1m[4m[30m[46mS[0m[1m[4m[30m[46mt[0m[1m[4m[30m[46ma[0m[1m[4m[30m[46mt[0m[30m[46mi[0m[30m[46mc[0m│[0m
+  ├[0m────────────────────[0m┼[0m──────[0m┤[0m
+  │[0mRust[0m                │[0m[1m[4m[36mS[0m[1m[4m[36mt[0m[1m[4m[36ma[0m[1m[4m[36mt[0mi[0mc[0m│[0m
+  └[0m────────────────────[0m┴[0m──────[0m┘[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 

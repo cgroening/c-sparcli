@@ -104,4 +104,11 @@ void style_text(void) {
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
             .hint_pos = SC_HINT_POS_RIGHT, .hint_layout = SC_HINT_STACKED }));
+
+    /* Autocomplete available: the default hint leads with "tab complete". */
+    static const char *const regions[] = { "eu-central-1" };
+    style_show("autocomplete: ghost + 'tab complete' in the default hint",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Region:", .initial = "eu-",
+            .suggestions = regions, .n_suggestions = 1 }));
 }

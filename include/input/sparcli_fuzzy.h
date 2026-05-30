@@ -5,6 +5,7 @@
 #include "input/sparcli_term.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 
 SPARCLI_BEGIN_DECLS
@@ -39,10 +40,23 @@ typedef struct ScFuzzyOpts {
     /** Number of columns (table view). */
     size_t n_cols;
 
+    /**
+     * Bitmask selecting which columns the query searches (bit `c` = column
+     * `c`). `0` (the default) searches all columns. Table view only — the list
+     * view always searches its single label. A row matches when the query
+     * matches any selected column; its rank uses the best-scoring column.
+     */
+    uint64_t search_columns;
+
     /** Search label; zero-init = bold in `accent`. */
     ScTextStyle prompt_style;
 
-    /** List cursor row; zero-init = bold in `accent`. */
+    /**
+     * Cursor-row style. List view: zero-init = bold in `accent`. Table view:
+     * applied as the cursor row's text style over the accent background
+     * (e.g. `.fg = black` for dark text on the highlight); zero-init = the
+     * terminal default.
+     */
     ScTextStyle selected_style;
 
     /** Query cursor cell; zero-init = black-on-white. */

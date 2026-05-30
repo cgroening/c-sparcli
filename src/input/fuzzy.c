@@ -37,6 +37,8 @@ static const char *const DEFAULT_HINT =
 
 
 static void refilter(ScFuzzy *self);
+    static bool row_matches(const ScFuzzy *self, size_t i, const char *query,
+                            int *best);
 static ScRendered *fuzzy_render(void *state);
     static ScRendered *render_query_line(ScFuzzy *self);
     static ScRendered *render_list(ScFuzzy *self);
@@ -205,13 +207,39 @@ ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
     return rendered;
 }
 
+/**
+ * Returns true when `query` matches any searched column of row `i`, writing the
+ * best column score to `*best`. The searched columns are `opts.search_columns`
+ * (a bitmask; 0 = all). List items have a single column, so they are unaffected.
+ */
+static bool row_matches(const ScFuzzy *self, size_t i, const char *query,
+                        int *best) {
+    uint64_t mask = self->opts.search_columns;   /* 0 = all columns */
+    int best_score = 0;
+    bool matched = false;
+    for (size_t c = 0; c < self->row_ncols[i]; c++) {
+        if (mask != 0 && !(mask & ((uint64_t)1 << c))) {
+            continue;
+        }
+        int score = 0;
+        if (sc_fuzzy_match(query, self->rows[i][c], &score)) {
+            matched = true;
+            if (score > best_score) {
+                best_score = score;
+            }
+        }
+    }
+    *best = best_score;
+    return matched;
+}
+
 /** Recomputes the filtered/ranked match list from the current query. */
 static void refilter(ScFuzzy *self) {
     const char *query = self->query.buf;
     self->match_n = 0;
     for (size_t i = 0; i < self->count; i++) {
         int score = 0;
-        if (sc_fuzzy_match(query, self->rows[i][0], &score)) {
+        if (row_matches(self, i, query, &score)) {
             self->matches[self->match_n].index = i;
             self->matches[self->match_n].score = score;
             self->match_n++;
@@ -385,8 +413,19 @@ static ScRendered *render_table(ScFuzzy *self) {
         end = self->match_n;
     }
 
+    // Cells with matched characters are built as ScText (highlighted) and
+    // borrowed by the table, so they must outlive the capture below.
+    const char *query = self->query.buf;
+    uint64_t mask = self->opts.search_columns;   /* 0 = all columns */
+    ScTextStyle sel = self->opts.selected_style; /* cursor-row text style */
+    bool sel_set = sc_style_set(sel);
+    size_t shown = (end > self->top) ? end - self->top : 0;
+    ScText **texts = calloc(shown * cols, sizeof *texts);
+    size_t n_texts = 0;
+
     for (size_t i = self->top; i < end; i++) {
         size_t row_index = self->matches[i].index;
+        bool on_cursor = (i == self->cursor);
         ScCell *cells = calloc(cols, sizeof *cells);
         if (!cells) {
             break;
@@ -394,9 +433,32 @@ static ScRendered *render_table(ScFuzzy *self) {
         for (size_t c = 0; c < cols; c++) {
             const char *value = (c < self->row_ncols[row_index])
                 ? self->rows[row_index][c] : "";
-            cells[c] = sc_cell(value);
+            bool searched = (mask == 0) || (mask & ((uint64_t)1 << c));
+            bool hl = texts && searched && query[0]
+                    && sc_fuzzy_match(query, value, NULL);
+            if (texts && (hl || (on_cursor && sel_set))) {
+                // Highlight matched characters and/or apply the cursor-row text
+                // style. On the cursor row the accent fg is dropped (accent is
+                // the row background); selected_style provides the text colour.
+                ScText *t = sc_text_new();
+                if (t) {
+                    ScTextStyle base = on_cursor ? sel : (ScTextStyle){ 0 };
+                    if (hl) {
+                        append_highlighted(t, value, query, base,
+                            on_cursor ? SC_ANSI_COLOR_NONE : self->accent);
+                    } else {
+                        sc_text_append(t, value, base);
+                    }
+                    texts[n_texts++] = t;
+                    cells[c] = sc_cell_t(t);
+                } else {
+                    cells[c] = sc_cell(value);
+                }
+            } else {
+                cells[c] = sc_cell(value);
+            }
         }
-        if (i == self->cursor) {
+        if (on_cursor) {
             sc_table_add_row_bg(table, cells, cols, self->accent);
         } else {
             sc_table_add_row(table, cells, cols);
@@ -419,6 +481,10 @@ static ScRendered *render_table(ScFuzzy *self) {
     }
     ScRendered *rendered = sc_capture_table(table, opts);
     sc_table_free(table);
+    for (size_t t = 0; t < n_texts; t++) {
+        sc_text_free(texts[t]);
+    }
+    free(texts);
     return rendered;
 }
 

@@ -53,4 +53,20 @@ void style_fuzzy(void) {
     style_show("fuzzy list: hint_layout stacked (one hint per line)",
                sc_fuzzy_frame(e, "to"));
     sc_fuzzy_free(e);
+
+    /* search_columns default (all): query 'stat' matches the 2nd ("Typed")
+     * column, filtering the table to the statically-typed languages. */
+    const char *lang_headers[] = { "Programming language", "Typed" };
+    ScFuzzy *f = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Language", .table = true,
+        .headers = lang_headers, .n_cols = 2,
+        .selected_style = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                            SC_ANSI_COLOR_NONE } });
+    sc_fuzzy_add_row(f, (const char *[]){ "C",      "Static"  }, 2);
+    sc_fuzzy_add_row(f, (const char *[]){ "Rust",   "Static"  }, 2);
+    sc_fuzzy_add_row(f, (const char *[]){ "Python", "Dynamic" }, 2);
+    sc_fuzzy_add_row(f, (const char *[]){ "Ruby",   "Dynamic" }, 2);
+    style_show("fuzzy table: 'stat' highlights Static; cursor row black text",
+               sc_fuzzy_frame(f, "stat"));
+    sc_fuzzy_free(f);
 }

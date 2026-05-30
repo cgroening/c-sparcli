@@ -947,7 +947,7 @@ void      sc_select_free(ScSelect *s);
 
 ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n_cols → table view */
 void      sc_fuzzy_add    (ScFuzzy *f, const char *label);
-void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* fields[0] = match key */
+void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* query searches all cols (opts.search_columns) */
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
 void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
@@ -1070,8 +1070,9 @@ written).
 ### sc_fuzzy
 
 Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched
-characters are highlighted. List view by default; set `table = true` with
-`headers`/`n_cols` and add rows via `sc_fuzzy_add_row` for a table view.
+characters are highlighted (in the list, and in the matched table cells). List
+view by default; set `table = true` with `headers`/`n_cols` and add rows via
+`sc_fuzzy_add_row` for a table view.
 `out_index` is the chosen item's original add order.
 
 | Field | Description |
@@ -1080,6 +1081,7 @@ characters are highlighted. List view by default; set `table = true` with
 | `max_visible` | Result rows shown; `0` = 10 |
 | `accent` | Cursor-row highlight; zero-init = cyan |
 | `table` / `headers` / `n_cols` | Table view configuration |
+| `search_columns` | Bitmask of columns the query searches (bit `c` = column `c`); `0` = all (default). Table view only; a row matches when any selected column matches |
 | `table_opts` | Passed through to the table renderer (border, header, …) |
 | `prompt_style` / `selected_style` / `cursor_style` / `counter_style` | Styles |
 | `cursor_marker` / `marker` | List cursor / other-row prefixes |

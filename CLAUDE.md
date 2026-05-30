@@ -624,7 +624,7 @@ void      sc_select_free(ScSelect *s);
 
 ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n_cols → table view */
 void      sc_fuzzy_add(ScFuzzy *f, const char *label);
-void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* fields[0] = match key */
+void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* query searches all cols (opts.search_columns) */
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
 void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
@@ -661,10 +661,15 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the
   list scrolls beyond the viewport.
 - **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are
-  highlighted (bold+underline) in the list; the query field scrolls horizontally
-  (`‹`/`›`) when long; table view builds an `ScTableData` of the visible rows
-  each frame (cursor row via row-bg) and `sc_vstack`s query + body +
-  scroll-indicator + footer.
+  highlighted (bold+underline, accent fg) in the list and in the matched table
+  cells (`render_table` builds those cells as highlighted `ScText` via
+  `append_highlighted`, borrowed by the table and freed after capture); the
+  query field scrolls horizontally (`‹`/`›`) when long; table view builds an
+  `ScTableData` of the visible rows each frame (cursor row via row-bg) and
+  `sc_vstack`s query + body + scroll-indicator + footer. `refilter` matches each
+  row via `row_matches` across the columns selected by `opts.search_columns`
+  (bitmask; `0` = all, the default), ranking by the best-scoring column — so a
+  table query can hit (and highlight) any column, not just the first.
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
   `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds
   today. Month/year jumps keep the selected day, clamped to the target month's

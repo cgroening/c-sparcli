@@ -47,6 +47,7 @@ static ScRendered *text_render(void *state);
     static ScRendered *render_boxed(TextState *self);
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static const char *best_suggestion(const TextState *self);
+    static const char *text_default_hint(const TextState *self);
 static void counter_str(char *buf, size_t cap, const TextState *self,
                         bool parens);
     static size_t cp_count(const char *str);
@@ -206,7 +207,8 @@ static ScRendered *render_inline(TextState *self) {
     }
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    return sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
+    return sc_compose_hint(body,
+                           self->hint ? self->hint : text_default_hint(self),
                            self->hint_layout, self->hint_pos, self->hint_style);
 }
 
@@ -290,7 +292,8 @@ static ScRendered *render_boxed(TextState *self) {
             }
         }
     }
-    return sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
+    return sc_compose_hint(body,
+                           self->hint ? self->hint : text_default_hint(self),
                            self->hint_layout, self->hint_pos, self->hint_style);
 }
 
@@ -350,6 +353,18 @@ static const char *best_suggestion(const TextState *self) {
         }
     }
     return NULL;
+}
+
+/**
+ * Default key-hint. When an autocomplete suggestion is currently available
+ * (a ghost is shown), it leads with "tab complete" so the Tab binding is
+ * discoverable; otherwise it is the plain submit/cancel hint.
+ */
+static const char *text_default_hint(const TextState *self) {
+    if (best_suggestion(self)) {
+        return "tab complete \xc2\xb7 enter submit \xc2\xb7 esc cancel";
+    }
+    return DEFAULT_HINT;
 }
 
 /** Formats the character counter; `parens` wraps it as "(n)" / "(n/max)". */
