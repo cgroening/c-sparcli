@@ -337,7 +337,7 @@ static ScRendered *render_list(ScFuzzy *self) {
 
 /**
  * Appends `label` codepoint-by-codepoint, emphasizing the characters the
- * (greedy, case-insensitive) query subsequence matches — same order as
+ * (greedy, case-insensitive) query subsequence matches – same order as
  * `sc_fuzzy_match`.
  */
 static void append_highlighted(ScText *text, const char *label,

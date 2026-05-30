@@ -1,6 +1,6 @@
 # sparcli
 
-A C11 library for styled terminal output — panels, tables, columns, lists,
+A C11 library for styled terminal output – panels, tables, columns, lists,
 progress bars, and more, with **Rich-compatible inline markup**.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -34,18 +34,18 @@ progress bars, and more, with **Rich-compatible inline markup**.
 - **Large set of widgets**: panels, tables, rules, side-by-side columns, lists,
   trees, key/value blocks, alerts, badges, progress bars, spinners.
 - **Interactive prompts**: confirm, text/password, number, textarea, single &
-  multi select, fuzzy finder, and a date picker — each with a non-TTY fallback.
+  multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`,
-  `[rgb(120,200,255)]…[/]` — same syntax as
+  `[rgb(120,200,255)]…[/]` – same syntax as
   [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
 - **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
 - **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
 - **Composable**: capture any widget into a buffer, then pad, align, or place it
   inside a columns layout.
 - **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`,
-  namespace `sparcli`) — no manual `free`, owned strings, `std::optional` inputs.
+  namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
-  entry points — ready for future Python/Rust bindings.
+  entry points – ready for future Python/Rust bindings.
 - **No runtime dependencies** beyond libc.
 - **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
 
@@ -110,7 +110,7 @@ c++ -std=c++20 hello.cpp $(pkg-config --cflags --libs sparcli) -o hello
 **Why the wrapper?** Two easy C-API mistakes simply can't happen with it:
 
 ```cpp
-// C API — two footguns:
+// C API – two footguns:
 ScTableData *t = sc_table_new();                      // 1) leaks if you forget
                                                       //    sc_table_free(t)
 sc_table_add_row(t, (ScCell[]){                       // 2) the table BORROWS the
@@ -118,7 +118,7 @@ sc_table_add_row(t, (ScCell[]){                       // 2) the table BORROWS th
                                                       //    dies here → dangling
 sc_table_print(t, (ScTableOpts){0});                  //    pointer read → garbage
 
-// C++ wrapper — RAII frees, and the cell string is copied into the table:
+// C++ wrapper – RAII frees, and the cell string is copied into the table:
 sparcli::Table t;                                     // frees itself
 t.add_row({ std::to_string(n) });                     // owned → temporary is safe
 t.print();
@@ -175,8 +175,8 @@ cc app.c -I<prefix>/include -L<prefix>/lib -lsparcli -o app
 
 ## Output widgets
 
-A one-line summary per widget. The full reference — every type, every option,
-every macro — lives in [`docs/api-c.md`](docs/api-c.md).
+A one-line summary per widget. The full reference – every type, every option,
+every macro – lives in [`docs/api-c.md`](docs/api-c.md).
 
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
@@ -205,7 +205,7 @@ every macro — lives in [`docs/api-c.md`](docs/api-c.md).
 ## Input widgets
 
 Interactive prompts that drive a real terminal in raw mode. Each returns an
-`ScInputStatus` — Esc and Ctrl-C cancel, and a non-TTY context (output piped,
+`ScInputStatus` – Esc and Ctrl-C cancel, and a non-TTY context (output piped,
 CI) returns an error so callers can fall back to a default. The full reference
 lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
 
@@ -237,7 +237,7 @@ Build a runnable demo of every input widget with
 make run-example EX=input_demo
 ```
 
-> **Add Screenshot:** Each input widget mid-interaction — confirm, text /
+> **Add Screenshot:** Each input widget mid-interaction – confirm, text /
 > password, number, multi-select (with checkboxes), the fuzzy finder, and the
 > month-grid date picker.
 
@@ -305,13 +305,13 @@ run it, the golden-file workflow, and the pre-commit checklist.
 
 ## Roadmap
 
-- **C++ wrapper** — ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp)
+- **C++ wrapper** – ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp)
   (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
 - **Python bindings** (`sparcli-py`): `cffi`/`ctypes`-based wrapper with
   Pythonic constructors.
 - **Rust crate** (`sparcli-rs`): safe `&str`-friendly wrappers around the C API.
 - **`examples/` directory** with self-contained copy-pasteable snippets.
-- **More widgets** — open an issue with ideas.
+- **More widgets** – open an issue with ideas.
 
 ---
 
@@ -320,7 +320,7 @@ run it, the golden-file workflow, and the pre-commit checklist.
 Heavily inspired by the wonderful [Rich](https://github.com/Textualize/rich) and
 [Textual](https://github.com/Textualize/textual) projects by Will McGugan and
 the Textualize team. The goal of sparcli is to give plain C programs the same
-level of polish for one-shot CLI output — without taking on a full TUI runtime.
+level of polish for one-shot CLI output – without taking on a full TUI runtime.
 
 ---
 

@@ -25,7 +25,7 @@ typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out)
 /**
  * Per-character input filter. Return `true` to accept the typed codepoint,
  * `false` to reject it (the keystroke is ignored). Use it to constrain input
- * to a format — digits only, no spaces, etc. Built-in filters below.
+ * to a format – digits only, no spaces, etc. Built-in filters below.
  */
 typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
 

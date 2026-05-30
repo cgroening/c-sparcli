@@ -1,4 +1,4 @@
-// test_cpp.cpp — assertion suite for the C++ wrapper (include/sparcli.hpp).
+// test_cpp.cpp – assertion suite for the C++ wrapper (include/sparcli.hpp).
 //
 // Unlike a smoke run, this verifies the wrapper's value-adds: that borrowed
 // strings/texts are actually owned (temporaries stay valid), that a Table

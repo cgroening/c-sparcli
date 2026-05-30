@@ -117,7 +117,7 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
                 indices[written++] = i;
             }
         }
-        snprintf(summary, sizeof summary, "? %s — %zu selected", prompt, written);
+        snprintf(summary, sizeof summary, "? %s – %zu selected", prompt, written);
     } else {
         if (cap >= 1) {
             indices[0] = self->cursor;

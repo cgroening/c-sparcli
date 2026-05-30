@@ -1,4 +1,4 @@
-// cpp_demo.cpp — exercises the C++20 wrapper (include/sparcli.hpp).
+// cpp_demo.cpp – exercises the C++20 wrapper (include/sparcli.hpp).
 //
 // Build (after `make`):
 //   c++ -std=c++20 -Iinclude examples/cpp_demo.cpp libsparcli.a -o cpp_demo
@@ -17,7 +17,7 @@ using namespace sparcli;
 
 static void output_demo() {
     // Markup + styled print.
-    markup::println("[bold green]sparcli[/] — C++ wrapper demo");
+    markup::println("[bold green]sparcli[/] – C++ wrapper demo");
     println("plain styled line", style(SC_TEXT_ATTR_DIM));
 
     // Alerts.
@@ -54,7 +54,7 @@ static void output_demo() {
     l.add_markup("[cyan]rich item[/]");               // safe: arena-owned
     l.print();
 
-    // Tree (with a markup node — the tree borrows the text, wrapper owns it).
+    // Tree (with a markup node – the tree borrows the text, wrapper owns it).
     Tree tree;
     auto root = tree.add("project");
     tree.add("src", root);
@@ -86,7 +86,7 @@ static void output_demo() {
     println(truncate("a very long line that will be shortened", 12));
     println(strip_ansi("\033[31mred\033[0m becomes plain"));
 
-    // Progress bar (no sleeps — this is a gate, not a UI).
+    // Progress bar (no sleeps – this is a gate, not a UI).
     ProgressBar bar({ .show_percent = true });
     bar.set_label("Installing");
     for (int v = 0; v <= 100; v += 50) bar.draw(v, 100);

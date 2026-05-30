@@ -24,7 +24,7 @@ SPARCLI_EXPORT FILE *sc_output_stream(void);
  * Sets the stream sparcli will write its output to.
  *
  * Pass `NULL` to restore the default (`stdout`). The library does not
- * take ownership of `out` — the caller remains responsible for opening,
+ * take ownership of `out` – the caller remains responsible for opening,
  * flushing and closing it.
  *
  * @param out  Target stream, or `NULL` to revert to `stdout`.

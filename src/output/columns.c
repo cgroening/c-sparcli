@@ -247,11 +247,11 @@ static ScRendered *buffer_to_rendered(const char *buffer, size_t size) {
  * Uses POSIX `open_memstream` to back the capture stream with a memory
  * buffer, then swaps `sc_output_set_stream()` around the call. Because all
  * sparcli print paths go through `sc_output_stream()`, this leaves
- * `stdout` untouched — no `dup2(STDOUT_FILENO)` is needed. The previous
+ * `stdout` untouched – no `dup2(STDOUT_FILENO)` is needed. The previous
  * implementation hijacked the process-wide stdout file descriptor, which
  * made concurrent captures unsafe across threads. This version is
  * thread-safe **as long as no other thread modifies the sparcli output
- * stream while the capture is in flight** — the same constraint that
+ * stream while the capture is in flight** – the same constraint that
  * applies to any non-reentrant sparcli call.
  */
 static ScRendered *capture_render(void (*render_fn)(void *), void *ctx) {

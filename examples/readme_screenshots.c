@@ -3,10 +3,10 @@
  *
  * Generates the four screenshots referenced in README.md:
  *
- *   1  hero      — panel + striped table + two-column layout + progress bar
- *   2  quickstart — output of the Quick Start snippet
- *   3  gallery   — one representative state per widget
- *   4  markup    — before/after view of the inline markup syntax
+ *   1  hero      – panel + striped table + two-column layout + progress bar
+ *   2  quickstart – output of the Quick Start snippet
+ *   3  gallery   – one representative state per widget
+ *   4  markup    – before/after view of the inline markup syntax
  *
  * Build (after `make`):
  *   cc -std=c11 -Iinclude examples/readme_screenshots.c libsparcli.a -o readme_shots
@@ -75,7 +75,7 @@ static void shot_hero(void) {
         ScText *body = sc_text_new();
         sc_text_append(body, "A C11 library for ", s_plain);
         sc_text_append(body, "styled terminal output",   s_b_cyan);
-        sc_text_append(body, " — panels, tables, ",      s_plain);
+        sc_text_append(body, " – panels, tables, ",      s_plain);
         sc_text_append(body, "columns",                  s_b_green);
         sc_text_append(body, ", lists, progress bars",   s_plain);
         sc_text_append(body, " and Rich-compatible ",    s_plain);
@@ -183,7 +183,7 @@ static void shot_hero(void) {
             (const ScRendered *const *)r_rules, 3, 1
         );
 
-        /* tree | rules, side by side — this fills the area under the list. */
+        /* tree | rules, side by side – this fills the area under the list. */
         ScColumns *under = sc_columns_new((ScColumnsOpts){
             .gap    = 2,
             .sep    = { .type = SC_BORDER_NONE, .color = SC_ANSI_COLOR_NONE },

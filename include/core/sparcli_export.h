@@ -7,12 +7,12 @@
  * Include this header (directly or transitively via `sparcli.h`) when
  * declaring or consuming sparcli's public API. The macros here are:
  *
- * - `SPARCLI_EXPORT` — annotation for symbols that are part of the public
+ * - `SPARCLI_EXPORT` – annotation for symbols that are part of the public
  *   ABI. Resolves to the appropriate visibility / dllexport directive for
  *   the current toolchain, or to nothing on platforms that do not need it.
- * - `SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` — `extern "C"` brackets so
+ * - `SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` – `extern "C"` brackets so
  *   the headers are usable from C++ callers.
- * - `SPARCLI_VERSION_*` — compile-time version constants. Callers compare
+ * - `SPARCLI_VERSION_*` – compile-time version constants. Callers compare
  *   these against the runtime values from `sc_version_*()` to detect ABI
  *   skew between the library they were compiled against and the one
  *   loaded at runtime.

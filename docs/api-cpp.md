@@ -1,4 +1,4 @@
-# sparcli — C++ Wrapper Reference
+# sparcli – C++ Wrapper Reference
 
 A header-only, RAII C++20 layer over the [C API](api-c.md), in the `sparcli::`
 namespace:
@@ -33,13 +33,13 @@ Requires C++20 (designated initializers for the `*Opts` structs). Verified by
 Two easy C-API mistakes cannot happen with it:
 
 ```cpp
-// C API — two footguns:
+// C API – two footguns:
 ScTableData *t = sc_table_new();                 // 1) leaks without sc_table_free
 sc_table_add_row(t, (ScCell[]){                  // 2) the table BORROWS the
     sc_cell(std::to_string(n).c_str()) }, 1);    //    string; the temporary dies
 sc_table_print(t, (ScTableOpts){0});             //    here → dangling read
 
-// C++ wrapper — RAII frees, and the cell string is copied into the table:
+// C++ wrapper – RAII frees, and the cell string is copied into the table:
 Table t;                                         // frees itself
 t.add_row({ std::to_string(n) });                // owned → temporary is safe
 t.print();
@@ -81,7 +81,7 @@ All are move-only (non-copyable); the destructor frees the underlying `sc_*`
 object. Each exposes `.get()` for the raw C handle (escape hatch). Constructors
 throw `std::bad_alloc` on allocation failure.
 
-### Text — rich multi-span text (`ScText`)
+### Text – rich multi-span text (`ScText`)
 
 ```cpp
 Text t;                              // empty
@@ -96,10 +96,10 @@ t.visible_width(); t.span_count();
 
 All `append*` calls copy their input.
 
-### Table — `ScTableData` (owns its cell strings)
+### Table – `ScTableData` (owns its cell strings)
 
 The C table borrows cell strings, so the wrapper copies them into an internal
-arena that lives as long as the table — `std::string` temporaries are safe, and
+arena that lives as long as the table – `std::string` temporaries are safe, and
 the table stays valid across a move.
 
 ```cpp
@@ -118,7 +118,7 @@ A `Cell` is implicitly constructible from any string-like; chain `.align(h)`,
 `cell_markup("…")`. For a fully custom multi-span cell, drop to `t.get()` +
 `sc_cell_from_text` (managing the `Text` lifetime yourself).
 
-### List — `ScList` (owns rich-text items)
+### List – `ScList` (owns rich-text items)
 
 String items are copied by the C side; rich (`Text`/markup) items are kept alive
 in a shared arena that outlives the root list, so sub-list rich items are safe
@@ -136,7 +136,7 @@ l.print();
 
 `add(...)` returns a non-owning `Item`; `Item::sub(opts)` nests a list.
 
-### Tree — `ScTree` (owns rich-text nodes)
+### Tree – `ScTree` (owns rich-text nodes)
 
 ```cpp
 Tree tr;
@@ -150,7 +150,7 @@ tr.print();
 `parent` of a child (default `Node{}` = root). String/prefix args are copied;
 `Text` nodes are owned by the tree.
 
-### Kv — `ScKV`
+### Kv – `ScKV`
 
 ```cpp
 Kv kv;
@@ -158,7 +158,7 @@ kv.add("Version", sc_version_string());   // both strings copied
 kv.print();
 ```
 
-### Columns — `ScColumns` (captures eagerly)
+### Columns – `ScColumns` (captures eagerly)
 
 Each `add*` captures the widget's rendering immediately, so the source may be
 modified or destroyed afterwards.
@@ -174,7 +174,7 @@ cols.print();
 Overloads: `add(Table, TableOpts, ColItem)`, `add_panel(string|Text, …)`,
 `add(Text|string|List|Tree|Columns|Rendered, ColItem)`.
 
-### ProgressBar / Spinner — `ScProgressBar` / `ScSpinner`
+### ProgressBar / Spinner – `ScProgressBar` / `ScSpinner`
 
 ```cpp
 ProgressBar bar({ .show_percent = true });

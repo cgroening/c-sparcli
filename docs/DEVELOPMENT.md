@@ -1,4 +1,4 @@
-# sparcli — Developer Guide
+# sparcli – Developer Guide
 
 Build, test, and install workflow for working on sparcli itself. For the public
 API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and
@@ -33,7 +33,7 @@ make EXTRA_CFLAGS=-Werror
 **Good to know:**
 
 - **Header-dependency tracking** is automatic (`-MMD -MP`): editing a header
-  rebuilds every dependent object on the next `make` — you do **not** need
+  rebuilds every dependent object on the next `make` – you do **not** need
   `make clean` after changing a header.
 - The **sanitizer build** uses a separate build tree and a separate `.a`, so it
   never contaminates the normal artefacts.
@@ -50,11 +50,11 @@ make EXTRA_CFLAGS=-Werror
 The suites split along the output/input boundary. Everything except
 `make test-input` (which needs a real terminal) runs headless.
 
-### `make test` — full non-interactive suite
+### `make test` – full non-interactive suite
 
-The canonical "is everything OK?" command. Runs all headless gates in order —
+The canonical "is everything OK?" command. Runs all headless gates in order –
 `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`,
-`test-input-pty`, `test-cpp` — and fails if any does. Command-line overrides
+`test-input-pty`, `test-cpp` – and fails if any does. Command-line overrides
 propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings
 as errors. The interactive widget suite (`make test-input`) needs a real TTY
 and is **not** included. The individual targets it chains are documented below.
@@ -64,7 +64,7 @@ make test                     # run every headless gate
 make test EXTRA_CFLAGS=-Werror
 ```
 
-### `make test-output` — output gallery
+### `make test-output` – output gallery
 
 The output renderer suite in `tests/output/`, printed to stdout for visual
 inspection (the golden-file gate below is the automated check). Covers: text
@@ -81,7 +81,7 @@ make test-output ARGS="--focus --no-animated" # combine flags
 
 The two *animated* cases (progress bar, spinner) are skipped by `--no-animated`.
 
-### `make test-output-check` — output golden-file gate
+### `make test-output-check` – output golden-file gate
 
 Runs the output suite with `--no-animated` and diffs it against
 `tests/output/expected.txt`. Fails on any rendering drift. This is the automated
@@ -92,10 +92,10 @@ make test-output-check     # diff against the committed snapshot
 make test-output-golden    # regenerate the snapshot (after an intended change)
 ```
 
-### `make test-input` — interactive widget suite
+### `make test-input` – interactive widget suite
 
 Drives every input widget for real in `tests/input/logic/`. **Needs a real
-TTY** — run it in a terminal, not a pipe.
+TTY** – run it in a terminal, not a pipe.
 
 ```sh
 make test-input                # interactive: confirm, text, password, number,
@@ -104,10 +104,10 @@ make test-input ARGS=--logic   # non-interactive logic checks only (CI-safe)
 ```
 
 `ARGS=--logic` skips the interactive widgets and runs only the pure-logic
-checks — key decoder, line editor, character filters, and the thread-safety
-test — and exits non-zero if any assertion fails.
+checks – key decoder, line editor, character filters, and the thread-safety
+test – and exits non-zero if any assertion fails.
 
-### `make test-input-style` — style snapshots
+### `make test-input-style` – style snapshots
 
 Renders every input widget in many styles via the internal frame builders, with
 no TTY and no keystrokes. Safe anywhere.
@@ -118,10 +118,10 @@ make test-input-style-check    # diff against tests/input/style/expected.txt
 make test-input-style-golden   # regenerate the snapshot
 ```
 
-### `make test-input-pty` — self-driving PTY suite (ASan/UBSan)
+### `make test-input-pty` – self-driving PTY suite (ASan/UBSan)
 
 Forks each interactive widget onto a pseudo-terminal, feeds it a canned
-keystroke script, and asserts the returned value — no human needed. Built with
+keystroke script, and asserts the returned value – no human needed. Built with
 AddressSanitizer + UndefinedBehaviorSanitizer, so it also gives sanitizer
 coverage of the interactive code paths. Covers confirm, text, number, select,
 textarea, and datepicker.
@@ -130,14 +130,14 @@ textarea, and datepicker.
 make test-input-pty
 ```
 
-### `make test-cpp` — C++ wrapper gate
+### `make test-cpp` – C++ wrapper gate
 
 Three checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a
 C++ compiler (`$(CXX)`, default `c++`):
 
 1. **Compile** `examples/cpp_demo.cpp` (so the example never bit-rots).
 2. **Golden diff** the demo's output against `tests/cpp/expected.txt`.
-3. **Assertion suite** `tests/cpp/test_cpp.cpp` — verifies the wrapper's
+3. **Assertion suite** `tests/cpp/test_cpp.cpp` – verifies the wrapper's
    ownership/lifetime guarantees (table built from temporaries, `Table` survives
    a move, List/Tree rich-text arenas) and that it renders like the C API. Built
    under **AddressSanitizer + UBSan** so arena/RAII/move memory bugs are caught.
@@ -148,7 +148,7 @@ make test-cpp EXTRA_CFLAGS=-Werror
 make test-cpp-golden             # regenerate tests/cpp/expected.txt
 ```
 
-### `make sanitize` — output suite under ASan/UBSan
+### `make sanitize` – output suite under ASan/UBSan
 
 Rebuilds and runs the output suite with AddressSanitizer + UBSan in a separate
 build tree.
@@ -172,7 +172,7 @@ purpose**:
 2. review the diff to confirm the change is what you intended,
 3. commit the updated `expected.txt`.
 
-### After a change — run these
+### After a change – run these
 
 Copy-paste block to validate a change.
 
@@ -223,21 +223,21 @@ cc myapp.c $(pkg-config --cflags --libs sparcli) -o myapp
 
 ## Releasing a new version
 
-The version string lives in **three places that must stay in sync** — the most
+The version string lives in **three places that must stay in sync** – the most
 common release mistake is bumping only some of them:
 
 | Location | What it drives |
 |----------|----------------|
-| `Makefile` — `VERSION_MAJOR` / `_MINOR` / `_PATCH` | shared-library version + soname, `sparcli.pc` |
-| `include/core/sparcli_export.h` — `SPARCLI_VERSION_MAJOR` / `_MINOR` / `_PATCH` | compile-time constants; `sc_version()` / `sc_version_string()` |
-| `README.md` — the `![Version: …]` badge | the version shown on the project page |
+| `Makefile` – `VERSION_MAJOR` / `_MINOR` / `_PATCH` | shared-library version + soname, `sparcli.pc` |
+| `include/core/sparcli_export.h` – `SPARCLI_VERSION_MAJOR` / `_MINOR` / `_PATCH` | compile-time constants; `sc_version()` / `sc_version_string()` |
+| `README.md` – the `![Version: …]` badge | the version shown on the project page |
 
 Checklist:
 
 1. `make test EXTRA_CFLAGS=-Werror` is green; regenerate goldens if rendering
    changed intentionally.
 2. Bump the version in all **three** locations above.
-3. `make clean && make` — `sparcli.pc` and the soname pick up the new value;
+3. `make clean && make` – `sparcli.pc` and the soname pick up the new value;
    confirm with `./build.examples.nosync/...` or a quick `sc_version_string()`
    check.
 4. Commit, then tag and push: `git tag vX.Y.Z && git push --tags`.
@@ -255,7 +255,7 @@ make run-example EX=readme_screenshots   # build & run one example
 ```
 
 Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new
-`examples/foo.c` in makes `make run-example EX=foo` work — no Makefile edit.
+`examples/foo.c` in makes `make run-example EX=foo` work – no Makefile edit.
 
 ---
 
@@ -287,7 +287,7 @@ stream-oriented and write through the redirectable `sc_output_stream()`;
 `src/tty` and `src/input` drive a real terminal in raw mode.
 
 To **add a source file**, append its path (e.g. `src/output/foo.c`) to `SRC` in
-the `Makefile` — the build tree mirrors `src/` automatically. Public headers go
+the `Makefile` – the build tree mirrors `src/` automatically. Public headers go
 under `include/<area>/`, and cross-includes use root-relative paths
 (`#include "core/sparcli_core.h"`, resolved via `-Iinclude`). The table renderer
 is split into sub-modules that are `#include`-chained from `table.c`, so only
@@ -295,7 +295,7 @@ is split into sub-modules that are `#include`-chained from `table.c`, so only
 
 To **add public API**, declare it inside the header's
 `SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` block (these provide the `extern "C"`
-wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` — symbols are
+wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` – symbols are
 hidden by default, so an unmarked function won't be part of the shared-library
 ABI.
 
@@ -311,7 +311,7 @@ ABI.
 - **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/`
   runner, then `make test-input-style-golden`.
 - **C++ wrapper check:** add a `CHECK(...)` case to `tests/cpp/test_cpp.cpp`
-  (no Makefile change — `test-cpp` compiles that file directly); if it changes
+  (no Makefile change – `test-cpp` compiles that file directly); if it changes
   the demo output, run `make test-cpp-golden`.
 
 See [`../CLAUDE.md`](../CLAUDE.md) for the full module map and type reference.
@@ -325,10 +325,10 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 - Doc comments sit **above** the member/field (`/** … */`), with a blank line
   between members; enum values keep a trailing `/**< … */`.
 - `struct`/`enum` typedefs carry a **tag** (`typedef struct Name { … } Name;`).
-- Horizontal alignment fields/params are `halign`, vertical `valign` — never a
+- Horizontal alignment fields/params are `halign`, vertical `valign` – never a
   bare `align` (that name is reserved for the `sc_align_*` *operation*).
 - Lines stay within **80 columns**.
-- Zero-initialized `ScColor` / `ScTextStyle` means "not set / no formatting" —
+- Zero-initialized `ScColor` / `ScTextStyle` means "not set / no formatting" –
   rely on it instead of spelling out defaults.
 - String vs rich-text entry points come in `_str` / `_text` pairs; terse inline
   constructors have FFI-friendly exported variants.
@@ -337,7 +337,7 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
 ## Pre-commit checklist
 
-1. `make test EXTRA_CFLAGS=-Werror` — builds clean (no warnings) and all five
+1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all five
    headless gates pass.
 2. If you changed rendering on purpose, regenerate the affected golden file
    (`make test-output-golden` / `make test-input-style-golden` /

@@ -409,7 +409,7 @@ static void render_title_inner(
 
 /**
  * Computes left/right fill counts and prints: fill, padding, title text,
- * padding, fill — all in the outer-color / title-style combination.
+ * padding, fill – all in the outer-color / title-style combination.
  */
 static void render_title_with_fill(
     const Table *table, const char *fill_char,

@@ -121,8 +121,8 @@ void test_markup(void) {
     printf("--- Markup 9. sc_markup_append ---\n");
     {
         ScText *text = sc_text_new();
-        sc_text_append(text, "Plain prefix — ", plain);
-        sc_markup_append(text, "[bold red]appended markup[/] — ");
+        sc_text_append(text, "Plain prefix – ", plain);
+        sc_markup_append(text, "[bold red]appended markup[/] – ");
         sc_markup_append(text, "[italic cyan]second append[/]");
         sc_print_text(text);
         printf("\n");

@@ -101,7 +101,7 @@ typedef struct ScColor {
 /** @} */
 
 /**
- * Namespace type for `SC_ANSI_COLOR_...` — groups all predefined ANSI colors
+ * Namespace type for `SC_ANSI_COLOR_...` – groups all predefined ANSI colors
  * under dot notation.
  *
  * Copy `ScAnsiColorNs_` locally to get a short alias:

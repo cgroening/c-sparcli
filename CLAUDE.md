@@ -1,4 +1,4 @@
-# sparcli — Developer Reference
+# sparcli – Developer Reference
 
 A C11 library for styled terminal output: colored text, bordered panels,
 feature-rich tables, horizontal rules, and multi-column side-by-side layouts.
@@ -13,14 +13,14 @@ make test         # FULL non-interactive suite: chains the four headless gates
 make test-output  # OUTPUT gallery (tests/output/test_main), printed for eyeballing.
                   # ARGS=--focus / --no-animated (and the combo).
 make test-output-check / -golden   # OUTPUT golden-file diff / regenerate snapshot
-make test-input   # INPUT logic+widget suite (tests/input/logic/) — interactive,
+make test-input   # INPUT logic+widget suite (tests/input/logic/) – interactive,
                   # needs a real TTY. `ARGS=--logic` runs only the non-interactive
                   # logic tests (key decoder, line editor, filters, threads) for CI.
-make test-input-style # INPUT style snapshots (tests/input/style/) — NON-interactive:
+make test-input-style # INPUT style snapshots (tests/input/style/) – NON-interactive:
                   # renders every widget in many styles; safe in CI.
 make test-input-style-check / -golden  # style golden-file diff / regenerate
 make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
-                  # widget onto a pseudo-terminal and feeds canned keys — gives
+                  # widget onto a pseudo-terminal and feeds canned keys – gives
                   # interactive coverage with no human. Runs headless (CI).
 make sanitize     # OUTPUT suite under ASan/UBSan
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
@@ -72,7 +72,7 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 
 | `index` | Meaning |
 |---------|---------|
-| `0`     | **Not set** — `SC_ANSI_COLOR_NONE`; no escape code emitted. **Zero-init `ScColor` lands here**, so any unset color field is "no color" by default. |
+| `0`     | **Not set** – `SC_ANSI_COLOR_NONE`; no escape code emitted. **Zero-init `ScColor` lands here**, so any unset color field is "no color" by default. |
 | `-1`    | 24-bit RGB mode; uses `r`, `g`, `b` fields |
 | `1`–`8` | Named ANSI color (`SC_ANSI_COLOR_BLACK` … `SC_ANSI_COLOR_WHITE`) |
 
@@ -89,7 +89,7 @@ Named macros: `SC_ANSI_COLOR_NONE`, `SC_ANSI_COLOR_BLACK`, `SC_ANSI_COLOR_RED`, 
 
 ### ScTextAttribute
 
-Bitmask — combine with `|`:
+Bitmask – combine with `|`:
 
 ```c
 SC_TEXT_ATTR_NONE | SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_ITALIC | SC_TEXT_ATTR_UNDER
@@ -115,7 +115,7 @@ sc_print_text(t);
 sc_text_free(t);
 ```
 
-`sc_text_visible_width(t)` — returns the max visible width across lines (ANSI-aware,
+`sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware,
 UTF-8-aware, counts codepoints not bytes).
 
 ### ScBorderType
@@ -174,7 +174,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
 `full_width` takes precedence over `width`. Width is calculated as `terminal_width - 2`.
 
-**Background color sentinel:** `border_bg` and `bg` use `{0,0,0,0}` (zero-init) as "not set" — the same sentinel as `ScProgressBarOpts.fill_color`. A zero-initialized `ScPanelOpts` field means no background. Use `SC_ANSI_COLOR_NONE` or leave unset for no color; use `sc_color_from_rgb(...)` for a specific color.
+**Background color sentinel:** `border_bg` and `bg` use `{0,0,0,0}` (zero-init) as "not set" – the same sentinel as `ScProgressBarOpts.fill_color`. A zero-initialized `ScPanelOpts` field means no background. Use `SC_ANSI_COLOR_NONE` or leave unset for no color; use `sc_color_from_rgb(...)` for a specific color.
 
 ---
 
@@ -196,32 +196,32 @@ void         sc_table_print(const ScTableData *table, ScTableOpts opts);
 void         sc_table_free(ScTableData *table);
 ```
 
-`ScTableOpts` is passed at **print time**, not at construction — `sc_table_new()` takes
+`ScTableOpts` is passed at **print time**, not at construction – `sc_table_new()` takes
 no arguments. The same `ScTableData *` can be printed multiple times with different opts.
 
 ### ScTableOpts
 
 | Field | Description |
 |-------|-------------|
-| `border` | `ScTableBorder` — style + color per border segment |
-| `header` | `ScTableHeader` — grouped header settings (see below) |
-| `header.row` | `bool` — first added row is the header |
-| `header.col` | `bool` — first column is a header column |
+| `border` | `ScTableBorder` – style + color per border segment |
+| `header` | `ScTableHeader` – grouped header settings (see below) |
+| `header.row` | `bool` – first added row is the header |
+| `header.col` | `bool` – first column is a header column |
 | `header.row_bg` / `header.col_bg` | Background for header areas |
 | `header.style` | `ScTextStyle` applied to all header cells |
-| `striped` | `bool` — alternating row backgrounds |
+| `striped` | `bool` – alternating row backgrounds |
 | `stripe_bg` | Background for odd data rows (0-indexed) |
-| `footer` | `ScTableFooter` — grouped footer settings (see below) |
+| `footer` | `ScTableFooter` – grouped footer settings (see below) |
 | `footer.row_bg` / `footer.col_bg` | Background for footer rows/column |
 | `footer.style` | `ScTextStyle` for footer cells |
-| `title` | `ScTitle` — table title |
+| `title` | `ScTitle` – table title |
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` / `title.halign` / `title.pad` / `title.pos` | Title text appearance and position |
-| `cell_pad` | `ScEdges` — inner cell padding |
-| `margin` | `ScEdges` — outer table margin (top/right/bottom/left) |
+| `cell_pad` | `ScEdges` – inner cell padding |
+| `margin` | `ScEdges` – outer table margin (top/right/bottom/left) |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
-| `rtl` | `bool` — right-to-left column order |
+| `rtl` | `bool` – right-to-left column order |
 
 ### ScTableHeader / ScTableFooter
 
@@ -276,12 +276,12 @@ C99 compound literals call the exported descriptive variants instead.
 | `sc_cell_t(t)` | `sc_cell_from_text(t)` | ScText cell (not owned) |
 | `sc_cell_ta(t, ha, va)` | `sc_cell_text_aligned(t, ha, va)` | ScText + alignment |
 | `sc_cell_cs(s, cs)` | `sc_cell_colspan(s, cs)` | String + colspan |
-| `sc_cell_csa(s, cs, ha)` | — | String + colspan + halign |
-| `sc_cell_tcs(t, cs)` | — | ScText + colspan |
-| `sc_cell_tcsa(t, cs, ha)` | — | ScText + colspan + halign |
+| `sc_cell_csa(s, cs, ha)` | – | String + colspan + halign |
+| `sc_cell_tcs(t, cs)` | – | ScText + colspan |
+| `sc_cell_tcsa(t, cs, ha)` | – | ScText + colspan + halign |
 | `sc_cell_skip()` | `sc_cell_skip_placeholder()` | Placeholder covered by a colspan |
 | `sc_cell_rs(s, rs)` | `sc_cell_rowspan(s, rs)` | String + rowspan |
-| `sc_cell_trs(t, rs)` | — | ScText + rowspan |
+| `sc_cell_trs(t, rs)` | – | ScText + rowspan |
 | `sc_row_skip()` | `sc_row_skip_placeholder()` | Placeholder row covered by a rowspan |
 | `sc_cell_m(s)` | `sc_cell_from_markup(s)` | Markup cell (owns the parsed ScText) |
 
@@ -305,16 +305,16 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 
 | Field | Description |
 |-------|-------------|
-| `type` | `ScBorderType` — which `h` character to use |
+| `type` | `ScBorderType` – which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
-| `title` | `ScTitle` — title label (text, style, halign, pad; pos ignored) |
+| `title` | `ScTitle` – title label (text, style, halign, pad; pos ignored) |
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` | `ScTextStyle` for the title text |
 | `title.halign` | LEFT / CENTER / RIGHT (default CENTER) |
 | `title.pad` | Spaces on each side of title, default 1 |
 | `width` | 0 = full terminal width; >0 = fixed width |
 | `halign` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
-| `margin` | `ScEdges` — top/bottom = blank lines; left/right = indent |
+| `margin` | `ScEdges` – top/bottom = blank lines; left/right = indent |
 
 ---
 
@@ -345,7 +345,7 @@ Nested columns are captured eagerly at `sc_columns_add_columns` call time.
 | Field | Description |
 |-------|-------------|
 | `gap` | Space between columns. **Without separator:** gap spaces total. **With separator:** gap spaces on each side of the separator (total: 2×gap+1). Default: 3 (no sep) or 2 (with sep). |
-| `sep` | `ScBorderStyle` — vertical separator bundle (`type`, `color`, `bg`); `sep.type = SC_BORDER_NONE` = no separator |
+| `sep` | `ScBorderStyle` – vertical separator bundle (`type`, `color`, `bg`); `sep.type = SC_BORDER_NONE` = no separator |
 | `sep.type` | `ScBorderType` for the separator character |
 | `sep.color` | Separator foreground color; **must be set to `SC_ANSI_COLOR_NONE`** if no color desired |
 | `sep.bg` | Background color applied to gap spaces and the separator char; zero-init = none |
@@ -479,18 +479,18 @@ void           sc_progressbar_free     (ScProgressBar *b);
 | `type` | Fill style (see above) |
 | `left_cap` / `right_cap` | Border strings; `NULL` = no bracket; pass `"["` / `"]"` for defaults |
 | `fill_color` / `empty_color` | Colors; zero-init = no color (same sentinel as `marker_style`) |
-| `thresholds` | `ScProgressThresholds` — grouped threshold settings (see below) |
-| `thresholds.enabled` | `bool` — switch fill color based on ratio |
+| `thresholds` | `ScProgressThresholds` – grouped threshold settings (see below) |
+| `thresholds.enabled` | `bool` – switch fill color based on ratio |
 | `thresholds.mid` / `thresholds.high` | Ratio thresholds (default 0.5 / 0.75) |
 | `thresholds.color_low` / `.color_mid` / `.color_high` | Fill color per range |
-| `show_percent` | `bool` — append ` XX%` (default true) |
-| `show_value` | `bool` — append `(value/max)` after percent |
+| `show_percent` | `bool` – append ` XX%` (default true) |
+| `show_value` | `bool` – append `(value/max)` after percent |
 | `bar_width` | Inner bar char count; 0 = auto from `width` |
 | `width` | Total line width; 0 = terminal width |
 | `label_width` | Fixed label column width; 0 = natural width |
 | `label_style` | Style for label text |
 
-**Zero-init of `fill_color`/`empty_color`:** Same as every other `ScColor` field — zero-init equals `SC_ANSI_COLOR_NONE` and emits no escape codes. Use `SC_ANSI_COLOR_BLACK` for explicit black.
+**Zero-init of `fill_color`/`empty_color`:** Same as every other `ScColor` field – zero-init equals `SC_ANSI_COLOR_NONE` and emits no escape codes. Use `SC_ANSI_COLOR_BLACK` for explicit black.
 
 **Animation pattern:**
 ```c
@@ -554,7 +554,7 @@ sc_spinner_free(s);
 
 Interactive prompts. **Tty-oriented**, not stream-oriented: they open
 `/dev/tty` (fallback stdin/stdout), enter raw mode, read decoded keys, and
-redraw in place — they do **not** go through `sc_output_stream()`. Every
+redraw in place – they do **not** go through `sc_output_stream()`. Every
 widget returns `ScInputStatus` (`SC_INPUT_OK` / `SC_INPUT_CANCELLED` /
 `SC_INPUT_ERROR`); Esc and Ctrl-C always cancel; non-TTY contexts return
 `SC_INPUT_ERROR` (so callers can fall back to a default). On `SC_INPUT_OK`
@@ -566,7 +566,7 @@ place. Header: `input/sparcli_input.h` (in the `sparcli.h` umbrella).
 All widgets are thin state machines over one engine, `sc_prompt_run`
 (`src/input/prompt.c`), which owns the raw-mode + draw/read/dispatch loop.
 Each widget supplies an `ScPromptVTable { render, on_key }`; `render` builds
-a frame as an `ScText` and `sc_capture_text`s it — so input reuses the entire
+a frame as an `ScText` and `sc_capture_text`s it – so input reuses the entire
 output renderer stack as its view layer. Shared pieces: `ScLineEditor`
 (`line_editor.c`, UTF-8 cursor/insert/delete/word-kill) backs text/password
 inputs and the fuzzy query; the TTY layer (`src/tty/`) provides raw mode +
@@ -599,7 +599,7 @@ defensive about always handing back a usable terminal:
   the cursor-up arithmetic (widgets also bound their own height).
 - **One prompt at a time:** `sc_prompt_run` atomically claims a single global
   TTY session (`atomic_bool`) and returns `SC_INPUT_ERROR` if one is already
-  running — so a nested or cross-thread call fails safely instead of corrupting
+  running – so a nested or cross-thread call fails safely instead of corrupting
   state. The key buffer is reset at `sc_tty_begin` so stale bytes never leak
   between prompts.
 - **Coverage:** `make test-input-pty` drives every interactive widget over a
@@ -634,7 +634,7 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   the internal `ScTextEntryCfg`); password is the masked variant (`opts.mask`,
   default `"*"`). Both accept an optional `validate` callback that keeps the
   prompt open and shows an error line. A character counter is shown under the
-  field by default — `count` (no limit) or `count/max` when `max_chars > 0`,
+  field by default – `count` (no limit) or `count/max` when `max_chars > 0`,
   which also caps input. Hide it with `hide_char_count`; style it via
   `count_style` (default dim). Counts UTF-8 codepoints, not bytes.
   Set `boxed = true` to render inside a panel (prompt = top title, counter =
@@ -703,7 +703,7 @@ unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
   renderer (border, header, padding, …); the cursor row is highlighted with
   `accent` regardless. Zero-init `table_opts` → single border + bold header.
 - **Week start:** `ScDatePickerOpts.week_start` is an `ScWeekStart` enum
-  (`SC_WEEK_START_DEFAULT`=Monday, `…_MONDAY`, `…_SUNDAY`) — a plain `0` cannot
+  (`SC_WEEK_START_DEFAULT`=Monday, `…_MONDAY`, `…_SUNDAY`) – a plain `0` cannot
   mean both "unset" and "Sunday", so Sunday is an explicit value.
 
 `accent` itself defaults per widget when zero-init (`index == 0`): green
@@ -740,13 +740,13 @@ Not part of the public API. Used by all source files that include `internal.h`:
   widget object is per-instance, so independent objects are independent. The
   **interactive input session is process-wide** (one terminal, process-global
   signal handlers): only one prompt runs at a time, enforced by an atomic claim
-  in `sc_prompt_run` — a concurrent/nested attempt returns `SC_INPUT_ERROR`. The
+  in `sc_prompt_run` – a concurrent/nested attempt returns `SC_INPUT_ERROR`. The
   global theme (`sc_input_set_theme`) is shared, set-once config.
 - **`SC_ANSI_COLOR_NONE` sentinel is `index = 0`**, identical to a zero-initialized `ScColor`. Any unset color field renders as "no color" automatically; no explicit assignment needed. Named colors use `index = 1..8` (BLACK..WHITE); RGB uses `index = -1`.
 - `sc_print()` always appends `\033[0m` (reset), even when opts are all-none.
   This is intentional to isolate styling.
 - The `h` horizontal-line character from `ScBorderType` is used by both
-  panel titles, table titles, rules, and column separators — all from the same
+  panel titles, table titles, rules, and column separators – all from the same
   logical table in each file.
 - `ScText` / `ScTableData` / `ScColumns` all heap-allocate; always call the
   corresponding `_free()` function.
@@ -879,7 +879,7 @@ ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
 The same `ScRendered *` can be passed to multiple print functions (e.g. first
 `sc_pad_print`, then `sc_align_print`).
 
-### sc_vstack — stack widgets vertically in one column
+### sc_vstack – stack widgets vertically in one column
 
 ```c
 ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap);
@@ -887,7 +887,7 @@ ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap);
 
 Concatenates `n` captured renderings top-to-bottom into a single `ScRendered`,
 with `gap` blank lines between adjacent parts. This is how you place **two (or
-more) widgets one above the other inside a single column** — capture each
+more) widgets one above the other inside a single column** – capture each
 widget, `sc_vstack` them, then `sc_columns_add_rendered` the result.
 
 Inputs are **not** consumed: the caller still owns every `parts[i]` and frees
@@ -996,7 +996,7 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[[` | literal `[` character |
 | `[blink]` (any unrecognized) | emitted verbatim including brackets |
 
-Tags stack: `[bold][red]text[/] still bold[/]` — closing pops the top frame.
+Tags stack: `[bold][red]text[/] still bold[/]` – closing pops the top frame.
 
 ### Functions
 
@@ -1024,13 +1024,13 @@ sc_text_free(t);
 
 /* Append markup into an existing ScText */
 ScText *t = sc_text_new();
-sc_text_append(t, "prefix — ", (ScTextStyle){0});
+sc_text_append(t, "prefix – ", (ScTextStyle){0});
 sc_markup_append(t, "[green]green suffix[/]");
 sc_print_text(t);
 sc_text_free(t);
 ```
 
-### ScMarkupOpts — parser options
+### ScMarkupOpts – parser options
 
 ```c
 typedef struct {
@@ -1042,11 +1042,11 @@ Controls what happens with unrecognized tags like `[blink]`, `[link=...]`, `[str
 
 | `strip_unknown` | `[blink]hello[/blink]` becomes |
 |-----------------|-------------------------------|
-| `0` (default)   | `[blink]hello[/blink]` — brackets printed as literal text |
-| `1`             | `hello` — tag brackets silently removed, content kept |
+| `0` (default)   | `[blink]hello[/blink]` – brackets printed as literal text |
+| `1`             | `hello` – tag brackets silently removed, content kept |
 
 ```c
-/* strip unknown tags — only content is kept */
+/* strip unknown tags – only content is kept */
 sc_markup_println_opts("[blink]text[/blink]", (ScMarkupOpts){ .strip_unknown = 1 });
 
 /* mixed: known tags styled, unknown tags stripped */
@@ -1056,7 +1056,7 @@ ScText *t = sc_markup_parse_opts(
 );
 ```
 
-### sc_cell_m — markup in tables
+### sc_cell_m – markup in tables
 
 ```c
 static inline ScCell sc_cell_m(const char *s);  /* parses s as inline markup */

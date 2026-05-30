@@ -22,7 +22,7 @@ void sc_apply_style (ScTextAttribute style);
  * memory for small collections (too large).
  *
  * Modules with hot paths that benefit from a larger initial size define
- * their own constant locally — but the default for new code is to use
+ * their own constant locally – but the default for new code is to use
  * this value.
  */
 #define SC_INITIAL_CAPACITY 8

@@ -1,4 +1,4 @@
-# sparcli — C API Reference
+# sparcli – C API Reference
 
 Full reference for every public type, function, option struct, and macro of the
 **C API**. For the header-only C++ wrapper see [`api-cpp.md`](api-cpp.md); for
@@ -15,7 +15,7 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 
 | `index` | Meaning |
 |---------|---------|
-| `0`     | **Not set** — `SC_ANSI_COLOR_NONE`; no escape code emitted. **Zero-init `ScColor` lands here**, so any unset color field is "no color" by default. |
+| `0`     | **Not set** – `SC_ANSI_COLOR_NONE`; no escape code emitted. **Zero-init `ScColor` lands here**, so any unset color field is "no color" by default. |
 | `-1`    | 24-bit RGB mode; uses `r`, `g`, `b` fields |
 | `1`–`8` | Named ANSI color (`SC_ANSI_COLOR_BLACK` … `SC_ANSI_COLOR_WHITE`) |
 
@@ -34,7 +34,7 @@ Named macros: `SC_ANSI_COLOR_NONE`, `SC_ANSI_COLOR_BLACK`,
 
 ### ScTextAttribute
 
-Bitmask — combine with `|`:
+Bitmask – combine with `|`:
 
 ```c
 SC_TEXT_ATTR_NONE | SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_DIM |
@@ -64,7 +64,7 @@ sc_print_text(t);
 sc_text_free(t);
 ```
 
-`sc_text_visible_width(t)` — returns the max visible width across lines
+`sc_text_visible_width(t)` – returns the max visible width across lines
 (ANSI-aware, UTF-8-aware, counts codepoints not bytes).
 
 ### ScBorderType
@@ -126,7 +126,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 `terminal_width - 2`.
 
 **Background color sentinel:** `border_bg` and `bg` use `{0,0,0,0}`
-(zero-init) as "not set" — the same sentinel as `ScProgressBarOpts.fill_color`.
+(zero-init) as "not set" – the same sentinel as `ScProgressBarOpts.fill_color`.
 A zero-initialized `ScPanelOpts` field means no background. Use
 `SC_ANSI_COLOR_NONE` or leave unset for no color; use
 `sc_color_from_rgb(...)` for a specific color.
@@ -151,7 +151,7 @@ void         sc_table_print(const ScTableData *table, ScTableOpts opts);
 void         sc_table_free(ScTableData *table);
 ```
 
-`ScTableOpts` is passed at **print time**, not at construction —
+`ScTableOpts` is passed at **print time**, not at construction –
 `sc_table_new()` takes no arguments. The same `ScTableData *` can be printed
 multiple times with different opts.
 
@@ -159,25 +159,25 @@ multiple times with different opts.
 
 | Field | Description |
 |-------|-------------|
-| `border` | `ScTableBorder` — style + color per border segment |
-| `header` | `ScTableHeader` — grouped header settings (see below) |
-| `header.row` | `bool` — first added row is the header |
-| `header.col` | `bool` — first column is a header column |
+| `border` | `ScTableBorder` – style + color per border segment |
+| `header` | `ScTableHeader` – grouped header settings (see below) |
+| `header.row` | `bool` – first added row is the header |
+| `header.col` | `bool` – first column is a header column |
 | `header.row_bg` / `header.col_bg` | Background for header areas |
 | `header.style` | `ScTextStyle` applied to all header cells |
-| `striped` | `bool` — alternating row backgrounds |
+| `striped` | `bool` – alternating row backgrounds |
 | `stripe_bg` | Background for odd data rows (0-indexed) |
-| `footer` | `ScTableFooter` — grouped footer settings (see below) |
+| `footer` | `ScTableFooter` – grouped footer settings (see below) |
 | `footer.row_bg` / `footer.col_bg` | Background for footer rows/column |
 | `footer.style` | `ScTextStyle` for footer cells |
-| `title` | `ScTitle` — table title |
+| `title` | `ScTitle` – table title |
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` / `title.halign` / `title.pad` / `title.pos` | Title text appearance and position |
-| `cell_pad` | `ScEdges` — inner cell padding |
-| `margin` | `ScEdges` — outer table margin (top/right/bottom/left) |
+| `cell_pad` | `ScEdges` – inner cell padding |
+| `margin` | `ScEdges` – outer table margin (top/right/bottom/left) |
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
-| `rtl` | `bool` — right-to-left column order |
+| `rtl` | `bool` – right-to-left column order |
 
 ### ScTableHeader / ScTableFooter
 
@@ -232,12 +232,12 @@ C99 compound literals call the exported descriptive variants instead.
 | `sc_cell_t(t)` | `sc_cell_from_text(t)` | ScText cell (not owned) |
 | `sc_cell_ta(t, ha, va)` | `sc_cell_text_aligned(t, ha, va)` | ScText + alignment |
 | `sc_cell_cs(s, cs)` | `sc_cell_colspan(s, cs)` | String + colspan |
-| `sc_cell_csa(s, cs, ha)` | — | String + colspan + halign |
-| `sc_cell_tcs(t, cs)` | — | ScText + colspan |
-| `sc_cell_tcsa(t, cs, ha)` | — | ScText + colspan + halign |
+| `sc_cell_csa(s, cs, ha)` | – | String + colspan + halign |
+| `sc_cell_tcs(t, cs)` | – | ScText + colspan |
+| `sc_cell_tcsa(t, cs, ha)` | – | ScText + colspan + halign |
 | `sc_cell_skip()` | `sc_cell_skip_placeholder()` | Placeholder covered by a colspan |
 | `sc_cell_rs(s, rs)` | `sc_cell_rowspan(s, rs)` | String + rowspan |
-| `sc_cell_trs(t, rs)` | — | ScText + rowspan |
+| `sc_cell_trs(t, rs)` | – | ScText + rowspan |
 | `sc_row_skip()` | `sc_row_skip_placeholder()` | Placeholder row covered by a rowspan |
 | `sc_cell_m(s)` | `sc_cell_from_markup(s)` | Markup cell (owns the parsed ScText) |
 
@@ -261,16 +261,16 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 
 | Field | Description |
 |-------|-------------|
-| `type` | `ScBorderType` — which `h` character to use |
+| `type` | `ScBorderType` – which `h` character to use |
 | `color` | Line color; `SC_ANSI_COLOR_NONE` = no escape codes |
-| `title` | `ScTitle` — title label (text, style, halign, pad; pos ignored) |
+| `title` | `ScTitle` – title label (text, style, halign, pad; pos ignored) |
 | `title.text` | Title string; `NULL` = no title |
 | `title.style` | `ScTextStyle` for the title text |
 | `title.halign` | LEFT / CENTER / RIGHT (default CENTER) |
 | `title.pad` | Spaces on each side of title, default 1 |
 | `width` | 0 = full terminal width; >0 = fixed width |
 | `halign` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
-| `margin` | `ScEdges` — top/bottom = blank lines; left/right = indent |
+| `margin` | `ScEdges` – top/bottom = blank lines; left/right = indent |
 
 ---
 
@@ -301,7 +301,7 @@ Nested columns are captured eagerly at `sc_columns_add_columns` call time.
 | Field | Description |
 |-------|-------------|
 | `gap` | Space between columns. **Without separator:** gap spaces total. **With separator:** gap spaces on each side of the separator (total: 2×gap+1). Default: 3 (no sep) or 2 (with sep). |
-| `sep` | `ScBorderStyle` — vertical separator bundle (`type`, `color`, `bg`); `sep.type = SC_BORDER_NONE` = no separator |
+| `sep` | `ScBorderStyle` – vertical separator bundle (`type`, `color`, `bg`); `sep.type = SC_BORDER_NONE` = no separator |
 | `sep.type` | `ScBorderType` for the separator character |
 | `sep.color` | Separator foreground color; **must be set to `SC_ANSI_COLOR_NONE`** if no color desired |
 | `sep.bg` | Background color applied to gap spaces and the separator char; zero-init = none |
@@ -428,17 +428,17 @@ void        sc_tree_free (ScTree *tree);
 
 `ScTree` and `ScTreeNode` are opaque; nodes are owned by the tree (freed by
 `sc_tree_free`). `sc_tree_add_str` copies `str` and `prefix`; `sc_tree_add_text`
-**borrows** the `ScText` (not owned — keep it alive until print/free). `prefix`
+**borrows** the `ScText` (not owned – keep it alive until print/free). `prefix`
 may be `NULL`.
 
 ### ScTreeOpts
 
 | Field | Description |
 |-------|-------------|
-| `type` | `ScBorderType` — connector box-drawing set (branches and guides) |
+| `type` | `ScBorderType` – connector box-drawing set (branches and guides) |
 | `connector_color` | Connector color; `SC_ANSI_COLOR_NONE` = no escape codes |
 | `indent` | Spaces between the connector and node text; default `1` |
-| `no_guide` | `bool` — suppress vertical continuation guides under finished branches |
+| `no_guide` | `bool` – suppress vertical continuation guides under finished branches |
 
 **Usage:**
 
@@ -490,19 +490,19 @@ value is already a 0.0–1.0 ratio.
 | `type` | Fill style (see above) |
 | `left_cap` / `right_cap` | Border strings; `NULL` = no bracket; pass `"["` / `"]"` for defaults |
 | `fill_color` / `empty_color` | Colors; zero-init = no color (same sentinel as `marker_style`) |
-| `thresholds` | `ScProgressThresholds` — grouped threshold settings (see below) |
-| `thresholds.enabled` | `bool` — switch fill color based on ratio |
+| `thresholds` | `ScProgressThresholds` – grouped threshold settings (see below) |
+| `thresholds.enabled` | `bool` – switch fill color based on ratio |
 | `thresholds.mid` / `thresholds.high` | Ratio thresholds (default 0.5 / 0.75) |
 | `thresholds.color_low` / `.color_mid` / `.color_high` | Fill color per range |
-| `show_percent` | `bool` — append ` XX%` (default true) |
-| `show_value` | `bool` — append `(value/max)` after percent |
+| `show_percent` | `bool` – append ` XX%` (default true) |
+| `show_value` | `bool` – append `(value/max)` after percent |
 | `bar_width` | Inner bar char count; 0 = auto from `width` |
 | `width` | Total line width; 0 = terminal width |
 | `label_width` | Fixed label column width; 0 = natural width |
 | `label_style` | Style for label text |
 
 **Zero-init of `fill_color`/`empty_color`:** Same as every other `ScColor`
-field — zero-init equals `SC_ANSI_COLOR_NONE` and emits no escape codes.
+field – zero-init equals `SC_ANSI_COLOR_NONE` and emits no escape codes.
 Use `SC_ANSI_COLOR_BLACK` for explicit black.
 
 **Animation pattern:**
@@ -689,7 +689,7 @@ ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
 The same `ScRendered *` can be passed to multiple print functions (e.g.
 first `sc_pad_print`, then `sc_align_print`).
 
-### sc_vstack — stack widgets vertically in one column
+### sc_vstack – stack widgets vertically in one column
 
 ```c
 ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap);
@@ -701,7 +701,7 @@ inserting `gap` blank lines between adjacent parts. This is how you place
 each widget, `sc_vstack` them, then pass the result to
 `sc_columns_add_rendered`.
 
-Inputs are **not** consumed — the caller still owns every `parts[i]` and frees
+Inputs are **not** consumed – the caller still owns every `parts[i]` and frees
 them (and the returned value) with `sc_rendered_free`. Returns `NULL` when
 `n == 0`; `gap` is clamped to `>= 0`; the result's `max_column_width` is the
 widest line across all parts.
@@ -818,7 +818,7 @@ directly.
 | `[[` | literal `[` character |
 | `[blink]` (any unrecognized) | emitted verbatim including brackets |
 
-Tags stack: `[bold][red]text[/] still bold[/]` — closing pops the top frame.
+Tags stack: `[bold][red]text[/] still bold[/]` – closing pops the top frame.
 
 ### Functions
 
@@ -847,13 +847,13 @@ sc_text_free(t);
 
 /* Append markup into an existing ScText */
 ScText *t = sc_text_new();
-sc_text_append(t, "prefix — ", (ScTextStyle){0});
+sc_text_append(t, "prefix – ", (ScTextStyle){0});
 sc_markup_append(t, "[green]green suffix[/]");
 sc_print_text(t);
 sc_text_free(t);
 ```
 
-### ScMarkupOpts — parser options
+### ScMarkupOpts – parser options
 
 ```c
 typedef struct {
@@ -866,11 +866,11 @@ Controls what happens with unrecognized tags like `[blink]`, `[link=...]`,
 
 | `strip_unknown` | `[blink]hello[/blink]` becomes |
 |-----------------|-------------------------------|
-| `0` (default)   | `[blink]hello[/blink]` — brackets printed as literal text |
-| `1`             | `hello` — tag brackets silently removed, content kept |
+| `0` (default)   | `[blink]hello[/blink]` – brackets printed as literal text |
+| `1`             | `hello` – tag brackets silently removed, content kept |
 
 ```c
-/* strip unknown tags — only content is kept */
+/* strip unknown tags – only content is kept */
 sc_markup_println_opts("[blink]text[/blink]", (ScMarkupOpts){ .strip_unknown = 1 });
 
 /* mixed: known tags styled, unknown tags stripped */
@@ -880,7 +880,7 @@ ScText *t = sc_markup_parse_opts(
 );
 ```
 
-### sc_cell_m — markup in tables
+### sc_cell_m – markup in tables
 
 ```c
 static inline ScCell sc_cell_m(const char *s);  /* parses s as inline markup */
@@ -929,7 +929,7 @@ typedef enum ScInputStatus {
 ```
 
 ```c
-/* Value widgets — return ScInputStatus; out-params filled on SC_INPUT_OK. */
+/* Value widgets – return ScInputStatus; out-params filled on SC_INPUT_OK. */
 ScInputStatus sc_confirm       (const char *question, bool *out, ScConfirmOpts opts);
 ScInputStatus sc_text_input    (const char *prompt, char **out, ScTextInputOpts opts);  /* *out heap; free */
 ScInputStatus sc_password_input(const char *prompt, char **out, ScPasswordOpts opts);   /* *out heap; free */
@@ -937,7 +937,7 @@ ScInputStatus sc_number_input  (const char *prompt, double *out, ScNumberOpts op
 ScInputStatus sc_textarea      (const char *prompt, char **out, ScTextareaOpts opts);   /* *out heap; free */
 ScInputStatus sc_datepicker    (struct tm *io, ScDatePickerOpts opts);                  /* io in/out */
 
-/* Opaque-handle widgets — variable item count / per-run config. */
+/* Opaque-handle widgets – variable item count / per-run config. */
 ScSelect *sc_select_new(ScSelectOpts opts);            /* opts.multi = true → checkboxes */
 void      sc_select_add(ScSelect *s, const char *label);
 void      sc_select_set_cursor (ScSelect *s, size_t index);       /* preselect */
@@ -1004,7 +1004,7 @@ kill). Password masks each character (`mask`, default `"*"`; `""` hides length).
 | `validate` / `validate_ctx` | Validator; keeps the prompt open and shows an error line |
 | `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
 
-`*out` is heap-allocated on `SC_INPUT_OK` — the caller must `free()` it.
+`*out` is heap-allocated on `SC_INPUT_OK` – the caller must `free()` it.
 
 ### sc_number_input
 
@@ -1130,7 +1130,7 @@ power users:
 - `sc_print()` always appends `\033[0m` (reset), even when opts are all-none.
   This is intentional to isolate styling.
 - The `h` horizontal-line character from `ScBorderType` is used by both
-  panel titles, table titles, rules, and column separators — all from the
+  panel titles, table titles, rules, and column separators – all from the
   same logical table in each file.
 - `ScText` / `ScTableData` / `ScColumns` all heap-allocate; always call the
   corresponding `_free()` function.

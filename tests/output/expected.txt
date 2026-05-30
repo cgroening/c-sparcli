@@ -709,7 +709,7 @@ text with unknown tag[0m
 [36mprintln (adds newline)[0m
 
 --- Markup 9. sc_markup_append ---
-Plain prefix — [0m[1m[31mappended markup[0m — [0m[3m[36msecond append[0m
+Plain prefix – [0m[1m[31mappended markup[0m – [0m[3m[36msecond append[0m
 
 --- Markup 10. sc_cell_m in table ---
 ┌[0m──────────────[0m┬[0m────────────────────────────[0m┐[0m
