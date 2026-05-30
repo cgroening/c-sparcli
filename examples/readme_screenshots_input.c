@@ -73,7 +73,7 @@ static struct tm seed_date(void) {
     return t;
 }
 
-/* Captures a vertical separator column layout shared by both hero rows. */
+/* Builds the vertical-separator column layout shared by all hero rows. */
 static ScColumns *hero_columns(void) {
     return sc_columns_new((ScColumnsOpts){
         .gap    = 2,
@@ -104,74 +104,107 @@ static void hero_intro_panel(void) {
         });
 }
 
-/* Top row: a confirm prompt, a select menu and a date picker, side by side. */
-static void hero_row_prompts(void) {
-    struct tm seed = seed_date();
-
+/* Row 1: a confirm prompt, a single-select menu and a multi-select list. */
+static void hero_row_choices(void) {
     ScRendered *r_confirm = sc_confirm_frame("Deploy to production?", true,
         (ScConfirmOpts){ .accent = SC_ANSI_COLOR_GREEN });
 
-    ScSelect *select = sc_select_new((ScSelectOpts){
+    ScSelect *single = sc_select_new((ScSelectOpts){
         .prompt = "Environment", .accent = SC_ANSI_COLOR_CYAN });
-    sc_select_add(select, "staging");
-    sc_select_add(select, "production");
-    sc_select_add(select, "local");
-    sc_select_set_cursor(select, 1);
-    ScRendered *r_select = sc_select_frame(select);
+    sc_select_add(single, "staging");
+    sc_select_add(single, "production");
+    sc_select_add(single, "local");
+    sc_select_set_cursor(single, 1);
+    ScRendered *r_single = sc_select_frame(single);
+
+    ScSelect *multi = sc_select_new((ScSelectOpts){
+        .prompt = "Targets", .multi = true, .accent = SC_ANSI_COLOR_GREEN });
+    sc_select_add(multi, "web");
+    sc_select_add(multi, "api");
+    sc_select_add(multi, "worker");
+    sc_select_add(multi, "db");
+    sc_select_set_checked(multi, 0, true);
+    sc_select_set_checked(multi, 2, true);
+    ScRendered *r_multi = sc_select_frame(multi);
+
+    ScColumns *cols = hero_columns();
+    sc_columns_add_rendered(cols, r_confirm, (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_single,  (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_multi,   (ScColItem){ 0 });
+    sc_columns_print(cols);
+
+    sc_columns_free(cols);
+    sc_rendered_free(r_confirm);
+    sc_rendered_free(r_single);
+    sc_rendered_free(r_multi);
+    sc_select_free(single);
+    sc_select_free(multi);
+}
+
+/* Row 2: boxed text, password and number fields (a uniform card look). */
+static void hero_row_fields(void) {
+    ScRendered *r_text = sc_text_entry_frame(&(ScTextEntryCfg){
+        .prompt = "Service", .initial = "api-gateway",
+        .boxed = true, .width = 26 });
+
+    ScRendered *r_password = sc_text_entry_frame(&(ScTextEntryCfg){
+        .prompt = "Password", .initial = "hunter2", .mask = "*",
+        .boxed = true, .width = 22 });
+
+    ScRendered *r_number = sc_number_frame("Replicas", 3,
+        (ScNumberOpts){ .min = 1, .max = 10, .boxed = true, .width = 20 });
+
+    ScColumns *cols = hero_columns();
+    sc_columns_add_rendered(cols, r_text,     (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_password, (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_number,   (ScColItem){ 0 });
+    sc_columns_print(cols);
+
+    sc_columns_free(cols);
+    sc_rendered_free(r_text);
+    sc_rendered_free(r_password);
+    sc_rendered_free(r_number);
+}
+
+/* Row 3: a textarea, a fuzzy finder (list view) and a date picker. */
+static void hero_row_rich(void) {
+    struct tm seed = seed_date();
+
+    ScRendered *r_textarea = sc_textarea_frame("Notes",
+        "first line\nsecond line", (ScTextareaOpts){ .boxed = true,
+                                                     .width = 28 });
+
+    const char *cities[] = { "Tokyo", "Toronto", "London", "Boston", "Lisbon" };
+    ScFuzzy *fuzzy = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "City" });
+    for (size_t i = 0; i < sizeof cities / sizeof cities[0]; i++) {
+        sc_fuzzy_add(fuzzy, cities[i]);
+    }
+    ScRendered *r_fuzzy = sc_fuzzy_frame(fuzzy, "to");
 
     ScRendered *r_date = sc_datepicker_frame(&seed, (ScDatePickerOpts){
         .prompt = "Release date", .accent = SC_ANSI_COLOR_MAGENTA });
 
     ScColumns *cols = hero_columns();
-    sc_columns_add_rendered(cols, r_confirm, (ScColItem){ 0 });
-    sc_columns_add_rendered(cols, r_select,  (ScColItem){ 0 });
-    sc_columns_add_rendered(cols, r_date,    (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_textarea, (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_fuzzy,    (ScColItem){ 0 });
+    sc_columns_add_rendered(cols, r_date,     (ScColItem){ 0 });
     sc_columns_print(cols);
 
     sc_columns_free(cols);
-    sc_rendered_free(r_confirm);
-    sc_rendered_free(r_select);
-    sc_rendered_free(r_date);
-    sc_select_free(select);
-}
-
-/* Bottom row: a boxed text field, a boxed number field and a fuzzy table. */
-static void hero_row_fields(void) {
-    ScRendered *r_text = sc_text_entry_frame(&(ScTextEntryCfg){
-        .prompt = "Service", .initial = "api-gateway",
-        .boxed = true, .width = 28 });
-
-    ScRendered *r_number = sc_number_frame("Replicas", 3,
-        (ScNumberOpts){ .min = 1, .max = 10, .boxed = true, .width = 22 });
-
-    const char *headers[] = { "City", "Country", "Pop." };
-    ScFuzzy *fuzzy = sc_fuzzy_new((ScFuzzyOpts){
-        .prompt = "Search", .table = true, .headers = headers, .n_cols = 3,
-        .accent = SC_ANSI_COLOR_BLUE });
-    sc_fuzzy_add_row(fuzzy, (const char *[]){ "Tokyo",  "Japan",    "37.4" }, 3);
-    sc_fuzzy_add_row(fuzzy, (const char *[]){ "London", "UK",       "9.0"  }, 3);
-    sc_fuzzy_add_row(fuzzy, (const char *[]){ "Lisbon", "Portugal", "0.5"  }, 3);
-    ScRendered *r_fuzzy = sc_fuzzy_frame(fuzzy, "");
-
-    ScColumns *cols = hero_columns();
-    sc_columns_add_rendered(cols, r_text,   (ScColItem){ 0 });
-    sc_columns_add_rendered(cols, r_number, (ScColItem){ 0 });
-    sc_columns_add_rendered(cols, r_fuzzy,  (ScColItem){ 0 });
-    sc_columns_print(cols);
-
-    sc_columns_free(cols);
-    sc_rendered_free(r_text);
-    sc_rendered_free(r_number);
+    sc_rendered_free(r_textarea);
     sc_rendered_free(r_fuzzy);
+    sc_rendered_free(r_date);
     sc_fuzzy_free(fuzzy);
 }
 
 static void shot_hero(void) {
     hero_intro_panel();
     printf("\n");
-    hero_row_prompts();
+    hero_row_choices();
     printf("\n");
     hero_row_fields();
+    printf("\n");
+    hero_row_rich();
 }
 
 
