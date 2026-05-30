@@ -116,8 +116,8 @@ static ScRendered *number_render_inline(NumberState *self) {
         sc_text_append(text, range, (ScTextStyle){ SC_TEXT_ATTR_DIM,
                        SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
     }
-    sc_append_hint(text, number_hint(self), self->opts.hide_hint,
-                   self->opts.hint_style);
+    sc_append_hint(text, number_hint(self), self->opts.hint_layout,
+                   self->opts.hint_style, true);
 
     ScRendered *rendered = sc_capture_text(text);
     sc_text_free(text);
@@ -167,7 +167,7 @@ static ScRendered *number_render_boxed(NumberState *self) {
 
     ScRendered *panel = sc_capture_panel_text(inner, panel_opts);
     sc_text_free(inner);
-    if (!panel || self->opts.hide_hint) {
+    if (!panel || sc_hint_resolved(self->opts.hint_layout) == SC_HINT_HIDDEN) {
         return panel;
     }
 
@@ -175,11 +175,8 @@ static ScRendered *number_render_boxed(NumberState *self) {
     if (!footer_text) {
         return panel;
     }
-    ScTextStyle hint_style = sc_style_set(self->opts.hint_style)
-        ? self->opts.hint_style
-        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
-                         SC_ANSI_COLOR_NONE };
-    sc_text_append(footer_text, number_hint(self), hint_style);
+    sc_append_hint(footer_text, number_hint(self), self->opts.hint_layout,
+                   self->opts.hint_style, false);
     ScRendered *footer = sc_capture_text(footer_text);
     sc_text_free(footer_text);
     if (!footer) {

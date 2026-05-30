@@ -108,6 +108,18 @@
 ╰[0m────────────────────────────────────────────────────────────────────────[0m [0m[2m(5)[0m [0m─[0m╯[0m
 [2menter submit · esc cancel[0m
 
+[2mboxed: hint_layout stacked (footer one per line)[0m
+  ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m
+  │[0m A[0md[0ma[0m[30m[47m [0m                       │[0m
+  ╰[0m──────────────────────[0m [0m[2m(3)[0m [0m─[0m╯[0m
+  [2menter submit[0m
+  [2mesc cancel[0m
+
+[2mboxed: hint_layout hidden (no footer)[0m
+  ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m
+  │[0m A[0md[0ma[0m[30m[47m [0m                       │[0m
+  ╰[0m──────────────────────[0m [0m[2m(3)[0m [0m─[0m╯[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════ [1mNumber[0m ════════════════════════════════════
@@ -258,6 +270,16 @@
   ╚[0m══════[0m╩[0m═══════[0m╩[0m════[0m╝[0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
+[2mfuzzy list: hint_layout stacked (one hint per line)[0m
+  [1m[36mCity[0m [0mt[0mo[0m[30m[47m [0m[2m  (3/5)[0m
+  [1m[36m‣ [0m[1m[4m[36mT[0m[1m[4m[36mo[0m[1m[36mk[0m[1m[36my[0m[1m[36mo[0m
+    [0m[1m[4m[36mT[0m[1m[4m[36mo[0mr[0mo[0mn[0mt[0mo[0m
+    [0mB[0mo[0ms[0m[1m[4m[36mt[0m[1m[4m[36mo[0mn[0m
+  [2mtype to filter[0m
+  [2m↑/↓ move[0m
+  [2menter select[0m
+  [2mesc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ═════════════════════════════════ [1mDate Picker[0m ══════════════════════════════════
@@ -305,6 +327,42 @@
   18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
   25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
   [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+
+[2mhint_layout: inline (default, one · line)[0m
+  [1mPick a date[0m
+  [1m[36m  ‹ May 2026 ›[0m
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+  [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+
+[2mhint_layout: stacked (one hint per line)[0m
+  [1mPick a date[0m
+  [1m[36m  ‹ May 2026 ›[0m
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
+  [2m←/→/↑/↓ move[0m
+  [2mpgup/pgdn month[0m
+  [2mshift+pgup/pgdn year[0m
+  [2menter select[0m
+  [2mesc cancel[0m
+
+[2mhint_layout: hidden (no footer)[0m
+  [1mPick a date[0m
+  [1m[36m  ‹ May 2026 ›[0m
+  [2mMo[0m [0m[2mTu[0m [0m[2mWe[0m [0m[2mTh[0m [0m[2mFr[0m [0m[2mSa[0m [0m[2mSu[0m
+     [0m   [0m   [0m   [0m 1[0m [0m 2[0m [0m 3[0m
+   4[0m [0m 5[0m [0m 6[0m [0m 7[0m [0m 8[0m [0m 9[0m [0m10[0m
+  11[0m [0m12[0m [0m13[0m [0m14[0m [0m[1m[30m[46m15[0m [0m16[0m [0m17[0m
+  18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m
+  25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 

@@ -88,4 +88,14 @@ void style_text(void) {
     style_show_flush("boxed: full width (default), flush-left",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Search", .initial = "query", .boxed = true }));
+
+    /* Hint layout on the boxed-footer path: stacked + hidden. */
+    style_show("boxed: hint_layout stacked (footer one per line)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
+            .hint_layout = SC_HINT_STACKED }));
+    style_show("boxed: hint_layout hidden (no footer)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
+            .hint_layout = SC_HINT_HIDDEN }));
 }

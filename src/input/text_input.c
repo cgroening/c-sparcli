@@ -24,7 +24,7 @@ typedef struct TextState {
     ScBorderStyle border;
     int width;
     const char *hint;
-    bool hide_hint;
+    ScHintLayout hint_layout;
     ScTextStyle hint_style;
     ScCharFilter char_filter;
     void *char_filter_ctx;
@@ -77,7 +77,7 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .border          = opts.border,
         .width           = opts.width,
         .hint            = opts.hint,
-        .hide_hint       = opts.hide_hint,
+        .hint_layout     = opts.hint_layout,
         .hint_style      = opts.hint_style,
         .char_filter     = opts.char_filter,
         .char_filter_ctx = opts.char_filter_ctx,
@@ -144,7 +144,7 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         .border          = cfg->border,
         .width           = cfg->width,
         .hint            = cfg->hint,
-        .hide_hint       = cfg->hide_hint,
+        .hint_layout     = cfg->hint_layout,
         .hint_style      = cfg->hint_style,
         .char_filter     = cfg->char_filter,
         .char_filter_ctx = cfg->char_filter_ctx,
@@ -202,7 +202,7 @@ static ScRendered *render_inline(TextState *self) {
         sc_text_append(text, self->error, resolve_error_style(self));
     }
     sc_append_hint(text, self->hint ? self->hint : DEFAULT_HINT,
-                   self->hide_hint, self->hint_style);
+                   self->hint_layout, self->hint_style, true);
 
     ScRendered *rendered = sc_capture_text(text);
     sc_text_free(text);
@@ -278,15 +278,11 @@ static ScRendered *render_boxed(TextState *self) {
         }
     }
     ScRendered *footer = NULL;
-    if (!self->hide_hint) {
+    if (sc_hint_resolved(self->hint_layout) != SC_HINT_HIDDEN) {
         ScText *footer_text = sc_text_new();
         if (footer_text) {
-            ScTextStyle hint_style = sc_style_set(self->hint_style)
-                ? self->hint_style
-                : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
-                                 SC_ANSI_COLOR_NONE };
-            sc_text_append(footer_text, self->hint ? self->hint : DEFAULT_HINT,
-                           hint_style);
+            sc_append_hint(footer_text, self->hint ? self->hint : DEFAULT_HINT,
+                           self->hint_layout, self->hint_style, false);
             footer = sc_capture_text(footer_text);
             sc_text_free(footer_text);
         }

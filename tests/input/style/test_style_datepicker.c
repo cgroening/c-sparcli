@@ -44,4 +44,18 @@ void style_datepicker(void) {
             .prompt = "When?",
             .prompt_style = { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_CYAN,
                               SC_ANSI_COLOR_NONE } }));
+
+    /* ── Key-hint footer layout: inline / stacked / hidden ── */
+
+    style_show("hint_layout: inline (default, one · line)",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_layout = SC_HINT_INLINE }));
+
+    style_show("hint_layout: stacked (one hint per line)",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_layout = SC_HINT_STACKED }));
+
+    style_show("hint_layout: hidden (no footer)",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date", .hint_layout = SC_HINT_HIDDEN }));
 }

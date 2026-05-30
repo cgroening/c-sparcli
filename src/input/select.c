@@ -185,7 +185,8 @@ static ScRendered *select_render(void *state) {
 
     const char *hint = self->opts.hint ? self->opts.hint
                      : (self->opts.multi ? HINT_MULTI : HINT_SINGLE);
-    sc_append_hint(text, hint, self->opts.hide_hint, self->opts.hint_style);
+    sc_append_hint(text, hint, self->opts.hint_layout, self->opts.hint_style,
+                   true);
 
     ScRendered *rendered = sc_capture_text(text);
     sc_text_free(text);

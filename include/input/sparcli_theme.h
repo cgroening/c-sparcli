@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/sparcli_core.h"
+#include "input/sparcli_term.h"
 
 
 SPARCLI_BEGIN_DECLS
@@ -57,8 +58,8 @@ typedef struct ScInputTheme {
     /** Default unchecked box (multi-select). */
     const char *checkbox_off;
 
-    /** When true, suppress footers by default. */
-    bool hide_hint;
+    /** Default key-hint footer layout (inline / stacked / hidden). */
+    ScHintLayout hint_layout;
 } ScInputTheme;
 
 /**

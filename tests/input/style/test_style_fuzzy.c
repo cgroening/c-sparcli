@@ -45,4 +45,12 @@ void style_fuzzy(void) {
     sc_fuzzy_add_row(d, (const char *[]){ "London", "UK",       "9.0"  }, 3);
     style_show("fuzzy table: double border via table_opts", sc_fuzzy_frame(d, ""));
     sc_fuzzy_free(d);
+
+    /* Hint layout on the fuzzy path: stacked footer. */
+    ScFuzzy *e = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .hint_layout = SC_HINT_STACKED });
+    for (size_t i = 0; i < n; i++) { sc_fuzzy_add(e, cities[i]); }
+    style_show("fuzzy list: hint_layout stacked (one hint per line)",
+               sc_fuzzy_frame(e, "to"));
+    sc_fuzzy_free(e);
 }

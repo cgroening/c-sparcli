@@ -670,10 +670,13 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   today. Month/year jumps keep the selected day, clamped to the target month's
   last valid day (e.g. Jan 31 → Feb 28). `week_start` is `ScWeekStart`.
 - **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter
-  select · esc cancel`) by default; override with `hint`, suppress with
-  `hide_hint`, restyle with `hint_style`.
+  select · esc cancel`) by default; override the text with `hint`, restyle with
+  `hint_style`, and choose its layout with `hint_layout` (`ScHintLayout`:
+  `SC_HINT_INLINE` one `·`-separated line / `SC_HINT_STACKED` one hint per line /
+  `SC_HINT_HIDDEN` none; zero-init `SC_HINT_LAYOUT_DEFAULT` inherits the theme,
+  then inline). Stacked is rendered by splitting the hint on ` · `.
 - **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults
-  (accent, styles, markers, border, `hide_hint`) that every widget inherits for
+  (accent, styles, markers, border, `hint_layout`) that every widget inherits for
   any zero-init option. Precedence: per-call opts > theme > built-in default.
   Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`).
 

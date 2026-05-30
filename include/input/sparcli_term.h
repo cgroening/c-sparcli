@@ -35,6 +35,22 @@ typedef enum ScInputStatus {
 } ScInputStatus;
 
 /**
+ * Layout of the dim key-hint footer every widget shows (e.g.
+ * `↑/↓ move · enter select · esc cancel`).
+ *
+ * The zero-init value `SC_HINT_LAYOUT_DEFAULT` means "unset": it inherits the
+ * process-wide theme (`ScInputTheme.hint_layout`) and, if that too is unset,
+ * resolves to `SC_HINT_INLINE`. This mirrors the `ScWeekStart` sentinel so a
+ * plain `0` cannot be mistaken for an explicit choice.
+ */
+typedef enum ScHintLayout {
+    SC_HINT_LAYOUT_DEFAULT = 0, /**< Unset: inherit theme, else inline. */
+    SC_HINT_INLINE,             /**< One `·`-separated line (the default). */
+    SC_HINT_STACKED,            /**< One hint per line. */
+    SC_HINT_HIDDEN,             /**< No footer at all. */
+} ScHintLayout;
+
+/**
  * Logical key identity produced by the escape-sequence decoder.
  *
  * Printable input (including multi-byte UTF-8) is reported as

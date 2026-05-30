@@ -5,6 +5,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 
 /**
@@ -29,22 +31,67 @@ static inline bool sc_style_set(ScTextStyle style) {
     return style.attr != 0 || style.fg.index != 0 || style.bg.index != 0;
 }
 
+/** Resolves the zero-init `DEFAULT` layout to the built-in default (inline). */
+static inline ScHintLayout sc_hint_resolved(ScHintLayout layout) {
+    return layout == SC_HINT_LAYOUT_DEFAULT ? SC_HINT_INLINE : layout;
+}
+
 /**
- * Appends the key-hint footer line (`\n` + dim hint) to `text`, unless hidden
- * or empty. `hint` is the resolved string (widget default or caller override).
+ * Appends the key-hint footer to `text` according to `layout`:
+ * `SC_HINT_HIDDEN` appends nothing; `SC_HINT_INLINE` appends the hint verbatim
+ * on one line; `SC_HINT_STACKED` appends one line per ` · `-separated item.
+ *
+ * `hint` is the resolved string (widget default or caller override); a NULL or
+ * empty hint appends nothing. `lead_newline` prepends a newline before the
+ * footer — true when appending under existing frame content (inline widgets),
+ * false when building a standalone footer (boxed/fuzzy footers).
  */
 static inline void sc_append_hint(
-    ScText *text, const char *hint, bool hide, ScTextStyle style
+    ScText *text, const char *hint, ScHintLayout layout, ScTextStyle style,
+    bool lead_newline
 ) {
-    if (hide || !hint || !hint[0]) {
+    layout = sc_hint_resolved(layout);
+    if (layout == SC_HINT_HIDDEN || !hint || !hint[0]) {
         return;
     }
     ScTextStyle resolved = sc_style_set(style)
         ? style
         : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                          SC_ANSI_COLOR_NONE };
-    sc_text_append(text, "\n", (ScTextStyle){ 0 });
-    sc_text_append(text, hint, resolved);
+
+    if (layout == SC_HINT_INLINE) {
+        if (lead_newline) {
+            sc_text_append(text, "\n", (ScTextStyle){ 0 });
+        }
+        sc_text_append(text, hint, resolved);
+        return;
+    }
+
+    /* Stacked: split the hint on " · " and emit one item per line. */
+    const char *const separator = " \xc2\xb7 ";  /* space + U+00B7 + space */
+    const size_t separator_len = 4;
+    const char *cursor = hint;
+    bool first = true;
+    for (;;) {
+        const char *hit = strstr(cursor, separator);
+        size_t span = hit ? (size_t)(hit - cursor) : strlen(cursor);
+        if (lead_newline || !first) {
+            sc_text_append(text, "\n", (ScTextStyle){ 0 });
+        }
+        /* sc_text_append needs a NUL-terminated string; copy the one item. */
+        char *item = malloc(span + 1);
+        if (item) {
+            memcpy(item, cursor, span);
+            item[span] = '\0';
+            sc_text_append(text, item, resolved);
+            free(item);
+        }
+        first = false;
+        if (!hit) {
+            break;
+        }
+        cursor = hit + separator_len;
+    }
 }
 
 
@@ -172,7 +219,7 @@ typedef struct ScTextEntryCfg {
 
     /** Key-hint footer; NULL = default. */
     const char *hint;
-    bool hide_hint;
+    ScHintLayout hint_layout;
     ScTextStyle hint_style;
     ScCharFilter char_filter;
     void *char_filter_ctx;

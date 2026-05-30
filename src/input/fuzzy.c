@@ -449,9 +449,9 @@ static ScRendered *render_scroll_hint(ScFuzzy *self) {
     return rendered;
 }
 
-/** Builds the key-hint footer line, or NULL when suppressed. */
+/** Builds the key-hint footer (one line, or stacked), or NULL when hidden. */
 static ScRendered *render_hint_footer(ScFuzzy *self) {
-    if (self->opts.hide_hint) {
+    if (sc_hint_resolved(self->opts.hint_layout) == SC_HINT_HIDDEN) {
         return NULL;
     }
     const char *hint = self->opts.hint ? self->opts.hint : DEFAULT_HINT;
@@ -459,11 +459,8 @@ static ScRendered *render_hint_footer(ScFuzzy *self) {
     if (!text) {
         return NULL;
     }
-    ScTextStyle style = sc_style_set(self->opts.hint_style)
-        ? self->opts.hint_style
-        : (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
-                         SC_ANSI_COLOR_NONE };
-    sc_text_append(text, hint, style);
+    sc_append_hint(text, hint, self->opts.hint_layout, self->opts.hint_style,
+                   false);
     ScRendered *rendered = sc_capture_text(text);
     sc_text_free(text);
     return rendered;

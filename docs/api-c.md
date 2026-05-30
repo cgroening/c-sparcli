@@ -966,8 +966,13 @@ bool sc_input_available(void);   /* true when a prompt can run (a TTY is present
 
 Most styling options are zero-init-friendly: an unset `ScTextStyle`/`ScColor`
 selects the widget's built-in default. Every widget has a `prompt_style`,
-`summary_style`/`hide_summary`, and a key-hint footer (`hint` / `hide_hint` /
+`summary_style`/`hide_summary`, and a key-hint footer (`hint` / `hint_layout` /
 `hint_style`).
+
+`hint_layout` is an `ScHintLayout` that controls the footer on every widget:
+`SC_HINT_INLINE` (one `·`-separated line — the default), `SC_HINT_STACKED` (one
+hint per line), or `SC_HINT_HIDDEN` (no footer). The zero-init
+`SC_HINT_LAYOUT_DEFAULT` inherits the theme, then falls back to inline.
 
 ### sc_confirm
 
@@ -982,7 +987,7 @@ confirms.
 | `prompt_style` | Style for the question text |
 | `selected_style` / `unselected_style` | Option styles; zero-init = bold black-on-`accent` / dim |
 | `summary_style` / `hide_summary` | Post-confirm summary line |
-| `hint` / `hide_hint` / `hint_style` | Key-hint footer |
+| `hint` / `hint_layout` / `hint_style` | Key-hint footer |
 
 ### sc_text_input / sc_password_input
 
@@ -1002,7 +1007,7 @@ kill). Password masks each character (`mask`, default `"*"`; `""` hides length).
 | `char_filter` / `char_filter_ctx` | Per-keystroke filter (built-ins `sc_filter_*`) |
 | `suggestions` / `n_suggestions` | Text only: dim autocomplete ghost; Tab accepts |
 | `validate` / `validate_ctx` | Validator; keeps the prompt open and shows an error line |
-| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+| `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 `*out` is heap-allocated on `SC_INPUT_OK` – the caller must `free()` it.
 
@@ -1019,7 +1024,7 @@ Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to
 | `decimals` | Fractional digits; `0` = integer |
 | `prompt_style` / `value_style` / `cursor_style` | Styles |
 | `boxed` / `border` / `width` | Panel mode (range shown on the bottom-right border) |
-| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+| `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### sc_textarea
 
@@ -1033,7 +1038,7 @@ width.
 | `placeholder` | Dim hint shown while empty |
 | `prompt_style` / `value_style` / `cursor_style` | Styles |
 | `boxed` / `border` / `width` | Render the editor inside a panel |
-| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+| `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 `*out` (with embedded newlines) is heap-allocated on `SC_INPUT_OK`; free it.
 
@@ -1054,7 +1059,7 @@ written).
 | `prompt_style` / `selected_style` | Heading + cursor-row styles |
 | `cursor_marker` / `marker` | Cursor / other-row prefixes; `NULL` = "‣ " / "  " |
 | `checkbox_on` / `checkbox_off` | Multi only; `NULL` = "[x] " / "[ ] " |
-| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+| `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### sc_fuzzy
 
@@ -1072,7 +1077,7 @@ characters are highlighted. List view by default; set `table = true` with
 | `table_opts` | Passed through to the table renderer (border, header, …) |
 | `prompt_style` / `selected_style` / `cursor_style` / `counter_style` | Styles |
 | `cursor_marker` / `marker` | List cursor / other-row prefixes |
-| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+| `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### sc_datepicker
 
@@ -1088,7 +1093,7 @@ today; on `SC_INPUT_OK` it holds the picked date.
 | `accent` | Selected-day highlight; zero-init = cyan |
 | `prompt_style` / `header_style` / `weekday_style` / `selected_style` | Styles |
 | `header_prev` / `header_next` | Month-arrow glyphs; `NULL` = "‹" / "›" |
-| `summary_style` / `hide_summary`, `hint` / `hide_hint` / `hint_style` | As above |
+| `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### Theme
 
@@ -1103,7 +1108,7 @@ ScInputTheme sc_input_theme(void);                           /* current theme */
 `ScInputTheme` carries `accent`, `border`, the shared styles (`prompt_style`,
 `selected_style`, `cursor_style`, `count_style`, `summary_style`, `error_style`,
 `hint_style`), glyphs (`cursor_marker`, `marker`, `checkbox_on`,
-`checkbox_off`), and `hide_hint`.
+`checkbox_off`), and `hint_layout`.
 
 ---
 

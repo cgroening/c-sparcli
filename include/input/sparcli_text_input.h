@@ -96,8 +96,8 @@ typedef struct ScTextInputOpts {
     /** Key-hint footer; `NULL` = sensible default. */
     const char *hint;
 
-    /** Suppress the key-hint footer. */
-    bool hide_hint;
+    /** Key-hint footer layout: inline (default) / stacked / hidden. */
+    ScHintLayout hint_layout;
 
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
@@ -182,8 +182,8 @@ typedef struct ScPasswordOpts {
     /** Key-hint footer; `NULL` = sensible default. */
     const char *hint;
 
-    /** Suppress the key-hint footer. */
-    bool hide_hint;
+    /** Key-hint footer layout: inline (default) / stacked / hidden. */
+    ScHintLayout hint_layout;
 
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;

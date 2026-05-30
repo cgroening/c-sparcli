@@ -146,7 +146,7 @@ static ScRendered *date_render(void *state) {
     append_day_grid(self, text, selected_style);
 
     sc_append_hint(text, self->opts.hint ? self->opts.hint : DEFAULT_HINT,
-                   self->opts.hide_hint, self->opts.hint_style);
+                   self->opts.hint_layout, self->opts.hint_style, true);
 
     ScRendered *rendered = sc_capture_text(text);
     sc_text_free(text);
