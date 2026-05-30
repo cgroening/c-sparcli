@@ -39,6 +39,9 @@ static const ScTextStyle s_dim    = { SC_TEXT_ATTR_DIM,  SC_ANSI_COLOR_NONE,
 static const ScTextStyle s_b_cyan = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN,
                                        SC_ANSI_COLOR_NONE };
 
+static const ScTextStyle s_b_magenta = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA,
+                                       SC_ANSI_COLOR_NONE };
+
 
 /* ─────────────────────────────────────────────────────────── helpers ── */
 
@@ -90,10 +93,10 @@ static void hero_intro_panel(void) {
         "Interactive prompts — confirm · select · text · password · "
         "number · textarea · fuzzy · date.",
         (ScPanelOpts){
-            .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
+            .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_MAGENTA },
             .title  = {
                 .text   = " sparcli · input widgets ",
-                .style  = s_b_cyan,
+                .style  = s_b_magenta,
                 .halign = SC_ALIGN_CENTER,
                 .pad    = 1,
                 .pos    = SC_POSITION_TOP,

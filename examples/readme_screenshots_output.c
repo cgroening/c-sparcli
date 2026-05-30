@@ -40,6 +40,7 @@ static const ScTextStyle s_b_cyan    = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, 
 static const ScTextStyle s_b_green   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN,   SC_ANSI_COLOR_NONE };
 static const ScTextStyle s_b_yellow  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW,  SC_ANSI_COLOR_NONE };
 static const ScTextStyle s_b_magenta = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_b_black_on_magenta = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_MAGENTA };
 
 
 /* ─────────────────────────────────────────────────────────── helpers ── */
@@ -78,13 +79,17 @@ static void shot_hero(void) {
     {
         ScText *body = sc_text_new();
         sc_text_append(body, "A C11 library for ", s_plain);
-        sc_text_append(body, "styled terminal output",   s_b_cyan);
-        sc_text_append(body, " – panels, tables, ",      s_plain);
-        sc_text_append(body, "columns",                  s_b_green);
-        sc_text_append(body, ", lists, progress bars",   s_plain);
-        sc_text_append(body, " and Rich-compatible ",    s_plain);
-        sc_text_append(body, "[markup]",                 s_b_yellow);
-        sc_text_append(body, ".",                        s_plain);
+        sc_text_append(body, "styled terminal output", s_b_cyan);
+        sc_text_append(body, " and ", s_plain);
+        sc_text_append(body, "input", s_b_black_on_magenta);
+        sc_text_append(body,
+            " – panels, tables, trees, lists, key-value pairs, badges, rules, ",
+            s_plain);
+        sc_text_append(body, "columns", s_b_green);
+        sc_text_append(body, " and progress bars, with Rich-compatible ",
+                       s_plain);
+        sc_text_append(body, "[markup]", s_b_yellow);
+        sc_text_append(body, ".", s_plain);
 
         sc_panel_text(body, (ScPanelOpts){
             .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
@@ -206,6 +211,65 @@ static void shot_hero(void) {
 
         ScRendered *r_table = sc_capture_table(t, topts);
 
+        /* Third column: a key-value config block above a row of badges. */
+        ScKV *kv = sc_kv_new((ScKVOpts){
+            .sep = "  ", .key_style = s_b_cyan, .val_style = s_plain });
+        sc_kv_add(kv, "host",    "localhost");
+        sc_kv_add(kv, "port",    "8080");
+        sc_kv_add(kv, "scheme",  "https");
+        sc_kv_add(kv, "timeout", "30s");
+        ScRendered *r_kv = sc_capture_kv(kv);
+
+        ScBadgeOpts b_ok   = { .left_cap = "[", .right_cap = "]", .pad = 1,
+            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
+                            SC_ANSI_COLOR_GREEN } };
+        ScBadgeOpts b_info = { .left_cap = "[", .right_cap = "]", .pad = 1,
+            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_BLUE } };
+        ScBadgeOpts b_warn = { .left_cap = "[", .right_cap = "]", .pad = 1,
+            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
+                            SC_ANSI_COLOR_YELLOW } };
+        ScBadgeOpts b_err  = { .left_cap = "[", .right_cap = "]", .pad = 1,
+            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_RED } };
+        ScText *badges = sc_text_new();
+        sc_text_append_badge(badges, "DONE", b_ok);
+        sc_text_append(badges, " ", s_plain);
+        sc_text_append_badge(badges, "INFO", b_info);
+        sc_text_append(badges, " ", s_plain);
+        sc_text_append_badge(badges, "WARN", b_warn);
+        sc_text_append(badges, " ", s_plain);
+        sc_text_append_badge(badges, "FAIL", b_err);
+        ScRendered *r_badges = sc_capture_text(badges);
+        sc_text_free(badges);
+
+        /* A small 3-column layout, to show columns nested in the collage. */
+        ScText *cd_left = sc_text_new();
+        sc_text_append(cd_left, "Col 1\n\n\n", s_b_cyan);
+        // sc_text_append(cd_left, "Top\n\n\n",   s_plain);
+        ScText *cd_mid = sc_text_new();
+        sc_text_append(cd_mid, "Col 2\n",        s_b_green);
+        // sc_text_append(cd_mid, "Middle",   s_plain);
+        ScText *cd_right = sc_text_new();
+        sc_text_append(cd_right, "Col 3\n", s_b_yellow);
+        // sc_text_append(cd_right, "Bottom",    s_plain);
+        ScColumns *demo = sc_columns_new((ScColumnsOpts){
+            .gap    = 2,
+            .sep    = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
+            .valign = SC_VALIGN_TOP,
+        });
+        sc_columns_add_text(demo, cd_left,  (ScColItem){ 0 });
+        sc_columns_add_text(demo, cd_mid,
+            (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_MIDDLE });
+        sc_columns_add_text(demo, cd_right,
+            (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_BOTTOM });
+        ScRendered *r_demo = sc_capture_columns(demo);
+
+        ScRendered *third_parts[] = { r_kv, r_badges, r_demo };
+        ScRendered *third_col = sc_vstack(
+            (const ScRendered *const *)third_parts, 3, 1
+        );
+
         ScColumns *cols = sc_columns_new((ScColumnsOpts){
             .gap    = 2,
             .sep    = { .type = SC_BORDER_SINGLE, .color = SC_ANSI_COLOR_NONE },
@@ -213,10 +277,20 @@ static void shot_hero(void) {
         });
         sc_columns_add_rendered(cols, r_table,   (ScColItem){ 0 });
         sc_columns_add_rendered(cols, right_col, (ScColItem){ 0 });
+        sc_columns_add_rendered(cols, third_col, (ScColItem){ 0 });
         sc_columns_print(cols);
 
         sc_columns_free(cols);
         sc_columns_free(under);
+        sc_columns_free(demo);
+        sc_rendered_free(third_col);
+        sc_rendered_free(r_kv);
+        sc_rendered_free(r_badges);
+        sc_rendered_free(r_demo);
+        sc_kv_free(kv);
+        sc_text_free(cd_left);
+        sc_text_free(cd_mid);
+        sc_text_free(cd_right);
         sc_rendered_free(right_col);
         sc_rendered_free(r_under);
         sc_rendered_free(r_table);
