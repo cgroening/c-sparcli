@@ -220,6 +220,41 @@ Consumers then build against it with pkg-config:
 cc myapp.c $(pkg-config --cflags --libs sparcli) -o myapp
 ```
 
+### User-local install (no sudo)
+
+The default `PREFIX=/usr/local` is **not writable without root** on most macOS
+setups, so `make install` fails there with `Operation not permitted`. Rather
+than `sudo` (which leaves root-owned files in `/usr/local` — and, if you ever
+build *as root*, root-owned objects in the build tree that later block a normal
+`make`), install into your home prefix instead:
+
+```sh
+make clean                          # rebuild so the dylib's install_name
+make install PREFIX="$HOME/.local"  #   points at ~/.local, not /usr/local
+```
+
+> Why `make clean` first: the shared library's `install_name` is baked in **at
+> link time** from `PREFIX`. Reusing a dylib that was linked for `/usr/local`
+> would make the loader look there at run time and fail. A clean rebuild with
+> `PREFIX="$HOME/.local"` links it (and writes `sparcli.pc`) for the right path.
+
+`pkg-config` does not search `~/.local` by default, so point it there once — add
+to `~/.zshrc` (or `~/.bashrc`):
+
+```sh
+# Let pkg-config find libraries installed under ~/.local (e.g. sparcli)
+echo 'export PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Verify it resolves to your home prefix (not a stale `/usr/local` copy):
+
+```sh
+pkg-config --cflags --libs sparcli   # → -I$HOME/.local/include -L$HOME/.local/lib -lsparcli
+```
+
+Remove later with `make uninstall PREFIX="$HOME/.local"`.
+
 ---
 
 ## Releasing a new version
