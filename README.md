@@ -1,31 +1,45 @@
-# sparcli
+# sparcli – Polished CLI output & prompts
 
-A C11 library for styled terminal output – panels, tables, columns, lists,
-progress bars, and more, with **Rich-compatible inline markup**.
+A C11 library for **styled terminal output** and **interactive prompts**:
+
+- panels, tables, rules, columns, lists, trees, key/value blocks, alerts,
+  badges, progress bars and spinners;
+- confirm, text, password, number, textarea, select, fuzzy and date-picker
+  prompts.
+
+Ships with **Rich-compatible inline markup** and a header-only **C++ wrapper**.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language: C11](https://img.shields.io/badge/c-11-blue.svg)
 ![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
 
-> **Add Screenshot:** Hero collage showing a colored panel, a striped table, a
-> two-column layout and a progress bar rendered side by side.
+![sparcli hero](docs/images/output_hero.png)
+
+---
+
+![sparcli hero](docs/images/input_hero.png)
 
 ---
 
 ## Table of contents
 
-- [Features](#features)
-- [Quick start](#quick-start)
-  - [C](#c)
-  - [C++ wrapper](#c-header-only)
-- [Installation](#installation)
-- [Output widgets](#output-widgets)
-- [Input widgets](#input-widgets)
-- [Rich-compatible markup](#rich-compatible-markup)
-- [Development](#development)
-- [Roadmap](#roadmap)
-- [Inspiration](#inspiration)
-- [License](#license)
+- [sparcli – Polished CLI output \& prompts](#sparcli--polished-cli-output--prompts)
+  - [Table of contents](#table-of-contents)
+  - [Features](#features)
+  - [Quick start](#quick-start)
+    - [C](#c)
+    - [C++ (header-only)](#c-header-only)
+  - [Installation](#installation)
+    - [From source](#from-source)
+    - [Linking](#linking)
+    - [Requirements](#requirements)
+  - [Output widgets](#output-widgets)
+  - [Input widgets](#input-widgets)
+  - [Rich-compatible markup](#rich-compatible-markup)
+  - [Development](#development)
+  - [Roadmap](#roadmap)
+  - [Inspiration](#inspiration)
+  - [License](#license)
 
 ---
 
