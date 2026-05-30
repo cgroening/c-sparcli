@@ -310,6 +310,9 @@ run it, the golden-file workflow, and the pre-commit checklist.
 - **Python bindings** (`sparcli-py`): `cffi`/`ctypes`-based wrapper with
   Pythonic constructors.
 - **Rust crate** (`sparcli-rs`): safe `&str`-friendly wrappers around the C API.
+- **Output theming** – a process-wide `sc_output_set_theme(...)` for output
+  components (default border style/color, title styling, …), mirroring the
+  existing [`sc_input_set_theme`](#input-widgets) for input widgets.
 - **`examples/` directory** with self-contained copy-pasteable snippets.
 - **More widgets** – open an issue with ideas.
 
