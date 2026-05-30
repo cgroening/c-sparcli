@@ -1011,7 +1011,7 @@ kill). Password masks each character (`mask`, default `"*"`; `""` hides length).
 | `hide_char_count` / `count_style` | Character counter (`count` or `count/max`); default shown, dim |
 | `boxed` / `border` / `width` | Render inside a panel; prompt = top title, counter = bottom-right; `width` 0 = full terminal width |
 | `char_filter` / `char_filter_ctx` | Per-keystroke filter (built-ins `sc_filter_*`) |
-| `suggestions` / `n_suggestions` | Text only: dim autocomplete ghost; Tab accepts |
+| `suggestions` / `n_suggestions` | Text only: dim autocomplete ghost; Tab accepts. While a suggestion is available the default hint leads with "tab complete" |
 | `validate` / `validate_ctx` | Validator; keeps the prompt open and shows an error line |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 

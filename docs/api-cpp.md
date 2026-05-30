@@ -253,6 +253,11 @@ Fuzzy fz({ .prompt = "Find" });
 fz.add("Tokyo").add("London");
 if (auto i = fz.run()) { /* add-order index */ }
 
+// Table view: add_row gives multi-column rows; by default the query searches
+// (and highlights) every column. Restrict it with search_columns (bitmask).
+Fuzzy langs({ .table = true, .headers = headers, .n_cols = 2 });
+langs.add_row({ "C", "Static" }).add_row({ "Python", "Dynamic" });
+
 bool m = fuzzy_match("to", "Tokyo");      // pure, no TTY
 set_theme({ .accent = magenta() });  reset_theme();   // InputTheme theme();
 ```
