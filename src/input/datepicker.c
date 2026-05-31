@@ -134,8 +134,9 @@ static ScRendered *date_render(void *state) {
         return NULL;
     }
 
-    if (self->opts.prompt) {
-        sc_text_append(text, self->opts.prompt, prompt_style);
+    if (self->opts.prompt || self->opts.prompt_text) {
+        sc_prompt_append(text, self->opts.prompt, prompt_style,
+                         self->opts.prompt_markup, self->opts.prompt_text);
         sc_text_append(text, "\n", (ScTextStyle){ 0 });
     }
 

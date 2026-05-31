@@ -194,6 +194,7 @@ make examples                          # compile every examples/*.c
 make run-example EX=readme_screenshots_output # output widget gallery (static)
 make run-example EX=readme_screenshots_input  # input widget gallery (static)
 make run-example EX=input_demo         # interactive walkthrough of all input widgets
+make run-example EX=shortcut_demo      # custom shortcuts: F2 rename, Ctrl-X delete
 
 # 4. Interactive widget suite (needs a real terminal):
 make test-input
@@ -293,6 +294,7 @@ Bumping the **major** changes the soname, so dependents must relink.
 make examples                                 # build every examples/*.c
 make run-example EX=readme_screenshots_output # static gallery of output widgets
 make run-example EX=readme_screenshots_input  # static gallery of input widgets
+make run-example EX=shortcut_demo             # custom shortcuts + rich prompt (interactive)
 ```
 
 Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new

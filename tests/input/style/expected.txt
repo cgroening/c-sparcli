@@ -130,6 +130,17 @@
     [0m[2m3[0m
   [2mtab complete · enter submit · esc cancel[0m
 
+[2mrich prompt: inline markup (italic name)[0m
+  Rename [0m[3mApple[0m to[0m [0mA[0mp[0mp[0ml[0me[0m[30m[47m [0m
+    [0m[2m5[0m
+  [2menter submit · esc cancel[0m
+
+[2mrich prompt: boxed markup title (italic name)[0m
+  ╭[0m─[0m [0mRename [0m[3mApple[0m to[0m [0m────────────────[0m╮[0m
+  │[0m A[0mp[0mp[0ml[0me[0m[30m[47m [0m                           │[0m
+  ╰[0m────────────────────────────[0m [0m[2m(5)[0m [0m─[0m╯[0m
+  [2menter submit · esc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════ [1mNumber[0m ════════════════════════════════════

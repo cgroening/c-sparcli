@@ -97,7 +97,8 @@ static ScRendered *confirm_render(void *state) {
                          SC_ANSI_COLOR_NONE };
 
     sc_text_append(text, "? ", self->opts.prompt_style);
-    sc_text_append(text, self->question, self->opts.prompt_style);
+    sc_prompt_append(text, self->question, self->opts.prompt_style,
+                     self->opts.prompt_markup, self->opts.prompt_text);
     sc_text_append(text, "   ", (ScTextStyle){ 0 });
 
     append_option(text, self->yes_label, self->value,

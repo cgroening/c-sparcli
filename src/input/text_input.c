@@ -10,6 +10,8 @@
 /** Render-time state for a single text/password prompt. */
 typedef struct TextState {
     const char *prompt;
+    const ScText *prompt_text;
+    bool prompt_markup;
     ScLineEditor ed;
     const char *placeholder;
     const char *mask;
@@ -91,12 +93,14 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .shortcuts       = opts.shortcuts,
         .n_shortcuts     = opts.n_shortcuts,
         .out_shortcut_id = opts.out_shortcut_id,
+        .prompt_text     = opts.prompt_text,
+        .prompt_markup   = opts.prompt_markup,
     };
     return sc_text_entry(&cfg, out);
 }
 
 ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
-    if (!cfg || !cfg->prompt || !out) {
+    if (!cfg || (!cfg->prompt && !cfg->prompt_text) || !out) {
         return SC_INPUT_ERROR;
     }
 
@@ -121,8 +125,12 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
         if (!*out) {
             status = SC_INPUT_ERROR;
         } else if (!cfg->hide_summary) {
-            print_summary(cfg->prompt, state.ed.buf, cfg->mask,
-                          cfg->summary_style);
+            char *summary_prompt = sc_prompt_plain(
+                cfg->prompt, cfg->prompt_style, cfg->prompt_markup,
+                cfg->prompt_text);
+            print_summary(summary_prompt ? summary_prompt : "", state.ed.buf,
+                          cfg->mask, cfg->summary_style);
+            free(summary_prompt);
         }
     }
     sc_le_free(&state.ed);
@@ -141,6 +149,8 @@ ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg) {
 static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
     return (TextState){
         .prompt          = cfg->prompt,
+        .prompt_text     = cfg->prompt_text,
+        .prompt_markup   = cfg->prompt_markup,
         .placeholder     = cfg->placeholder,
         .mask            = cfg->mask,
         .prompt_style    = cfg->prompt_style,
@@ -179,12 +189,14 @@ static ScRendered *render_inline(TextState *self) {
         return NULL;
     }
 
-    sc_text_append(text, self->prompt, self->prompt_style);
+    sc_prompt_append(text, self->prompt, self->prompt_style,
+                     self->prompt_markup, self->prompt_text);
     sc_text_append(text, " ", (ScTextStyle){ 0 });
 
     // Visible value window = line width − prompt − the separating space.
     int total = self->width > 0 ? self->width : sc_terminal_width();
-    int prompt_w = (int)sc_utf8_string_length(self->prompt, strlen(self->prompt));
+    int prompt_w = sc_prompt_width(self->prompt, self->prompt_style,
+                                   self->prompt_markup, self->prompt_text);
     int field = total - prompt_w - 1;
     if (field < 1) {
         field = 1;
@@ -248,9 +260,14 @@ static ScRendered *render_boxed(TextState *self) {
     }
 
     char counter[48];
+    // Resolve the prompt to rich text so the panel title can carry mixed styles
+    // (markup / prompt_text). Freed after the panel is captured below.
+    ScText *title_text = sc_prompt_build(self->prompt, self->prompt_style,
+                                         self->prompt_markup, self->prompt_text);
     ScPanelOpts opts = {
         .border = self->border,
-        .title = { .text = self->prompt, .style = self->prompt_style,
+        .title = { .text = self->prompt, .rich_text = title_text,
+                   .style = self->prompt_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
@@ -272,6 +289,7 @@ static ScRendered *render_boxed(TextState *self) {
 
     ScRendered *panel = sc_capture_panel_text(inner, opts);
     sc_text_free(inner);
+    sc_text_free(title_text);
     if (!panel) {
         return NULL;
     }

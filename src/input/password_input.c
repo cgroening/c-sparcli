@@ -32,6 +32,8 @@ ScInputStatus sc_password_input(
         .shortcuts       = opts.shortcuts,
         .n_shortcuts     = opts.n_shortcuts,
         .out_shortcut_id = opts.out_shortcut_id,
+        .prompt_text     = opts.prompt_text,
+        .prompt_markup   = opts.prompt_markup,
     };
     return sc_text_entry(&cfg, out);
 }

@@ -111,4 +111,14 @@ void style_text(void) {
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Region:", .initial = "eu-",
             .suggestions = regions, .n_suggestions = 1 }));
+
+    /* ── Rich prompt: only part of the prompt styled (markup) ── */
+    style_show("rich prompt: inline markup (italic name)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Rename [italic]Apple[/] to", .prompt_markup = true,
+            .initial = "Apple" }));
+    style_show("rich prompt: boxed markup title (italic name)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Rename [italic]Apple[/] to", .prompt_markup = true,
+            .initial = "Apple", .boxed = true, .width = 36 }));
 }

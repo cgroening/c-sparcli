@@ -99,11 +99,14 @@ static ScRendered *number_render_inline(NumberState *self) {
     if (!text) {
         return NULL;
     }
-    sc_text_append(text, self->prompt, self->opts.prompt_style);
+    sc_prompt_append(text, self->prompt, self->opts.prompt_style,
+                     self->opts.prompt_markup, self->opts.prompt_text);
     sc_text_append(text, " ", (ScTextStyle){ 0 });
 
     int field = sc_terminal_width()
-              - (int)sc_utf8_string_length(self->prompt, strlen(self->prompt)) - 1;
+              - sc_prompt_width(self->prompt, self->opts.prompt_style,
+                                self->opts.prompt_markup, self->opts.prompt_text)
+              - 1;
     if (field < 1) {
         field = 1;
     }
@@ -146,9 +149,13 @@ static ScRendered *number_render_boxed(NumberState *self) {
 
     char range[80];
     range_str(self, range, sizeof range);
+    ScText *title_text = sc_prompt_build(self->prompt, self->opts.prompt_style,
+                                         self->opts.prompt_markup,
+                                         self->opts.prompt_text);
     ScPanelOpts panel_opts = {
         .border = self->opts.border,
-        .title = { .text = self->prompt, .style = self->opts.prompt_style,
+        .title = { .text = self->prompt, .rich_text = title_text,
+                   .style = self->opts.prompt_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
@@ -169,6 +176,7 @@ static ScRendered *number_render_boxed(NumberState *self) {
 
     ScRendered *panel = sc_capture_panel_text(inner, panel_opts);
     sc_text_free(inner);
+    sc_text_free(title_text);
     if (!panel) {
         return NULL;
     }

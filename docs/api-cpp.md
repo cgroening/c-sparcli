@@ -110,7 +110,7 @@ Aliases: `Color`, `TextStyle`, `TextAttribute`, `Title`, `Edges`, `BorderStyle`,
 `SpinnerOpts`, `PadOpts`, `MarkupOpts`, `ConfirmOpts`, `TextInputOpts`,
 `PasswordOpts`, `NumberOpts`, `TextareaOpts`, `SelectOpts`, `FuzzyOpts`,
 `DatePickerOpts`, `InputTheme`, `AlertType`, `InputStatus`, `HintLayout`,
-`HintPosition`).
+`HintPosition`, `KeyChord`, `Shortcut`, `Key`).
 
 Colors use functions, not the `SC_ANSI_COLOR_*` compound-literal macros (which
 are non-standard in C++):
@@ -323,6 +323,49 @@ The key-hint footer is configured through the opts like any other field:
 `.hint_pos` (`SC_HINT_POS_TOP` / `_BOTTOM` / `_LEFT` / `_RIGHT`), e.g.
 `confirm("Deploy?", { .hint_pos = SC_HINT_POS_RIGHT })`. Both also work via the
 `InputTheme`. See [api-c.md](api-c.md#input-widgets).
+
+### Custom shortcuts
+
+Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
+`Shortcuts` is an owning builder (it keeps callback `std::function`s alive);
+`apply(opts)` wires it into any `*Opts`, and `fired()` reports which RETURN-mode
+shortcut ended the prompt (`-1` if none). Chords: `key_ctrl('e')`, `key_fn(2)`,
+`key_alt('e')`; `key_name(chord)` formats one (`"F2"`, `"^E"`, `"M-e"`).
+
+```cpp
+Select sel({ .prompt = "Pick" });
+sel.add("Apple").add("Banana");
+
+Shortcuts sc;
+sc.on_return(key_fn(2), 1, "rename")               // closes; fired()==1
+  .on_callback(key_ctrl('x'), [&] {                // stays open
+      sel.remove(sel.cursor()); return true; }, "delete");
+
+SelectOpts opts{ .prompt = "Pick" };
+sc.apply(opts);
+Select s2(opts);  s2.add("Apple").add("Banana");
+auto pick = s2.run();
+if (sc.fired() == 1) { /* F2 → edit s2.label(...) / s2.set_label(...) */ }
+```
+
+A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open
+unless its lambda returns `false` (it must not open another prompt). For live
+edits use `Select::cursor/label/set_label/remove` and `Fuzzy::cursor_index/remove`.
+`Esc` / `Ctrl-C` stay reserved.
+
+### Rich prompts
+
+For partial styling (e.g. only the old name italic), set `prompt_text` (a
+borrowed `ScText *`, overrides the string prompt) or `prompt_markup = true` on
+any input opts. Works inline and boxed.
+
+```cpp
+Text p;                                   // owns the ScText for the call
+p.append("Rename ").append(name, style(SC_TEXT_ATTR_ITALIC)).append(" to");
+auto renamed = text_input("", { .initial = name, .prompt_text = p.get() });
+// or, compact (escape '[' as '[[' in dynamic text):
+auto r2 = text_input("Rename [italic]Apple[/] to", { .prompt_markup = true });
+```
 
 ## Escape hatch
 

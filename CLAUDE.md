@@ -132,6 +132,7 @@ Used by panels, tables, rules, and column separators.
 ```c
 typedef struct {
     const char      *text;  /* NULL = no title */
+    const ScText    *rich_text; /* optional rich title; overrides text+style (panels only) */
     ScTextStyle      style; /* text rendering (bold, color, …) */
     ScHAlign         halign; /* LEFT / CENTER / RIGHT */
     int              pad;   /* spaces on each side of the title text */
@@ -724,6 +725,14 @@ unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
 - **Prompt/label:** every widget has a `prompt_style` for its prompt/heading
   (confirm's styles the question text and the `? ` prefix). Defaults: bold in
   `accent` (fuzzy), bold (datepicker), unstyled elsewhere.
+- **Rich prompt:** for *partial* styling (e.g. `Rename `*`Apple`*` to`) every
+  widget's opts also take `prompt_text` (a borrowed `ScText *`, overrides the
+  string prompt) and `prompt_markup` (parse the string prompt as markup).
+  Precedence `prompt_text > prompt_markup > plain+prompt_style`. Resolved by the
+  shared `sc_prompt_append`/`sc_prompt_build`/`sc_prompt_width` (`input_internal.h`);
+  works inline and boxed. Boxed mode routes it through `ScTitle.rich_text` (a new
+  `ScText *` on the shared title struct that panels honor; rules/tables ignore it),
+  so the box width is computed from the visible width, not the escape bytes.
 - **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget
   `cursor_style` (text/password/fuzzy editor cell; default black-on-white),
   `error_style` (text/password; default red), `count_style` (text/password

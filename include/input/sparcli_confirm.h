@@ -68,6 +68,12 @@ typedef struct ScConfirmOpts {
 
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
+
+    /** Optional rich question (mixed styles); overrides the string + style. Borrowed. */
+    const struct ScText *prompt_text;
+
+    /** Parse the question string as inline markup, e.g. "[bold]Delete?[/]". */
+    bool prompt_markup;
 } ScConfirmOpts;
 
 /**

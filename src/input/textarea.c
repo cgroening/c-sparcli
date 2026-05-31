@@ -127,8 +127,9 @@ static ScRendered *render_inline(const Textarea *self) {
     if (!text) {
         return NULL;
     }
-    if (self->prompt) {
-        sc_text_append(text, self->prompt, self->opts.prompt_style);
+    if (self->prompt || self->opts.prompt_text) {
+        sc_prompt_append(text, self->prompt, self->opts.prompt_style,
+                         self->opts.prompt_markup, self->opts.prompt_text);
         sc_text_append(text, "\n", (ScTextStyle){ 0 });
     }
     int width = self->opts.width > 0 ? self->opts.width : sc_terminal_width();
@@ -153,9 +154,13 @@ static ScRendered *render_boxed(const Textarea *self) {
     }
     append_content(self, inner, field);
 
+    ScText *title_text = sc_prompt_build(self->prompt, self->opts.prompt_style,
+                                         self->opts.prompt_markup,
+                                         self->opts.prompt_text);
     ScPanelOpts opts = {
         .border = self->opts.border,
-        .title = { .text = self->prompt, .style = self->opts.prompt_style,
+        .title = { .text = self->prompt, .rich_text = title_text,
+                   .style = self->opts.prompt_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
@@ -171,6 +176,7 @@ static ScRendered *render_boxed(const Textarea *self) {
 
     ScRendered *panel = sc_capture_panel_text(inner, opts);
     sc_text_free(inner);
+    sc_text_free(title_text);
     if (!panel) {
         return NULL;
     }

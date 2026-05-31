@@ -68,6 +68,12 @@ typedef struct ScTextareaOpts {
 
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
+
+    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    const struct ScText *prompt_text;
+
+    /** Parse the string prompt as inline markup. */
+    bool prompt_markup;
 } ScTextareaOpts;
 
 /**

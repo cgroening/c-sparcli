@@ -135,6 +135,12 @@ typedef struct ScTextInputOpts {
 
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
+
+    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    const struct ScText *prompt_text;
+
+    /** Parse the string prompt as inline markup, e.g. "Rename [italic]x[/] to". */
+    bool prompt_markup;
 } ScTextInputOpts;
 
 /**
@@ -224,6 +230,12 @@ typedef struct ScPasswordOpts {
 
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
+
+    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    const struct ScText *prompt_text;
+
+    /** Parse the string prompt as inline markup. */
+    bool prompt_markup;
 } ScPasswordOpts;
 
 /**

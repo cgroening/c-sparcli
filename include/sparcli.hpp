@@ -897,6 +897,7 @@ private:
 
 using KeyChord = ScKeyChord;
 using Shortcut = ScShortcut;
+using Key      = ScKey;
 
 /** Ctrl + letter chord, e.g. `key_ctrl('e')`. @see sc_key_ctrl */
 inline KeyChord key_ctrl(char letter) { return sc_key_ctrl(letter); }
@@ -904,6 +905,22 @@ inline KeyChord key_ctrl(char letter) { return sc_key_ctrl(letter); }
 inline KeyChord key_fn(int n)         { return sc_key_fn(n); }
 /** Alt/Meta + letter chord, e.g. `key_alt('e')`. @see sc_key_alt */
 inline KeyChord key_alt(char letter)  { return sc_key_alt(letter); }
+
+/** Short display name for a chord, e.g. "F2", "^E", "M-e". @see sc_key_chord_name */
+inline std::string key_name(KeyChord chord) {
+    char buf[16];
+    sc_key_chord_name(chord, buf, sizeof buf);
+    return std::string(buf);
+}
+/** True when a decoded key matches a chord. @see sc_key_chord_matches */
+inline bool key_matches(Key key, KeyChord chord) {
+    return sc_key_chord_matches(key, chord);
+}
+/** First shortcut whose chord matches `key`, or `nullptr`. @see sc_shortcut_find */
+inline const Shortcut* shortcut_find(Key key,
+                                     const std::vector<Shortcut>& items) {
+    return sc_shortcut_find(key, items.data(), items.size());
+}
 
 /**
  * Owning builder for a set of custom shortcuts, plus the fired-id slot.

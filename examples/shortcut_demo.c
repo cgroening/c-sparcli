@@ -81,19 +81,23 @@ int main(void) {
         if (fired == ACTION_RENAME && n > 0) {
             size_t cur = idx[0];
             const char *current = sc_select_label(sel, cur);
-            // The text-input prompt is a single styled string (one prompt_style
-            // for the whole thing), so to italicize *only* the old name we wrap
-            // it in inline italic on/off escapes (\e[3m … \e[23m).
-            char prompt[128];
-            snprintf(prompt, sizeof prompt, "Rename \033[3m%s\033[23m to",
-                     current ? current : "");
+            // Rich prompt so only the old name is italic. Using prompt_text
+            // (a built ScText) needs no escaping even if the name contains '['.
+            ScText *rp = sc_text_new();
+            sc_text_append(rp, "Rename ", (ScTextStyle){ 0 });
+            sc_text_append(rp, current ? current : "",
+                (ScTextStyle){ SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE,
+                               SC_ANSI_COLOR_NONE });
+            sc_text_append(rp, " to", (ScTextStyle){ 0 });
+
             char *renamed = NULL;
-            ScInputStatus ed = sc_text_input(prompt, &renamed,
-                (ScTextInputOpts){ .initial = current });
+            ScInputStatus ed = sc_text_input(NULL, &renamed,
+                (ScTextInputOpts){ .initial = current, .prompt_text = rp });
             if (ed == SC_INPUT_OK && renamed && renamed[0]) {
                 sc_select_set_label(sel, cur, renamed);
             }
             free(renamed);
+            sc_text_free(rp);
             sc_select_set_cursor(sel, cur);   /* restore the highlight */
             continue;                          /* re-open the updated list */
         }

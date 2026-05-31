@@ -383,8 +383,10 @@ static void compute_inner_width(Panel *panel) {
  * padding on both sides + one dash per corner), or 0 when `title` has no text.
  */
 static int one_title_min_width(ScTitle title) {
-    if (!title.text) { return 0; }
-    int len = (int)sc_utf8_string_length(title.text, strlen(title.text));
+    if (!title.text && !title.rich_text) { return 0; }
+    int len = title.rich_text
+        ? (int)sc_text_visible_width(title.rich_text)
+        : (int)sc_utf8_string_length(title.text, strlen(title.text));
     int pad = title.pad > 0 ? title.pad : 0;
     return len + 2 * pad + 2;
 }
@@ -534,9 +536,11 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
     ScBorderStyle title_pad_style = { 0, SC_ANSI_COLOR_NONE, title.style.bg };
     print_colored(hborder.left_edge_character, hborder.border_style);
 
-    if (title.text && *title.text) {
-        int tlen   = (int)sc_utf8_string_length(title.text,
-                                                strlen(title.text));
+    bool has_title = title.rich_text || (title.text && *title.text);
+    if (has_title) {
+        int tlen   = title.rich_text
+            ? (int)sc_text_visible_width(title.rich_text)
+            : (int)sc_utf8_string_length(title.text, strlen(title.text));
         int dashes = hborder.inner_width - tlen - 2 * title.pad;
         if (dashes < 0) { dashes = 0; }
 
@@ -555,7 +559,11 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
         for (int i = 0; i < title.pad; i++) {
             print_colored(" ", title_pad_style);
         }
-        sc_print(title.text, title.style);
+        if (title.rich_text) {
+            sc_print_text(title.rich_text);
+        } else {
+            sc_print(title.text, title.style);
+        }
         for (int i = 0; i < title.pad; i++) {
             print_colored(" ", title_pad_style);
         }

@@ -81,6 +81,7 @@ Used by panels, tables, rules, and column separators.
 ```c
 typedef struct {
     const char      *text;  /* NULL = no title */
+    const ScText    *rich_text; /* optional rich title; overrides text+style (panels only) */
     ScTextStyle      style; /* text rendering (bold, color, …) */
     ScHAlign         halign; /* LEFT / CENTER / RIGHT */
     int              pad;   /* spaces on each side of the title text */
@@ -89,7 +90,9 @@ typedef struct {
 ```
 
 Used directly everywhere a title is needed. `pos` is ignored by rules (no
-top/bottom distinction).
+top/bottom distinction). `rich_text` (when non-`NULL`) renders a multi-style
+title and is honored by panels (incl. boxed input prompts); rules and tables
+ignore it.
 
 Access paths:
 - `rule_opts.title.text` / `.style` / `.halign` / `.pad`
@@ -942,15 +945,29 @@ ScSelect *sc_select_new(ScSelectOpts opts);            /* opts.multi = true → 
 void      sc_select_add(ScSelect *s, const char *label);
 void      sc_select_set_cursor (ScSelect *s, size_t index);       /* preselect */
 void      sc_select_set_checked(ScSelect *s, size_t index, bool on);
+size_t      sc_select_cursor (const ScSelect *s);                 /* live cursor (for callbacks) */
+const char *sc_select_label  (const ScSelect *s, size_t index);   /* current label, or NULL */
+void        sc_select_set_label(ScSelect *s, size_t index, const char *label); /* edit in place */
+void        sc_select_remove (ScSelect *s, size_t index);         /* delete item (for callbacks) */
 ScInputStatus sc_select_run(ScSelect *s, size_t *indices, size_t *count_io); /* count_io in:cap out:written */
 void      sc_select_free(ScSelect *s);
 
 ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n_cols → table view */
 void      sc_fuzzy_add    (ScFuzzy *f, const char *label);
 void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* query searches all cols (opts.search_columns) */
+size_t    sc_fuzzy_cursor_index(const ScFuzzy *f);     /* live selection (for callbacks) */
+void      sc_fuzzy_remove (ScFuzzy *f, size_t index);  /* delete row (for callbacks) */
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
 void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
+
+/* Custom shortcuts (any widget) – bind extra keys to actions. See "Custom shortcuts". */
+ScKeyChord sc_key_ctrl(char letter);   /* ^letter (Ctrl-C/H/I/J/M not bindable) */
+ScKeyChord sc_key_fn  (int n);         /* F1..F12 */
+ScKeyChord sc_key_alt (char letter);   /* Alt/Meta + letter */
+void       sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap); /* "F2","^E","M-e" */
+bool       sc_key_chord_matches(ScKey key, ScKeyChord chord);
+const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
 
 /* Optional input constraints for text/password (validate keeps the prompt open). */
 typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out);
@@ -979,6 +996,57 @@ hint per line), or `SC_HINT_HIDDEN` (no footer). The zero-init
 `SC_HINT_POS_RIGHT` (left/right sit beside the widget, top-aligned). It is
 orthogonal to `hint_layout` (e.g. right + stacked, or right + inline). The
 zero-init `SC_HINT_POS_DEFAULT` inherits the theme, then falls back to bottom.
+
+### Custom shortcuts
+
+Every widget's opts carry `shortcuts` / `n_shortcuts` (a borrowed `ScShortcut[]`)
+and an optional `int *out_shortcut_id`. The prompt engine matches them before the
+widget's own keys (after the reserved Esc / Ctrl-C cancel), so one mechanism
+works on all widgets. Header: `input/sparcli_shortcut.h`.
+
+```c
+typedef enum { SC_SHORTCUT_RETURN = 0, SC_SHORTCUT_CALLBACK } ScShortcutMode;
+
+typedef struct ScShortcut {
+    ScKeyChord     chord;   /* sc_key_ctrl('e') / sc_key_fn(2) / sc_key_alt('e') */
+    int            id;      /* reported via *out_shortcut_id (RETURN mode) */
+    ScShortcutMode mode;
+    bool         (*on_fire)(int id, void *user); /* CALLBACK: true = keep open */
+    void          *user;
+    const char    *hint_label; /* shown in a dim footer (e.g. "^X delete") */
+} ScShortcut;
+```
+
+- **RETURN** ends the prompt; `*out_shortcut_id` receives the fired `id` (`-1`
+  on a normal submit/cancel) and the widget still returns its value. Use it for
+  "edit/help/new" actions that close the prompt.
+- **CALLBACK** runs `on_fire(id, user)` in place and keeps the prompt open unless
+  it returns `false`. It must not open another prompt (single session). For live
+  list edits use `sc_select_cursor`/`sc_fuzzy_cursor_index` to read the selection
+  and `sc_select_remove`/`sc_fuzzy_remove`/`sc_select_set_label` to mutate it.
+
+Key decoding gained `SC_KEY_F1`…`SC_KEY_F12`, a `mods` bitmask on `ScKey`
+(`SC_MOD_CTRL` / `SC_MOD_ALT`), Alt via an `ESC` prefix, and generic Ctrl-letters
+as `SC_KEY_CHAR + SC_MOD_CTRL`. Esc / Ctrl-C stay reserved (not bindable).
+
+### Rich prompts
+
+For partial styling (e.g. `Rename `*`Apple`*` to`) every widget's opts also take
+`prompt_text` (a borrowed `ScText *`, overrides the string prompt) and
+`prompt_markup` (parse the string prompt as inline markup). Precedence:
+`prompt_text` > `prompt_markup` > plain `prompt` + `prompt_style`. Works inline
+and boxed (boxed routes through `ScTitle.rich_text`, so the box width is computed
+from the visible width, not escape bytes). `prompt_text` needs no escaping even
+when the value contains `[`.
+
+```c
+ScText *p = sc_text_new();
+sc_text_append(p, "Rename ", (ScTextStyle){ 0 });
+sc_text_append(p, name, (ScTextStyle){ SC_TEXT_ATTR_ITALIC, 0, 0 });
+sc_text_append(p, " to", (ScTextStyle){ 0 });
+sc_text_input(NULL, &out, (ScTextInputOpts){ .initial = name, .prompt_text = p });
+sc_text_free(p);
+```
 
 ### sc_confirm
 
@@ -1054,7 +1122,9 @@ Opaque handle (variable item count). `j/k` + arrows move; Space toggles in
 multi-select; a viewport (`max_visible`, default 10) scrolls with a dim
 `↑ first–last/total ↓` indicator. Single-select writes one index; multi-select
 writes the checked indices in display order (`*count_io` in: capacity, out:
-written).
+written). `sc_select_cursor` / `sc_select_label` / `sc_select_set_label` /
+`sc_select_remove` let a shortcut callback read and edit items live (see
+[Custom shortcuts](#custom-shortcuts)).
 
 | Field | Description |
 |-------|-------------|
@@ -1073,7 +1143,8 @@ Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched
 characters are highlighted (in the list, and in the matched table cells). List
 view by default; set `table = true` with `headers`/`n_cols` and add rows via
 `sc_fuzzy_add_row` for a table view.
-`out_index` is the chosen item's original add order.
+`out_index` is the chosen item's original add order. `sc_fuzzy_cursor_index` /
+`sc_fuzzy_remove` expose and mutate the selection from a shortcut callback.
 
 | Field | Description |
 |-------|-------------|

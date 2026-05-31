@@ -41,6 +41,91 @@ static inline ScHintPosition sc_hint_pos_resolved(ScHintPosition pos) {
     return pos == SC_HINT_POS_DEFAULT ? SC_HINT_POS_BOTTOM : pos;
 }
 
+
+/* ── Rich prompt resolver ────────────────────────────────────────────────── */
+/*
+ * A widget prompt can be supplied three ways, in precedence order:
+ *   1. `rich`  – a caller-built ScText (mixed styles; no escaping needed),
+ *   2. `markup`– parse the plain string as inline markup ("[italic]x[/]"),
+ *   3. plain   – the string rendered with a single `style`.
+ * These helpers centralize that resolution so every widget (inline and boxed)
+ * behaves identically. Public API only, so this header stays internal.h-free.
+ */
+
+/** Appends the resolved prompt spans into `dst`. */
+static inline void sc_prompt_append(
+    ScText *dst, const char *plain, ScTextStyle style,
+    bool markup, const ScText *rich
+) {
+    if (rich) {
+        size_t n = sc_text_span_count(rich);
+        for (size_t i = 0; i < n; i++) {
+            ScSpan span = sc_text_span(rich, i);
+            if (span.raw_str) { sc_text_append(dst, span.raw_str, span.style); }
+        }
+    } else if (markup && plain) {
+        sc_markup_append(dst, plain);
+    } else if (plain) {
+        sc_text_append(dst, plain, style);
+    }
+}
+
+/** Builds a standalone resolved prompt `ScText` (caller frees), or NULL. */
+static inline ScText *sc_prompt_build(
+    const char *plain, ScTextStyle style, bool markup, const ScText *rich
+) {
+    ScText *text = sc_text_new();
+    if (!text) { return NULL; }
+    sc_prompt_append(text, plain, style, markup, rich);
+    return text;
+}
+
+/** Visible column width of the resolved prompt. */
+static inline int sc_prompt_width(
+    const char *plain, ScTextStyle style, bool markup, const ScText *rich
+) {
+    if (rich) { return (int)sc_text_visible_width(rich); }
+    ScText *text = sc_prompt_build(plain, style, markup, rich);
+    int width = text ? (int)sc_text_visible_width(text) : 0;
+    sc_text_free(text);
+    return width;
+}
+
+/**
+ * Returns a heap-allocated plain-text (style-stripped) version of the resolved
+ * prompt, for one-line summaries. Caller frees. Never returns NULL for valid
+ * input (empty string on OOM-free trivial paths).
+ */
+static inline char *sc_prompt_plain(
+    const char *plain, ScTextStyle style, bool markup, const ScText *rich
+) {
+    if (!markup && !rich) {
+        return strdup(plain ? plain : "");
+    }
+    ScText *text = sc_prompt_build(plain, style, markup, rich);
+    size_t n = text ? sc_text_span_count(text) : 0;
+    size_t total = 1;
+    for (size_t i = 0; i < n; i++) {
+        ScSpan span = sc_text_span(text, i);
+        if (span.raw_str) { total += strlen(span.raw_str); }
+    }
+    char *out = malloc(total);
+    if (out) {
+        size_t pos = 0;
+        for (size_t i = 0; i < n; i++) {
+            ScSpan span = sc_text_span(text, i);
+            if (span.raw_str) {
+                size_t len = strlen(span.raw_str);
+                memcpy(out + pos, span.raw_str, len);
+                pos += len;
+            }
+        }
+        out[pos] = '\0';
+    }
+    sc_text_free(text);
+    return out;
+}
+
 /**
  * Builds the key-hint footer as a standalone `ScRendered` per `layout`:
  * `SC_HINT_INLINE` is one line, `SC_HINT_STACKED` is one line per ` · `-
@@ -317,6 +402,10 @@ typedef struct ScTextEntryCfg {
     const ScShortcut *shortcuts;
     size_t n_shortcuts;
     int *out_shortcut_id;
+
+    /** Rich prompt (overrides string prompt) + markup flag. */
+    const ScText *prompt_text;
+    bool prompt_markup;
 } ScTextEntryCfg;
 
 /**

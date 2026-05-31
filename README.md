@@ -49,6 +49,9 @@ Ships with **Rich-compatible inline markup** and a header-only **C++ wrapper**.
   trees, key/value blocks, alerts, badges, progress bars, spinners.
 - **Interactive prompts**: confirm, text/password, number, textarea, single &
   multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
+- **Custom key shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to
+  return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a
+  partly-italic label) – see [Input widgets](#input-widgets).
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`,
   `[rgb(120,200,255)]…[/]` – same syntax as
   [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
@@ -243,11 +246,25 @@ if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })
 }
 ```
 
+**Custom shortcuts** — bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on
+*any* widget via its opts. A `SC_SHORTCUT_RETURN` shortcut closes the prompt and
+reports which key fired (the widget still returns its value); a
+`SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open — handy with
+`sc_select_remove` / `sc_select_set_label` for live list editing. Labeled
+shortcuts appear in a dim footer automatically.
+
+**Rich prompts** — for partial styling (e.g. `Rename `*`Apple`*` to`) set
+`prompt_markup = true` to parse the prompt as markup, or `prompt_text` to pass a
+pre-built multi-style `ScText`. Works inline and in boxed mode.
+
 Build a runnable demo of every input widget with
-[`examples/input_demo.c`](examples/input_demo.c):
+[`examples/input_demo.c`](examples/input_demo.c), or the shortcuts + rich-prompt
+demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) — F2 renames,
+Ctrl-X deletes):
 
 ```sh
 make run-example EX=input_demo
+make run-example EX=shortcut_demo
 ```
 
 ---

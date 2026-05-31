@@ -340,7 +340,8 @@ static ScRendered *render_query_line(ScFuzzy *self) {
     ScTextStyle prompt_style = sc_style_set(self->opts.prompt_style)
         ? self->opts.prompt_style
         : (ScTextStyle){ SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
-    sc_text_append(text, prompt, prompt_style);
+    sc_prompt_append(text, prompt, prompt_style,
+                     self->opts.prompt_markup, self->opts.prompt_text);
     sc_text_append(text, " ", (ScTextStyle){ 0 });
 
     char counter[48];
