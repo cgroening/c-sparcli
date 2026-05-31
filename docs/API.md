@@ -13,6 +13,6 @@ sparcli has one reference page per language interface:
   (`bindings/python/`): a cffi (API-mode) wrapper with RAII handles, `@dataclass`
   options, `value | None` prompts and `SparcliInputUnavailable`.
 
-For installation, linking and quick-start examples (C and C++), see the
-[main README](../README.md). For the build/test/contributor workflow, see
-[`DEVELOPMENT.md`](DEVELOPMENT.md).
+For installation, linking and quick-start examples (C, C++, Rust and Python),
+see the [main README](../README.md). For the build/test/contributor workflow,
+see [`DEVELOPMENT.md`](DEVELOPMENT.md).

@@ -25,6 +25,9 @@ make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks eac
 make sanitize     # OUTPUT suite under ASan/UBSan
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples / run-example EX=<name>   # build all / build+run one examples/*.c
+make rust / rust-test     # build / test the safe Rust crate (bindings/rust/)
+make python / python-test # build / test the Python package (bindings/python/)
+make rebuild-all          # C lib + install + Rust + Python in one command
 make clean        # removes build trees, .a, shared libs, test binaries
 ```
 
@@ -32,6 +35,15 @@ Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`. The build tracks header
 dependencies (`-MMD -MP`), so editing a header rebuilds dependents without
 `make clean`. Golden-file tests (`*-check`) diff rendered output against
 committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
+
+Besides the C library, sparcli ships a header-only **C++ wrapper**
+(`include/sparcli.hpp`), a safe **Rust** crate (`bindings/rust/`) and a Pythonic
+**Python** package (`bindings/python/`, cffi API-mode). The Rust and Python
+wrappers compile the C sources themselves, so they need no prior `make`/install.
+After changing the C API, rebuild each consumer you use (and update the Python
+`cdef` / regenerate the Rust bindgen output for new/changed symbols) — see the
+"Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the
+per-language references `docs/api-{cpp,rust,python}.md`.
 
 ### Directory layout
 

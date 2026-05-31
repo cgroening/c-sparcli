@@ -67,6 +67,10 @@ safe, idiomatic **Rust** and **Python** bindings.
 - **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds
   the C via `cc` — no install needed) with RAII handles, builder options and
   `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
+- **Python bindings included**: a safe, Pythonic package (`bindings/python/`, a
+  cffi wrapper that compiles the C — no install needed) with RAII handles,
+  `@dataclass` options and `value`/`None` prompts. See
+  [`docs/api-python.md`](docs/api-python.md).
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
   entry points – the C++, Rust and Python wrappers build on this.
 - **No runtime dependencies** beyond libc.
@@ -381,6 +385,9 @@ make            # static + shared + pkg-config
 make test       # run the full non-interactive test suite (all headless gates)
 make test-output # visual output gallery (ARGS=--focus / --no-animated)
 make test-input # interactive widget suite (needs a real terminal)
+make rust       # build the Rust binding (make rust-test to test it)
+make python     # build the Python binding (make python-test to test it)
+make rebuild-all # rebuild the C lib + install + Rust + Python in one go
 make clean
 ```
 
@@ -388,8 +395,11 @@ Project layout:
 
 ```
 include/{core,output,input}/   public headers (sparcli.h is the umbrella)
+include/sparcli.hpp            header-only C++20 wrapper
 src/{core,output,tty,input}/   implementation
 src/output/table/              table sub-modules (see docs/api-c.md)
+bindings/rust/                 safe Rust crate (sparcli-sys + sparcli)
+bindings/python/               safe Python package (cffi API-mode wrapper)
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 docs/                          API reference and developer guide

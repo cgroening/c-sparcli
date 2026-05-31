@@ -17,6 +17,10 @@ make                 # libsparcli.a + shared lib (.dylib/.so) + sparcli.pc
 make shared          # only the shared library
 make pkgconfig       # only sparcli.pc
 make clean           # remove all build trees, libs, test binaries
+
+make rust            # build the Rust binding   (see "make rust" below)
+make python          # build the Python binding (see "make python" below)
+make rebuild-all     # C lib + install + Rust + Python in one command
 ```
 
 Compiler flags are `-std=c11 -Wall -Wextra`. Treat warnings as errors with the
