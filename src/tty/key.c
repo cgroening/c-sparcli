@@ -1,8 +1,8 @@
 #include "tty_internal.h"
 
 #include <errno.h>
-#include <poll.h>
 #include <string.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 
@@ -32,19 +32,27 @@ ScKey sc_tty_read_key(void) {
         // A lone ESC is ambiguous: it may begin an escape sequence whose
         // remaining bytes are still in flight, or it may be the user pressing
         // Escape. Wait briefly; if nothing more arrives, treat it as Esc.
+        //
+        // Uses select() rather than poll(): on macOS poll() on /dev/tty is
+        // broken (it reports POLLNVAL instead of timing out), which would make
+        // the reader fall through to a blocking read() and swallow a lone Esc
+        // until the next key. select() works on /dev/tty there.
         if (g_buf_len > 0 && (unsigned char)g_buf[0] == 0x1b) {
-            struct pollfd pfd = { .fd = fd, .events = POLLIN };
-            int poll_result = poll(&pfd, 1, 25 /* ms */);
-            if (poll_result == 0) {
+            fd_set read_fds;
+            FD_ZERO(&read_fds);
+            FD_SET(fd, &read_fds);
+            struct timeval timeout = { .tv_sec = 0, .tv_usec = 25 * 1000 };
+            int select_result = select(fd + 1, &read_fds, NULL, NULL, &timeout);
+            if (select_result == 0) {
                 memmove(g_buf, g_buf + 1, g_buf_len - 1);
                 g_buf_len -= 1;
                 ScKey esc = { .type = SC_KEY_ESC, .codepoint = 0, .bytes = {0} };
                 return esc;
             }
-            if (poll_result < 0 && errno != EINTR) {
+            if (select_result < 0 && errno != EINTR) {
                 return none;
             }
-            if (poll_result < 0 && sc_tty_take_resize()) {
+            if (select_result < 0 && sc_tty_take_resize()) {
                 return resize;
             }
             // EINTR without resize, or data ready: fall through and read.
@@ -78,6 +86,7 @@ size_t sc_key_decode(const char *buf, size_t len, ScKey *out) {
     out->type = SC_KEY_NONE;
     out->codepoint = 0;
     out->bytes[0] = '\0';
+    out->mods = SC_MOD_NONE;
     if (len == 0) {
         return 0;
     }
@@ -96,6 +105,18 @@ size_t sc_key_decode(const char *buf, size_t len, ScKey *out) {
         case 0x15:            out->type = SC_KEY_CTRL_U;    return 1;
         case 0x17:            out->type = SC_KEY_CTRL_W;    return 1;
         default: break;
+    }
+    if (first >= 0x01 && first <= 0x1a) {
+        // Any control byte not handled above (Tab/Enter/Backspace/Esc and the
+        // named Ctrl-A/C/D/E/K/U/W) maps to Ctrl + its letter, so it can be a
+        // shortcut. Reported as SC_KEY_CHAR + SC_MOD_CTRL; the line editor and
+        // other text consumers ignore CHARs with a modifier, so it is not typed.
+        out->type = SC_KEY_CHAR;
+        out->codepoint = (uint32_t)('a' - 1 + first);
+        out->bytes[0] = (char)('a' - 1 + first);
+        out->bytes[1] = '\0';
+        out->mods = SC_MOD_CTRL;
+        return 1;
     }
     if (first < 0x20) {
         out->type = SC_KEY_NONE;   // skip other control bytes
@@ -124,18 +145,31 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
     }
     char kind = buf[1];
     if (kind != '[' && kind != 'O') {
-        out->type = SC_KEY_ESC;   // ESC + unrelated byte: consume only the ESC
-        return 1;
+        // ESC + a normal byte = Alt/Meta + that key. Decode the remainder and
+        // flag SC_MOD_ALT. A lone ESC (nothing follows) is resolved to
+        // SC_KEY_ESC by the buffered reader's poll timeout, not here.
+        ScKey sub;
+        size_t used = sc_key_decode(buf + 1, len - 1, &sub);
+        if (used == 0) {
+            return 0;   // incomplete: wait for more bytes
+        }
+        *out = sub;
+        out->mods |= SC_MOD_ALT;
+        return used + 1;
     }
     if (len < 3) {
         return 0;
     }
 
-    // SS3 (ESC O x): function-key encodings for Home/End on some terminals.
+    // SS3 (ESC O x): Home/End and F1–F4 on some terminals.
     if (kind == 'O') {
         switch (buf[2]) {
             case 'H': out->type = SC_KEY_HOME; return 3;
             case 'F': out->type = SC_KEY_END;  return 3;
+            case 'P': out->type = SC_KEY_F1;   return 3;
+            case 'Q': out->type = SC_KEY_F2;   return 3;
+            case 'R': out->type = SC_KEY_F3;   return 3;
+            case 'S': out->type = SC_KEY_F4;   return 3;
             default:  out->type = SC_KEY_ESC;  return 1;
         }
     }
@@ -180,6 +214,18 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
                 out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEDOWN
                                             : SC_KEY_PAGEDOWN;
                 break;
+            case 11: out->type = SC_KEY_F1;  break;
+            case 12: out->type = SC_KEY_F2;  break;
+            case 13: out->type = SC_KEY_F3;  break;
+            case 14: out->type = SC_KEY_F4;  break;
+            case 15: out->type = SC_KEY_F5;  break;
+            case 17: out->type = SC_KEY_F6;  break;
+            case 18: out->type = SC_KEY_F7;  break;
+            case 19: out->type = SC_KEY_F8;  break;
+            case 20: out->type = SC_KEY_F9;  break;
+            case 21: out->type = SC_KEY_F10; break;
+            case 23: out->type = SC_KEY_F11; break;
+            case 24: out->type = SC_KEY_F12; break;
             default:        out->type = SC_KEY_NONE;   break;
         }
         return i + 1;

@@ -167,9 +167,15 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
         .render = fuzzy_render,
         .on_key = fuzzy_on_key,
     };
-    ScInputStatus status = sc_prompt_run(&vtable, self);
+    ScPromptShortcuts sk = {
+        self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
+    };
+    ScInputStatus status =
+        sc_prompt_run(&vtable, self, self->opts.shortcuts ? &sk : NULL);
 
-    if (status == SC_INPUT_OK) {
+    if (status == SC_INPUT_OK && self->match_n > 0) {
+        // Enter requires a match; a RETURN shortcut can fire with an empty
+        // result set, so guard the dereference and report index 0 in that case.
         size_t row_index = self->matches[self->cursor].index;
         *out_index = row_index;
         if (!self->opts.hide_summary) {
@@ -183,9 +189,39 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
                 free(line);
             }
         }
+    } else if (status == SC_INPUT_OK) {
+        *out_index = 0;   // shortcut fired with no matches
     }
     sc_le_free(&self->query);
     return status;
+}
+
+size_t sc_fuzzy_cursor_index(const ScFuzzy *self) {
+    if (!self || !self->matches || self->match_n == 0) {
+        return 0;
+    }
+    return self->matches[self->cursor].index;
+}
+
+void sc_fuzzy_remove(ScFuzzy *self, size_t index) {
+    if (!self || index >= self->count) {
+        return;
+    }
+    for (size_t c = 0; c < self->row_ncols[index]; c++) {
+        free(self->rows[index][c]);
+    }
+    free(self->rows[index]);
+    size_t tail = self->count - index - 1;
+    memmove(&self->rows[index], &self->rows[index + 1],
+            tail * sizeof *self->rows);
+    memmove(&self->row_ncols[index], &self->row_ncols[index + 1],
+            tail * sizeof *self->row_ncols);
+    self->count--;
+    // Rebuild the filtered/ranked view against the shrunk set and re-clamp the
+    // cursor. `matches` is only allocated during a run (when callbacks fire).
+    if (self->matches) {
+        refilter(self);
+    }
 }
 
 ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {

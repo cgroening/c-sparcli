@@ -166,17 +166,42 @@ typedef struct ScPromptVTable {
 } ScPromptVTable;
 
 /**
+ * Optional custom shortcuts consulted by the engine before `on_key`, shared
+ * by every widget. Built from the widget's `Sc*Opts.shortcuts` fields. Pass
+ * `NULL` to `sc_prompt_run` when no shortcuts are configured.
+ */
+typedef struct ScPromptShortcuts {
+    /** Borrowed shortcut array (must outlive the run). */
+    const ScShortcut *items;
+
+    /** Number of entries in `items`. */
+    size_t count;
+
+    /**
+     * Optional out-param: set to `-1` before the loop, then to the fired
+     * shortcut's `id` when a `SC_SHORTCUT_RETURN` shortcut ends the prompt.
+     * Stays `-1` on a normal submit or cancel.
+     */
+    int *out_id;
+} ScPromptShortcuts;
+
+/**
  * Runs the interactive loop for one widget.
  *
  * Enters raw mode, then repeatedly renders the state, draws it in place,
  * reads a decoded key and dispatches it, until the widget signals done or
- * cancel (or EOF / Ctrl-C). Clears the interactive region and restores the
- * terminal before returning.
+ * cancel (or EOF / Ctrl-C). Each key is checked against `shortcuts` (when
+ * non-NULL) before `on_key`: a RETURN shortcut ends the loop and records its
+ * id; a CALLBACK shortcut runs in place and keeps the loop running unless its
+ * callback returns `false`. Esc / Ctrl-C stay reserved for cancel. Clears the
+ * interactive region and restores the terminal before returning.
  *
  * @return `SC_INPUT_OK` on accept, `SC_INPUT_CANCELLED` on abort,
  *         `SC_INPUT_ERROR` when no terminal is available.
  */
-ScInputStatus sc_prompt_run(const ScPromptVTable *vtable, void *state);
+ScInputStatus sc_prompt_run(
+    const ScPromptVTable *vtable, void *state, ScPromptShortcuts *shortcuts
+);
 
 
 /* ── Shared line editor (line_editor.c) ─────────────────────────────────── */
@@ -287,6 +312,11 @@ typedef struct ScTextEntryCfg {
     size_t n_suggestions;
     bool (*validate)(const char *, void *, const char **);
     void *validate_ctx;
+
+    /** Custom key shortcuts (borrowed) + optional fired-id out-param. */
+    const ScShortcut *shortcuts;
+    size_t n_shortcuts;
+    int *out_shortcut_id;
 } ScTextEntryCfg;
 
 /**

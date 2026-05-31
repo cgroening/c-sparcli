@@ -12,6 +12,7 @@
  */
 
 #include "input/sparcli_term.h"         // IWYU pragma: export
+#include "input/sparcli_shortcut.h"     // IWYU pragma: export
 #include "input/sparcli_theme.h"        // IWYU pragma: export
 #include "input/sparcli_confirm.h"      // IWYU pragma: export
 #include "input/sparcli_text_input.h"   // IWYU pragma: export

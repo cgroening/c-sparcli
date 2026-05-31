@@ -2,6 +2,7 @@
 
 #include "core/sparcli_core.h"
 #include "input/sparcli_term.h"
+#include "input/sparcli_shortcut.h"
 
 
 SPARCLI_BEGIN_DECLS
@@ -58,6 +59,15 @@ typedef struct ScTextareaOpts {
 
     /** Box width; `0` = full terminal width. */
     int width;
+
+    /** Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h */
+    const ScShortcut *shortcuts;
+
+    /** Number of entries in `shortcuts`. */
+    size_t n_shortcuts;
+
+    /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
+    int *out_shortcut_id;
 } ScTextareaOpts;
 
 /**

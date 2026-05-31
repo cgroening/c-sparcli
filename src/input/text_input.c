@@ -88,6 +88,9 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .n_suggestions   = opts.n_suggestions,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
+        .shortcuts       = opts.shortcuts,
+        .n_shortcuts     = opts.n_shortcuts,
+        .out_shortcut_id = opts.out_shortcut_id,
     };
     return sc_text_entry(&cfg, out);
 }
@@ -107,7 +110,11 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
         .render = text_render,
         .on_key = text_on_key,
     };
-    ScInputStatus status = sc_prompt_run(&vtable, &state);
+    ScPromptShortcuts sk = {
+        cfg->shortcuts, cfg->n_shortcuts, cfg->out_shortcut_id
+    };
+    ScInputStatus status =
+        sc_prompt_run(&vtable, &state, cfg->shortcuts ? &sk : NULL);
 
     if (status == SC_INPUT_OK) {
         *out = dup_str(state.ed.buf);

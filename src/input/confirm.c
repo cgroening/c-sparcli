@@ -39,7 +39,11 @@ ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts) {
         .render = confirm_render,
         .on_key = confirm_on_key,
     };
-    ScInputStatus status = sc_prompt_run(&vtable, &state);
+    ScPromptShortcuts sk = {
+        opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
+    };
+    ScInputStatus status =
+        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL);
     if (status != SC_INPUT_OK) {
         return status;
     }
@@ -134,6 +138,7 @@ static void confirm_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             *done = true;
             return;
         case SC_KEY_CHAR:
+            if (key.mods != 0) { return; }   // Ctrl/Alt + char isn't a letter pick
             switch (key.bytes[0]) {
                 case 'y': case 'Y': self->value = true;  *done = true; break;
                 case 'n': case 'N': self->value = false; *done = true; break;

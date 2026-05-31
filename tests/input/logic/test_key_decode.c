@@ -12,6 +12,16 @@ static void expect(const char *seq, ScKeyType type, size_t consumed,
     CHECK(k.type == type && used == consumed, label);
 }
 
+/** Like `expect`, but also checks the decoded codepoint and modifier bitmask. */
+static void expect_mods(const char *seq, size_t len, ScKeyType type,
+                        size_t consumed, uint32_t codepoint, uint8_t mods,
+                        const char *label) {
+    ScKey k;
+    size_t used = sc_key_decode(seq, len, &k);
+    CHECK(k.type == type && used == consumed
+          && k.codepoint == codepoint && k.mods == mods, label);
+}
+
 void test_key_decode(void) {
     expect("a",       SC_KEY_CHAR,      1, "printable 'a'");
     expect("\r",      SC_KEY_ENTER,     1, "carriage return → Enter");
@@ -21,7 +31,6 @@ void test_key_decode(void) {
     expect("\x03",    SC_KEY_CTRL_C,    1, "Ctrl-C");
     expect("\x15",    SC_KEY_CTRL_U,    1, "Ctrl-U");
 
-    expect("\x1bx",   SC_KEY_ESC,       1, "ESC + non-CSI byte → Esc");
     expect("\x1b[A",  SC_KEY_UP,        3, "CSI up");
     expect("\x1b[B",  SC_KEY_DOWN,      3, "CSI down");
     expect("\x1b[C",  SC_KEY_RIGHT,     3, "CSI right");
@@ -35,6 +44,23 @@ void test_key_decode(void) {
     expect("\x1b[5;2~", SC_KEY_SHIFT_PAGEUP,   6, "CSI shift page-up");
     expect("\x1b[6;2~", SC_KEY_SHIFT_PAGEDOWN, 6, "CSI shift page-down");
     expect("\x1bOH",  SC_KEY_HOME,      3, "SS3 home");
+
+    /* Function keys: SS3 (F1–F4) and CSI (F1–F12). */
+    expect("\x1bOP",   SC_KEY_F1,  3, "SS3 F1");
+    expect("\x1bOS",   SC_KEY_F4,  3, "SS3 F4");
+    expect("\x1b[11~", SC_KEY_F1,  5, "CSI F1");
+    expect("\x1b[15~", SC_KEY_F5,  5, "CSI F5");
+    expect("\x1b[24~", SC_KEY_F12, 5, "CSI F12");
+
+    /* Generic Ctrl-letter (not one of the named ones): Ctrl-O = 0x0f. */
+    expect_mods("\x0f", 1, SC_KEY_CHAR, 1, 'o', SC_MOD_CTRL,
+                "Ctrl-O → CHAR 'o' + CTRL (not NONE)");
+
+    /* Alt/Meta: ESC + a normal byte consumes both and flags ALT. */
+    expect_mods("\x1bx", 2, SC_KEY_CHAR, 2, 'x', SC_MOD_ALT,
+                "ESC + 'x' → Alt+x");
+    /* A large CSI parameter must not overflow / must not match a real key. */
+    expect("\x1b[99999999999~", SC_KEY_NONE, 14, "huge CSI param → none");
 
     /* Multi-byte UTF-8: 'é' = 0xC3 0xA9, one codepoint, two bytes. */
     ScKey k;

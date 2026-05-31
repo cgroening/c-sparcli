@@ -58,7 +58,11 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
         .render = ta_render,
         .on_key = ta_on_key,
     };
-    ScInputStatus status = sc_prompt_run(&vtable, &state);
+    ScPromptShortcuts sk = {
+        opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
+    };
+    ScInputStatus status =
+        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL);
     if (status != SC_INPUT_OK) {
         free(state.buf);
         return status;

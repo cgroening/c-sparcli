@@ -51,6 +51,16 @@ static int child_case(int c) {
             std::optional<std::string> r = textarea("Notes");
             return (r && *r == "a\nb") ? 0 : 1;
         }
+        case 3: {
+            /* RETURN-mode shortcut via the C++ Shortcuts builder: F2 ends the
+               prompt, fired() reports the id, and the value still comes back. */
+            Shortcuts sc;
+            sc.on_return(key_fn(2), 42);
+            TextInputOpts o{};
+            sc.apply(o);
+            std::optional<std::string> r = text_input("Name", o);
+            return (r && *r == "ab" && sc.fired() == 42) ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -63,6 +73,7 @@ static const Case CASES[] = {
     { "text_input",     "hi\r" },
     { "password_input", "secret\r" },
     { "textarea",       "a\rb\x04" },   /* a, newline, b, Ctrl-D -> "a\nb" */
+    { "shortcut",       "ab\x1b[12~" }, /* type "ab", then F2 fires (id 42) */
 };
 static const int N_CASES = (int)(sizeof CASES / sizeof CASES[0]);
 
@@ -95,9 +106,18 @@ static int run_case(const Case* cs, int index) {
 
     msleep(200);                    /* let the child enter raw mode */
     drain(master);
-    for (const char* k = cs->keys; *k; k++) {
-        ssize_t w = write(master, k, 1);
+    /* Send escape sequences atomically (see tests/input/pty/test_pty.c): writing
+     * byte-by-byte would let the reader's 25 ms lone-Esc timeout split them. */
+    for (const char* k = cs->keys; *k; ) {
+        size_t len = 1;
+        if ((unsigned char)*k == 0x1b) {
+            const char* end = k + 1;
+            while (*end && (unsigned char)*end != 0x1b) { end++; }
+            len = (size_t)(end - k);
+        }
+        ssize_t w = write(master, k, len);
         (void)w;
+        k += len;
         msleep(60);
         drain(master);
     }

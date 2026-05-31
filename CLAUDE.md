@@ -580,7 +580,8 @@ the multi-line in-place redraw (`screen.c`).
 sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the
 `;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
 UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
-`SC_KEY_ESC` via a 25 ms poll timeout.
+`SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` — `poll()` on
+`/dev/tty` is broken on macOS and would swallow a lone Esc until the next key).
 
 ### Terminal safety / robustness
 
@@ -688,6 +689,29 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   (accent, styles, markers, border, `hint_layout`) that every widget inherits for
   any zero-init option. Precedence: per-call opts > theme > built-in default.
   Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`).
+- **Custom shortcuts** (`input/sparcli_shortcut.h`): every widget's `Sc*Opts`
+  carries `shortcuts` / `n_shortcuts` (borrowed `ScShortcut[]`) and an optional
+  `out_shortcut_id`. The **prompt engine** (`prompt.c`) matches them before
+  `on_key` — so one implementation covers all widgets — after the reserved
+  cancel keys (Esc / Ctrl-C can't be bound). Build chords with `sc_key_ctrl('e')`
+  / `sc_key_fn(2)` / `sc_key_alt('e')`. `SC_SHORTCUT_RETURN` ends the prompt and
+  writes the fired `id` to `*out_shortcut_id` (`-1` = normal submit); the widget
+  still returns its value. `SC_SHORTCUT_CALLBACK` runs `on_fire(id, user)` in
+  place and stays open unless it returns `false`; `sc_select_cursor` /
+  `sc_fuzzy_cursor_index` expose the live selection to such callbacks, and
+  `sc_select_remove` / `sc_fuzzy_remove` delete the highlighted item live (the
+  emptied-list run tails are guarded). A callback can't open a second prompt
+  (single-session), so the "edit an item" pattern is a RETURN shortcut +
+  `sc_select_label` / `sc_select_set_label` + `sc_select_set_cursor` in a caller
+  re-run loop (see `examples/shortcut_demo.c`). A shortcut with a `hint_label` is shown in
+  a dim footer the **engine** stacks under every frame (key name via
+  `sc_key_chord_name`, e.g. `^X delete`), discoverable on any widget with no
+  per-widget code. The key
+  decoder now also yields `SC_KEY_F1..F12`, Alt via an `ESC`-prefix
+  (`ScKey.mods & SC_MOD_ALT`), and generic Ctrl-letters as `SC_KEY_CHAR` +
+  `SC_MOD_CTRL`. The C++ wrapper adds `sparcli::Shortcuts` (a builder with a
+  `std::function` callback arena) + `key_ctrl/key_fn/key_alt`; `sc.apply(opts)`
+  wires it and `sc.fired()` reads the result.
 
 ### Styling (all opts fields are zero-init-friendly)
 

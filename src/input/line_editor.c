@@ -91,6 +91,9 @@ void sc_le_free(ScLineEditor *self) {
 bool sc_le_handle(ScLineEditor *self, ScKey key) {
     switch (key.type) {
         case SC_KEY_CHAR:
+            if (key.mods != 0) {
+                return false;   // Ctrl/Alt + char is a shortcut, not text
+            }
             insert_bytes(self, key.bytes, strlen(key.bytes));
             return true;
         case SC_KEY_BACKSPACE:

@@ -2,6 +2,7 @@
 
 #include "core/sparcli_core.h"
 #include "input/sparcli_term.h"
+#include "input/sparcli_shortcut.h"
 
 #include <stddef.h>
 
@@ -66,6 +67,15 @@ typedef struct ScSelectOpts {
 
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
+
+    /** Custom key shortcuts; borrowed, must outlive the run. @see sparcli_shortcut.h */
+    const ScShortcut *shortcuts;
+
+    /** Number of entries in `shortcuts`. */
+    size_t n_shortcuts;
+
+    /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
+    int *out_shortcut_id;
 } ScSelectOpts;
 
 /** Opaque selection instance; build with `sc_select_new`. */
@@ -117,6 +127,41 @@ SPARCLI_EXPORT void sc_select_set_checked(ScSelect *select, size_t index, bool o
 SPARCLI_EXPORT ScInputStatus sc_select_run(
     ScSelect *select, size_t *indices, size_t *count_io
 );
+
+/**
+ * Returns the index of the currently highlighted item.
+ *
+ * Intended for use from a `SC_SHORTCUT_CALLBACK` callback, which receives the
+ * `ScSelect*` via its `user` pointer and can query the live cursor. Returns 0
+ * for a `NULL` selection.
+ */
+SPARCLI_EXPORT size_t sc_select_cursor(const ScSelect *select);
+
+/**
+ * Returns the current label of the item at `index` (current order), or `NULL`
+ * when out of range. The pointer is owned by the selection — copy it if you
+ * need it past the next mutation.
+ */
+SPARCLI_EXPORT const char *sc_select_label(const ScSelect *select, size_t index);
+
+/**
+ * Replaces the label of the item at `index` (the new string is copied). No-op
+ * when `index` is out of range or on allocation failure (the old label is
+ * kept). Pair with `sc_select_set_cursor` to edit an item between runs, e.g.
+ * from a RETURN-mode shortcut that opens a text prompt.
+ */
+SPARCLI_EXPORT void sc_select_set_label(
+    ScSelect *select, size_t index, const char *label
+);
+
+/**
+ * Removes the item at `index` (0-based, current order), freeing its label and
+ * shifting the rest down. Intended for a `SC_SHORTCUT_CALLBACK` to delete the
+ * highlighted item live; the cursor is clamped and kept in view. No-op when
+ * `index` is out of range. Removing the last item leaves an empty list (a
+ * subsequent Enter then selects nothing).
+ */
+SPARCLI_EXPORT void sc_select_remove(ScSelect *select, size_t index);
 
 /**
  * Frees a selection and all owned item labels.

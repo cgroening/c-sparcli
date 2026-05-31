@@ -46,6 +46,7 @@
 #include <ctime>
 #include <cstdio>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -890,6 +891,83 @@ private:
     std::FILE* prev_;
 };
 
+// ── Custom shortcuts ─────────────────────────────────────────────────────────
+// Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
+// @see sparcli_shortcut.h
+
+using KeyChord = ScKeyChord;
+using Shortcut = ScShortcut;
+
+/** Ctrl + letter chord, e.g. `key_ctrl('e')`. @see sc_key_ctrl */
+inline KeyChord key_ctrl(char letter) { return sc_key_ctrl(letter); }
+/** Function-key chord; `n` in 1..12. @see sc_key_fn */
+inline KeyChord key_fn(int n)         { return sc_key_fn(n); }
+/** Alt/Meta + letter chord, e.g. `key_alt('e')`. @see sc_key_alt */
+inline KeyChord key_alt(char letter)  { return sc_key_alt(letter); }
+
+/**
+ * Owning builder for a set of custom shortcuts, plus the fired-id slot.
+ *
+ * Build it, then attach it to any widget's opts with `apply(opts)`; after the
+ * call, `fired()` is the id of a RETURN-mode shortcut that ended the prompt
+ * (or `-1`). Callback bindings take a `std::function<bool()>` (return `true`
+ * to keep the prompt open) kept alive in an internal arena.
+ *
+ * @code
+ * sparcli::Shortcuts sc;
+ * sc.on_return(sparcli::key_fn(2), 1)
+ *   .on_callback(sparcli::key_ctrl('r'), []{ reload(); return true; });
+ * sparcli::ConfirmOpts opts{};
+ * sc.apply(opts);
+ * auto yes = sparcli::confirm("Proceed?", opts);
+ * if (sc.fired() == 1) { open_help(); }
+ * @endcode
+ */
+class Shortcuts {
+public:
+    /**
+     * Binds a chord that ends the prompt and reports `id` via `fired()`.
+     * `label` (if given) shows in the widget's key-hint footer; it must outlive
+     * the run (a string literal is fine).
+     */
+    Shortcuts& on_return(KeyChord chord, int id, const char* label = nullptr) {
+        items_.push_back(Shortcut{
+            chord, id, SC_SHORTCUT_RETURN, nullptr, nullptr, label
+        });
+        return *this;
+    }
+    /** Binds a chord to a callback (returns `true` to keep the prompt open). */
+    Shortcuts& on_callback(KeyChord chord, std::function<bool()> fn,
+                           const char* label = nullptr) {
+        fns_.push_back(std::move(fn));   // deque: addresses stay stable
+        items_.push_back(Shortcut{
+            chord, static_cast<int>(items_.size()), SC_SHORTCUT_CALLBACK,
+            &trampoline, &fns_.back(), label
+        });
+        return *this;
+    }
+
+    /** Wires this set into any widget opts struct (sets the three fields). */
+    template <class Opts>
+    Opts& apply(Opts& opts) {
+        opts.shortcuts = items_.data();
+        opts.n_shortcuts = items_.size();
+        opts.out_shortcut_id = &fired_id_;
+        return opts;
+    }
+
+    /** Id of the RETURN-mode shortcut that ended the last run, or `-1`. */
+    int fired() const { return fired_id_; }
+
+private:
+    static bool trampoline(int /*id*/, void *user) {
+        return (*static_cast<std::function<bool()> *>(user))();
+    }
+    std::vector<Shortcut>             items_;
+    std::deque<std::function<bool()>> fns_;   // stable addresses for `user`
+    int                               fired_id_ = -1;
+};
+
 // ── Input widgets ────────────────────────────────────────────────────────────
 // Each returns std::optional / std::vector; the result is empty (std::nullopt)
 // when the user cancels (Esc / Ctrl-C) or no interactive terminal is available.
@@ -1007,6 +1085,19 @@ public:
     void set_checked(std::size_t index, bool on = true) {
         sc_select_set_checked(detail::live(p_), index, on);
     }
+    /** Highlighted index (use from a shortcut callback). @see sc_select_cursor */
+    std::size_t cursor() const { return sc_select_cursor(detail::live(p_)); }
+    /** Removes the item at `index` (live, from a callback). @see sc_select_remove */
+    void remove(std::size_t index) { sc_select_remove(detail::live(p_), index); }
+    /** Current label at `index` (empty if out of range). @see sc_select_label */
+    std::string_view label(std::size_t index) const {
+        const char* s = sc_select_label(detail::live(p_), index);
+        return s ? std::string_view(s) : std::string_view();
+    }
+    /** Replaces the label at `index` (copied). @see sc_select_set_label */
+    void set_label(std::size_t index, std::string_view text) {
+        sc_select_set_label(detail::live(p_), index, detail::z(text).c_str());
+    }
 
     /**
      * Runs the prompt. @return chosen indices in display order (multi-select)
@@ -1074,6 +1165,12 @@ public:
             return std::nullopt;
         return out;
     }
+    /** Highlighted row's index (from a callback). @see sc_fuzzy_cursor_index */
+    std::size_t cursor_index() const {
+        return sc_fuzzy_cursor_index(detail::live(p_));
+    }
+    /** Removes the row at `index` (live, from a callback). @see sc_fuzzy_remove */
+    void remove(std::size_t index) { sc_fuzzy_remove(detail::live(p_), index); }
 
     /** Borrowed underlying `ScFuzzy*` (escape hatch); not owned. */
     ScFuzzy* get() { return p_; }

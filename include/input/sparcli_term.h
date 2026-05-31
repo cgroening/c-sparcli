@@ -98,8 +98,33 @@ typedef enum ScKeyType {
     SC_KEY_CTRL_K,
     SC_KEY_CTRL_U,
     SC_KEY_CTRL_W,
+    SC_KEY_F1, /**< Function keys F1–F12 (SS3 or CSI encoded). */
+    SC_KEY_F2,
+    SC_KEY_F3,
+    SC_KEY_F4,
+    SC_KEY_F5,
+    SC_KEY_F6,
+    SC_KEY_F7,
+    SC_KEY_F8,
+    SC_KEY_F9,
+    SC_KEY_F10,
+    SC_KEY_F11,
+    SC_KEY_F12,
     SC_KEY_RESIZE, /**< Terminal resized (SIGWINCH); repaint and continue. */
 } ScKeyType;
+
+/**
+ * Modifier bitmask carried by a decoded key (`ScKey.mods`).
+ *
+ * `SC_MOD_CTRL` is set on control bytes that are *not* one of the named
+ * editing keys (so e.g. Ctrl-O arrives as `SC_KEY_CHAR` + `SC_MOD_CTRL`);
+ * `SC_MOD_ALT` is set when an `ESC` prefix preceded the key (Alt/Meta).
+ */
+typedef enum ScKeyMods {
+    SC_MOD_NONE = 0,
+    SC_MOD_CTRL = 1 << 0,
+    SC_MOD_ALT  = 1 << 1,
+} ScKeyMods;
 
 /** A single decoded key event. */
 typedef struct ScKey {
@@ -111,6 +136,9 @@ typedef struct ScKey {
 
     /** UTF-8 bytes of the char, NUL-terminated. */
     char bytes[8];
+
+    /** Modifier bitmask (`ScKeyMods`); 0 when no modifier applies. */
+    uint8_t mods;
 } ScKey;
 
 /**

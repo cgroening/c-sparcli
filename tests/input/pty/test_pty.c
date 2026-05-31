@@ -29,6 +29,21 @@
 
 /* ── The widget under test, run in the forked child ─────────────────────── */
 
+/** Callback-mode shortcut: counts fires via the user pointer, keeps prompt open. */
+static bool count_cb(int id, void *user) {
+    (void)id;
+    (*(int *)user)++;
+    return true;   // keep the prompt open
+}
+
+/** Callback-mode shortcut: removes the highlighted select item, stays open. */
+static bool remove_cb(int id, void *user) {
+    (void)id;
+    ScSelect *sl = user;
+    sc_select_remove(sl, sc_select_cursor(sl));
+    return true;
+}
+
 /** Returns 0 when the widget produced the expected value, non-zero otherwise. */
 static int child_case(int c) {
     switch (c) {
@@ -76,6 +91,78 @@ static int child_case(int c) {
             ScInputStatus s = sc_datepicker(&picked, (ScDatePickerOpts){ 0 });
             return (s == SC_INPUT_OK && picked.tm_year == want_year) ? 0 : 1;
         }
+        case 6: {
+            /* RETURN-mode shortcut: F2 ends the prompt, reports id 42, and the
+               widget still returns the typed value. */
+            int fired = -1;
+            ScShortcut sc[] = {
+                { .chord = sc_key_fn(2), .id = 42, .mode = SC_SHORTCUT_RETURN,
+                  .hint_label = "submit" },   /* exercises the hint footer */
+            };
+            char *t = NULL;
+            ScTextInputOpts o = {
+                .shortcuts = sc, .n_shortcuts = 1, .out_shortcut_id = &fired,
+            };
+            ScInputStatus s = sc_text_input("Name", &t, o);
+            int ok = (s == SC_INPUT_OK && fired == 42 && t
+                      && strcmp(t, "ab") == 0);
+            free(t);
+            return ok ? 0 : 1;
+        }
+        case 7: {
+            /* CALLBACK-mode shortcut: Ctrl-R fires twice, keeps the prompt open,
+               then Enter selects the (unmoved) first item. */
+            int count = 0;
+            ScShortcut sc[] = {
+                { .chord = sc_key_ctrl('r'), .id = 0,
+                  .mode = SC_SHORTCUT_CALLBACK,
+                  .on_fire = count_cb, .user = &count, .hint_label = "reload" },
+            };
+            ScSelect *sl = sc_select_new((ScSelectOpts){
+                .shortcuts = sc, .n_shortcuts = 1 });
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            int ok = (s == SC_INPUT_OK && count == 2 && idx[0] == 0);
+            sc_select_free(sl);
+            return ok ? 0 : 1;
+        }
+        case 8: {
+            /* Callback removes the highlighted item live, twice, then Enter
+               selects the remaining one. Exercises sc_select_remove + the
+               empty-tolerant run tail under ASan. */
+            ScShortcut sc[] = {
+                { .chord = sc_key_ctrl('x'), .id = 0,
+                  .mode = SC_SHORTCUT_CALLBACK,
+                  .on_fire = remove_cb, .user = NULL, .hint_label = "delete" },
+            };
+            ScSelect *sl = sc_select_new((ScSelectOpts){
+                .shortcuts = sc, .n_shortcuts = 1 });
+            sc[0].user = sl;   // same array the opts pointer references
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            sc_select_add(sl, "c");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            int ok = (s == SC_INPUT_OK && idx[0] == 0);  /* "c" remains at 0 */
+            sc_select_free(sl);
+            return ok ? 0 : 1;
+        }
+        case 9: {
+            /* Esc must still cancel even with shortcuts configured. */
+            ScShortcut sc[] = {
+                { .chord = sc_key_fn(2), .id = 1, .mode = SC_SHORTCUT_RETURN },
+            };
+            ScSelect *sl = sc_select_new((ScSelectOpts){
+                .shortcuts = sc, .n_shortcuts = 1 });
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            sc_select_free(sl);
+            return (s == SC_INPUT_CANCELLED) ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -95,6 +182,10 @@ static const Case CASES[] = {
     { "select",   "\x1b[B\r" },         /* down, enter -> index 1 */
     { "textarea", "a\rb\x04" },         /* a, newline, b, Ctrl-D -> "a\nb" */
     { "datepicker", "\x1b[6;2~\r" },    /* shift+pgdn (year+1), enter */
+    { "shortcut-return",   "ab\x1b[12~" },  /* type "ab", then F2 fires (id 42) */
+    { "shortcut-callback", "\x12\x12\r" },  /* Ctrl-R x2 (callback), then enter */
+    { "shortcut-remove",   "\x18\x18\r" },  /* Ctrl-X x2 (remove), then enter */
+    { "esc-cancels",       "\x1b" },        /* Esc still cancels with shortcuts */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 
@@ -129,9 +220,20 @@ static int run_case(const Case *cs, int index) {
 
     msleep(200);                   /* let the child enter raw mode */
     drain(master);
-    for (const char *k = cs->keys; *k; k++) {
-        ssize_t w = write(master, k, 1);
+    /* Send each keystroke atomically: an escape sequence (ESC + trailing bytes
+     * up to the next ESC) goes in one write, otherwise a single byte. Real
+     * terminals deliver a sequence as one burst; writing it byte-by-byte would
+     * let the reader's 25 ms lone-Esc timeout split it. */
+    for (const char *k = cs->keys; *k; ) {
+        size_t len = 1;
+        if ((unsigned char)*k == 0x1b) {
+            const char *end = k + 1;
+            while (*end && (unsigned char)*end != 0x1b) { end++; }
+            len = (size_t)(end - k);
+        }
+        ssize_t w = write(master, k, len);
         (void)w;
+        k += len;
         msleep(60);
         drain(master);
     }

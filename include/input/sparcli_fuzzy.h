@@ -3,6 +3,7 @@
 #include "core/sparcli_core.h"
 #include "output/sparcli_table.h"
 #include "input/sparcli_term.h"
+#include "input/sparcli_shortcut.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -94,6 +95,15 @@ typedef struct ScFuzzyOpts {
 
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
+
+    /** Custom key shortcuts; borrowed, must outlive the run. @see sparcli_shortcut.h */
+    const ScShortcut *shortcuts;
+
+    /** Number of entries in `shortcuts`. */
+    size_t n_shortcuts;
+
+    /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
+    int *out_shortcut_id;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */
@@ -153,6 +163,24 @@ SPARCLI_EXPORT void sc_fuzzy_add_row(
  * @return           `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`.
  */
 SPARCLI_EXPORT ScInputStatus sc_fuzzy_run(ScFuzzy *fuzzy, size_t *out_index);
+
+/**
+ * Returns the original add-order index of the currently highlighted row.
+ *
+ * Intended for a `SC_SHORTCUT_CALLBACK` callback, which receives the
+ * `ScFuzzy*` via its `user` pointer and can query the live selection. Returns
+ * 0 when there is no current match or `fuzzy` is `NULL`.
+ */
+SPARCLI_EXPORT size_t sc_fuzzy_cursor_index(const ScFuzzy *fuzzy);
+
+/**
+ * Removes the row at `index` (0-based, current add order), freeing its fields.
+ * Intended for a `SC_SHORTCUT_CALLBACK` to delete the highlighted row live:
+ * pair it with `sc_fuzzy_cursor_index`. The filtered view and cursor are
+ * rebuilt. No-op when `index` is out of range. Removing the last match leaves
+ * an empty result set (Enter can no longer submit; Esc cancels).
+ */
+SPARCLI_EXPORT void sc_fuzzy_remove(ScFuzzy *fuzzy, size_t index);
 
 /**
  * Frees a finder and all owned rows.

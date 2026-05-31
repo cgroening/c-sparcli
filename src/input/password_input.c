@@ -29,6 +29,9 @@ ScInputStatus sc_password_input(
         .char_filter_ctx = opts.char_filter_ctx,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
+        .shortcuts       = opts.shortcuts,
+        .n_shortcuts     = opts.n_shortcuts,
+        .out_shortcut_id = opts.out_shortcut_id,
     };
     return sc_text_entry(&cfg, out);
 }

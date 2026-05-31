@@ -55,7 +55,11 @@ ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
         .render = date_render,
         .on_key = date_on_key,
     };
-    ScInputStatus status = sc_prompt_run(&vtable, &state);
+    ScPromptShortcuts sk = {
+        opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
+    };
+    ScInputStatus status =
+        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL);
 
     if (status == SC_INPUT_OK) {
         state.cur.tm_hour = 0;
@@ -229,6 +233,7 @@ static void date_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         case SC_KEY_SHIFT_PAGEDOWN: shift_year(self, +1);   break;
         case SC_KEY_ENTER:          *done = true;           return;
         case SC_KEY_CHAR:
+            if (key.mods != 0) { return; }   // Ctrl/Alt + char isn't '<'/'>'
             if (key.bytes[0] == '<') {
                 shift_month(self, -1);
             } else if (key.bytes[0] == '>') {

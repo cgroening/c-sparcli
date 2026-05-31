@@ -93,6 +93,46 @@ void sc_select_set_checked(ScSelect *self, size_t index, bool on) {
     }
 }
 
+size_t sc_select_cursor(const ScSelect *self) {
+    return self ? self->cursor : 0;
+}
+
+const char *sc_select_label(const ScSelect *self, size_t index) {
+    if (!self || index >= self->count) {
+        return NULL;
+    }
+    return self->items[index];
+}
+
+void sc_select_set_label(ScSelect *self, size_t index, const char *label) {
+    if (!self || index >= self->count) {
+        return;
+    }
+    char *copy = dup_str(label);
+    if (!copy) {
+        return;   // keep the old label on allocation failure
+    }
+    free(self->items[index]);
+    self->items[index] = copy;
+}
+
+void sc_select_remove(ScSelect *self, size_t index) {
+    if (!self || index >= self->count) {
+        return;
+    }
+    free(self->items[index]);
+    size_t tail = self->count - index - 1;
+    memmove(&self->items[index], &self->items[index + 1],
+            tail * sizeof *self->items);
+    memmove(&self->checked[index], &self->checked[index + 1],
+            tail * sizeof *self->checked);
+    self->count--;
+    if (self->cursor >= self->count) {
+        self->cursor = self->count ? self->count - 1 : 0;
+    }
+    reframe(self);   // keep the (possibly clamped) cursor within the viewport
+}
+
 ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
     if (!self || !indices || !count_io || self->count == 0) {
         return SC_INPUT_ERROR;
@@ -102,7 +142,11 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
         .render = select_render,
         .on_key = select_on_key,
     };
-    ScInputStatus status = sc_prompt_run(&vtable, self);
+    ScPromptShortcuts sk = {
+        self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
+    };
+    ScInputStatus status =
+        sc_prompt_run(&vtable, self, self->opts.shortcuts ? &sk : NULL);
     if (status != SC_INPUT_OK) {
         return status;
     }
@@ -118,13 +162,16 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
             }
         }
         snprintf(summary, sizeof summary, "? %s – %zu selected", prompt, written);
-    } else {
+    } else if (self->count > 0) {
         if (cap >= 1) {
             indices[0] = self->cursor;
             written = 1;
         }
         snprintf(summary, sizeof summary, "? %s %s", prompt,
                  self->items[self->cursor]);
+    } else {
+        // All items were removed via a shortcut callback: nothing to select.
+        snprintf(summary, sizeof summary, "? %s (none)", prompt);
     }
     if (!self->opts.hide_summary) {
         sc_println(summary, self->opts.summary_style);
@@ -229,6 +276,7 @@ static void select_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             *done = true;
             return;
         case SC_KEY_CHAR:
+            if (key.mods != 0) { return; }   // Ctrl/Alt + char isn't j/k/space
             if (key.bytes[0] == 'k' && self->cursor > 0) {
                 self->cursor--;
             } else if (key.bytes[0] == 'j' && self->cursor + 1 < self->count) {
