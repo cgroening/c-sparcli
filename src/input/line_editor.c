@@ -317,6 +317,11 @@ static void append_cell(ScText *text, const CellView *view, size_t cell) {
     }
     char glyph[8];
     size_t glyph_len = view->offsets[cell + 1] - view->offsets[cell];
+    // A well-formed UTF-8 codepoint is at most 4 bytes, but `next_boundary`
+    // walks every continuation byte, so a malformed run (a lead byte followed
+    // by 8+ continuation bytes) in caller-supplied initial text would overflow
+    // this fixed buffer. Cap the copy to keep it in bounds.
+    if (glyph_len > sizeof glyph - 1) { glyph_len = sizeof glyph - 1; }
     memcpy(glyph, view->editor->buf + view->offsets[cell], glyph_len);
     glyph[glyph_len] = '\0';
     sc_text_append(text, glyph, style);

@@ -166,8 +166,11 @@ static void resolve_cell_span(
         SC_ANSI_COLOR_NONE,
     };
 
-    if (cell->kind == SC_CELL_STR) {
-        *out_text = cell->str ? cell->str : "";
+    if (cell->kind == SC_CELL_STR || !cell->text) {
+        // SC_CELL_STR, or a rich cell built with a NULL ScText (e.g.
+        // `sc_cell_t(NULL)`): fall back to a single empty unstyled span
+        // instead of dereferencing a NULL `text`.
+        *out_text = (cell->kind == SC_CELL_STR && cell->str) ? cell->str : "";
         *out_style = plain;
         return;
     }
