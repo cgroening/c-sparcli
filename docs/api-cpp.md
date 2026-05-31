@@ -375,7 +375,8 @@ auto r2 = text_input("Rename [italic]Apple[/] to", { .prompt_markup = true });
 opts: `.external_editor = true`, optional `.editor = "nvim"`, and `.editor_key`
 (default Ctrl-G). On save+quit the file replaces the value (text_input keeps the
 newlines collapsed to spaces); a non-zero exit keeps the old value. Runs shell-free with a 0600
-temp file; **not available for `password_input`** (secret would hit disk).
+temp file; **not available for `password_input`** (secret would hit disk). The
+editor key is matched before custom shortcuts (a chord bound to both → editor wins).
 
 ```cpp
 auto msg = textarea("Commit message",

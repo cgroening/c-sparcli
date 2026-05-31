@@ -741,7 +741,8 @@ unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
   `unlink`), then `sc_tty_begin` + fresh repaint. Widgets expose `edit_get`/
   `edit_set` vtable hooks; the engine owns suspend/resume. Non-zero exit keeps
   the old value; text_input collapses newlines to spaces (single-line). **Password excluded**
-  (plaintext temp file). `ScPromptEditor` carries the config to `sc_prompt_run`.
+  (plaintext temp file). `ScPromptEditor` carries the config to `sc_prompt_run`;
+  the editor key is matched before custom shortcuts (same chord → editor wins).
 - **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget
   `cursor_style` (text/password/fuzzy editor cell; default black-on-white),
   `error_style` (text/password; default red), `count_style` (text/password

@@ -101,14 +101,29 @@ static int run_child(const char *cmd, const char *file) {
     argv[argc++] = (char *)file;
     argv[argc] = NULL;
 
+    /* Reset the signals an editor manages to default *in the parent* (sigaction
+     * is not async-signal-safe after fork), with them blocked across the fork
+     * so the parent is not disturbed in that window. The child only unblocks
+     * (async-signal-safe) and inherits the default dispositions. */
+    static const int sigs[] = {
+        SIGINT, SIGTERM, SIGHUP, SIGQUIT, SIGTSTP, SIGCONT, SIGWINCH
+    };
+    const size_t n_sigs = sizeof sigs / sizeof sigs[0];
+    struct sigaction saved[sizeof sigs / sizeof sigs[0]];
+    struct sigaction dfl;
+    sigemptyset(&dfl.sa_mask);
+    dfl.sa_flags = 0;
+    dfl.sa_handler = SIG_DFL;
+    sigset_t block, orig_mask;
+    sigemptyset(&block);
+    for (size_t i = 0; i < n_sigs; i++) { sigaddset(&block, sigs[i]); }
+    sigprocmask(SIG_BLOCK, &block, &orig_mask);
+    for (size_t i = 0; i < n_sigs; i++) { sigaction(sigs[i], &dfl, &saved[i]); }
+
     pid_t pid = fork();
-    if (pid < 0) {
-        free(cmd_copy);
-        return -1;
-    }
     if (pid == 0) {
-        /* Child: attach stdio to the controlling terminal, restore default
-         * signal handling, then exec the editor. */
+        /* Child: attach stdio to the controlling terminal, restore the original
+         * signal mask, then exec the editor. Only async-signal-safe calls. */
         int tty = open("/dev/tty", O_RDWR);
         if (tty >= 0) {
             dup2(tty, STDIN_FILENO);
@@ -116,14 +131,20 @@ static int run_child(const char *cmd, const char *file) {
             dup2(tty, STDERR_FILENO);
             if (tty > STDERR_FILENO) { close(tty); }
         }
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTERM, SIG_DFL);
-        signal(SIGHUP, SIG_DFL);
-        signal(SIGQUIT, SIG_DFL);
-        signal(SIGWINCH, SIG_DFL);
+        sigprocmask(SIG_SETMASK, &orig_mask, NULL);
         execvp(argv[0], argv);
-        if (strcmp(argv[0], "nvim") == 0) { execvp("vi", argv); }
-        _exit(127);   // exec failed
+        /* First choice failed → last-resort vi with just the file. */
+        char *vi_argv[] = { "vi", (char *)file, NULL };
+        execvp("vi", vi_argv);
+        _exit(127);
+    }
+
+    /* Parent (fork succeeded or failed): restore dispositions + mask at once. */
+    for (size_t i = 0; i < n_sigs; i++) { sigaction(sigs[i], &saved[i], NULL); }
+    sigprocmask(SIG_SETMASK, &orig_mask, NULL);
+    if (pid < 0) {
+        free(cmd_copy);
+        return -1;
     }
 
     int status = 0;

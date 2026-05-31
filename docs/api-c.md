@@ -1056,7 +1056,8 @@ per call: `external_editor = true`, optional `editor` command override, and
 suspends raw mode, opens the editor on a temp file seeded with the current
 value, and on a clean save+quit replaces the value with the file contents
 (text_input collapses newlines to spaces, since it is single-line). A non-zero editor exit (e.g. `:cq`)
-keeps the old value.
+keeps the old value. The editor key is matched **before** custom shortcuts, so
+binding the same chord to both makes the editor win.
 
 ```c
 sc_textarea("Commit message", &msg, (ScTextareaOpts){

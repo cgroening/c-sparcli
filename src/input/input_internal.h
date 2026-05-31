@@ -85,6 +85,16 @@ static inline int sc_prompt_width(
     const char *plain, ScTextStyle style, bool markup, const ScText *rich
 ) {
     if (rich) { return (int)sc_text_visible_width(rich); }
+    if (!markup) {
+        /* Fast path: a plain prompt's width is its UTF-8 codepoint count
+         * (count non-continuation bytes), no allocation on the render path. */
+        int width = 0;
+        for (const unsigned char *p = (const unsigned char *)plain;
+             plain && *p; p++) {
+            if ((*p & 0xC0) != 0x80) { width++; }
+        }
+        return width;
+    }
     ScText *text = sc_prompt_build(plain, style, markup, rich);
     int width = text ? (int)sc_text_visible_width(text) : 0;
     sc_text_free(text);
