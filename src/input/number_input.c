@@ -195,7 +195,7 @@ static ScRendered *number_render_boxed(NumberState *self) {
 /** Writes "[min-max]" into `buf`, or an empty string when unbounded. */
 static void range_str(const NumberState *self, char *buf, size_t cap) {
     if (self->bounded) {
-        snprintf(buf, cap, "[%.*f\xe2\x80\x93%.*f]", self->opts.decimals,
+        snprintf(buf, cap, "[%.*f-%.*f]", self->opts.decimals,
                  self->opts.min, self->opts.decimals, self->opts.max);
     } else {
         buf[0] = '\0';

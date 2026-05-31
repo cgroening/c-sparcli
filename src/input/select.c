@@ -252,7 +252,7 @@ static void append_scroll_hint(ScText *text, size_t top, size_t end,
         return;
     }
     char buf[80];
-    snprintf(buf, sizeof buf, "  %s %zu\xe2\x80\x93%zu/%zu %s",
+    snprintf(buf, sizeof buf, "  %s %zu-%zu/%zu %s",
              top > 0     ? "\xe2\x86\x91" : " ",   /* ↑ */
              top + 1, end, count,
              end < count ? "\xe2\x86\x93" : " ");  /* ↓ */

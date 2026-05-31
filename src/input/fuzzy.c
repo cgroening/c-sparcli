@@ -564,7 +564,7 @@ static ScRendered *render_scroll_hint(ScFuzzy *self) {
     }
 
     char buf[80];
-    snprintf(buf, sizeof buf, "  %s %zu\xe2\x80\x93%zu/%zu %s",
+    snprintf(buf, sizeof buf, "  %s %zu-%zu/%zu %s",
              self->top > 0       ? "\xe2\x86\x91" : " ",
              self->top + 1, end, self->match_n,
              end < self->match_n ? "\xe2\x86\x93" : " ");

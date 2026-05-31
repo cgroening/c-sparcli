@@ -140,7 +140,7 @@ void test_lists(void) {
         ScListItem *backend_item = sc_list_add_str(list, "Backend", plain);
         ScList *backend_sub = sc_list_add_sub(backend_item, (ScListOpts){
             .marker = SC_LIST_BULLET,
-            .bullet = "\xe2\x80\x93",  /* - */
+            .bullet = "-",
             .indent = 2,
         });
         sc_list_add_str(backend_sub, "REST API (Go)", plain);
@@ -150,7 +150,7 @@ void test_lists(void) {
         ScListItem *frontend_item = sc_list_add_str(list, "Frontend", plain);
         ScList *frontend_sub = sc_list_add_sub(frontend_item, (ScListOpts){
             .marker = SC_LIST_BULLET,
-            .bullet = "\xe2\x80\x93",
+            .bullet = "-",
             .indent = 2,
         });
         sc_list_add_str(frontend_sub, "React components", plain);
@@ -171,7 +171,7 @@ void test_lists(void) {
         ScListItem *devops_item = sc_list_add_str(list, "DevOps", plain);
         ScList *devops_sub = sc_list_add_sub(devops_item, (ScListOpts){
             .marker = SC_LIST_BULLET,
-            .bullet = "\xe2\x80\x93",
+            .bullet = "-",
             .indent = 2,
         });
         sc_list_add_str(devops_sub, "Docker + Kubernetes", plain);
@@ -232,7 +232,7 @@ void test_lists(void) {
 
         ScList *cons = sc_list_new((ScListOpts){
             .marker = SC_LIST_BULLET,
-            .bullet = "\xe2\x80\x93",
+            .bullet = "-",
             .marker_style = bold_red,
             .indent = 0,
         });
