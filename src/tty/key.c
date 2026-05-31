@@ -7,6 +7,10 @@
 
 
 static size_t decode_escape(const char *buf, size_t len, ScKey *out);
+    static size_t decode_alt_prefix(const char *buf, size_t len, ScKey *out);
+    static size_t decode_ss3(char final, ScKey *out);
+    static void decode_csi_tilde(int param, int modifier, ScKey *out);
+    static bool decode_csi_letter(char final, ScKey *out);
     static void make_char(ScKey *out, const char *bytes, size_t seq_len);
     static size_t utf8_seq_len(unsigned char lead);
 
@@ -17,8 +21,10 @@ static size_t g_buf_len = 0;
 
 
 ScKey sc_tty_read_key(void) {
-    const ScKey none   = { .type = SC_KEY_NONE,   .codepoint = 0, .bytes = {0} };
-    const ScKey resize = { .type = SC_KEY_RESIZE, .codepoint = 0, .bytes = {0} };
+    const ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
+    const ScKey resize = {
+        .type = SC_KEY_RESIZE, .codepoint = 0, .bytes = {0}
+    };
 
     int fd = sc_tty_internal_fd();
     for (;;) {
@@ -46,7 +52,9 @@ ScKey sc_tty_read_key(void) {
             if (select_result == 0) {
                 memmove(g_buf, g_buf + 1, g_buf_len - 1);
                 g_buf_len -= 1;
-                ScKey esc = { .type = SC_KEY_ESC, .codepoint = 0, .bytes = {0} };
+                ScKey esc = {
+                    .type = SC_KEY_ESC, .codepoint = 0, .bytes = {0}
+                };
                 return esc;
             }
             if (select_result < 0 && errno != EINTR) {
@@ -110,7 +118,8 @@ size_t sc_key_decode(const char *buf, size_t len, ScKey *out) {
         // Any control byte not handled above (Tab/Enter/Backspace/Esc and the
         // named Ctrl-A/C/D/E/K/U/W) maps to Ctrl + its letter, so it can be a
         // shortcut. Reported as SC_KEY_CHAR + SC_MOD_CTRL; the line editor and
-        // other text consumers ignore CHARs with a modifier, so it is not typed.
+        // other text consumers ignore CHARs with a modifier, so it is not
+        // typed.
         out->type = SC_KEY_CHAR;
         out->codepoint = (uint32_t)('a' - 1 + first);
         out->bytes[0] = (char)('a' - 1 + first);
@@ -145,33 +154,13 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
     }
     char kind = buf[1];
     if (kind != '[' && kind != 'O') {
-        // ESC + a normal byte = Alt/Meta + that key. Decode the remainder and
-        // flag SC_MOD_ALT. A lone ESC (nothing follows) is resolved to
-        // SC_KEY_ESC by the buffered reader's poll timeout, not here.
-        ScKey sub;
-        size_t used = sc_key_decode(buf + 1, len - 1, &sub);
-        if (used == 0) {
-            return 0;   // incomplete: wait for more bytes
-        }
-        *out = sub;
-        out->mods |= SC_MOD_ALT;
-        return used + 1;
+        return decode_alt_prefix(buf, len, out);
     }
     if (len < 3) {
         return 0;
     }
-
-    // SS3 (ESC O x): Home/End and F1–F4 on some terminals.
     if (kind == 'O') {
-        switch (buf[2]) {
-            case 'H': out->type = SC_KEY_HOME; return 3;
-            case 'F': out->type = SC_KEY_END;  return 3;
-            case 'P': out->type = SC_KEY_F1;   return 3;
-            case 'Q': out->type = SC_KEY_F2;   return 3;
-            case 'R': out->type = SC_KEY_F3;   return 3;
-            case 'S': out->type = SC_KEY_F4;   return 3;
-            default:  out->type = SC_KEY_ESC;  return 1;
-        }
+        return decode_ss3(buf[2], out);
     }
 
     // CSI (ESC [ …): collect an optional numeric parameter.
@@ -192,7 +181,9 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
     if (i < len && buf[i] == ';') {
         i++;
         while (i < len && buf[i] >= '0' && buf[i] <= '9') {
-            if (modifier < 1000000) { modifier = modifier * 10 + (buf[i] - '0'); }
+            if (modifier < 1000000) {
+                modifier = modifier * 10 + (buf[i] - '0');
+            }
             i++;
         }
     }
@@ -202,48 +193,84 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
 
     char final = buf[i];
     if (final == '~') {
-        switch (param) {
-            case 1: case 7: out->type = SC_KEY_HOME;   break;
-            case 3:         out->type = SC_KEY_DELETE; break;
-            case 4: case 8: out->type = SC_KEY_END;    break;
-            case 5:
-                out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEUP
-                                            : SC_KEY_PAGEUP;
-                break;
-            case 6:
-                out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEDOWN
-                                            : SC_KEY_PAGEDOWN;
-                break;
-            case 11: out->type = SC_KEY_F1;  break;
-            case 12: out->type = SC_KEY_F2;  break;
-            case 13: out->type = SC_KEY_F3;  break;
-            case 14: out->type = SC_KEY_F4;  break;
-            case 15: out->type = SC_KEY_F5;  break;
-            case 17: out->type = SC_KEY_F6;  break;
-            case 18: out->type = SC_KEY_F7;  break;
-            case 19: out->type = SC_KEY_F8;  break;
-            case 20: out->type = SC_KEY_F9;  break;
-            case 21: out->type = SC_KEY_F10; break;
-            case 23: out->type = SC_KEY_F11; break;
-            case 24: out->type = SC_KEY_F12; break;
-            default:        out->type = SC_KEY_NONE;   break;
-        }
+        decode_csi_tilde(param, modifier, out);
         return i + 1;
     }
-    if (!has_param) {
-        switch (final) {
-            case 'A': out->type = SC_KEY_UP;      return i + 1;
-            case 'B': out->type = SC_KEY_DOWN;    return i + 1;
-            case 'C': out->type = SC_KEY_RIGHT;   return i + 1;
-            case 'D': out->type = SC_KEY_LEFT;    return i + 1;
-            case 'H': out->type = SC_KEY_HOME;    return i + 1;
-            case 'F': out->type = SC_KEY_END;     return i + 1;
-            case 'Z': out->type = SC_KEY_BACKTAB; return i + 1;
-            default:  break;
-        }
+    if (has_param || !decode_csi_letter(final, out)) {
+        out->type = SC_KEY_NONE;   // unrecognized CSI
     }
-    out->type = SC_KEY_NONE;   // unrecognized CSI
     return i + 1;
+}
+
+/** ESC + a normal byte: Alt/Meta + that key (decode the rest, flag ALT). */
+static size_t decode_alt_prefix(const char *buf, size_t len, ScKey *out) {
+    // A lone ESC (nothing follows) is resolved to SC_KEY_ESC by the buffered
+    // reader's select() timeout, not here.
+    ScKey sub;
+    size_t used = sc_key_decode(buf + 1, len - 1, &sub);
+    if (used == 0) {
+        return 0;   // incomplete: wait for more bytes
+    }
+    *out = sub;
+    out->mods |= SC_MOD_ALT;
+    return used + 1;
+}
+
+/** SS3 (ESC O x): Home/End and F1–F4 on some terminals. */
+static size_t decode_ss3(char final, ScKey *out) {
+    switch (final) {
+        case 'H': out->type = SC_KEY_HOME; return 3;
+        case 'F': out->type = SC_KEY_END;  return 3;
+        case 'P': out->type = SC_KEY_F1;   return 3;
+        case 'Q': out->type = SC_KEY_F2;   return 3;
+        case 'R': out->type = SC_KEY_F3;   return 3;
+        case 'S': out->type = SC_KEY_F4;   return 3;
+        default:  out->type = SC_KEY_ESC;  return 1;
+    }
+}
+
+/** CSI `~` sequences keyed by the numeric parameter (ESC [ <param> ~). */
+static void decode_csi_tilde(int param, int modifier, ScKey *out) {
+    switch (param) {
+        case 1: case 7: out->type = SC_KEY_HOME;   break;
+        case 3:         out->type = SC_KEY_DELETE; break;
+        case 4: case 8: out->type = SC_KEY_END;    break;
+        case 5:
+            out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEUP
+                                        : SC_KEY_PAGEUP;
+            break;
+        case 6:
+            out->type = (modifier == 2) ? SC_KEY_SHIFT_PAGEDOWN
+                                        : SC_KEY_PAGEDOWN;
+            break;
+        case 11: out->type = SC_KEY_F1;  break;
+        case 12: out->type = SC_KEY_F2;  break;
+        case 13: out->type = SC_KEY_F3;  break;
+        case 14: out->type = SC_KEY_F4;  break;
+        case 15: out->type = SC_KEY_F5;  break;
+        case 17: out->type = SC_KEY_F6;  break;
+        case 18: out->type = SC_KEY_F7;  break;
+        case 19: out->type = SC_KEY_F8;  break;
+        case 20: out->type = SC_KEY_F9;  break;
+        case 21: out->type = SC_KEY_F10; break;
+        case 23: out->type = SC_KEY_F11; break;
+        case 24: out->type = SC_KEY_F12; break;
+        default:        out->type = SC_KEY_NONE;   break;
+    }
+}
+
+/** Parameterless CSI letters (arrows, Home/End, Shift-Tab). */
+static bool decode_csi_letter(char final, ScKey *out) {
+    switch (final) {
+        case 'A': out->type = SC_KEY_UP;      return true;
+        case 'B': out->type = SC_KEY_DOWN;    return true;
+        case 'C': out->type = SC_KEY_RIGHT;   return true;
+        case 'D': out->type = SC_KEY_LEFT;    return true;
+        case 'H': out->type = SC_KEY_HOME;    return true;
+        case 'F': out->type = SC_KEY_END;     return true;
+        case 'Z': out->type = SC_KEY_BACKTAB; return true;
+        default:  return false;
+    }
 }
 
 /** Fills `out` as a printable char from a complete UTF-8 sequence. */

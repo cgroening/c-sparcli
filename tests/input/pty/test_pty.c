@@ -40,7 +40,7 @@ static char g_editor_fail[256];
 
 /* ── The widget under test, run in the forked child ─────────────────────── */
 
-/** Callback-mode shortcut: counts fires via the user pointer, keeps prompt open. */
+/** Callback-mode shortcut: counts fires via `user`, keeps the prompt open. */
 static bool count_cb(int id, void *user) {
     (void)id;
     (*(int *)user)++;
@@ -55,7 +55,7 @@ static bool remove_cb(int id, void *user) {
     return true;
 }
 
-/** Returns 0 when the widget produced the expected value, non-zero otherwise. */
+/** Returns 0 when the widget produced the expected value, else non-zero. */
 static int child_case(int c) {
     switch (c) {
         case 0: {
@@ -121,8 +121,8 @@ static int child_case(int c) {
             return ok ? 0 : 1;
         }
         case 7: {
-            /* CALLBACK-mode shortcut: Ctrl-R fires twice, keeps the prompt open,
-               then Enter selects the (unmoved) first item. */
+            /* CALLBACK-mode shortcut: Ctrl-R fires twice, keeps the prompt
+               open, then Enter selects the (unmoved) first item. */
             int count = 0;
             ScShortcut sc[] = {
                 { .chord = sc_key_ctrl('r'), .id = 0,
@@ -175,8 +175,8 @@ static int child_case(int c) {
             return (s == SC_INPUT_CANCELLED) ? 0 : 1;
         }
         case 10: {
-            /* Textarea: Ctrl-G opens the stub editor (writes a two-line value),
-               then Ctrl-D submits. The whole editor output replaces the value. */
+            /* Textarea: Ctrl-G opens the stub editor (writes a two-line
+               value), then Ctrl-D submits. The editor output replaces it. */
             char *t = NULL;
             ScInputStatus s = sc_textarea("Notes", &t, (ScTextareaOpts){
                 .external_editor = true, .editor = g_editor });
@@ -186,8 +186,8 @@ static int child_case(int c) {
             return ok ? 0 : 1;
         }
         case 11: {
-            /* Text-input: Ctrl-G opens the editor; a multi-line result has its
-               newlines collapsed to spaces (single-line field). Enter submits. */
+            /* Text-input: Ctrl-G opens the editor; a multi-line result has
+               its newlines collapsed to spaces (single line). Enter submits. */
             char *t = NULL;
             ScInputStatus s = sc_text_input("Name", &t, (ScTextInputOpts){
                 .external_editor = true, .editor = g_editor });
@@ -225,13 +225,13 @@ static const Case CASES[] = {
     { "select",   "\x1b[B\r" },         /* down, enter -> index 1 */
     { "textarea", "a\rb\x04" },         /* a, newline, b, Ctrl-D -> "a\nb" */
     { "datepicker", "\x1b[6;2~\r" },    /* shift+pgdn (year+1), enter */
-    { "shortcut-return",   "ab\x1b[12~" },  /* type "ab", then F2 fires (id 42) */
-    { "shortcut-callback", "\x12\x12\r" },  /* Ctrl-R x2 (callback), then enter */
-    { "shortcut-remove",   "\x18\x18\r" },  /* Ctrl-X x2 (remove), then enter */
-    { "esc-cancels",       "\x1b" },        /* Esc still cancels with shortcuts */
-    { "editor-textarea",   "\x07\x04" },    /* Ctrl-G opens editor, Ctrl-D submits */
-    { "editor-text-input", "\x07\r" },      /* Ctrl-G opens editor, Enter submits */
-    { "editor-cancel-keeps", "\x07\x04" },  /* editor exits nonzero → keep value */
+    { "shortcut-return", "ab\x1b[12~" },  /* type ab, F2 fires (id 42) */
+    { "shortcut-callback", "\x12\x12\r" },  /* Ctrl-R x2, then enter */
+    { "shortcut-remove", "\x18\x18\r" },  /* Ctrl-X x2 (remove), enter */
+    { "esc-cancels", "\x1b" },  /* Esc still cancels with shortcuts */
+    { "editor-textarea", "\x07\x04" },  /* Ctrl-G editor, Ctrl-D submits */
+    { "editor-text-input", "\x07\r" },  /* Ctrl-G editor, Enter submits */
+    { "editor-cancel-keeps", "\x07\x04" },  /* editor nonzero → keep value */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 
@@ -240,7 +240,7 @@ static void msleep(int ms) {
     nanosleep(&ts, NULL);
 }
 
-/** Reads and discards whatever the child has rendered (keeps the PTY drained). */
+/** Reads and discards whatever the child rendered (keeps the PTY drained). */
 static void drain(int fd) {
     for (;;) {
         struct timeval tv = { 0, 40000 };
@@ -295,7 +295,8 @@ static int run_case(const Case *cs, int index) {
     close(master);
 
     int pass = WIFEXITED(status) && WEXITSTATUS(status) == 0;
-    printf("  %s %s\n", pass ? "\033[32m✔\033[0m" : "\033[31m✘\033[0m", cs->name);
+    const char *mark = pass ? "\033[32m✔\033[0m" : "\033[31m✘\033[0m";
+    printf("  %s %s\n", mark, cs->name);
     return pass;
 }
 

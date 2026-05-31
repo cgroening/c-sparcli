@@ -39,7 +39,7 @@ class Text:
 
     @classmethod
     def from_markup(cls, markup: str, *, strip_unknown: bool = False) -> "Text":
-        """Parse Rich-style ``markup`` (e.g. ``"[bold red]hi[/]"``) into a Text."""
+        """Parse Rich-style ``markup`` (e.g. ``[bold red]hi[/]``) into Text."""
         t = cls()
         t.append_markup(markup, strip_unknown=strip_unknown)
         return t
@@ -53,7 +53,9 @@ class Text:
         lib.sc_text_append(self._p, cstr(arena, s), cstyle[0])
         return self
 
-    def append_markup(self, markup: str, *, strip_unknown: bool = False) -> "Text":
+    def append_markup(
+        self, markup: str, *, strip_unknown: bool = False
+    ) -> "Text":
         """Parse ``markup`` and append the resulting spans. Returns ``self``."""
         arena: list = []
         opts = ffi.new("ScMarkupOpts *")

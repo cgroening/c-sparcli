@@ -255,8 +255,10 @@ static void append_content(const Textarea *self, ScText *text, int width) {
         char glyph[8];
         memcpy(glyph, self->buf + i, end - i);
         glyph[end - i] = '\0';
-        sc_text_append(text, glyph,
-                       (i == self->cursor) ? cursor_style : self->opts.value_style);
+        sc_text_append(
+            text, glyph,
+            (i == self->cursor) ? cursor_style : self->opts.value_style
+        );
         i = end;
         col++;
     }
@@ -361,7 +363,7 @@ static void del_range(Textarea *self, size_t from, size_t to) {
     self->buf[self->len] = '\0';
 }
 
-/** Moves the cursor one logical line up (`direction < 0`) or down, same column. */
+/** Moves the cursor one logical line up (`direction < 0`) or down. */
 static void move_vertical(Textarea *self, int direction) {
     size_t col = col_of(self, self->cursor);
     size_t begin = line_start(self, self->cursor);

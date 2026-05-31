@@ -22,7 +22,8 @@ void test_pad(void) {
     {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Name", (ScColOpts){ 0 });
-        sc_table_add_column(table, "Score", (ScColOpts){ .halign = SC_ALIGN_RIGHT });
+        sc_table_add_column(table, "Score",
+            (ScColOpts){ .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Alice"), sc_cell("9800")
         }, 2);

@@ -1,13 +1,18 @@
-//! A static gallery of the output widgets. `cargo run --example output_gallery`.
+//! A static gallery of the output widgets.
+//! `cargo run --example output_gallery`.
 
 use sparcli::{
-    alert, capture, markup, panel, println as scprintln, rule, vstack, Align, BorderType, Color,
-    ColItem, Columns, ColumnsOpts, Kv, KvOpts, List, ListMarker, ListOpts, PanelOpts, RuleOpts,
-    Style, Table, TableOpts, Text,
+    alert, capture, markup, panel, println as scprintln, rule, vstack, Align,
+    BorderType, ColItem, Color, Columns, ColumnsOpts, Kv, KvOpts, List,
+    ListMarker, ListOpts, PanelOpts, RuleOpts, Style, Table, TableOpts, Text,
 };
 
 fn main() {
-    rule(RuleOpts::new().kind(BorderType::Double).title("sparcli (Rust)"));
+    rule(
+        RuleOpts::new()
+            .kind(BorderType::Double)
+            .title("sparcli (Rust)"),
+    );
     scprintln("", Style::default());
 
     panel(
@@ -50,7 +55,8 @@ fn main() {
 
     // Key/value.
     let mut kv = Kv::new(KvOpts::new().key_style(Style::bold()));
-    kv.add("Version", sparcli::version_string()).add("Bindings", "Rust");
+    kv.add("Version", sparcli::version_string())
+        .add("Bindings", "Rust");
     kv.print();
     scprintln("", Style::default());
 

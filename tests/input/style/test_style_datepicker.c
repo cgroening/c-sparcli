@@ -18,7 +18,8 @@ void style_datepicker(void) {
 
     /* Default (Monday week start, cyan accent). */
     style_show("date: default",
-        sc_datepicker_frame(&seed, (ScDatePickerOpts){ .prompt = "Pick a date" }));
+        sc_datepicker_frame(
+            &seed, (ScDatePickerOpts){ .prompt = "Pick a date" }));
 
     /* Sunday week start + named accent. */
     style_show("date: Sunday start, accent=green",

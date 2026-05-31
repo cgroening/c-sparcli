@@ -16,7 +16,8 @@ typedef struct ConfirmState {
 } ConfirmState;
 
 static const char *const DEFAULT_HINT =
-    "\xe2\x86\x90/\xe2\x86\x92 toggle \xc2\xb7 enter confirm \xc2\xb7 esc cancel";
+    "\xe2\x86\x90/\xe2\x86\x92 toggle \xc2\xb7 enter confirm \xc2\xb7 "
+    "esc cancel";
 
 
 static ConfirmState make_state(const char *question, bool value,
@@ -139,7 +140,8 @@ static void confirm_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             *done = true;
             return;
         case SC_KEY_CHAR:
-            if (key.mods != 0) { return; }   // Ctrl/Alt + char isn't a letter pick
+            // Ctrl/Alt + char isn't a letter pick
+            if (key.mods != 0) { return; }
             switch (key.bytes[0]) {
                 case 'y': case 'Y': self->value = true;  *done = true; break;
                 case 'n': case 'N': self->value = false; *done = true; break;

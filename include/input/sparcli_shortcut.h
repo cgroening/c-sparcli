@@ -45,7 +45,8 @@ typedef struct ScKeyChord {
 /** How a fired shortcut affects the running prompt. */
 typedef enum ScShortcutMode {
     SC_SHORTCUT_RETURN = 0, /**< End the prompt and report the id. */
-    SC_SHORTCUT_CALLBACK,   /**< Run `on_fire`; stay open unless it returns false. */
+    SC_SHORTCUT_CALLBACK, /**< Run `on_fire`; stay open unless it returns
+                               false. */
 } ScShortcutMode;
 
 /** One key binding. */
@@ -53,7 +54,8 @@ typedef struct ScShortcut {
     /** Key combination that triggers this shortcut. */
     ScKeyChord chord;
 
-    /** Caller-defined id reported via `*out_shortcut_id` in RETURN mode (>= 0). */
+    /** Caller-defined id reported via `*out_shortcut_id` in RETURN mode
+        (>= 0). */
     int id;
 
     /** Behavior when fired. */

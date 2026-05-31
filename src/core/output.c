@@ -6,9 +6,9 @@
 /*
  * Thread-local so multiple threads can render/capture concurrently to their own
  * streams without racing: each thread keeps its own output target, and the
- * capture API (which swaps this around `sc_output_set_stream`) only ever touches its
- * own thread's value. Zero-initialized TLS is NULL, so every thread still
- * defaults to `stdout`.
+ * capture API (which swaps this around `sc_output_set_stream`) only ever
+ * touches its own thread's value. Zero-initialized TLS is NULL, so every thread
+ * still defaults to `stdout`.
  */
 static _Thread_local FILE *current_output = NULL;
 

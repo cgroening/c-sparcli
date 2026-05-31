@@ -44,11 +44,12 @@ def key_alt(letter: str) -> KeyChord:
 
 
 class Shortcuts:
-    """A set of custom key bindings to attach to a widget via ``opts.shortcuts``.
+    """A set of custom key bindings to attach to a widget via
+    ``opts.shortcuts``.
 
     ``on_return`` ends the prompt and records an id (read afterwards with
-    :meth:`fired`); ``on_callback`` runs a Python callable in place and keeps the
-    prompt open unless the callable returns ``False``.
+    :meth:`fired`); ``on_callback`` runs a Python callable in place and keeps
+    the prompt open unless the callable returns ``False``.
     """
 
     __slots__ = ("_specs", "_keep", "_out")
@@ -59,19 +60,22 @@ class Shortcuts:
         self._out = ffi.new("int *")
         self._out[0] = -1
 
-    def on_return(self, chord: KeyChord, id: int, name: str | None = None) -> "Shortcuts":  # noqa: A002
-        """Bind ``chord`` to end the prompt and report ``id`` via :meth:`fired`."""
+    def on_return(self, chord: KeyChord, id: int,  # noqa: A002
+                  name: str | None = None) -> "Shortcuts":
+        """Bind ``chord`` to end the prompt and report ``id``; see
+        :meth:`fired`."""
         self._specs.append(("return", chord, int(id), None, name))
         return self
 
-    def on_callback(self, chord: KeyChord, fn, name: str | None = None) -> "Shortcuts":
+    def on_callback(self, chord: KeyChord, fn,
+                    name: str | None = None) -> "Shortcuts":
         """Bind ``chord`` to run ``fn()`` in place. ``fn`` returning ``False``
         closes the prompt; ``None``/``True`` keeps it open."""
         self._specs.append(("callback", chord, 0, fn, name))
         return self
 
     def fired(self) -> int:
-        """The id of the RETURN-mode shortcut that ended the last run, else ``-1``."""
+        """Id of the RETURN-mode shortcut that ended the last run, else -1."""
         return self._out[0]
 
     @staticmethod

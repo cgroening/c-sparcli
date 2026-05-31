@@ -28,7 +28,7 @@ class Color:
         clamp = lambda v: max(0, min(255, int(v)))  # noqa: E731
         return Color(-1, clamp(r), clamp(g), clamp(b))
 
-    # Named ANSI colors (filled in below). ClassVar so they aren't dataclass fields.
+    # Named ANSI colors (set below). ClassVar so they aren't dataclass fields.
     NONE: ClassVar["Color"]
     BLACK: ClassVar["Color"]
     RED: ClassVar["Color"]

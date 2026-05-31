@@ -55,7 +55,11 @@ impl Chord {
     pub fn name(&self) -> String {
         let mut buf = [0i8; 16];
         unsafe { ffi::sc_key_chord_name(self.0, buf.as_mut_ptr(), buf.len()) };
-        unsafe { std::ffi::CStr::from_ptr(buf.as_ptr()).to_string_lossy().into_owned() }
+        unsafe {
+            std::ffi::CStr::from_ptr(buf.as_ptr())
+                .to_string_lossy()
+                .into_owned()
+        }
     }
 }
 
@@ -89,8 +93,14 @@ impl Shortcuts {
         }
     }
 
-    /// Binds a chord that ends the prompt and reports `id` via [`fired`](Self::fired).
-    pub fn on_return(mut self, chord: Chord, id: i32, label: Option<&str>) -> Self {
+    /// Binds a chord that ends the prompt and reports `id` via
+    /// [`fired`](Self::fired).
+    pub fn on_return(
+        mut self,
+        chord: Chord,
+        id: i32,
+        label: Option<&str>,
+    ) -> Self {
         let hint = label.map(cstring);
         let hint_ptr = match &hint {
             Some(c) => c.as_ptr(),
@@ -111,7 +121,12 @@ impl Shortcuts {
     }
 
     /// Binds a chord to a callback (returns `true` to keep the prompt open).
-    pub fn on_callback<F>(mut self, chord: Chord, label: Option<&str>, f: F) -> Self
+    pub fn on_callback<F>(
+        mut self,
+        chord: Chord,
+        label: Option<&str>,
+        f: F,
+    ) -> Self
     where
         F: FnMut(i32) -> bool + 'static,
     {
@@ -142,7 +157,12 @@ impl Shortcuts {
         self.fired.get()
     }
 
-    fn apply(&self, ptr: *mut *const ffi::ScShortcut, n: *mut usize, out: *mut *mut c_int) {
+    fn apply(
+        &self,
+        ptr: *mut *const ffi::ScShortcut,
+        n: *mut usize,
+        out: *mut *mut c_int,
+    ) {
         unsafe {
             *ptr = self.items.as_ptr();
             *n = self.items.len();
@@ -216,7 +236,8 @@ pub fn confirm(question: &str, opts: ConfirmOpts) -> Result<Option<bool>> {
         sc.apply(&mut o.shortcuts, &mut o.n_shortcuts, &mut o.out_shortcut_id);
     }
     let mut out = false;
-    let st = unsafe { ffi::sc_confirm(cstring(question).as_ptr(), &mut out, o) };
+    let st =
+        unsafe { ffi::sc_confirm(cstring(question).as_ptr(), &mut out, o) };
     Ok(status(st)?.then_some(out))
 }
 
@@ -326,11 +347,15 @@ pub fn text_input(prompt: &str, opts: TextInputOpts) -> Result<Option<String>> {
     let initial = opts.initial.as_deref().map(cstring);
     let placeholder = opts.placeholder.as_deref().map(cstring);
     let editor = opts.editor.as_deref().map(cstring);
-    let sugg: Vec<CString> = opts.suggestions.iter().map(|s| cstring(s)).collect();
-    let sugg_ptrs: Vec<*const c_char> = sugg.iter().map(|c| c.as_ptr()).collect();
+    let sugg: Vec<CString> =
+        opts.suggestions.iter().map(|s| cstring(s)).collect();
+    let sugg_ptrs: Vec<*const c_char> =
+        sugg.iter().map(|c| c.as_ptr()).collect();
 
     o.initial = initial.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
-    o.placeholder = placeholder.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+    o.placeholder = placeholder
+        .as_ref()
+        .map_or(std::ptr::null(), |c| c.as_ptr());
     o.prompt_style = opts.prompt_style.raw();
     o.value_style = opts.value_style.raw();
     o.hide_summary = opts.hide_summary;
@@ -362,7 +387,8 @@ pub fn text_input(prompt: &str, opts: TextInputOpts) -> Result<Option<String>> {
     }
 
     let mut out: *mut c_char = std::ptr::null_mut();
-    let st = unsafe { ffi::sc_text_input(cstring(prompt).as_ptr(), &mut out, o) };
+    let st =
+        unsafe { ffi::sc_text_input(cstring(prompt).as_ptr(), &mut out, o) };
     if status(st)? {
         Ok(Some(unsafe { crate::take_c_string(out) }))
     } else {
@@ -396,11 +422,16 @@ impl PasswordOpts {
 }
 
 /// Masked single-line entry.
-pub fn password_input(prompt: &str, opts: PasswordOpts) -> Result<Option<String>> {
+pub fn password_input(
+    prompt: &str,
+    opts: PasswordOpts,
+) -> Result<Option<String>> {
     let mut o: ffi::ScPasswordOpts = unsafe { mem::zeroed() };
     let placeholder = opts.placeholder.as_deref().map(cstring);
     let mask = opts.mask.as_deref().map(cstring);
-    o.placeholder = placeholder.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+    o.placeholder = placeholder
+        .as_ref()
+        .map_or(std::ptr::null(), |c| c.as_ptr());
     o.mask = mask.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     o.hide_summary = opts.hide_summary;
     o.max_chars = opts.max_chars;
@@ -408,7 +439,9 @@ pub fn password_input(prompt: &str, opts: PasswordOpts) -> Result<Option<String>
     o.boxed = opts.boxed;
     o.width = opts.width;
     let mut out: *mut c_char = std::ptr::null_mut();
-    let st = unsafe { ffi::sc_password_input(cstring(prompt).as_ptr(), &mut out, o) };
+    let st = unsafe {
+        ffi::sc_password_input(cstring(prompt).as_ptr(), &mut out, o)
+    };
     if status(st)? {
         Ok(Some(unsafe { crate::take_c_string(out) }))
     } else {
@@ -469,7 +502,8 @@ pub fn number_input(prompt: &str, opts: NumberOpts) -> Result<Option<f64>> {
     o.boxed = opts.boxed;
     o.width = opts.width;
     let mut out = 0.0f64;
-    let st = unsafe { ffi::sc_number_input(cstring(prompt).as_ptr(), &mut out, o) };
+    let st =
+        unsafe { ffi::sc_number_input(cstring(prompt).as_ptr(), &mut out, o) };
     Ok(status(st)?.then_some(out))
 }
 
@@ -517,7 +551,9 @@ pub fn textarea(prompt: &str, opts: TextareaOpts) -> Result<Option<String>> {
     let placeholder = opts.placeholder.as_deref().map(cstring);
     let editor = opts.editor.as_deref().map(cstring);
     o.initial = initial.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
-    o.placeholder = placeholder.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+    o.placeholder = placeholder
+        .as_ref()
+        .map_or(std::ptr::null(), |c| c.as_ptr());
     o.boxed = opts.boxed;
     o.width = opts.width;
     o.external_editor = opts.external_editor;
@@ -583,7 +619,11 @@ impl Select {
         o.accent = opts.accent.raw();
         let ptr = unsafe { ffi::sc_select_new(o) };
         assert!(!ptr.is_null(), "sc_select_new: out of memory");
-        Select { ptr, count: 0, _prompt: prompt }
+        Select {
+            ptr,
+            count: 0,
+            _prompt: prompt,
+        }
     }
     pub fn add(&mut self, label: &str) -> &mut Self {
         unsafe { ffi::sc_select_add(self.ptr, cstring(label).as_ptr()) };
@@ -606,11 +646,15 @@ impl Select {
         if p.is_null() {
             None
         } else {
-            Some(unsafe { std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned() })
+            Some(unsafe {
+                std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned()
+            })
         }
     }
     pub fn set_label(&mut self, index: usize, label: &str) {
-        unsafe { ffi::sc_select_set_label(self.ptr, index, cstring(label).as_ptr()) };
+        unsafe {
+            ffi::sc_select_set_label(self.ptr, index, cstring(label).as_ptr())
+        };
     }
     /// Removes the item at `index` (live; for shortcut callbacks).
     pub fn remove(&mut self, index: usize) {
@@ -622,7 +666,8 @@ impl Select {
         let cap = self.count.max(1);
         let mut idx = vec![0usize; cap];
         let mut n = cap;
-        let st = unsafe { ffi::sc_select_run(self.ptr, idx.as_mut_ptr(), &mut n) };
+        let st =
+            unsafe { ffi::sc_select_run(self.ptr, idx.as_mut_ptr(), &mut n) };
         if status(st)? {
             idx.truncate(n);
             Ok(Some(idx))
@@ -648,7 +693,13 @@ impl Drop for Select {
 /// Pure subsequence match (no TTY needed); returns the match flag + score.
 pub fn fuzzy_match(pattern: &str, s: &str) -> (bool, i32) {
     let mut score = 0;
-    let ok = unsafe { ffi::sc_fuzzy_match(cstring(pattern).as_ptr(), cstring(s).as_ptr(), &mut score) };
+    let ok = unsafe {
+        ffi::sc_fuzzy_match(
+            cstring(pattern).as_ptr(),
+            cstring(s).as_ptr(),
+            &mut score,
+        )
+    };
     (ok, score)
 }
 
@@ -685,7 +736,10 @@ impl Fuzzy {
         o.accent = opts.accent.raw();
         let ptr = unsafe { ffi::sc_fuzzy_new(o) };
         assert!(!ptr.is_null(), "sc_fuzzy_new: out of memory");
-        Fuzzy { ptr, _prompt: prompt }
+        Fuzzy {
+            ptr,
+            _prompt: prompt,
+        }
     }
     pub fn add(&mut self, label: &str) -> &mut Self {
         unsafe { ffi::sc_fuzzy_add(self.ptr, cstring(label).as_ptr()) };
@@ -746,7 +800,10 @@ impl DatePickerOpts {
 }
 
 /// Month-grid date picker. `seed` defaults to today when `None`.
-pub fn datepicker(seed: Option<Date>, opts: DatePickerOpts) -> Result<Option<Date>> {
+pub fn datepicker(
+    seed: Option<Date>,
+    opts: DatePickerOpts,
+) -> Result<Option<Date>> {
     let prompt = opts.prompt.as_deref().map(cstring);
     let mut o: ffi::ScDatePickerOpts = unsafe { mem::zeroed() };
     o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());

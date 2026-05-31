@@ -77,29 +77,63 @@ static char *make_temp(const char *initial, size_t *out_len) {
 }
 
 /**
- * Splits `cmd` on whitespace into `argv` (NULL-terminated), appends `file`, and
- * runs `execvp` in a forked child whose stdio is the controlling terminal.
- * Returns the child's exit status (0 = clean), or -1 on fork/setup failure.
+ * Tokenizes `cmd` (a mutable copy) on whitespace into `argv`, then appends
+ * `file` and a NULL terminator. Returns argc, or 0 when `cmd` has no tokens.
+ * Shell-free: no quoting or expansion.
  */
-static int run_child(const char *cmd, const char *file) {
-    /* Tokenize a mutable copy of cmd (shell-free; no quoted args). */
-    char *cmd_copy = strdup(cmd);
-    if (!cmd_copy) {
-        return -1;
-    }
-    char *argv[EDITOR_MAX_ARGS + 2];
+static int build_editor_argv(char *cmd, char **argv, const char *file) {
     int argc = 0;
-    for (char *tok = strtok(cmd_copy, " \t");
+    for (char *tok = strtok(cmd, " \t");
          tok && argc < EDITOR_MAX_ARGS;
          tok = strtok(NULL, " \t")) {
         argv[argc++] = tok;
     }
     if (argc == 0) {
-        free(cmd_copy);
-        return -1;
+        return 0;
     }
     argv[argc++] = (char *)file;
     argv[argc] = NULL;
+    return argc;
+}
+
+/**
+ * Child half of `run_child`: attach stdio to the controlling terminal, restore
+ * the inherited signal mask, then `execvp` the editor (`vi` as a last resort).
+ * Only async-signal-safe calls; never returns.
+ */
+static void exec_editor_child(
+    char *const argv[], const sigset_t *orig_mask, const char *file
+) {
+    int tty = open("/dev/tty", O_RDWR);
+    if (tty >= 0) {
+        dup2(tty, STDIN_FILENO);
+        dup2(tty, STDOUT_FILENO);
+        dup2(tty, STDERR_FILENO);
+        if (tty > STDERR_FILENO) { close(tty); }
+    }
+    sigprocmask(SIG_SETMASK, orig_mask, NULL);
+    execvp(argv[0], argv);
+    /* First choice failed → last-resort vi with just the file. */
+    char *vi_argv[] = { "vi", (char *)file, NULL };
+    execvp("vi", vi_argv);
+    _exit(127);
+}
+
+/**
+ * Forks a child that runs the editor on `file` with its stdio on the
+ * controlling terminal. Returns the child's exit status (0 = clean), or -1 on
+ * fork/setup failure.
+ */
+static int run_child(const char *cmd, const char *file) {
+    char *cmd_copy = strdup(cmd);
+    if (!cmd_copy) {
+        return -1;
+    }
+    char *argv[EDITOR_MAX_ARGS + 2];
+    if (build_editor_argv(cmd_copy, argv, file) == 0) {
+        free(cmd_copy);
+        return -1;
+    }
 
     /* Reset the signals an editor manages to default *in the parent* (sigaction
      * is not async-signal-safe after fork), with them blocked across the fork
@@ -122,24 +156,11 @@ static int run_child(const char *cmd, const char *file) {
 
     pid_t pid = fork();
     if (pid == 0) {
-        /* Child: attach stdio to the controlling terminal, restore the original
-         * signal mask, then exec the editor. Only async-signal-safe calls. */
-        int tty = open("/dev/tty", O_RDWR);
-        if (tty >= 0) {
-            dup2(tty, STDIN_FILENO);
-            dup2(tty, STDOUT_FILENO);
-            dup2(tty, STDERR_FILENO);
-            if (tty > STDERR_FILENO) { close(tty); }
-        }
-        sigprocmask(SIG_SETMASK, &orig_mask, NULL);
-        execvp(argv[0], argv);
-        /* First choice failed → last-resort vi with just the file. */
-        char *vi_argv[] = { "vi", (char *)file, NULL };
-        execvp("vi", vi_argv);
-        _exit(127);
+        exec_editor_child(argv, &orig_mask, file);
     }
 
-    /* Parent (fork succeeded or failed): restore dispositions + mask at once. */
+    /* Parent (fork succeeded or failed): restore dispositions + mask at
+       once. */
     for (size_t i = 0; i < n_sigs; i++) { sigaction(sigs[i], &saved[i], NULL); }
     sigprocmask(SIG_SETMASK, &orig_mask, NULL);
     if (pid < 0) {
@@ -161,7 +182,7 @@ static int run_child(const char *cmd, const char *file) {
     return -1;   // killed by a signal
 }
 
-/** Reads the whole file at `path` into a heap buffer (caller frees), or NULL. */
+/** Reads the file at `path` into a heap buffer (caller frees), or NULL. */
 static char *read_all(const char *path) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) {

@@ -47,6 +47,10 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg);
 static ScRendered *text_render(void *state);
     static ScRendered *render_inline(TextState *self);
     static ScRendered *render_boxed(TextState *self);
+        static ScText *render_boxed_inner(TextState *self, int field);
+        static ScRendered *capture_boxed_panel(
+            TextState *self, const ScText *inner);
+        static ScRendered *stack_error_line(TextState *self, ScRendered *panel);
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel);
 static char *text_edit_get(void *state);
 static void text_edit_set(void *state, const char *text);
@@ -247,11 +251,6 @@ static ScRendered *render_inline(TextState *self) {
  * border), with the error line and footer stacked below the box.
  */
 static ScRendered *render_boxed(TextState *self) {
-    ScText *inner = sc_text_new();
-    if (!inner) {
-        return NULL;
-    }
-
     // Clip the value to the panel interior so it stays a single line
     // (panel width − 2 borders − 2 padding).
     int panel_width = self->width > 0 ? self->width : sc_terminal_width() - 2;
@@ -260,21 +259,55 @@ static ScRendered *render_boxed(TextState *self) {
         field = 1;
     }
 
+    ScText *inner = render_boxed_inner(self, field);
+    if (!inner) {
+        return NULL;
+    }
+    ScRendered *panel = capture_boxed_panel(self, inner);
+    sc_text_free(inner);
+    if (!panel) {
+        return NULL;
+    }
+
+    // Stack an optional validation-error line beneath the box; that combined
+    // block is the body the key-hint footer is then positioned around.
+    ScRendered *body = stack_error_line(self, panel);
+    return sc_compose_hint(body,
+                           self->hint ? self->hint : text_default_hint(self),
+                           self->hint_layout, self->hint_pos, self->hint_style);
+}
+
+/**
+ * Builds the single-line box interior: the edited value (clipped to `field`
+ * columns) plus the optional autocomplete ghost. NULL on allocation failure.
+ */
+static ScText *render_boxed_inner(TextState *self, int field) {
+    ScText *inner = sc_text_new();
+    if (!inner) {
+        return NULL;
+    }
     ScTextStyle placeholder_style = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                                       SC_ANSI_COLOR_NONE };
     sc_le_render_into(&self->ed, inner, self->value_style, self->cursor_style,
                       self->mask, self->placeholder, placeholder_style, field);
-
     const char *ghost = best_suggestion(self);
     if (ghost) {
         sc_text_append(inner, ghost + self->ed.len, placeholder_style);
     }
+    return inner;
+}
 
+/**
+ * Captures `inner` inside the prompt panel: the prompt becomes the top title
+ * (rich, so markup/prompt_text styles survive) and the character counter the
+ * bottom-right border caption.
+ */
+static ScRendered *capture_boxed_panel(TextState *self, const ScText *inner) {
     char counter[48];
-    // Resolve the prompt to rich text so the panel title can carry mixed styles
-    // (markup / prompt_text). Freed after the panel is captured below.
-    ScText *title_text = sc_prompt_build(self->prompt, self->prompt_style,
-                                         self->prompt_markup, self->prompt_text);
+    ScText *title_text = sc_prompt_build(
+        self->prompt, self->prompt_style,
+        self->prompt_markup, self->prompt_text
+    );
     ScPanelOpts opts = {
         .border = self->border,
         .title = { .text = self->prompt, .rich_text = title_text,
@@ -297,40 +330,40 @@ static ScRendered *render_boxed(TextState *self) {
             .style = resolve_count_style(self), .halign = SC_ALIGN_RIGHT,
             .pad = 1, .pos = SC_POSITION_BOTTOM };
     }
-
     ScRendered *panel = sc_capture_panel_text(inner, opts);
-    sc_text_free(inner);
     sc_text_free(title_text);
-    if (!panel) {
-        return NULL;
-    }
+    return panel;
+}
 
-    // Stack an optional validation-error line beneath the box; that combined
-    // block is the body the key-hint footer is then positioned around.
-    ScRendered *body = panel;
-    if (self->error) {
-        ScText *error_text = sc_text_new();
-        if (error_text) {
-            sc_text_append(error_text, "  ", (ScTextStyle){ 0 });
-            sc_text_append(error_text, self->error, resolve_error_style(self));
-            ScRendered *error_rendered = sc_capture_text(error_text);
-            sc_text_free(error_text);
-            if (error_rendered) {
-                const ScRendered *parts[2] = { panel, error_rendered };
-                ScRendered *stacked = sc_vstack(parts, 2, 0);
-                if (stacked) {
-                    sc_rendered_free(panel);
-                    sc_rendered_free(error_rendered);
-                    body = stacked;
-                } else {
-                    sc_rendered_free(error_rendered);
-                }
-            }
-        }
+/**
+ * Stacks the optional validation-error line beneath the captured box. When the
+ * stack succeeds it frees `panel` and returns the combined block; otherwise it
+ * returns `panel` unchanged.
+ */
+static ScRendered *stack_error_line(TextState *self, ScRendered *panel) {
+    if (!self->error) {
+        return panel;
     }
-    return sc_compose_hint(body,
-                           self->hint ? self->hint : text_default_hint(self),
-                           self->hint_layout, self->hint_pos, self->hint_style);
+    ScText *error_text = sc_text_new();
+    if (!error_text) {
+        return panel;
+    }
+    sc_text_append(error_text, "  ", (ScTextStyle){ 0 });
+    sc_text_append(error_text, self->error, resolve_error_style(self));
+    ScRendered *error_rendered = sc_capture_text(error_text);
+    sc_text_free(error_text);
+    if (!error_rendered) {
+        return panel;
+    }
+    const ScRendered *parts[2] = { panel, error_rendered };
+    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    if (!stacked) {
+        sc_rendered_free(error_rendered);
+        return panel;
+    }
+    sc_rendered_free(panel);
+    sc_rendered_free(error_rendered);
+    return stacked;
 }
 
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {

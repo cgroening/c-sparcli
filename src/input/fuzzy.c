@@ -42,10 +42,12 @@ static void refilter(ScFuzzy *self);
 static ScRendered *fuzzy_render(void *state);
     static ScRendered *render_query_line(ScFuzzy *self);
     static ScRendered *render_list(ScFuzzy *self);
-        static void append_highlighted(ScText *text, const char *label,
-                                       const char *query, ScTextStyle base_style,
-                                       ScColor accent);
+        static void append_highlighted(
+            ScText *text, const char *label, const char *query,
+            ScTextStyle base_style, ScColor accent);
     static ScRendered *render_table(ScFuzzy *self);
+        static ScTableData *fuzzy_table_columns(ScFuzzy *self);
+        static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self);
     static ScRendered *render_scroll_hint(ScFuzzy *self);
 static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel);
 static int match_cmp(const void *a, const void *b);
@@ -179,7 +181,8 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
         size_t row_index = self->matches[self->cursor].index;
         *out_index = row_index;
         if (!self->opts.hide_summary) {
-            const char *prompt = self->opts.prompt ? self->opts.prompt : "Search";
+            const char *prompt =
+                self->opts.prompt ? self->opts.prompt : "Search";
             size_t size = strlen(prompt) + strlen(self->rows[row_index][0]) + 4;
             char *line = malloc(size);
             if (line) {
@@ -249,7 +252,8 @@ ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
 /**
  * Returns true when `query` matches any searched column of row `i`, writing the
  * best column score to `*best`. The searched columns are `opts.search_columns`
- * (a bitmask; 0 = all). List items have a single column, so they are unaffected.
+ * (a bitmask; 0 = all). List items have a single column, so they are
+ * unaffected.
  */
 static bool row_matches(const ScFuzzy *self, size_t i, const char *query,
                         int *best) {
@@ -302,7 +306,8 @@ static void refilter(ScFuzzy *self) {
 static ScRendered *fuzzy_render(void *state) {
     ScFuzzy *self = state;
     ScRendered *query = render_query_line(self);
-    ScRendered *body = self->opts.table ? render_table(self) : render_list(self);
+    ScRendered *body =
+        self->opts.table ? render_table(self) : render_list(self);
     if (!query || !body) {
         sc_rendered_free(query);
         sc_rendered_free(body);
@@ -345,7 +350,9 @@ static ScRendered *render_query_line(ScFuzzy *self) {
     sc_text_append(text, " ", (ScTextStyle){ 0 });
 
     char counter[48];
-    snprintf(counter, sizeof counter, "  (%zu/%zu)", self->match_n, self->count);
+    snprintf(
+        counter, sizeof counter, "  (%zu/%zu)", self->match_n, self->count
+    );
 
     // Query field = line width − prompt − space − counter.
     int prompt_w = (int)sc_utf8_string_length(prompt, strlen(prompt));
@@ -436,16 +443,11 @@ static void append_highlighted(ScText *text, const char *label,
 
 /** Table view: visible matches as a sparcli table, cursor row via row-bg. */
 static ScRendered *render_table(ScFuzzy *self) {
-    ScTableData *table = sc_table_new();
+    ScTableData *table = fuzzy_table_columns(self);
     if (!table) {
         return NULL;
     }
     size_t cols = self->opts.n_cols ? self->opts.n_cols : 1;
-    for (size_t c = 0; c < cols; c++) {
-        const char *header = (self->opts.headers && c < self->opts.n_cols)
-            ? self->opts.headers[c] : "";
-        sc_table_add_column(table, header, (ScColOpts){ .word_wrap = false });
-    }
 
     size_t visible = (size_t)self->max_visible;
     size_t end = self->top + visible;
@@ -506,8 +508,36 @@ static ScRendered *render_table(ScFuzzy *self) {
         free(cells);
     }
 
-    // Start from the caller's table_opts; fill the original defaults only for
-    // the fields left zero-init, so callers can override border/header etc.
+    ScRendered *rendered =
+        sc_capture_table(table, resolve_fuzzy_table_opts(self));
+    sc_table_free(table);
+    for (size_t t = 0; t < n_texts; t++) {
+        sc_text_free(texts[t]);
+    }
+    free(texts);
+    return rendered;
+}
+
+/** Builds the table with one (word-wrap-off) column per configured field. */
+static ScTableData *fuzzy_table_columns(ScFuzzy *self) {
+    ScTableData *table = sc_table_new();
+    if (!table) {
+        return NULL;
+    }
+    size_t cols = self->opts.n_cols ? self->opts.n_cols : 1;
+    for (size_t c = 0; c < cols; c++) {
+        const char *header = (self->opts.headers && c < self->opts.n_cols)
+            ? self->opts.headers[c] : "";
+        sc_table_add_column(table, header, (ScColOpts){ .word_wrap = false });
+    }
+    return table;
+}
+
+/**
+ * Resolves the caller's `table_opts`, filling the fuzzy defaults (single
+ * border, bold header row) only where a field was left zero-init.
+ */
+static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self) {
     ScTableOpts opts = self->opts.table_opts;
     if (opts.border.type == SC_BORDER_NONE) {
         opts.border.type = SC_BORDER_SINGLE;
@@ -519,13 +549,7 @@ static ScRendered *render_table(ScFuzzy *self) {
                 SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         }
     }
-    ScRendered *rendered = sc_capture_table(table, opts);
-    sc_table_free(table);
-    for (size_t t = 0; t < n_texts; t++) {
-        sc_text_free(texts[t]);
-    }
-    free(texts);
-    return rendered;
+    return opts;
 }
 
 /** Builds a dim "↑ first–last/total ↓" line, or NULL when nothing is hidden. */

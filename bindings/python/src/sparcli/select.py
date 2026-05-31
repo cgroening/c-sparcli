@@ -16,7 +16,7 @@ from .text import Text
 
 
 def fuzzy_match(pattern: str, s: str) -> tuple[bool, int]:
-    """Pure subsequence match. Returns ``(matched, score)`` (higher = better)."""
+    """Pure subsequence match -> ``(matched, score)``; higher is better."""
     arena: list = []
     score = ffi.new("int *")
     ok = lib.sc_fuzzy_match(cstr(arena, pattern), cstr(arena, s), score)
@@ -61,7 +61,8 @@ class SelectOpts:
         c.checkbox_off = cstr(arena, self.checkbox_off)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
 
@@ -122,7 +123,7 @@ class Select:
         return result(st, lambda: [int(indices[i]) for i in range(count[0])])
 
     def run_one(self) -> int | None:
-        """Run single-select; returns the chosen index, or ``None`` on cancel."""
+        """Run single-select; returns the chosen index, or ``None``."""
         idx = self.run()
         return idx[0] if idx else None
 
@@ -186,7 +187,8 @@ class FuzzyOpts:
         self.table_opts._fill(c.table_opts, arena)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
 
@@ -217,11 +219,12 @@ class Fuzzy:
         local: list = []
         bufs = [cstr(local, f) for f in fields]
         arr = ffi.new("char *[]", bufs)
-        lib.sc_fuzzy_add_row(self._p, ffi.cast("const char *const *", arr), len(bufs))
+        lib.sc_fuzzy_add_row(
+            self._p, ffi.cast("const char *const *", arr), len(bufs))
         return self
 
     def cursor_index(self) -> int:
-        """Original add-order index of the highlighted row (e.g. from a callback)."""
+        """Add-order index of the highlighted row (e.g. from a callback)."""
         return int(lib.sc_fuzzy_cursor_index(self._p))
 
     def remove(self, index: int) -> None:

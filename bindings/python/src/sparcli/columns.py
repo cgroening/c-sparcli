@@ -94,10 +94,12 @@ class Columns:
         arena: list = []
         c = ffi.new("ScPanelOpts *")
         opts._fill(c, arena)
+        ci = item._to_c()[0]
         if isinstance(content, Text):
-            lib.sc_columns_add_panel_text(self._p, content._ptr, c[0], item._to_c()[0])
+            lib.sc_columns_add_panel_text(self._p, content._ptr, c[0], ci)
         else:
-            lib.sc_columns_add_panel_str(self._p, cstr(arena, content), c[0], item._to_c()[0])
+            lib.sc_columns_add_panel_str(
+                self._p, cstr(arena, content), c[0], ci)
         return self
 
     def add_list(self, lst, item: ColItem = ColItem()) -> "Columns":
@@ -108,7 +110,8 @@ class Columns:
         lib.sc_columns_add_tree(self._p, tr._ptr, item._to_c()[0])
         return self
 
-    def add_columns(self, nested: "Columns", item: ColItem = ColItem()) -> "Columns":
+    def add_columns(self, nested: "Columns",
+                    item: ColItem = ColItem()) -> "Columns":
         lib.sc_columns_add_columns(self._p, nested._ptr, item._to_c()[0])
         return self
 

@@ -40,7 +40,9 @@ static void output_demo() {
     for (int i = 1; i <= 3; ++i) {
         t.add_row({ "row " + std::to_string(i), std::to_string(i * 10) });
     }
-    t.add_row({ cell_markup("[green]✔ ok[/]"), cell("100").align(SC_ALIGN_RIGHT) });
+    t.add_row({
+        cell_markup("[green]✔ ok[/]"), cell("100").align(SC_ALIGN_RIGHT),
+    });
     t.print({ .header = { .row = true } });
 
     rule("Lists, trees & key/value", { .type = SC_BORDER_SINGLE });
@@ -118,8 +120,8 @@ static void input_demo() {
     if (auto secret = password_input("Password", { .placeholder = "••••" }))
         println("captured " + std::to_string(secret->size()) + " chars");
 
-    if (auto qty = number_input("Quantity",
-                                { .initial = 10, .min = 0, .max = 100, .step = 5 }))
+    if (auto qty = number_input(
+            "Quantity", { .initial = 10, .min = 0, .max = 100, .step = 5 }))
         println("qty = " + std::to_string(static_cast<int>(*qty)));
 
     if (auto notes = textarea("Notes (Ctrl-D submits)"))

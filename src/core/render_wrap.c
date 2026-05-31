@@ -19,8 +19,8 @@
 
 
 /**
- * One contiguous run of spaces or non-spaces extracted from a `ScRenderLine` for
- * the word-wrap engine. The string is heap-owned by the token.
+ * One contiguous run of spaces or non-spaces extracted from a `ScRenderLine`
+ * for the word-wrap engine. The string is heap-owned by the token.
  */
 typedef struct WordWrapToken {
     /** Heap-allocated UTF-8 run; transferred or freed during emission. */

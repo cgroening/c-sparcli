@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from ._ffi import (apply_border, apply_color, apply_edges, apply_style,
                    apply_title, cstr, ffi, lib)
 from .color import Color
-from .enums import Align, BorderType
+from .enums import Align, AlertType, BorderType
 from .style import BorderStyle, Edges, Style, Title
 from .text import Text
 
@@ -68,7 +68,7 @@ class PanelOpts:
 
 
 def panel(content: "str | Text", opts: PanelOpts = PanelOpts()) -> None:
-    """Render ``content`` (str or :class:`~sparcli.text.Text`) in a bordered panel."""
+    """Render ``content`` (str or :class:`~sparcli.text.Text`) in a panel."""
     arena: list = []
     c = ffi.new("ScPanelOpts *")
     opts._fill(c, arena)
@@ -104,7 +104,8 @@ class RuleOpts:
         c.title.pad = self.title_pad
 
 
-def rule(title: "str | Text | None" = None, opts: RuleOpts = RuleOpts()) -> None:
+def rule(title: "str | Text | None" = None,
+         opts: RuleOpts = RuleOpts()) -> None:
     """Draw a horizontal rule with an optional (styled) ``title``."""
     arena: list = []
     c = ffi.new("ScRuleOpts *")
@@ -145,27 +146,27 @@ class _Alert:
     """The ``alert`` namespace: full-width preset panels."""
 
     @staticmethod
-    def _emit(fn_str, fn_text, content):
+    def _emit(atype: AlertType, str_fn, content: "str | Text") -> None:
         if isinstance(content, Text):
-            fn_text(content._ptr)
+            lib.sc_alert_text(int(atype), content._ptr)
         else:
             arena: list = []
-            fn_str(cstr(arena, content))
+            str_fn(cstr(arena, content))
 
     def info(self, content: "str | Text") -> None:
-        self._emit(lib.sc_alert_info, lambda p: lib.sc_alert_text(0, p), content)
+        self._emit(AlertType.INFO, lib.sc_alert_info, content)
 
     def debug(self, content: "str | Text") -> None:
-        self._emit(lib.sc_alert_debug, lambda p: lib.sc_alert_text(1, p), content)
+        self._emit(AlertType.DEBUG, lib.sc_alert_debug, content)
 
     def warning(self, content: "str | Text") -> None:
-        self._emit(lib.sc_alert_warning, lambda p: lib.sc_alert_text(2, p), content)
+        self._emit(AlertType.WARNING, lib.sc_alert_warning, content)
 
     def error(self, content: "str | Text") -> None:
-        self._emit(lib.sc_alert_error, lambda p: lib.sc_alert_text(3, p), content)
+        self._emit(AlertType.ERROR, lib.sc_alert_error, content)
 
     def success(self, content: "str | Text") -> None:
-        self._emit(lib.sc_alert_success, lambda p: lib.sc_alert_text(4, p), content)
+        self._emit(AlertType.SUCCESS, lib.sc_alert_success, content)
 
 
 alert = _Alert()
@@ -199,7 +200,7 @@ def strip_ansi(s: str) -> str:
 
 
 def truncate(s: str, max_cols: int, ellipsis: str | None = "…") -> str:
-    """Truncate ``s`` to ``max_cols`` visible columns, appending ``ellipsis``."""
+    """Truncate ``s`` to ``max_cols`` columns, appending ``ellipsis``."""
     arena: list = []
     out = lib.sc_truncate(cstr(arena, s), max_cols, cstr(arena, ellipsis))
     if out == ffi.NULL:
@@ -216,7 +217,7 @@ def clear_line() -> None:
 
 
 class ScopedOutput:
-    """Redirect sparcli's output stream to a writable file for the ``with`` block.
+    """Redirect sparcli's output to a writable file for the ``with`` block.
 
     ``target`` must expose a real OS file descriptor (an open file, a pipe end,
     …). The fd is duplicated, so the original file stays open; on exit sparcli

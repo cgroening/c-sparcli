@@ -60,7 +60,8 @@ typedef struct ScConfirmOpts {
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
 
-    /** Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h */
+    /** Custom key shortcuts; borrowed, must outlive the call.
+        @see sparcli_shortcut.h */
     const ScShortcut *shortcuts;
 
     /** Number of entries in `shortcuts`. */
@@ -69,7 +70,8 @@ typedef struct ScConfirmOpts {
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
 
-    /** Optional rich question (mixed styles); overrides the string + style. Borrowed. */
+    /** Optional rich question (mixed styles); overrides the string + style.
+        Borrowed. */
     const struct ScText *prompt_text;
 
     /** Parse the question string as inline markup, e.g. "[bold]Delete?[/]". */

@@ -82,7 +82,8 @@ void test_markup(void) {
     /* ── 6c. sc_markup_parse_opts side-by-side ── */
     printf("--- Markup 6c. sc_markup_parse_opts side-by-side ---\n");
     {
-        const char *markup = "prefix [blink]unknown[/blink] [bold]bold[/] suffix";
+        const char *markup =
+            "prefix [blink]unknown[/blink] [bold]bold[/] suffix";
 
         printf("  verbatim: ");
         ScText *verbatim = sc_markup_parse(markup);

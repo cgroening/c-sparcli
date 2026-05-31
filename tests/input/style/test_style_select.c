@@ -26,7 +26,8 @@ void style_select(void) {
         .selected_style = { SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC,
                             SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
     }, items, n);
-    style_show("select: yellow accent, → marker, bold-italic row", sc_select_frame(b));
+    style_show("select: yellow accent, → marker, bold-italic row",
+               sc_select_frame(b));
     sc_select_free(b);
 
     /* Multi-select with custom checkboxes; pre-check a couple of items. */
@@ -37,7 +38,8 @@ void style_select(void) {
     }, items, n);
     sc_select_set_checked(c, 1, true);
     sc_select_set_checked(c, 3, true);
-    style_show("multi-select: custom check glyph, two checked", sc_select_frame(c));
+    style_show("multi-select: custom check glyph, two checked",
+               sc_select_frame(c));
     sc_select_free(c);
 
     /* Styled prompt heading. */
@@ -46,15 +48,18 @@ void style_select(void) {
         .prompt_style = { SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER,
                           SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE },
     }, items, n);
-    style_show("prompt_style: bold underline green heading", sc_select_frame(d));
+    style_show("prompt_style: bold underline green heading",
+               sc_select_frame(d));
     sc_select_free(d);
 
     /* Long list with a small viewport: shows the scroll indicator + footer. */
     const char *many[] = { "Red", "Green", "Blue", "Yellow", "Cyan",
                            "Magenta", "White", "Black" };
-    ScSelect *e = build((ScSelectOpts){ .prompt = "Pick a color", .max_visible = 4 },
-                        many, sizeof many / sizeof many[0]);
+    ScSelect *e = build(
+        (ScSelectOpts){ .prompt = "Pick a color", .max_visible = 4 },
+        many, sizeof many / sizeof many[0]);
     sc_select_set_cursor(e, 5);  /* scrolled into the middle */
-    style_show("scroll indicator (max_visible 4, cursor on #6)", sc_select_frame(e));
+    style_show("scroll indicator (max_visible 4, cursor on #6)",
+               sc_select_frame(e));
     sc_select_free(e);
 }

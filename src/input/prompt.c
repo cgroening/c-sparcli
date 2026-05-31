@@ -65,7 +65,7 @@ static bool run_editor_action(
 ) {
     char *current = vtable->edit_get(state);
     sc_screen_clear(screen);          // erase our region before handing over
-    sc_tty_end();                     // suspend: restore terminal, drop handlers
+    sc_tty_end();   // suspend: restore terminal, drop handlers
 
     char *edited = NULL;
     bool ok = sc_run_editor(editor->cmd, current ? current : "", &edited);
@@ -79,6 +79,74 @@ static bool run_editor_action(
     }
     free(edited);
     return resumed == SC_INPUT_OK;
+}
+
+/**
+ * Renders one frame, stacks the labeled-shortcut footer under it, and draws it.
+ * Returns false only when the widget's `render` fails (caller aborts).
+ */
+static bool draw_prompt_frame(
+    ScScreen *screen, const ScPromptVTable *vtable, void *state,
+    const ScRendered *shortcut_hint
+) {
+    ScRendered *frame = vtable->render(state);
+    if (!frame) {
+        return false;
+    }
+    ScRendered *combined = NULL;
+    if (shortcut_hint) {
+        const ScRendered *parts[2] = { frame, shortcut_hint };
+        combined = sc_vstack(parts, 2, 0);
+    }
+    const ScRendered *draw = combined ? combined : frame;
+    sc_screen_draw(screen, draw->lines, draw->line_count);
+    sc_rendered_free(combined);
+    sc_rendered_free(frame);
+    return true;
+}
+
+/**
+ * Returns true when `key` is the (opt-in) external-editor chord and the widget
+ * supports editing. A zero-init chord resolves to Ctrl-G.
+ */
+static bool editor_key_matches(
+    const ScPromptEditor *editor, const ScPromptVTable *vtable, ScKey key
+) {
+    if (!editor || !editor->enabled
+        || !vtable->edit_get || !vtable->edit_set) {
+        return false;
+    }
+    ScKeyChord chord = (editor->chord.key == SC_KEY_NONE
+                        && editor->chord.codepoint == 0)
+        ? sc_key_ctrl('g') : editor->chord;
+    return sc_key_chord_matches(key, chord);
+}
+
+/**
+ * Matches custom shortcuts before the widget's own keys. Returns true when a
+ * shortcut fired (the caller skips `on_key`); sets `*done` when the prompt
+ * should end.
+ */
+static bool dispatch_shortcut(
+    ScPromptShortcuts *shortcuts, ScKey key, bool *done
+) {
+    if (!shortcuts || shortcuts->count == 0) {
+        return false;
+    }
+    const ScShortcut *hit =
+        sc_shortcut_find(key, shortcuts->items, shortcuts->count);
+    if (!hit) {
+        return false;
+    }
+    if (hit->mode == SC_SHORTCUT_CALLBACK) {
+        bool keep_open =
+            hit->on_fire ? hit->on_fire(hit->id, hit->user) : false;
+        if (!keep_open) { *done = true; }
+    } else {
+        if (shortcuts->out_id) { *shortcuts->out_id = hit->id; }
+        *done = true;
+    }
+    return true;
 }
 
 /** Drives one widget's raw-mode draw/read/dispatch loop to completion. */
@@ -110,25 +178,10 @@ ScInputStatus sc_prompt_run(
     ScInputStatus status = SC_INPUT_OK;
 
     while (!done && !cancel) {
-        ScRendered *frame = vtable->render(state);
-        if (!frame) {
+        if (!draw_prompt_frame(&screen, vtable, state, shortcut_hint)) {
             status = SC_INPUT_ERROR;
             break;
         }
-        if (shortcut_hint) {
-            // Stack the shortcut footer under the widget frame for this draw.
-            const ScRendered *parts[2] = { frame, shortcut_hint };
-            ScRendered *combined = sc_vstack(parts, 2, 0);
-            if (combined) {
-                sc_screen_draw(&screen, combined->lines, combined->line_count);
-                sc_rendered_free(combined);
-            } else {
-                sc_screen_draw(&screen, frame->lines, frame->line_count);
-            }
-        } else {
-            sc_screen_draw(&screen, frame->lines, frame->line_count);
-        }
-        sc_rendered_free(frame);
 
         ScKey key = sc_tty_read_key();
         switch (key.type) {
@@ -147,36 +200,18 @@ ScInputStatus sc_prompt_run(
 
         // External-editor key (opt-in; text_input/textarea only). Matched
         // before shortcuts/on_key, after the reserved cancel keys.
-        if (editor && editor->enabled && vtable->edit_get && vtable->edit_set) {
-            ScKeyChord chord = (editor->chord.key == SC_KEY_NONE
-                                && editor->chord.codepoint == 0)
-                ? sc_key_ctrl('g') : editor->chord;
-            if (sc_key_chord_matches(key, chord)) {
-                if (!run_editor_action(vtable, state, editor, &screen)) {
-                    status = SC_INPUT_ERROR;
-                    break;
-                }
-                continue;
+        if (editor_key_matches(editor, vtable, key)) {
+            if (!run_editor_action(vtable, state, editor, &screen)) {
+                status = SC_INPUT_ERROR;
+                break;
             }
+            continue;
         }
 
-        // Custom shortcuts are matched before the widget's own keys (so an
-        // explicit binding shadows a built-in use of that key). Reserved
-        // cancel keys above always win.
-        if (shortcuts && shortcuts->count > 0) {
-            const ScShortcut *hit =
-                sc_shortcut_find(key, shortcuts->items, shortcuts->count);
-            if (hit) {
-                if (hit->mode == SC_SHORTCUT_CALLBACK) {
-                    bool keep_open = hit->on_fire
-                        ? hit->on_fire(hit->id, hit->user) : false;
-                    if (!keep_open) { done = true; }
-                } else {
-                    if (shortcuts->out_id) { *shortcuts->out_id = hit->id; }
-                    done = true;
-                }
-                continue;
-            }
+        // Custom shortcuts before the widget's own keys (an explicit binding
+        // shadows a built-in use of that key); cancel keys above always win.
+        if (dispatch_shortcut(shortcuts, key, &done)) {
+            continue;
         }
 
         vtable->on_key(state, key, &done, &cancel);

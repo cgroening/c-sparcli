@@ -18,9 +18,15 @@ void style_text(void) {
     style_show("text: cyan value, cursor white-on-blue",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Host:", .initial = "localhost",
-            .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .value_style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
-            .cursor_style = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_BLUE } }));
+            .prompt_style = {
+                SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            },
+            .value_style = {
+                SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            },
+            .cursor_style = {
+                SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_BLUE,
+            } }));
 
     /* Character counter with a maximum: shows count/max. */
     style_show("text: counter with max (count/max)",
@@ -30,13 +36,16 @@ void style_text(void) {
     /* Counter suppressed. */
     style_show("text: counter hidden",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Note:", .initial = "no counter here", .hide_char_count = true }));
+            .prompt = "Note:", .initial = "no counter here",
+            .hide_char_count = true }));
 
     /* Custom counter style. */
     style_show("text: counter styled (bold cyan), max",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Title:", .initial = "Style", .max_chars = 32,
-            .count_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE } }));
+            .count_style = {
+                SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            } }));
 
     /* Password masks (counter still shown). */
     style_show("password: default mask '*'",
@@ -44,7 +53,8 @@ void style_text(void) {
             .prompt = "Password:", .initial = "hunter2", .mask = "*" }));
     style_show("password: bullet mask",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "PIN:", .initial = "1234", .mask = "\xe2\x80\xa2" /* • */ }));
+            .prompt = "PIN:", .initial = "1234",
+            .mask = "\xe2\x80\xa2" /* • */ }));
     style_show("password: hidden mask (length concealed)",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Secret:", .initial = "topsecret", .mask = "" }));
@@ -53,13 +63,16 @@ void style_text(void) {
     style_show("prompt_style: bold magenta label",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Username:", .initial = "neo",
-            .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE } }));
+            .prompt_style = {
+                SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
+            } }));
 
     /* ── Boxed mode (panel): prompt on top, counter on bottom-right ── */
 
     style_show("boxed: fixed width 30, counter (count only)",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Name", .initial = "Ada Lovelace", .boxed = true, .width = 30 }));
+            .prompt = "Name", .initial = "Ada Lovelace",
+            .boxed = true, .width = 30 }));
 
     style_show("boxed: fixed width 30, counter with max",
         sc_text_entry_frame(&(ScTextEntryCfg){
@@ -76,7 +89,9 @@ void style_text(void) {
             .prompt = "Host", .initial = "localhost", .max_chars = 24,
             .boxed = true, .width = 30,
             .border = { .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_BLUE },
-            .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE } }));
+            .prompt_style = {
+                SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
+            } }));
 
     style_show("boxed: password, fixed width 30",
         sc_text_entry_frame(&(ScTextEntryCfg){

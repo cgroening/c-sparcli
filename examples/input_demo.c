@@ -65,7 +65,7 @@ static void demo_text(void) {
     section("Text Input");
 
     /* Plain inline entry with placeholder + validation. Ctrl-G opens $EDITOR
-     * (newlines in the result are collapsed to spaces for a single-line field). */
+     * (newlines in the result are collapsed to spaces for a single line). */
     char *name = NULL;
     ScInputStatus st = sc_text_input(
         "Your name (Ctrl-G editor)", &name,
@@ -132,9 +132,13 @@ static void demo_textarea(void) {
         "Notes (Ctrl-D submit · Ctrl-G editor)", &text,
         (ScTextareaOpts){ .placeholder = "Type multiple lines…",
                           .boxed = true, .width = 48,
-                          .external_editor = true /* Ctrl-G → $EDITOR (nvim) */ }
+                          /* Ctrl-G → $EDITOR (nvim) */
+                          .external_editor = true }
     );
-    if (st == SC_INPUT_OK) { printf("  -> %zu bytes\n", strlen(text)); free(text); }
+    if (st == SC_INPUT_OK) {
+        printf("  -> %zu bytes\n", strlen(text));
+        free(text);
+    }
     note_cancel(st);
 }
 

@@ -30,12 +30,13 @@ class Cell:
 
     @classmethod
     def markup(cls, markup: str, **kw) -> "Cell":
-        """A cell whose text is parsed from inline markup (owned by the table)."""
+        """A cell whose text is parsed from markup (owned by the table)."""
         return cls(markup, kind="markup", **kw)
 
     @classmethod
     def text(cls, t: Text, **kw) -> "Cell":
-        """A rich-text cell (the :class:`~sparcli.text.Text` must outlive printing)."""
+        """A rich-text cell (the :class:`~sparcli.text.Text` must outlive
+        printing)."""
         return cls(t, kind="text", **kw)
 
     @classmethod
@@ -120,7 +121,8 @@ class TableOpts:
     rtl: bool = False
 
     def _fill(self, c, arena: list) -> None:
-        b = self.border if isinstance(self.border, TableBorder) else TableBorder(type=self.border)
+        b = (self.border if isinstance(self.border, TableBorder)
+             else TableBorder(type=self.border))
         c.border.type = int(b.type)
         apply_color(c.border.outer_color, b.outer_color)
         apply_color(c.border.inner_color, b.inner_color)
@@ -144,7 +146,8 @@ class TableOpts:
         apply_style(c.footer.style, self.footer_style)
 
         if self.title is not None:
-            title = self.title if isinstance(self.title, Title) else Title(text=self.title)
+            title = (self.title if isinstance(self.title, Title)
+                     else Title(text=self.title))
             apply_title(c.title, title, arena)
 
         apply_edges(c.cell_pad, self.cell_pad)
@@ -179,7 +182,8 @@ class Table:
         self._texts: list = []   # Text objects borrowed by the C table
         self._finalizer = weakref.finalize(self, lib.sc_table_free, p)
 
-    def column(self, header: str | None = None, opts: ColOpts = ColOpts()) -> "Table":
+    def column(self, header: str | None = None,
+               opts: ColOpts = ColOpts()) -> "Table":
         """Append a column. Returns ``self`` for chaining."""
         c = ffi.new("ScColOpts *")
         opts._fill(c)
@@ -214,7 +218,8 @@ class Table:
             return
         else:  # "str"
             elem.kind = _KIND_STR
-            elem.str = cstr(self._arena, "" if cell.value is None else str(cell.value))
+            value = "" if cell.value is None else str(cell.value)
+            elem.str = cstr(self._arena, value)
         if cell.halign is not None:
             elem.halign_set = True
             elem.halign = int(cell.halign)
@@ -227,7 +232,7 @@ class Table:
             elem.row_span = cell.rowspan
 
     def row(self, cells, bg: Color | None = None) -> "Table":
-        """Append a data row. ``cells`` is a sequence of str / Text / :class:`Cell`."""
+        """Append a data row. ``cells`` is a sequence of str / Text / Cell."""
         arr, n = self._build_row(cells)
         if bg is None:
             lib.sc_table_add_row(self._p, arr, n)

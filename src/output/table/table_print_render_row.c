@@ -408,7 +408,7 @@ static int normal_cell_content_line(
 }
 
 
-/* ── Drawing one ScRenderLine inside a cell ────────────────────────────────────── */
+/* ── Drawing one ScRenderLine inside a cell ─────────────────────────────── */
 
 /** Dispatches to aligned or truncated rendering based on line vs width. */
 static void render_cell_line(

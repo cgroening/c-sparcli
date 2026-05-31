@@ -70,7 +70,8 @@ __all__ = [
     # tables
     "Table", "Cell", "ColOpts", "TableOpts", "TableBorder",
     # structures
-    "List", "ListItem", "ListOpts", "Tree", "TreeNode", "TreeOpts", "Kv", "KvOpts",
+    "List", "ListItem", "ListOpts", "Tree", "TreeNode", "TreeOpts", "Kv",
+    "KvOpts",
     # columns
     "Columns", "ColumnsOpts", "ColItem",
     # capture / compose
@@ -86,5 +87,6 @@ __all__ = [
     "filter_digits", "filter_decimal", "filter_alpha", "filter_alnum",
     "filter_no_space",
     # shortcuts / keys / theme
-    "Shortcuts", "KeyChord", "key_ctrl", "key_fn", "key_alt", "Theme", "set_theme",
+    "Shortcuts", "KeyChord", "key_ctrl", "key_fn", "key_alt", "Theme",
+    "set_theme",
 ]

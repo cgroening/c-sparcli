@@ -39,8 +39,8 @@ static const ScTextStyle s_dim    = { SC_TEXT_ATTR_DIM,  SC_ANSI_COLOR_NONE,
 static const ScTextStyle s_b_cyan = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN,
                                        SC_ANSI_COLOR_NONE };
 
-static const ScTextStyle s_b_magenta = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA,
-                                       SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_b_magenta =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE };
 
 
 /* ─────────────────────────────────────────────────────────── helpers ── */
@@ -93,7 +93,9 @@ static void hero_intro_panel(void) {
         "Interactive prompts — confirm · select · text · password · "
         "number · textarea · fuzzy · date.",
         (ScPanelOpts){
-            .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_MAGENTA },
+            .border = {
+                .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_MAGENTA
+            },
             .title  = {
                 .text   = " sparcli · input widgets ",
                 .style  = s_b_magenta,
@@ -196,7 +198,9 @@ static void hero_row_rich(void) {
         "first line\nsecond line\nthird line",
         (ScTextareaOpts){
             .boxed = true, .width = 28,
-            .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN },
+            .border = {
+                .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN
+            },
             .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN,
                               SC_ANSI_COLOR_NONE },
             .hint_layout = SC_HINT_STACKED });
@@ -315,9 +319,12 @@ static void gallery_fuzzy_table(void) {
     const char *headers[] = { "City", "Country", "Pop." };
     ScFuzzy *fuzzy = sc_fuzzy_new((ScFuzzyOpts){
         .prompt = "Search", .table = true, .headers = headers, .n_cols = 3 });
-    sc_fuzzy_add_row(fuzzy, (const char *[]){ "Tokyo",  "Japan",    "37.4" }, 3);
-    sc_fuzzy_add_row(fuzzy, (const char *[]){ "London", "UK",       "9.0"  }, 3);
-    sc_fuzzy_add_row(fuzzy, (const char *[]){ "Lisbon", "Portugal", "0.5"  }, 3);
+    sc_fuzzy_add_row(
+        fuzzy, (const char *[]){ "Tokyo", "Japan", "37.4" }, 3);
+    sc_fuzzy_add_row(
+        fuzzy, (const char *[]){ "London", "UK", "9.0" }, 3);
+    sc_fuzzy_add_row(
+        fuzzy, (const char *[]){ "Lisbon", "Portugal", "0.5" }, 3);
     show("fuzzy finder — table view", sc_fuzzy_frame(fuzzy, ""));
     sc_fuzzy_free(fuzzy);
 }
@@ -325,7 +332,8 @@ static void gallery_fuzzy_table(void) {
 static void gallery_datepicker(void) {
     struct tm seed = seed_date();
     show("date picker — month grid",
-        sc_datepicker_frame(&seed, (ScDatePickerOpts){ .prompt = "Pick a date" }));
+        sc_datepicker_frame(
+            &seed, (ScDatePickerOpts){ .prompt = "Pick a date" }));
 }
 
 static void shot_gallery(void) {

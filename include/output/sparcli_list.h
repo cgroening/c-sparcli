@@ -10,7 +10,7 @@ SPARCLI_BEGIN_DECLS
  * Marker style used in front of each list item.
  */
 typedef enum ScListMarker {
-    SC_LIST_BULLET,   /**< Fixed character (default `•`); see `ScListOpts.bullet` */
+    SC_LIST_BULLET,   /**< Fixed character (default `•`); see opts.bullet */
     SC_LIST_NUMBER,   /**< `1`, `2`, `3`, … (decimal counter) */
     SC_LIST_ALPHA_LC, /**< `a`, `b`, `c`, … (lowercase Latin letters) */
     SC_LIST_ALPHA_UC, /**< `A`, `B`, `C`, … (uppercase Latin letters) */
@@ -28,10 +28,10 @@ typedef struct ScListOpts {
     /** Bullet character used when `marker == SC_LIST_BULLET`; `NULL` = `•`. */
     const char *bullet;
 
-    /** Text placed before the marker value (e.g. `"("` → `(1`); default `""`. */
+    /** Text before the marker value (e.g. `"("` → `(1`); default `""`. */
     const char *marker_prefix;
 
-    /** Text placed after the marker value (e.g. `"."` → `1.`); default `"."`. */
+    /** Text after the marker value (e.g. `"."` → `1.`); default `"."`. */
     const char *marker_suffix;
 
     /** Style applied to the full marker field; zero-init = no formatting. */

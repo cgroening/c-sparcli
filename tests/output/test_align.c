@@ -40,7 +40,8 @@ void test_align(void) {
     {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Item", (ScColOpts){ 0 });
-        sc_table_add_column(table, "Total", (ScColOpts){ .halign = SC_ALIGN_RIGHT });
+        sc_table_add_column(table, "Total",
+            (ScColOpts){ .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Passed"), sc_cell("147")
         }, 2);
@@ -103,7 +104,8 @@ void test_align(void) {
     {
         ScTableData *left_table = sc_table_new();
         sc_table_add_column(left_table, "A", (ScColOpts){ .fixed_width = 8 });
-        sc_table_add_column(left_table, "B", (ScColOpts){ .fixed_width = 6, .halign = SC_ALIGN_RIGHT });
+        sc_table_add_column(left_table, "B",
+            (ScColOpts){ .fixed_width = 6, .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(left_table, (ScCell[]){
             sc_cell("Alpha"), sc_cell("10")
         }, 2);
@@ -113,7 +115,8 @@ void test_align(void) {
 
         ScTableData *right_table = sc_table_new();
         sc_table_add_column(right_table, "X", (ScColOpts){ .fixed_width = 8 });
-        sc_table_add_column(right_table, "Y", (ScColOpts){ .fixed_width = 6, .halign = SC_ALIGN_RIGHT });
+        sc_table_add_column(right_table, "Y",
+            (ScColOpts){ .fixed_width = 6, .halign = SC_ALIGN_RIGHT });
         sc_table_add_row(right_table, (ScCell[]){
             sc_cell("Gamma"), sc_cell("30")
         }, 2);

@@ -65,7 +65,8 @@ class ConfirmOpts:
         apply_style(c.unselected_style, self.unselected_style)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
 
@@ -128,7 +129,8 @@ class TextInputOpts:
         c.boxed = self.boxed
         apply_border(c.border, self.border)
         c.width = self.width
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         fill_char_filter(c, self.char_filter, arena)
         fill_suggestions(c, self.suggestions, arena)
         fill_validate(c, self.validate, arena)
@@ -140,7 +142,9 @@ class TextInputOpts:
             c.editor_key = self.editor_key.value
 
 
-def text_input(prompt: str, opts: TextInputOpts = TextInputOpts()) -> str | None:
+def text_input(
+    prompt: str, opts: TextInputOpts = TextInputOpts()
+) -> str | None:
     """Prompt for a single line of text."""
     arena: list = []
     c = ffi.new("ScTextInputOpts *")
@@ -192,14 +196,17 @@ class PasswordOpts:
         c.boxed = self.boxed
         apply_border(c.border, self.border)
         c.width = self.width
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         fill_char_filter(c, self.char_filter, arena)
         fill_validate(c, self.validate, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
 
 
-def password_input(prompt: str, opts: PasswordOpts = PasswordOpts()) -> str | None:
+def password_input(
+    prompt: str, opts: PasswordOpts = PasswordOpts()
+) -> str | None:
     """Prompt for a secret, rendering each character as a mask glyph."""
     arena: list = []
     c = ffi.new("ScPasswordOpts *")
@@ -246,7 +253,8 @@ class NumberOpts:
         apply_style(c.cursor_style, self.cursor_style)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         c.boxed = self.boxed
         apply_border(c.border, self.border)
         c.width = self.width
@@ -298,7 +306,8 @@ class TextareaOpts:
         apply_style(c.cursor_style, self.cursor_style)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         c.boxed = self.boxed
         apply_border(c.border, self.border)
         c.width = self.width
@@ -356,7 +365,8 @@ class DatePickerOpts:
         c.header_next = cstr(arena, self.header_next)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
-        fill_hint(c, self.hint, self.hint_layout, self.hint_pos, self.hint_style, arena)
+        fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
+                  self.hint_style, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
 
@@ -374,4 +384,7 @@ def datepicker(initial: _dt.date | None = None,
         tm.tm_mon = initial.month - 1
         tm.tm_mday = initial.day
     st = lib.sc_datepicker(tm, c[0])
-    return result(st, lambda: _dt.date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday))
+    return result(
+        st,
+        lambda: _dt.date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday),
+    )

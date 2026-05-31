@@ -112,7 +112,8 @@ static void render_list_level(
         );
             static const char *get_bullet_char(const ScListOpts *opts);
         static int get_max_marker_value_width(const ScList *list);
-            static int marker_value_visible_width(const ScList *list, int index);
+            static int marker_value_visible_width(
+                const ScList *list, int index);
                 static void format_marker_value(
                     const ScList *list, int index, char *buffer
                 );

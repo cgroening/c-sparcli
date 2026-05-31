@@ -25,21 +25,26 @@ def main() -> int:
         sc.println("cancelled", sc.Style.dim())
         return 0
 
-    name = sc.text_input("Your name", sc.TextInputOpts(placeholder="Ada", boxed=True, width=40))
+    name = sc.text_input(
+        "Your name",
+        sc.TextInputOpts(placeholder="Ada", boxed=True, width=40))
     sc.println(f"  -> {name!r}", sc.Style.dim())
 
     # A custom Ctrl-R shortcut (callback mode) that beeps a message.
     shortcuts = sc.Shortcuts().on_callback(
-        sc.key_ctrl("r"), lambda: sc.println("  (reload pressed)", sc.Style.dim()),
+        sc.key_ctrl("r"),
+        lambda: sc.println("  (reload pressed)", sc.Style.dim()),
         name="reload")
-    note = sc.text_input("Note (Ctrl-R reload · Ctrl-G editor)",
-                         sc.TextInputOpts(external_editor=True, shortcuts=shortcuts))
+    note = sc.text_input(
+        "Note (Ctrl-R reload · Ctrl-G editor)",
+        sc.TextInputOpts(external_editor=True, shortcuts=shortcuts))
     sc.println(f"  -> {note!r}", sc.Style.dim())
 
     pw = sc.password_input("Password", sc.PasswordOpts())
     sc.println(f"  -> {len(pw) if pw else 0} chars", sc.Style.dim())
 
-    qty = sc.number_input("Quantity", sc.NumberOpts(min=0, max=10, step=1, initial=3))
+    qty = sc.number_input("Quantity",
+                          sc.NumberOpts(min=0, max=10, step=1, initial=3))
     sc.println(f"  -> {qty}", sc.Style.dim())
 
     color = sc.Select(sc.SelectOpts(prompt="Favourite color"))
@@ -52,7 +57,8 @@ def main() -> int:
     sc.println(f"  -> {langs.run()}", sc.Style.dim())
 
     fz = sc.Fuzzy(sc.FuzzyOpts(prompt="Pick a fruit"))
-    for fruit in ("apple", "apricot", "banana", "cherry", "date", "fig", "grape"):
+    fruits = ("apple", "apricot", "banana", "cherry", "date", "fig", "grape")
+    for fruit in fruits:
         fz.add(fruit)
     sc.println(f"  -> index {fz.run()}", sc.Style.dim())
 

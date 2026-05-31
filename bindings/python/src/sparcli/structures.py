@@ -94,7 +94,8 @@ class List:
         else:
             cstyle = ffi.new("ScTextStyle *")
             apply_style(cstyle, style)
-            p = lib.sc_list_add_str(self._p, cstr(self._arena, value), cstyle[0])
+            p = lib.sc_list_add_str(
+                self._p, cstr(self._arena, value), cstyle[0])
         return ListItem(p, self)
 
     def print(self) -> None:
@@ -171,8 +172,9 @@ class Tree:
         else:
             st = ffi.new("ScTextStyle *")
             apply_style(st, style)
-            p = lib.sc_tree_add_str(self._p, par, cstr(self._arena, value), st[0],
-                                    cstr(self._arena, prefix), ps[0])
+            p = lib.sc_tree_add_str(
+                self._p, par, cstr(self._arena, value), st[0],
+                cstr(self._arena, prefix), ps[0])
         return TreeNode(p)
 
     def print(self) -> None:

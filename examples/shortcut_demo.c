@@ -35,8 +35,9 @@ static bool delete_cb(int id, void *user) {
 enum { ACTION_RENAME = 1 };
 
 int main(void) {
-    sc_println("sparcli – custom shortcut demo",
-               (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE });
+    sc_println("sparcli – custom shortcut demo", (ScTextStyle){
+        SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE
+    });
 
     int fired = -1;
     ScShortcut shortcuts[] = {
@@ -55,23 +56,28 @@ int main(void) {
         .shortcuts       = shortcuts,
         .n_shortcuts     = 2,
         .out_shortcut_id = &fired,
-        .hide_summary    = true,   /* keep the demo's own messages unambiguous */
+        /* keep the demo's own messages unambiguous */
+        .hide_summary    = true,
     });
-    shortcuts[1].user = sel;       /* the delete callback needs the live handle */
+    /* the delete callback needs the live handle */
+    shortcuts[1].user = sel;
 
-    const char *fruits[] = { "Apple", "Banana", "Cherry", "Date", "Elderberry" };
+    const char *fruits[] = {
+        "Apple", "Banana", "Cherry", "Date", "Elderberry",
+    };
     for (size_t i = 0; i < sizeof fruits / sizeof fruits[0]; i++) {
         sc_select_add(sel, fruits[i]);
     }
 
-    /* Re-open the list after each F2 rename until Enter picks or the user cancels. */
+    /* Re-open the list after each F2 rename until Enter picks or Esc. */
     for (;;) {
         size_t idx[1] = { 0 };
         size_t n = 1;
         ScInputStatus status = sc_select_run(sel, idx, &n);
 
         if (status == SC_INPUT_ERROR) {
-            sc_println("No interactive terminal available.", (ScTextStyle){ 0 });
+            sc_println(
+                "No interactive terminal available.", (ScTextStyle){ 0 });
             break;
         }
         if (status == SC_INPUT_CANCELLED) {
@@ -102,9 +108,11 @@ int main(void) {
             continue;                          /* re-open the updated list */
         }
         if (n > 0) {
-            printf("Picked: %s (index %zu)\n", sc_select_label(sel, idx[0]), idx[0]);
+            printf("Picked: %s (index %zu)\n",
+                   sc_select_label(sel, idx[0]), idx[0]);
         } else {
-            sc_println("Nothing selected (you deleted them all).", (ScTextStyle){ 0 });
+            sc_println(
+                "Nothing selected (you deleted them all).", (ScTextStyle){ 0 });
         }
         break;
     }

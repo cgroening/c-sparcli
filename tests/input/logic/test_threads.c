@@ -44,5 +44,6 @@ void test_threads(void) {
     }
     CHECK(started == N_THREADS, "all worker threads started");
     CHECK(fails == 0,
-          "concurrent sc_capture across threads is race-free (thread-local output)");
+          "concurrent sc_capture across threads is race-free "
+          "(thread-local output)");
 }

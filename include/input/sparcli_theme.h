@@ -17,7 +17,8 @@ SPARCLI_BEGIN_DECLS
  * prompt.
  */
 
-/** Shared default styling. Any zero-init field falls through to the built-in default. */
+/** Shared default styling. Any zero-init field falls through to the
+    built-in default. */
 typedef struct ScInputTheme {
     /** Default highlight color. */
     ScColor accent;

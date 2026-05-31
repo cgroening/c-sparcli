@@ -97,7 +97,9 @@ static int ansi_visible_width(const char *str);
 static ScRendered *capture_render(void (*render_fn)(void *), void *ctx);
     static ScRendered *buffer_to_rendered(const char *buffer, size_t size);
 
-static void push_entry(ScColumns *columns, ScRendered *rendered, ScColItem item);
+static void push_entry(
+    ScColumns *columns, ScRendered *rendered, ScColItem item
+);
 static void push_panel_entry(
     ScColumns *columns, ScRendered *rendered,
     ScColItem item, ScPanelOpts panel_opts
@@ -317,7 +319,9 @@ typedef struct CtxStr { const char *str; } CtxStr;
 static void render_str_ctx(void *p) {
     const char *str = ((CtxStr *)p)->str;
     fputs(str, sc_output_stream());
-    if (str[0] && str[strlen(str) - 1] != '\n') { fputc('\n', sc_output_stream()); }
+    if (str[0] && str[strlen(str) - 1] != '\n') {
+        fputc('\n', sc_output_stream());
+    }
 }
 
 typedef struct CtxColumns { const ScColumns *columns; } CtxColumns;

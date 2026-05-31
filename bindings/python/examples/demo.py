@@ -17,7 +17,8 @@ import sparcli as sc
 
 def heading(title: str) -> None:
     sc.println("")
-    sc.rule(title, sc.RuleOpts(type=sc.BorderType.DOUBLE, title_align=sc.Align.LEFT))
+    sc.rule(title, sc.RuleOpts(type=sc.BorderType.DOUBLE,
+                               title_align=sc.Align.LEFT))
     sc.println("")
 
 
@@ -30,7 +31,9 @@ def output_section() -> None:
     sc.print_("italic ", sc.Style.italic())
     sc.print_("under ", sc.Style(attr=sc.Attr.UNDERLINE))
     sc.println("rgb", sc.Style(fg=sc.Color.rgb(120, 200, 255)))
-    sc.markup.println("[bold red]Error:[/] not found  [on cyan] 200 OK [/]  [rgb(255,170,0)]warn[/]")
+    sc.markup.println(
+        "[bold red]Error:[/] not found  [on cyan] 200 OK [/]  "
+        "[rgb(255,170,0)]warn[/]")
     t = sc.Text()
     t.append("multi-").append("span ", sc.Style.bold(sc.Color.GREEN)) \
      .append("text", sc.Style.italic(sc.Color.MAGENTA))
@@ -41,12 +44,15 @@ def output_section() -> None:
     sc.panel("auto-fit content", sc.PanelOpts(title="single",
              border=sc.BorderStyle(sc.BorderType.SINGLE)))
     sc.panel("rounded, full width, centered",
-             sc.PanelOpts(title="panel", border=sc.BorderStyle(sc.BorderType.ROUNDED),
+             sc.PanelOpts(title="panel",
+                          border=sc.BorderStyle(sc.BorderType.ROUNDED),
                           content_align=sc.Align.CENTER, full_width=True))
     sc.panel("colored border + background",
-             sc.PanelOpts(title="styled",
-                          border=sc.BorderStyle(sc.BorderType.THICK, color=sc.Color.BLUE),
-                          bg=sc.Color.rgb(20, 20, 40)))
+             sc.PanelOpts(
+                 title="styled",
+                 border=sc.BorderStyle(
+                     sc.BorderType.THICK, color=sc.Color.BLUE),
+                 bg=sc.Color.rgb(20, 20, 40)))
     sc.alert.info("informational")
     sc.alert.debug("debug detail")
     sc.alert.warning("careful now")
@@ -54,12 +60,15 @@ def output_section() -> None:
     sc.alert.success("all good")
 
     heading("Badges & rules")
-    sc.badge("NEW", sc.BadgeOpts(text_style=sc.Style.bold(sc.Color.BLACK, sc.Color.GREEN)))
+    sc.badge("NEW", sc.BadgeOpts(
+        text_style=sc.Style.bold(sc.Color.BLACK, sc.Color.GREEN)))
     sc.print_("  ")
-    sc.badge("v1.2", sc.BadgeOpts(left_cap="(", right_cap=")", text_style=sc.Style.dim()))
+    sc.badge("v1.2", sc.BadgeOpts(
+        left_cap="(", right_cap=")", text_style=sc.Style.dim()))
     sc.println("")
     sc.rule(opts=sc.RuleOpts(type=sc.BorderType.SINGLE))
-    sc.rule("centered", sc.RuleOpts(type=sc.BorderType.THICK, width=40, halign=sc.Align.CENTER))
+    sc.rule("centered", sc.RuleOpts(type=sc.BorderType.THICK, width=40,
+                                    halign=sc.Align.CENTER))
 
     heading("Table")
     table = sc.Table()
@@ -71,7 +80,8 @@ def output_section() -> None:
     table.row([sc.Cell("Subtotal", colspan=2), sc.Cell.skip(),
                sc.Cell("4.50", halign=sc.Align.RIGHT)])
     table.footer_row(["Total", "17", "4.50"])
-    table.print(sc.TableOpts(border=sc.BorderType.ROUNDED, header_row=True, striped=True))
+    table.print(sc.TableOpts(border=sc.BorderType.ROUNDED, header_row=True,
+                             striped=True))
 
     heading("List, tree & key/value")
     lst = sc.List(sc.ListOpts(marker=sc.ListMarker.NUMBER))
@@ -90,18 +100,22 @@ def output_section() -> None:
     tree.add("README", root, style=sc.Style.dim())
 
     kv = sc.Kv(sc.KvOpts(key_style=sc.Style.bold(sc.Color.CYAN)))
-    kv.add("Name", "sparcli").add("Lang", "C + Python").add("Version", sc.version_string())
+    kv.add("Name", "sparcli").add("Lang", "C + Python")
+    kv.add("Version", sc.version_string())
 
     cols = sc.Columns(sc.ColumnsOpts(
-        gap=2, sep=sc.BorderStyle(sc.BorderType.SINGLE, color=sc.Color.rgb(80, 80, 100))))
+        gap=2,
+        sep=sc.BorderStyle(sc.BorderType.SINGLE,
+                           color=sc.Color.rgb(80, 80, 100))))
     cols.add_rendered(sc.capture.list(lst)) \
         .add_rendered(sc.capture.tree(tree)) \
         .add_rendered(sc.capture.kv(kv))
     cols.print()
 
     heading("Capture / compose")
-    a = sc.capture.panel("top", sc.PanelOpts(border=sc.BorderStyle(sc.BorderType.SINGLE)))
-    b = sc.capture.panel("bottom", sc.PanelOpts(border=sc.BorderStyle(sc.BorderType.SINGLE)))
+    single = sc.PanelOpts(border=sc.BorderStyle(sc.BorderType.SINGLE))
+    a = sc.capture.panel("top", single)
+    b = sc.capture.panel("bottom", single)
     stacked = sc.vstack([a, b], gap=1)
     if stacked:
         stacked.align(sc.Align.CENTER)
@@ -117,7 +131,8 @@ def output_section() -> None:
         time.sleep(0.008)
     bar.finish(100, 100)
 
-    sp = sc.Spinner("Crunching", sc.SpinnerOpts(type=sc.SpinnerType.DOTS, color=sc.Color.CYAN))
+    sp = sc.Spinner("Crunching", sc.SpinnerOpts(type=sc.SpinnerType.DOTS,
+                                                 color=sc.Color.CYAN))
     for _ in range(24):
         sp.tick()
         time.sleep(0.04)
@@ -143,19 +158,23 @@ def input_section() -> None:
         sc.println(f"  text -> {name!r}", sc.Style.dim())
 
     # Rich (partly-styled) prompt via prompt_text.
-    prompt = sc.Text().append("Rename ").append("Apple", sc.Style.italic()).append(" to")
-    renamed = sc.text_input("", sc.TextInputOpts(prompt_text=prompt, initial="Apple"))
+    prompt = (sc.Text().append("Rename ")
+              .append("Apple", sc.Style.italic()).append(" to"))
+    renamed = sc.text_input(
+        "", sc.TextInputOpts(prompt_text=prompt, initial="Apple"))
     sc.println(f"  rename -> {renamed!r}", sc.Style.dim())
 
     pw = sc.password_input("Password", sc.PasswordOpts(mask="•"))
     if pw is not None:
         sc.println(f"  password -> {len(pw)} chars", sc.Style.dim())
 
-    n = sc.number_input("Quantity", sc.NumberOpts(min=0, max=100, step=5, initial=10))
+    n = sc.number_input("Quantity",
+                        sc.NumberOpts(min=0, max=100, step=5, initial=10))
     sc.println(f"  number -> {n}", sc.Style.dim())
 
-    notes = sc.textarea("Notes (Ctrl-D submit · Ctrl-G editor)",
-                        sc.TextareaOpts(boxed=True, width=48, external_editor=True))
+    notes = sc.textarea(
+        "Notes (Ctrl-D submit · Ctrl-G editor)",
+        sc.TextareaOpts(boxed=True, width=48, external_editor=True))
     if notes is not None:
         sc.println(f"  textarea -> {len(notes)} bytes", sc.Style.dim())
 

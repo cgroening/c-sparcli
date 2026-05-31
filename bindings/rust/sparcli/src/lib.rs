@@ -1,8 +1,9 @@
-//! Safe, idiomatic Rust bindings for [sparcli](https://github.com/cgroening/sparcli):
-//! styled terminal output (panels, tables, rules, columns, lists, trees,
-//! key/value blocks, alerts, badges, progress bars, spinners, markup) and
-//! interactive prompts (confirm, text/password, number, textarea, select,
-//! fuzzy finder, date picker) with custom shortcuts and an external-editor flow.
+//! Safe, idiomatic Rust bindings for
+//! [sparcli](https://github.com/cgroening/sparcli): styled terminal output
+//! (panels, tables, rules, columns, lists, trees, key/value blocks, alerts,
+//! badges, progress bars, spinners, markup) and interactive prompts (confirm,
+//! text/password, number, textarea, select, fuzzy finder, date picker) with
+//! custom shortcuts and an external-editor flow.
 //!
 //! The crate wraps the C library (compiled from source by `sparcli-sys`) with
 //! RAII handles, builder-style option structs, `Result<Option<T>>` returns for
@@ -29,14 +30,17 @@ use std::os::raw::c_void;
 #[macro_use]
 mod style;
 mod error;
-mod output;
 mod input;
+mod output;
 mod text;
 
 pub use error::{Error, Result};
 pub use input::*;
 pub use output::*;
-pub use style::{Align, Attr, BorderStyle, BorderType, Color, Edges, HintLayout, HintPos, Position, Style, VAlign};
+pub use style::{
+    Align, Attr, BorderStyle, BorderType, Color, Edges, HintLayout, HintPos,
+    Position, Style, VAlign,
+};
 pub use text::{markup, MarkupOpts, Text};
 
 use style::cstring;
@@ -60,7 +64,11 @@ pub fn version() -> (i32, i32, i32) {
 
 /// The library version string (e.g. `"0.1.0"`).
 pub fn version_string() -> &'static str {
-    unsafe { CStr::from_ptr(ffi::sc_version_string()).to_str().unwrap_or("") }
+    unsafe {
+        CStr::from_ptr(ffi::sc_version_string())
+            .to_str()
+            .unwrap_or("")
+    }
 }
 
 /// Returns a copy of `s` with all ANSI CSI escape sequences removed.
@@ -72,7 +80,13 @@ pub fn strip_ansi(s: &str) -> String {
 /// did not fit.
 pub fn truncate(s: &str, max_cols: i32, ellipsis: &str) -> String {
     let ell = cstring(ellipsis);
-    unsafe { take_c_string(ffi::sc_truncate(cstring(s).as_ptr(), max_cols, ell.as_ptr())) }
+    unsafe {
+        take_c_string(ffi::sc_truncate(
+            cstring(s).as_ptr(),
+            max_cols,
+            ell.as_ptr(),
+        ))
+    }
 }
 
 /// Overwrites the current terminal line in place.

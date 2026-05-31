@@ -46,11 +46,12 @@ class Rendered:
 
     def pad(self, opts: PadOpts = PadOpts()) -> None:
         """Print the rendering with padding around each line."""
-        c = ffi.new("ScPadOpts *", (opts.top, opts.right, opts.bottom, opts.left))
+        c = ffi.new(
+            "ScPadOpts *", (opts.top, opts.right, opts.bottom, opts.left))
         lib.sc_pad_print(self._p, c[0])
 
     def align(self, halign: Align, width: int = 0) -> None:
-        """Print the rendering aligned within ``width`` columns (0 = terminal)."""
+        """Print aligned within ``width`` columns (0 = terminal width)."""
         lib.sc_align_print(self._p, int(halign), width)
 
     def close(self) -> None:
@@ -111,7 +112,8 @@ class _Capture:
         return Rendered(lib.sc_capture_panel_str(cstr(arena, content), c[0]))
 
     @staticmethod
-    def rule(title: "str | Text | None" = None, opts: RuleOpts = RuleOpts()) -> Rendered:
+    def rule(title: "str | Text | None" = None,
+             opts: RuleOpts = RuleOpts()) -> Rendered:
         arena: list = []
         c = ffi.new("ScRuleOpts *")
         opts._fill(c, arena)

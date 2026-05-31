@@ -225,9 +225,11 @@ public:
     Rendered& operator=(const Rendered&) = delete;
 
     /** Prints with padding. @see sc_pad_print */
-    void pad(PadOpts opts)            const { sc_pad_print(detail::live(p_), opts); }
+    void pad(PadOpts opts) const { sc_pad_print(detail::live(p_), opts); }
     /** Prints aligned within `w` columns. @see sc_align_print */
-    void align(HAlign a, int w = 0)   const { sc_align_print(detail::live(p_), a, w); }
+    void align(HAlign a, int w = 0) const {
+        sc_align_print(detail::live(p_), a, w);
+    }
 
     /** Borrowed underlying `ScRendered*` (escape hatch); not owned. */
     ScRendered*       get()       { return p_; }
@@ -906,7 +908,8 @@ inline KeyChord key_fn(int n)         { return sc_key_fn(n); }
 /** Alt/Meta + letter chord, e.g. `key_alt('e')`. @see sc_key_alt */
 inline KeyChord key_alt(char letter)  { return sc_key_alt(letter); }
 
-/** Short display name for a chord, e.g. "F2", "^E", "M-e". @see sc_key_chord_name */
+/** Short display name for a chord, e.g. "F2", "^E", "M-e".
+    @see sc_key_chord_name */
 inline std::string key_name(KeyChord chord) {
     char buf[16];
     sc_key_chord_name(chord, buf, sizeof buf);
@@ -916,7 +919,8 @@ inline std::string key_name(KeyChord chord) {
 inline bool key_matches(Key key, KeyChord chord) {
     return sc_key_chord_matches(key, chord);
 }
-/** First shortcut whose chord matches `key`, or `nullptr`. @see sc_shortcut_find */
+/** First shortcut whose chord matches `key`, or `nullptr`.
+    @see sc_shortcut_find */
 inline const Shortcut* shortcut_find(Key key,
                                      const std::vector<Shortcut>& items) {
     return sc_shortcut_find(key, items.data(), items.size());
@@ -1102,11 +1106,16 @@ public:
     void set_checked(std::size_t index, bool on = true) {
         sc_select_set_checked(detail::live(p_), index, on);
     }
-    /** Highlighted index (use from a shortcut callback). @see sc_select_cursor */
+    /** Highlighted index (use from a shortcut callback).
+        @see sc_select_cursor */
     std::size_t cursor() const { return sc_select_cursor(detail::live(p_)); }
-    /** Removes the item at `index` (live, from a callback). @see sc_select_remove */
-    void remove(std::size_t index) { sc_select_remove(detail::live(p_), index); }
-    /** Current label at `index` (empty if out of range). @see sc_select_label */
+    /** Removes the item at `index` (live, from a callback).
+        @see sc_select_remove */
+    void remove(std::size_t index) {
+        sc_select_remove(detail::live(p_), index);
+    }
+    /** Current label at `index` (empty if out of range).
+        @see sc_select_label */
     std::string_view label(std::size_t index) const {
         const char* s = sc_select_label(detail::live(p_), index);
         return s ? std::string_view(s) : std::string_view();
@@ -1186,7 +1195,8 @@ public:
     std::size_t cursor_index() const {
         return sc_fuzzy_cursor_index(detail::live(p_));
     }
-    /** Removes the row at `index` (live, from a callback). @see sc_fuzzy_remove */
+    /** Removes the row at `index` (live, from a callback).
+        @see sc_fuzzy_remove */
     void remove(std::size_t index) { sc_fuzzy_remove(detail::live(p_), index); }
 
     /** Borrowed underlying `ScFuzzy*` (escape hatch); not owned. */

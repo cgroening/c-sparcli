@@ -14,7 +14,8 @@ void test_alert(void) {
 void test_with_str() {
     sc_alert_info   ("This is an informational message.");
     sc_alert_debug  ("These are some debugging values: 1, 2, 3.");
-    sc_alert_warning("Disk usage is above 85%. Consider cleaning up old files.");
+    sc_alert_warning(
+        "Disk usage is above 85%. Consider cleaning up old files.");
     sc_alert_error  ("Failed to connect to database: connection timeout.");
     sc_alert_success("Deployment completed successfully in 3.2 seconds.");
 }

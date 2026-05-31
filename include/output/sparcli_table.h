@@ -40,7 +40,7 @@ typedef struct ScCell {
     bool halign_set;
 
     /**
-     * Horizontal alignment override; effective only when `halign_set` is `true`.
+     * Horizontal alignment override; used only when `halign_set` is `true`.
      */
     ScHAlign halign;
 
@@ -300,7 +300,8 @@ typedef struct ScTableOpts {
     /** `0` = auto-size; `>0` = distribute total width across flex columns. */
     int total_width;
 
-    /** `0` = unlimited; `>0` = truncate data rows at this count with an indicator. */
+    /** `0` = unlimited; `>0` = truncate data rows at this count, with an
+        indicator. */
     int max_rows;
 
     /** When `true`, reverse the display order of columns. */

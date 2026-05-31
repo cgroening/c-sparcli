@@ -15,8 +15,9 @@ SPARCLI_BEGIN_DECLS
  * @note `full_width` overrides `width` when both are set; the panel width is
  * then `terminal_width - 2` (one column margin each side).
  *
- * @note `bg` uses the same zero-init sentinel as `ScProgressBarOpts.fill_color`:
- * `{0,0,0,0}` (index==0 AND r==g==b==0 together) means "not set".
+ * @note `bg` uses the same zero-init sentinel as
+ * `ScProgressBarOpts.fill_color`: `{0,0,0,0}` (index==0 AND r==g==b==0
+ * together) means "not set".
  *
  * @code
  * ScPanelOpts opts = {

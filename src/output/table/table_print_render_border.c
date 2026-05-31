@@ -207,7 +207,9 @@ static ScColor select_junction_color(
 
 /** Prints the left margin spaces for the table. */
 void print_left_margin(const Table *table) {
-    for (int i = 0; i < table->opts.margin.left; i++) { fputc(' ', sc_output_stream()); }
+    for (int i = 0; i < table->opts.margin.left; i++) {
+        fputc(' ', sc_output_stream());
+    }
 }
 
 /** Prints `str` with foreground color `color`, then emits a reset. */
@@ -423,7 +425,9 @@ static void render_title_with_fill(
     );
 
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < left_fill; i++) { fputs(fill_char, sc_output_stream()); }
+    for (int i = 0; i < left_fill; i++) {
+        fputs(fill_char, sc_output_stream());
+    }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 
     for (int i = 0; i < title_pad; i++) {
@@ -435,7 +439,9 @@ static void render_title_with_fill(
     }
 
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < right_fill; i++) { fputs(fill_char, sc_output_stream()); }
+    for (int i = 0; i < right_fill; i++) {
+        fputs(fill_char, sc_output_stream());
+    }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
@@ -468,12 +474,14 @@ static void render_title_plain_fill(
     int inner_width, const char *fill_char, ScColor outer_color
 ) {
     sc_apply_colors(outer_color, SC_ANSI_COLOR_NONE);
-    for (int i = 0; i < inner_width; i++) { fputs(fill_char, sc_output_stream()); }
+    for (int i = 0; i < inner_width; i++) {
+        fputs(fill_char, sc_output_stream());
+    }
     fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
 }
 
 
-/* ── ScRenderLine printing helpers (shared with row.c) ─────────────────────────── */
+/* ── ScRenderLine printing helpers (shared with row.c) ──────────────────── */
 
 /**
  * Prints `line` within `width` columns: adds alignment padding when the

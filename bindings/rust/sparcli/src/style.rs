@@ -19,7 +19,12 @@ impl Default for Color {
 
 macro_rules! named_color {
     ($name:ident, $idx:expr) => {
-        pub const $name: Color = Color(ffi::ScColor { index: $idx, r: 0, g: 0, b: 0 });
+        pub const $name: Color = Color(ffi::ScColor {
+            index: $idx,
+            r: 0,
+            g: 0,
+            b: 0,
+        });
     };
 }
 
@@ -110,7 +115,8 @@ impl Style {
 }
 
 macro_rules! repr_enum {
-    ($(#[$m:meta])* $name:ident { $($variant:ident = $val:path),+ $(,)? } default $def:ident) => {
+    ($(#[$m:meta])* $name:ident
+     { $($variant:ident = $val:path),+ $(,)? } default $def:ident) => {
         $(#[$m])*
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         #[repr(u32)]
@@ -191,14 +197,29 @@ pub struct Edges {
 impl Edges {
     /// Same value on all four edges.
     pub fn all(v: i32) -> Self {
-        Edges { top: v, right: v, bottom: v, left: v }
+        Edges {
+            top: v,
+            right: v,
+            bottom: v,
+            left: v,
+        }
     }
     /// Vertical (top/bottom) and horizontal (left/right).
     pub fn symmetric(v: i32, h: i32) -> Self {
-        Edges { top: v, right: h, bottom: v, left: h }
+        Edges {
+            top: v,
+            right: h,
+            bottom: v,
+            left: h,
+        }
     }
     pub(crate) fn raw(self) -> ffi::ScEdges {
-        ffi::ScEdges { top: self.top, right: self.right, bottom: self.bottom, left: self.left }
+        ffi::ScEdges {
+            top: self.top,
+            right: self.right,
+            bottom: self.bottom,
+            left: self.left,
+        }
     }
 }
 
@@ -212,7 +233,11 @@ pub struct BorderStyle {
 
 impl BorderStyle {
     pub fn new(kind: BorderType) -> Self {
-        BorderStyle { kind, color: Color::NONE, bg: Color::NONE }
+        BorderStyle {
+            kind,
+            color: Color::NONE,
+            bg: Color::NONE,
+        }
     }
     pub fn color(mut self, c: Color) -> Self {
         self.color = c;
@@ -223,7 +248,11 @@ impl BorderStyle {
         self
     }
     pub(crate) fn raw(self) -> ffi::ScBorderStyle {
-        ffi::ScBorderStyle { type_: self.kind.raw(), color: self.color.0, bg: self.bg.0 }
+        ffi::ScBorderStyle {
+            type_: self.kind.raw(),
+            color: self.color.0,
+            bg: self.bg.0,
+        }
     }
 }
 
@@ -261,5 +290,6 @@ impl Arena {
 /// Converts a borrowed string into a temporary `CString`, stripping interior
 /// NULs. Used for one-shot calls where no arena is needed.
 pub(crate) fn cstring(s: &str) -> CString {
-    CString::new(s).unwrap_or_else(|_| CString::new(s.replace('\0', "")).unwrap())
+    CString::new(s)
+        .unwrap_or_else(|_| CString::new(s.replace('\0', "")).unwrap())
 }

@@ -24,7 +24,9 @@ void style_show_flush(const char *caption, ScRendered *frame) {
 static void rule(const char *title) {
     sc_rule_str(title, (ScRuleOpts){
         .type        = SC_BORDER_DOUBLE,
-        .title.style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
+        .title.style = {
+            SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+        },
         .title.halign = SC_ALIGN_CENTER,
     });
 }

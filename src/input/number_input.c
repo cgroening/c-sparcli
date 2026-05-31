@@ -15,7 +15,8 @@ typedef struct NumberState {
 } NumberState;
 
 static const char *const DEFAULT_HINT =
-    "\xe2\x86\x91/\xe2\x86\x93 adjust \xc2\xb7 enter submit \xc2\xb7 esc cancel";
+    "\xe2\x86\x91/\xe2\x86\x93 adjust \xc2\xb7 enter submit \xc2\xb7 "
+    "esc cancel";
 
 
 static bool init_state(NumberState *self, const char *prompt,
@@ -56,7 +57,9 @@ ScInputStatus sc_number_input(const char *prompt, double *out,
         *out = clamp(&state, strtod(state.ed.buf, NULL));
         if (!opts.hide_summary) {
             char line[96];
-            snprintf(line, sizeof line, "? %s %.*f", prompt, opts.decimals, *out);
+            snprintf(
+                line, sizeof line, "? %s %.*f", prompt, opts.decimals, *out
+            );
             sc_println(line, opts.summary_style);
         }
     }
@@ -75,7 +78,7 @@ ScRendered *sc_number_frame(const char *prompt, double value,
     return rendered;
 }
 
-/** Initializes `self` and seeds the editor with the clamped, formatted value. */
+/** Initializes `self`, seeding the editor with the clamped value. */
 static bool init_state(NumberState *self, const char *prompt,
                        ScNumberOpts opts, double value) {
     self->prompt = prompt;
@@ -103,10 +106,11 @@ static ScRendered *number_render_inline(NumberState *self) {
                      self->opts.prompt_markup, self->opts.prompt_text);
     sc_text_append(text, " ", (ScTextStyle){ 0 });
 
-    int field = sc_terminal_width()
-              - sc_prompt_width(self->prompt, self->opts.prompt_style,
-                                self->opts.prompt_markup, self->opts.prompt_text)
-              - 1;
+    int prompt_w = sc_prompt_width(
+        self->prompt, self->opts.prompt_style,
+        self->opts.prompt_markup, self->opts.prompt_text
+    );
+    int field = sc_terminal_width() - prompt_w - 1;
     if (field < 1) {
         field = 1;
     }
@@ -169,9 +173,13 @@ static ScRendered *number_render_boxed(NumberState *self) {
         panel_opts.full_width = true;
     }
     if (range[0]) {
-        panel_opts.subtitle = (ScTitle){ .text = range,
-            .style = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },
-            .halign = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM };
+        panel_opts.subtitle = (ScTitle){
+            .text = range,
+            .style = {
+                SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+            },
+            .halign = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM,
+        };
     }
 
     ScRendered *panel = sc_capture_panel_text(inner, panel_opts);

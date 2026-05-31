@@ -12,7 +12,7 @@ static void expect(const char *seq, ScKeyType type, size_t consumed,
     CHECK(k.type == type && used == consumed, label);
 }
 
-/** Like `expect`, but also checks the decoded codepoint and modifier bitmask. */
+/** Like `expect`, but also checks the codepoint and modifier bitmask. */
 static void expect_mods(const char *seq, size_t len, ScKeyType type,
                         size_t consumed, uint32_t codepoint, uint8_t mods,
                         const char *label) {

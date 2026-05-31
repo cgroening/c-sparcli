@@ -1,7 +1,10 @@
 //! Output widgets: panels, tables, rules, columns, lists, trees, key/value
 //! blocks, alerts, badges, progress bars, spinners, capture/compose.
 
-use crate::style::{cstring, Align, Arena, BorderStyle, BorderType, Color, Edges, Style, VAlign, Position};
+use crate::style::{
+    cstring, Align, Arena, BorderStyle, BorderType, Color, Edges, Position,
+    Style, VAlign,
+};
 use crate::text::Text;
 use sparcli_sys as ffi;
 
@@ -60,7 +63,10 @@ pub struct Title {
 
 impl Title {
     pub fn new(text: impl Into<String>) -> Self {
-        Title { text: Some(text.into()), ..Default::default() }
+        Title {
+            text: Some(text.into()),
+            ..Default::default()
+        }
     }
     pub fn style(mut self, s: Style) -> Self {
         self.style = s;
@@ -259,7 +265,11 @@ impl BadgeOpts {
     pub fn new() -> Self {
         BadgeOpts::default()
     }
-    pub fn caps(mut self, left: impl Into<String>, right: impl Into<String>) -> Self {
+    pub fn caps(
+        mut self,
+        left: impl Into<String>,
+        right: impl Into<String>,
+    ) -> Self {
         self.left_cap = Some(left.into());
         self.right_cap = Some(right.into());
         self
@@ -383,7 +393,8 @@ enum CellKind {
     RowSkip,
 }
 
-/// A table cell. Build from a string, or via the helpers for markup/spans/skips.
+/// A table cell. Build from a string, or via the helpers for markup, rich
+/// text and span/row skips.
 #[derive(Clone, Debug)]
 pub struct Cell {
     kind: CellKind,
@@ -396,19 +407,35 @@ pub struct Cell {
 
 impl Cell {
     pub fn new(s: impl Into<String>) -> Self {
-        Cell { kind: CellKind::Str, text: s.into(), halign: None, valign: None, col_span: 0, row_span: 0 }
+        Cell {
+            kind: CellKind::Str,
+            text: s.into(),
+            halign: None,
+            valign: None,
+            col_span: 0,
+            row_span: 0,
+        }
     }
     /// A cell whose content is parsed as inline markup (owned by the table).
     pub fn markup(s: impl Into<String>) -> Self {
-        Cell { kind: CellKind::Markup, ..Cell::new(s) }
+        Cell {
+            kind: CellKind::Markup,
+            ..Cell::new(s)
+        }
     }
     /// Placeholder covered by a colspan.
     pub fn skip() -> Self {
-        Cell { kind: CellKind::Skip, ..Cell::new("") }
+        Cell {
+            kind: CellKind::Skip,
+            ..Cell::new("")
+        }
     }
     /// Placeholder row covered by a rowspan.
     pub fn row_skip() -> Self {
-        Cell { kind: CellKind::RowSkip, ..Cell::new("") }
+        Cell {
+            kind: CellKind::RowSkip,
+            ..Cell::new("")
+        }
     }
     pub fn align(mut self, a: Align) -> Self {
         self.halign = Some(a);
@@ -562,7 +589,10 @@ impl Table {
     pub fn new() -> Table {
         let ptr = unsafe { ffi::sc_table_new() };
         assert!(!ptr.is_null(), "sc_table_new: out of memory");
-        Table { ptr, arena: Vec::new() }
+        Table {
+            ptr,
+            arena: Vec::new(),
+        }
     }
 
     /// Adds a column with a header label.
@@ -590,7 +620,14 @@ impl Table {
         C: Into<Cell>,
     {
         let mut v = self.build_cells(cells);
-        unsafe { ffi::sc_table_add_row_bg(self.ptr, v.as_mut_ptr(), v.len(), bg.raw()) };
+        unsafe {
+            ffi::sc_table_add_row_bg(
+                self.ptr,
+                v.as_mut_ptr(),
+                v.len(),
+                bg.raw(),
+            )
+        };
         self
     }
 
@@ -601,7 +638,9 @@ impl Table {
         C: Into<Cell>,
     {
         let mut v = self.build_cells(cells);
-        unsafe { ffi::sc_table_add_footer_row(self.ptr, v.as_mut_ptr(), v.len()) };
+        unsafe {
+            ffi::sc_table_add_footer_row(self.ptr, v.as_mut_ptr(), v.len())
+        };
         self
     }
 
@@ -632,8 +671,12 @@ impl Table {
                 let c = c.into();
                 let mut raw = unsafe {
                     match c.kind {
-                        CellKind::Str => ffi::sc_cell_from_str(self.intern(&c.text)),
-                        CellKind::Markup => ffi::sc_cell_from_markup(cstring(&c.text).as_ptr()),
+                        CellKind::Str => {
+                            ffi::sc_cell_from_str(self.intern(&c.text))
+                        }
+                        CellKind::Markup => {
+                            ffi::sc_cell_from_markup(cstring(&c.text).as_ptr())
+                        }
                         CellKind::Skip => ffi::sc_cell_skip_placeholder(),
                         CellKind::RowSkip => ffi::sc_row_skip_placeholder(),
                     }
@@ -742,7 +785,9 @@ impl List {
 
     /// Adds a string item; returns a handle for attaching a sub-list.
     pub fn add(&mut self, s: &str, style: Style) -> ListItem {
-        let item = unsafe { ffi::sc_list_add_str(self.ptr, cstring(s).as_ptr(), style.raw()) };
+        let item = unsafe {
+            ffi::sc_list_add_str(self.ptr, cstring(s).as_ptr(), style.raw())
+        };
         ListItem { ptr: item }
     }
 
@@ -823,7 +868,9 @@ pub struct TreeNode {
 impl TreeNode {
     /// The root sentinel (pass as `parent` to add a top-level node).
     pub fn root() -> TreeNode {
-        TreeNode { ptr: std::ptr::null_mut() }
+        TreeNode {
+            ptr: std::ptr::null_mut(),
+        }
     }
 }
 
@@ -928,7 +975,13 @@ impl Kv {
         Kv { ptr }
     }
     pub fn add(&mut self, key: &str, value: &str) -> &mut Self {
-        unsafe { ffi::sc_kv_add(self.ptr, cstring(key).as_ptr(), cstring(value).as_ptr()) };
+        unsafe {
+            ffi::sc_kv_add(
+                self.ptr,
+                cstring(key).as_ptr(),
+                cstring(value).as_ptr(),
+            )
+        };
         self
     }
     pub fn print(&self) {
@@ -1034,20 +1087,34 @@ impl Columns {
         Columns { ptr }
     }
     pub fn add_str(&mut self, s: &str, item: ColItem) -> &mut Self {
-        unsafe { ffi::sc_columns_add_str(self.ptr, cstring(s).as_ptr(), item.raw()) };
+        unsafe {
+            ffi::sc_columns_add_str(self.ptr, cstring(s).as_ptr(), item.raw())
+        };
         self
     }
     pub fn add_text(&mut self, t: &Text, item: ColItem) -> &mut Self {
         unsafe { ffi::sc_columns_add_text(self.ptr, t.as_ptr(), item.raw()) };
         self
     }
-    pub fn add_table(&mut self, t: &Table, opts: TableOpts, item: ColItem) -> &mut Self {
+    pub fn add_table(
+        &mut self,
+        t: &Table,
+        opts: TableOpts,
+        item: ColItem,
+    ) -> &mut Self {
         let mut a = Arena::new();
         let o = opts.raw(&mut a);
-        unsafe { ffi::sc_columns_add_table(self.ptr, t.as_ptr(), o, item.raw()) };
+        unsafe {
+            ffi::sc_columns_add_table(self.ptr, t.as_ptr(), o, item.raw())
+        };
         self
     }
-    pub fn add_panel(&mut self, content: &str, opts: PanelOpts, item: ColItem) -> &mut Self {
+    pub fn add_panel(
+        &mut self,
+        content: &str,
+        opts: PanelOpts,
+        item: ColItem,
+    ) -> &mut Self {
         let mut a = Arena::new();
         let o = opts.raw(&mut a);
         let c = a.cstr(content);
@@ -1166,7 +1233,9 @@ impl ProgressBar {
         ProgressBar { ptr }
     }
     pub fn set_label(&mut self, label: &str) {
-        unsafe { ffi::sc_progressbar_set_label(self.ptr, cstring(label).as_ptr()) };
+        unsafe {
+            ffi::sc_progressbar_set_label(self.ptr, cstring(label).as_ptr())
+        };
     }
     /// Redraws in place. `max == 0.0` means `value` is already a 0..1 ratio.
     pub fn draw(&mut self, value: f64, max: f64) {
@@ -1221,7 +1290,8 @@ pub struct Spinner {
 
 impl Spinner {
     pub fn new(label: &str, opts: SpinnerOpts) -> Spinner {
-        let ptr = unsafe { ffi::sc_spinner_new(cstring(label).as_ptr(), opts.raw()) };
+        let ptr =
+            unsafe { ffi::sc_spinner_new(cstring(label).as_ptr(), opts.raw()) };
         assert!(!ptr.is_null(), "sc_spinner_new: out of memory");
         Spinner { ptr }
     }
@@ -1232,7 +1302,9 @@ impl Spinner {
         unsafe { ffi::sc_spinner_tick(self.ptr) };
     }
     pub fn finish(&mut self, success: bool, label: &str) {
-        unsafe { ffi::sc_spinner_finish(self.ptr, success, cstring(label).as_ptr()) };
+        unsafe {
+            ffi::sc_spinner_finish(self.ptr, success, cstring(label).as_ptr())
+        };
     }
 }
 
@@ -1258,12 +1330,18 @@ impl PadOpts {
         PadOpts::default()
     }
     fn raw(self) -> ffi::ScPadOpts {
-        ffi::ScPadOpts { top: self.top, right: self.right, bottom: self.bottom, left: self.left }
+        ffi::ScPadOpts {
+            top: self.top,
+            right: self.right,
+            bottom: self.bottom,
+            left: self.left,
+        }
     }
 }
 
 /// An owning captured rendering of a widget. Print it with [`Rendered::pad`] /
-/// [`Rendered::align`], place it in a [`Columns`], or read its [`lines`](Self::lines).
+/// [`Rendered::align`], place it in a [`Columns`], or read its
+/// [`lines`](Self::lines).
 pub struct Rendered {
     ptr: *mut ffi::ScRendered,
 }
@@ -1344,7 +1422,9 @@ pub mod capture {
     pub fn rule(opts: RuleOpts) -> Rendered {
         let mut a = Arena::new();
         let o = opts.raw(&mut a);
-        Rendered::from_raw(unsafe { ffi::sc_capture_rule_str(std::ptr::null(), o) })
+        Rendered::from_raw(unsafe {
+            ffi::sc_capture_rule_str(std::ptr::null(), o)
+        })
     }
 }
 
@@ -1354,7 +1434,8 @@ pub fn vstack(parts: &[&Rendered], gap: i32) -> Option<Rendered> {
     if parts.is_empty() {
         return None;
     }
-    let raw: Vec<*const ffi::ScRendered> = parts.iter().map(|r| r.ptr as *const _).collect();
+    let raw: Vec<*const ffi::ScRendered> =
+        parts.iter().map(|r| r.ptr as *const _).collect();
     let out = unsafe { ffi::sc_vstack(raw.as_ptr(), raw.len(), gap) };
     if out.is_null() {
         None

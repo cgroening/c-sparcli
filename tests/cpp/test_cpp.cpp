@@ -132,7 +132,8 @@ static void test_wrapper_matches_c() {
         panel("hello", { .border = { .type = SC_BORDER_ROUNDED } });
     });
     std::string c = render([] {
-        sc_panel_str("hello", ScPanelOpts{ .border = { .type = SC_BORDER_ROUNDED } });
+        sc_panel_str(
+            "hello", ScPanelOpts{ .border = { .type = SC_BORDER_ROUNDED } });
     });
     CHECK(w == c && !w.empty(), "wrapper panel output equals the C API");
 

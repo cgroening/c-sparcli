@@ -214,8 +214,9 @@ static void panel_init(Panel *panel, const ScText *text, ScPanelOpts opts) {
 }
 
 /**
- * Splits the spans of `text` on newline boundaries into an array of `ScRenderLine`
- * records. Each `ScRenderLine` owns heap copies of its span strings.
+ * Splits the spans of `text` on newline boundaries into an array of
+ * `ScRenderLine` records. Each `ScRenderLine` owns heap copies of its span
+ * strings.
  * Caller must free the result with `free_lines`.
  */
 static void split_text_into_panel_lines(Panel *panel) {
@@ -241,8 +242,8 @@ static void split_text_into_panel_lines(Panel *panel) {
 }
 
 /**
- * Scans one source span for `\n`, flushing a `ScRenderLine` on each new line and
- * buffering the rest.
+ * Scans one source span for `\n`, flushing a `ScRenderLine` on each new line
+ * and buffering the rest.
  */
 static void scan_source_span(ParseBuf *buf, const ScSpan *span) {
     buf->style          = span->style;
@@ -281,8 +282,8 @@ static void append_span(ParseBuf *buf, const char *start, size_t length) {
 }
 
 /**
- * Copies the span buffer into a new `ScRenderLine`, appends it to the line array
- * and resets the span buffer.
+ * Copies the span buffer into a new `ScRenderLine`, appends it to the line
+ * array and resets the span buffer.
  */
 static void flush_line(ParseBuf *buf) {
     if (buf->line_count == buf->line_capacity) {
@@ -296,7 +297,8 @@ static void flush_line(ParseBuf *buf) {
     ScRenderSpan *ls = malloc((buf->span_count + 1) * sizeof(ScRenderSpan));
     if (!ls) { goto drop; }
     memcpy(ls, buf->spans, buf->span_count * sizeof(ScRenderSpan));
-    buf->lines[buf->line_count++] = (ScRenderLine){ ls, buf->span_count, buf->span_width };
+    buf->lines[buf->line_count++] =
+        (ScRenderLine){ ls, buf->span_count, buf->span_width };
     buf->span_count = 0;
     buf->span_width = 0;
     return;
@@ -638,10 +640,14 @@ static void render_empty_line(Panel *panel) {
     print_colored(border_table[row.border_style.type].v, row.border_style);
     if (sc_color_is_active(row.content_bg)) {
         sc_apply_colors(SC_ANSI_COLOR_NONE, row.content_bg);
-        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', sc_output_stream()); }
+        for (int i = 0; i < row.layout.inner_width; i++) {
+            fputc(' ', sc_output_stream());
+        }
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
-        for (int i = 0; i < row.layout.inner_width; i++) { fputc(' ', sc_output_stream()); }
+        for (int i = 0; i < row.layout.inner_width; i++) {
+            fputc(' ', sc_output_stream());
+        }
     }
     print_colored(border_table[row.border_style.type].v, row.border_style);
     fputc('\n', sc_output_stream());

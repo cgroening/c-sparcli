@@ -30,7 +30,7 @@ typedef struct StyleChars {
     /** Cell character used for the body of the filled section. */
     const char *fill;
 
-    /** Edge cell drawn between filled and empty sections; `NULL` = use `fill`. */
+    /** Edge cell between filled and empty sections; `NULL` = use `fill`. */
     const char *head;
 
     /** Cell character used for the empty section. */

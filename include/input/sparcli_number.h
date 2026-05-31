@@ -60,7 +60,7 @@ typedef struct ScNumberOpts {
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
 
-    /** Render inside a bordered panel (prompt = top title, range/footer below). */
+    /** Render inside a panel (prompt = top title, range/footer below). */
     bool boxed;
 
     /** Box border (boxed mode); zero-init type = rounded. */
@@ -69,7 +69,8 @@ typedef struct ScNumberOpts {
     /** Box width; `0` = full terminal width. */
     int width;
 
-    /** Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h */
+    /** Custom key shortcuts; borrowed, must outlive the call.
+        @see sparcli_shortcut.h */
     const ScShortcut *shortcuts;
 
     /** Number of entries in `shortcuts`. */
@@ -78,7 +79,8 @@ typedef struct ScNumberOpts {
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
 
-    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    /** Optional rich prompt (mixed styles); overrides the string prompt.
+        Borrowed. */
     const struct ScText *prompt_text;
 
     /** Parse the string prompt as inline markup. */

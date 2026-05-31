@@ -215,7 +215,9 @@ void test_panels(void) {
             .text  = "(caption)", .style = plain,
             .halign = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM
         },
-        .border        = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE },
+        .border = {
+            .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_NONE
+        },
         .padding       = { .left = 1, .right = 1 },
         .content_align = SC_ALIGN_LEFT,
         .width         = 36,

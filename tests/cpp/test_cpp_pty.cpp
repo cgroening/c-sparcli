@@ -36,7 +36,7 @@ using namespace sparcli;
 
 /* ── The wrapper call under test, run in the forked child ───────────────── */
 
-/* Returns 0 when the wrapper returned the expected value, non-zero otherwise. */
+/* Returns 0 when the wrapper returned the expected value, else non-zero. */
 static int child_case(int c) {
     switch (c) {
         case 0: {
@@ -52,8 +52,9 @@ static int child_case(int c) {
             return (r && *r == "a\nb") ? 0 : 1;
         }
         case 3: {
-            /* RETURN-mode shortcut via the C++ Shortcuts builder: F2 ends the
-               prompt, fired() reports the id, and the value still comes back. */
+            /* RETURN-mode shortcut via the C++ Shortcuts builder: F2 ends
+               the prompt, fired() reports the id, and the value still
+               comes back. */
             Shortcuts sc;
             sc.on_return(key_fn(2), 42);
             TextInputOpts o{};
@@ -101,13 +102,14 @@ static int run_case(const Case* cs, int index) {
     pid_t pid = forkpty(&master, nullptr, nullptr, &ws);
     if (pid < 0) { perror("forkpty"); return 0; }
     if (pid == 0) {
-        _exit(child_case(index));   /* child: run the wrapper on the slave PTY */
+        _exit(child_case(index)); /* child: run wrapper on the slave PTY */
     }
 
     msleep(200);                    /* let the child enter raw mode */
     drain(master);
-    /* Send escape sequences atomically (see tests/input/pty/test_pty.c): writing
-     * byte-by-byte would let the reader's 25 ms lone-Esc timeout split them. */
+    /* Send escape sequences atomically (see tests/input/pty/test_pty.c):
+     * writing byte-by-byte would let the reader's 25 ms lone-Esc timeout
+     * split them. */
     for (const char* k = cs->keys; *k; ) {
         size_t len = 1;
         if ((unsigned char)*k == 0x1b) {

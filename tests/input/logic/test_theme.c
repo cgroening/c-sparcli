@@ -7,7 +7,9 @@
 void test_theme(void) {
     sc_input_set_theme(&(ScInputTheme){
         .accent       = SC_ANSI_COLOR_MAGENTA,
-        .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE },
+        .prompt_style = {
+            SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
+        },
         .cursor_marker = "\xe2\x86\x92 ",  /* → */
         .hint_style   = { SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_ITALIC,
                           SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE },

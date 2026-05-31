@@ -238,8 +238,10 @@ void test_tables(void) {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Tall Cell", col_left);
         sc_table_add_column(table, "Top", (ScColOpts){ .fixed_width = 10 });
-        sc_table_add_column(table, "Middle", (ScColOpts){ .fixed_width = 10, .valign = SC_VALIGN_MIDDLE });
-        sc_table_add_column(table, "Bottom", (ScColOpts){ .fixed_width = 10, .valign = SC_VALIGN_BOTTOM });
+        sc_table_add_column(table, "Middle",
+            (ScColOpts){ .fixed_width = 10, .valign = SC_VALIGN_MIDDLE });
+        sc_table_add_column(table, "Bottom",
+            (ScColOpts){ .fixed_width = 10, .valign = SC_VALIGN_BOTTOM });
         sc_table_add_row(table, (ScCell[]){
             sc_cell_t(tall),
             sc_cell("▲ top"),
@@ -261,9 +263,11 @@ void test_tables(void) {
     /* ── 7. Fixed / min / max column widths ── */
     {
         ScTableData *table = sc_table_new();
-        sc_table_add_column(table, "Fixed=16", (ScColOpts){ .fixed_width = 16 });
+        sc_table_add_column(table, "Fixed=16",
+            (ScColOpts){ .fixed_width = 16 });
         sc_table_add_column(table, "Min=10", (ScColOpts){ .min_width = 10 });
-        sc_table_add_column(table, "Max=8", (ScColOpts){ .max_width = 8, .halign = SC_ALIGN_RIGHT });
+        sc_table_add_column(table, "Max=8",
+            (ScColOpts){ .max_width = 8, .halign = SC_ALIGN_RIGHT });
         sc_table_add_column(table, "Auto", col_left);
         sc_table_add_row(table, (ScCell[]){
             sc_cell("short"),
@@ -346,7 +350,8 @@ void test_tables(void) {
 
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "OS", col_left);
-        sc_table_add_column(table, "Kernel", (ScColOpts){ .halign = SC_ALIGN_CENTER });
+        sc_table_add_column(table, "Kernel",
+            (ScColOpts){ .halign = SC_ALIGN_CENTER });
         sc_table_add_column(table, "Shell", col_left);
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Linux"), sc_cell("6.8"), sc_cell("bash"),
@@ -377,8 +382,11 @@ void test_tables(void) {
     {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Component", col_fixed(14, SC_ALIGN_LEFT));
-        sc_table_add_column(table, "Description", (ScColOpts){ .fixed_width = 24, .word_wrap = 1 });
-        sc_table_add_column(table, "Status", (ScColOpts){ .fixed_width = 10, .halign = SC_ALIGN_CENTER, .valign = SC_VALIGN_MIDDLE });
+        sc_table_add_column(table, "Description",
+            (ScColOpts){ .fixed_width = 24, .word_wrap = 1 });
+        sc_table_add_column(table, "Status", (ScColOpts){
+            .fixed_width = 10, .halign = SC_ALIGN_CENTER,
+            .valign = SC_VALIGN_MIDDLE });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Auth Service"),
             sc_cell(
@@ -465,7 +473,8 @@ void test_tables(void) {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Build", col_left);
         sc_table_add_column(table, "Branch", col_left);
-        sc_table_add_column(table, "Result", (ScColOpts){ .halign = SC_ALIGN_CENTER });
+        sc_table_add_column(table, "Result",
+            (ScColOpts){ .halign = SC_ALIGN_CENTER });
         sc_table_add_column(table, "Time", col_right);
         sc_table_add_row(table, (ScCell[]){
             sc_cell("#101"), sc_cell("main"),
@@ -515,8 +524,11 @@ void test_tables(void) {
         ScTableData *table = sc_table_new();
         sc_table_add_column(table, "Feature", col_fixed(18, SC_ALIGN_LEFT));
         sc_table_add_column(table, "Free", col_fixed(10, SC_ALIGN_CENTER));
-        sc_table_add_column(table, "Pro", (ScColOpts){ .fixed_width = 10, .halign = SC_ALIGN_CENTER, .bg = pro_bg });
-        sc_table_add_column(table, "Enterprise", (ScColOpts){ .fixed_width = 12, .halign = SC_ALIGN_CENTER, .bg = enterprise_bg });
+        sc_table_add_column(table, "Pro", (ScColOpts){
+            .fixed_width = 10, .halign = SC_ALIGN_CENTER, .bg = pro_bg });
+        sc_table_add_column(table, "Enterprise", (ScColOpts){
+            .fixed_width = 12, .halign = SC_ALIGN_CENTER,
+            .bg = enterprise_bg });
         sc_table_add_row(table, (ScCell[]){
             sc_cell("Storage"), sc_cell("5 GB"),
             sc_cell("50 GB"), sc_cell("Unlimited"),
@@ -630,7 +642,8 @@ void test_tables(void) {
     /* ── 23. Rowspan ── */
     {
         ScTableData *table = sc_table_new();
-        sc_table_add_column(table, "Category", (ScColOpts){ .fixed_width = 12, .valign = SC_VALIGN_MIDDLE });
+        sc_table_add_column(table, "Category",
+            (ScColOpts){ .fixed_width = 12, .valign = SC_VALIGN_MIDDLE });
         sc_table_add_column(table, "Item", col_left);
         sc_table_add_column(table, "Price", col_fixed(9, SC_ALIGN_RIGHT));
         sc_table_add_row(table, (ScCell[]){

@@ -33,7 +33,9 @@ impl Text {
 
     /// Appends a styled span (the string is copied).
     pub fn append(&mut self, s: &str, style: Style) -> &mut Self {
-        unsafe { ffi::sc_text_append(self.ptr, cstring(s).as_ptr(), style.raw()) };
+        unsafe {
+            ffi::sc_text_append(self.ptr, cstring(s).as_ptr(), style.raw())
+        };
         self
     }
 
@@ -92,7 +94,9 @@ pub struct MarkupOpts {
 
 impl MarkupOpts {
     pub(crate) fn raw(self) -> ffi::ScMarkupOpts {
-        ffi::ScMarkupOpts { strip_unknown: self.strip_unknown }
+        ffi::ScMarkupOpts {
+            strip_unknown: self.strip_unknown,
+        }
     }
 }
 
@@ -107,7 +111,9 @@ pub mod markup {
 
     /// Parses markup with parser options.
     pub fn parse_opts(m: &str, opts: MarkupOpts) -> Text {
-        let ptr = unsafe { ffi::sc_markup_parse_opts(cstring(m).as_ptr(), opts.raw()) };
+        let ptr = unsafe {
+            ffi::sc_markup_parse_opts(cstring(m).as_ptr(), opts.raw())
+        };
         assert!(!ptr.is_null(), "sc_markup_parse_opts: out of memory");
         // Wrap without re-exposing the private ctor: reuse from_raw.
         super::from_raw(ptr)

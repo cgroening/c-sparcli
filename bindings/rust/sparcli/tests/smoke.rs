@@ -1,7 +1,10 @@
 //! Non-interactive integration tests: pure functions and render-and-capture.
 //! No TTY needed, so they run anywhere (CI included).
 
-use sparcli::{capture, fuzzy_match, key_ctrl, key_fn, Color, PanelOpts, Style, Table, TableOpts, Text};
+use sparcli::{
+    capture, fuzzy_match, key_ctrl, key_fn, Color, PanelOpts, Style, Table,
+    TableOpts, Text,
+};
 
 #[test]
 fn version_is_reported() {
@@ -45,9 +48,15 @@ fn capture_panel_contains_text() {
 #[test]
 fn capture_table_renders() {
     let mut t = Table::new();
-    t.column("Name", Default::default()).column("Age", Default::default());
+    t.column("Name", Default::default())
+        .column("Age", Default::default());
     t.row(["Ada", "36"]).row(["Alan", "41"]);
-    let r = capture::table(&t, TableOpts::new().border(sparcli::BorderType::Single).header_row(true));
+    let r = capture::table(
+        &t,
+        TableOpts::new()
+            .border(sparcli::BorderType::Single)
+            .header_row(true),
+    );
     let lines = r.lines();
     assert!(lines.iter().any(|l| l.contains("Ada")));
     assert!(lines.iter().any(|l| l.contains("Alan")));
@@ -63,7 +72,8 @@ fn capture_text_markup() {
 #[test]
 fn styled_text_builds() {
     let mut t = Text::new();
-    t.append("a", Style::bold().fg(Color::RED)).append("b", Style::default());
+    t.append("a", Style::bold().fg(Color::RED))
+        .append("b", Style::default());
     assert_eq!(t.span_count(), 2);
     assert_eq!(t.visible_width(), 2);
 }

@@ -15,9 +15,9 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Unavailable => {
-                f.write_str("no interactive terminal available or prompt failed")
-            }
+            Error::Unavailable => f.write_str(
+                "no interactive terminal available or prompt failed",
+            ),
         }
     }
 }

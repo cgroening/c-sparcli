@@ -36,7 +36,7 @@ static inline ScHintLayout sc_hint_resolved(ScHintLayout layout) {
     return layout == SC_HINT_LAYOUT_DEFAULT ? SC_HINT_INLINE : layout;
 }
 
-/** Resolves the zero-init `DEFAULT` position to the built-in default (bottom). */
+/** Resolves the zero-init `DEFAULT` position to the default (bottom). */
 static inline ScHintPosition sc_hint_pos_resolved(ScHintPosition pos) {
     return pos == SC_HINT_POS_DEFAULT ? SC_HINT_POS_BOTTOM : pos;
 }
@@ -278,7 +278,7 @@ typedef struct ScPromptEditor {
     /** Enable the editor key (opt-in). */
     bool enabled;
 
-    /** Editor command override; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi. */
+    /** Editor command override; `NULL`/empty = $VISUAL/$EDITOR/nvim/vi. */
     const char *cmd;
 
     /** Key that opens the editor; zero-init = Ctrl-G. */
@@ -476,13 +476,19 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out);
  * Print the result with `sc_pad_print(r, (ScPadOpts){0})`; free with
  * `sc_rendered_free`.
  */
-ScRendered *sc_confirm_frame(const char *question, bool yes, ScConfirmOpts opts);
+ScRendered *sc_confirm_frame(
+    const char *question, bool yes, ScConfirmOpts opts
+);
 ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg);
 ScRendered *sc_select_frame(ScSelect *select);
 ScRendered *sc_fuzzy_frame(ScFuzzy *fuzzy, const char *query);
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);
-ScRendered *sc_textarea_frame(const char *prompt, const char *content, ScTextareaOpts opts);
-ScRendered *sc_number_frame(const char *prompt, double value, ScNumberOpts opts);
+ScRendered *sc_textarea_frame(
+    const char *prompt, const char *content, ScTextareaOpts opts
+);
+ScRendered *sc_number_frame(
+    const char *prompt, double value, ScNumberOpts opts
+);
 
 
 /* ── Theme merge (theme.c): fills zero-init opts from the global theme ───── */

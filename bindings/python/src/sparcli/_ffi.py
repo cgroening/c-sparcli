@@ -3,8 +3,9 @@
 This module is private. It centralizes the only place that touches raw cffi
 objects so the public wrapper classes can stay declarative.
 
-The conversion helpers mutate *nested* cdata views in place (``c.title.style.fg``
-is a live alias into the struct's memory), which avoids by-value struct copies
+The conversion helpers mutate *nested* cdata views in place
+(``c.title.style.fg`` is a live alias into the struct's memory), which avoids
+by-value struct copies
 and keeps the "zero-init == unset/default" semantics the C side relies on:
 anything we don't assign stays zeroed.
 """

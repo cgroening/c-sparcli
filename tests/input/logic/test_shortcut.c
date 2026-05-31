@@ -9,9 +9,13 @@
  */
 void test_shortcut(void) {
     ScKey ctrl_e  = { .type = SC_KEY_CTRL_E };
-    ScKey ctrl_o  = { .type = SC_KEY_CHAR, .codepoint = 'o', .mods = SC_MOD_CTRL };
+    ScKey ctrl_o  = {
+        .type = SC_KEY_CHAR, .codepoint = 'o', .mods = SC_MOD_CTRL
+    };
     ScKey f2      = { .type = SC_KEY_F2 };
-    ScKey alt_e   = { .type = SC_KEY_CHAR, .codepoint = 'e', .mods = SC_MOD_ALT };
+    ScKey alt_e   = {
+        .type = SC_KEY_CHAR, .codepoint = 'e', .mods = SC_MOD_ALT
+    };
     ScKey plain_e = { .type = SC_KEY_CHAR, .codepoint = 'e', .mods = 0 };
 
     CHECK(sc_key_chord_matches(ctrl_e, sc_key_ctrl('e')),

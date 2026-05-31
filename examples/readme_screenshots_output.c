@@ -31,16 +31,25 @@
 
 /* ─────────────────────────────────────────────────────────── styles ── */
 
-static const ScTextStyle s_plain  = { SC_TEXT_ATTR_NONE,   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_bold   = { SC_TEXT_ATTR_BOLD,   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_dim    = { SC_TEXT_ATTR_DIM,    SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_italic = { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_plain =
+    { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_bold =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_dim =
+    { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_italic =
+    { SC_TEXT_ATTR_ITALIC, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
 
-static const ScTextStyle s_b_cyan    = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN,    SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_b_green   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN,   SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_b_yellow  = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW,  SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_b_magenta = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_b_black_on_magenta = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_MAGENTA };
+static const ScTextStyle s_b_cyan =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_b_green =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_b_yellow =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_b_magenta =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE };
+static const ScTextStyle s_b_black_on_magenta =
+    { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_MAGENTA };
 
 
 /* ─────────────────────────────────────────────────────────── helpers ── */
@@ -56,7 +65,7 @@ static void section_rule(const char *title) {
     });
 }
 
-/* Captures a single fixed-width titled rule for use as a stacked column item. */
+/* Captures one fixed-width titled rule for use as a stacked column item. */
 static ScRendered *capture_titled_rule(
     const char *title, ScBorderType type, ScColor color, ScTextStyle style,
     int width
@@ -92,7 +101,9 @@ static void shot_hero(void) {
         sc_text_append(body, ".", s_plain);
 
         sc_panel_text(body, (ScPanelOpts){
-            .border = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
+            .border = {
+                .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN
+            },
             .title  = {
                 .text  = " sparcli ",
                 .style = s_b_cyan,
@@ -145,8 +156,10 @@ static void shot_hero(void) {
         }, 3);
 
         ScTableOpts topts = {
-            .border       = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
-                              SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
+            .border = {
+                SC_BORDER_ROUNDED, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE,
+                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0,
+            },
             .header.row   = true,
             .header.style = s_b_cyan,
             .striped      = true,
@@ -175,8 +188,10 @@ static void shot_hero(void) {
             .connector_color = SC_ANSI_COLOR_CYAN,
             .indent          = 1,
         });
-        ScTreeNode *root = sc_tree_add_str(tree, NULL, "project/", s_b_cyan, NULL, s_plain);
-        ScTreeNode *api  = sc_tree_add_str(tree, root, "api/",     s_b_cyan, NULL, s_plain);
+        ScTreeNode *root =
+            sc_tree_add_str(tree, NULL, "project/", s_b_cyan, NULL, s_plain);
+        ScTreeNode *api =
+            sc_tree_add_str(tree, root, "api/", s_b_cyan, NULL, s_plain);
         sc_tree_add_str(tree, api,  "routes.c", s_plain, NULL, s_plain);
         sc_tree_add_str(tree, api,  "auth.c",   s_plain, NULL, s_plain);
         sc_tree_add_str(tree, root, "worker.c", s_plain, NULL, s_plain);
@@ -184,9 +199,15 @@ static void shot_hero(void) {
 
         /* Three narrow rules stacked vertically. */
         ScRendered *r_rules[] = {
-            capture_titled_rule("Pipeline", SC_BORDER_SINGLE, SC_ANSI_COLOR_MAGENTA,   s_b_magenta,   18),
-            capture_titled_rule("Workers",  SC_BORDER_DOUBLE, SC_ANSI_COLOR_NONE,   s_b_green,  18),
-            capture_titled_rule("Storage",  SC_BORDER_THICK,  SC_ANSI_COLOR_NONE,   s_b_yellow, 18),
+            capture_titled_rule(
+                "Pipeline", SC_BORDER_SINGLE, SC_ANSI_COLOR_MAGENTA,
+                s_b_magenta, 18),
+            capture_titled_rule(
+                "Workers", SC_BORDER_DOUBLE, SC_ANSI_COLOR_NONE,
+                s_b_green, 18),
+            capture_titled_rule(
+                "Storage", SC_BORDER_THICK, SC_ANSI_COLOR_NONE,
+                s_b_yellow, 18),
         };
         ScRendered *rule_stack = sc_vstack(
             (const ScRendered *const *)r_rules, 3, 1
@@ -358,7 +379,9 @@ static void gallery_panel(void) {
         "A bordered frame with a title, padding,\n"
         "and an optional background color.",
         (ScPanelOpts){
-            .border  = { .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN },
+            .border = {
+            .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_CYAN
+        },
             .title   = {
                 .text  = " Panel ",
                 .style = s_b_cyan,
@@ -383,14 +406,24 @@ static void gallery_table(void) {
     sc_table_add_column(t, "Typed", (ScColOpts){
         0, 0, 10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE
     });
-    sc_table_add_row(t, (ScCell[]){ sc_cell("C"),      sc_cell("1972"), sc_cell("Static")  }, 3);
-    sc_table_add_row(t, (ScCell[]){ sc_cell("Python"), sc_cell("1991"), sc_cell("Dynamic") }, 3);
-    sc_table_add_row(t, (ScCell[]){ sc_cell("Rust"),   sc_cell("2010"), sc_cell("Static")  }, 3);
-    sc_table_add_row(t, (ScCell[]){ sc_cell("Zig"),    sc_cell("2016"), sc_cell("Static")  }, 3);
+    sc_table_add_row(t, (ScCell[]){
+        sc_cell("C"), sc_cell("1972"), sc_cell("Static"),
+    }, 3);
+    sc_table_add_row(t, (ScCell[]){
+        sc_cell("Python"), sc_cell("1991"), sc_cell("Dynamic"),
+    }, 3);
+    sc_table_add_row(t, (ScCell[]){
+        sc_cell("Rust"), sc_cell("2010"), sc_cell("Static"),
+    }, 3);
+    sc_table_add_row(t, (ScCell[]){
+        sc_cell("Zig"), sc_cell("2016"), sc_cell("Static"),
+    }, 3);
 
     sc_table_print(t, (ScTableOpts){
-        .border       = { SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
-                          SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0 },
+        .border = {
+            SC_BORDER_SINGLE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+            SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE, 0, 0, 0,
+        },
         .header.row   = true,
         .header.style = s_bold,
         .striped      = true,
@@ -468,8 +501,10 @@ static void gallery_tree(void) {
         .connector_color = SC_ANSI_COLOR_CYAN,
         .indent          = 1,
     });
-    ScTreeNode *root = sc_tree_add_str(tree, NULL, "project/", s_b_cyan, NULL, s_plain);
-    ScTreeNode *src  = sc_tree_add_str(tree, root, "src/",     s_b_cyan, NULL, s_plain);
+    ScTreeNode *root =
+        sc_tree_add_str(tree, NULL, "project/", s_b_cyan, NULL, s_plain);
+    ScTreeNode *src =
+        sc_tree_add_str(tree, root, "src/", s_b_cyan, NULL, s_plain);
     sc_tree_add_str(tree, src,  "main.c",        s_plain, NULL, s_plain);
     sc_tree_add_str(tree, src,  "util.c",        s_plain, NULL, s_plain);
     sc_tree_add_str(tree, root, "Makefile",      s_plain, NULL, s_plain);
@@ -501,22 +536,34 @@ static void gallery_alerts(void) {
 }
 
 static void gallery_badges(void) {
-    ScBadgeOpts ok      = { .left_cap = "[", .right_cap = "]",
-                            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
-                                            SC_ANSI_COLOR_GREEN },
-                            .pad = 1 };
-    ScBadgeOpts warn    = { .left_cap = "[", .right_cap = "]",
-                            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
-                                            SC_ANSI_COLOR_YELLOW },
-                            .pad = 1 };
-    ScBadgeOpts err     = { .left_cap = "[", .right_cap = "]",
-                            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
-                                            SC_ANSI_COLOR_RED },
-                            .pad = 1 };
-    ScBadgeOpts info    = { .left_cap = "[", .right_cap = "]",
-                            .text_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
-                                            SC_ANSI_COLOR_BLUE },
-                            .pad = 1 };
+    ScBadgeOpts ok = {
+        .left_cap = "[", .right_cap = "]",
+        .text_style = {
+            SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_GREEN,
+        },
+        .pad = 1,
+    };
+    ScBadgeOpts warn = {
+        .left_cap = "[", .right_cap = "]",
+        .text_style = {
+            SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_YELLOW,
+        },
+        .pad = 1,
+    };
+    ScBadgeOpts err = {
+        .left_cap = "[", .right_cap = "]",
+        .text_style = {
+            SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_RED,
+        },
+        .pad = 1,
+    };
+    ScBadgeOpts info = {
+        .left_cap = "[", .right_cap = "]",
+        .text_style = {
+            SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_BLUE,
+        },
+        .pad = 1,
+    };
 
     sc_print_badge("DONE",  ok);    printf("  ");
     sc_print_badge("WARN",  warn);  printf("  ");
@@ -587,7 +634,7 @@ static void shot_markup(void) {
     };
     const size_t n = sizeof(snippets) / sizeof(snippets[0]);
 
-    /* Build a single ScText holding the literal markup strings, line by line. */
+    /* Build a single ScText holding the literal markup strings, per line. */
     ScText *raw = sc_text_new();
     for (size_t i = 0; i < n; i++) {
         sc_text_append(raw, snippets[i], s_dim);

@@ -580,6 +580,8 @@ static void append_chunk(
 /** Copies every span from `source` into `target`. */
 static void append_parsed_spans(ScText *target, const ScText *source) {
     for (size_t i = 0; i < source->count; i++) {
-        sc_text_append(target, source->spans[i].raw_str, source->spans[i].style);
+        sc_text_append(
+            target, source->spans[i].raw_str, source->spans[i].style
+        );
     }
 }

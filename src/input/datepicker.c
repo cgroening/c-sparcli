@@ -186,8 +186,10 @@ static void append_day_grid(const DateState *self, ScText *text,
     for (int day = 1; day <= month_days; day++) {
         char cell[8];
         snprintf(cell, sizeof cell, "%2d", day);
-        sc_text_append(text, cell,
-                       day == selected_day ? selected_style : (ScTextStyle){ 0 });
+        sc_text_append(
+            text, cell,
+            day == selected_day ? selected_style : (ScTextStyle){ 0 }
+        );
         if (col < 6) {
             sc_text_append(text, " ", (ScTextStyle){ 0 });
         }
@@ -201,7 +203,9 @@ static void append_day_grid(const DateState *self, ScText *text,
 
 /** Number of days in `month0` (0-based) of `year`. */
 static int days_in_month(int year, int month0) {
-    static const int DAYS[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    static const int DAYS[] = {
+        31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+    };
     if (month0 == 1 && is_leap(year)) {
         return 29;
     }

@@ -21,7 +21,9 @@ SPARCLI_BEGIN_DECLS
  * return `false` and optionally set `*err_out` to a static/owned message
  * that the widget displays beneath the field (the prompt stays open).
  */
-typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out);
+typedef bool (*ScValidateFn)(
+    const char *value, void *ctx, const char **err_out
+);
 
 /**
  * Per-character input filter. Return `true` to accept the typed codepoint,
@@ -32,7 +34,8 @@ typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
 
 /** Accepts ASCII digits `0`–`9` only. */
 SPARCLI_EXPORT bool sc_filter_digits(uint32_t codepoint, void *ctx);
-/** Accepts digits, a leading sign and a decimal point (`0-9`, `-`, `+`, `.`). */
+/** Accepts digits, a leading sign and a decimal point (`0-9`, `-`, `+`,
+    `.`). */
 SPARCLI_EXPORT bool sc_filter_decimal(uint32_t codepoint, void *ctx);
 /** Accepts ASCII letters only. */
 SPARCLI_EXPORT bool sc_filter_alpha(uint32_t codepoint, void *ctx);
@@ -127,7 +130,8 @@ typedef struct ScTextInputOpts {
     /** Opaque pointer passed to `validate`. */
     void *validate_ctx;
 
-    /** Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h */
+    /** Custom key shortcuts; borrowed, must outlive the call.
+        @see sparcli_shortcut.h */
     const ScShortcut *shortcuts;
 
     /** Number of entries in `shortcuts`. */
@@ -136,10 +140,12 @@ typedef struct ScTextInputOpts {
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
 
-    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    /** Optional rich prompt (mixed styles); overrides the string prompt.
+        Borrowed. */
     const struct ScText *prompt_text;
 
-    /** Parse the string prompt as inline markup, e.g. "Rename [italic]x[/] to". */
+    /** Parse the string prompt as inline markup, e.g.
+        "Rename [italic]x[/] to". */
     bool prompt_markup;
 
     /** Enable opening the value in an external editor (off by default). */
@@ -148,7 +154,8 @@ typedef struct ScTextInputOpts {
     /** Editor command; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi. */
     const char *editor;
 
-    /** Key that opens the editor; zero-init = Ctrl-G. @see sparcli_shortcut.h */
+    /** Key that opens the editor; zero-init = Ctrl-G.
+        @see sparcli_shortcut.h */
     ScKeyChord editor_key;
 } ScTextInputOpts;
 
@@ -171,7 +178,8 @@ typedef struct ScPasswordOpts {
     /** Dim hint shown while empty; may be `NULL`. */
     const char *placeholder;
 
-    /** Glyph per character; `NULL` = "*". Empty string ("") hides the length. */
+    /** Glyph per character; `NULL` = "*". Empty string ("") hides the
+        length. */
     const char *mask;
 
     /** Style for the prompt label. */
@@ -231,7 +239,8 @@ typedef struct ScPasswordOpts {
     /** Opaque pointer passed to `validate`. */
     void *validate_ctx;
 
-    /** Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h */
+    /** Custom key shortcuts; borrowed, must outlive the call.
+        @see sparcli_shortcut.h */
     const ScShortcut *shortcuts;
 
     /** Number of entries in `shortcuts`. */
@@ -240,7 +249,8 @@ typedef struct ScPasswordOpts {
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
 
-    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    /** Optional rich prompt (mixed styles); overrides the string prompt.
+        Borrowed. */
     const struct ScText *prompt_text;
 
     /** Parse the string prompt as inline markup. */

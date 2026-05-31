@@ -9,7 +9,8 @@
 #define LE_MARK_RIGHT "\xe2\x80\xba"   /* › */
 
 
-/** Invariant render state for one `sc_le_render_into` call (parameter group). */
+/** Invariant render state for one `sc_le_render_into` call (a parameter
+    group). */
 typedef struct CellView {
     const ScLineEditor *editor;
 
@@ -129,7 +130,9 @@ bool sc_le_handle(ScLineEditor *self, ScKey key) {
             delete_range(self, self->cursor, self->len);
             return true;
         case SC_KEY_CTRL_W:
-            delete_range(self, word_start(self->buf, self->cursor), self->cursor);
+            delete_range(
+                self, word_start(self->buf, self->cursor), self->cursor
+            );
             return true;
         default:
             return false;   // Enter, Up/Down, … left to the widget
@@ -190,8 +193,12 @@ void sc_le_render_into(
     }
 
     // Horizontal scroll: window around the cursor, markers in reserved columns.
-    ScrollWindow window = compute_scroll_window(field_width, display_len, cursor_cp);
-    ScTextStyle mark = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    ScrollWindow window = compute_scroll_window(
+        field_width, display_len, cursor_cp
+    );
+    ScTextStyle mark = {
+        SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
     if (window.left_marker) {
         sc_text_append(text, LE_MARK_LEFT, mark);
     }

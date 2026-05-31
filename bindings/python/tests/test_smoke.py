@@ -15,14 +15,16 @@ import sparcli as sc
 def test_version():
     assert sc.version_string().count(".") == 2
     maj, minr, pat = sc.version()
-    assert (maj, minr, pat) == tuple(int(x) for x in sc.version_string().split("."))
+    parts = tuple(int(x) for x in sc.version_string().split("."))
+    assert (maj, minr, pat) == parts
 
 
 def test_fuzzy_match():
     ok, score = sc.fuzzy_match("ab", "cab")
     assert ok and score > 0
     assert sc.fuzzy_match("xyz", "cab")[0] is False
-    assert sc.fuzzy_match("", "anything")[0] is True  # empty pattern always matches
+    # empty pattern always matches
+    assert sc.fuzzy_match("", "anything")[0] is True
 
 
 def test_strip_ansi():
@@ -36,7 +38,7 @@ def test_truncate():
     assert sc.truncate("hello", 4, ellipsis="...") == "h..."
 
 
-# ── colors / styles ────────────────────────────────────────────────────────────
+# ── colors / styles ───────────────────────────────────────────────
 def test_color_constants_and_rgb():
     assert sc.Color.NONE.index == 0
     assert sc.Color.RED.index == 2
@@ -48,7 +50,7 @@ def test_attr_flags_combine():
     assert int(combined) == 1 | 4
 
 
-# ── render & capture ────────────────────────────────────────────────────────────
+# ── render & capture ──────────────────────────────────────────────
 def _plain(rendered: sc.Rendered) -> list[str]:
     return [sc.strip_ansi(line) for line in rendered.lines]
 
@@ -103,7 +105,7 @@ def test_columns_capture_runs():
     assert any("k" in line and "v" in line for line in out)
 
 
-# ── no-TTY input behaviour ─────────────────────────────────────────────────────
+# ── no-TTY input behaviour ────────────────────────────────────────
 def test_input_unavailable_without_tty():
     # Under pytest stdin/stdout are not a terminal.
     assert sc.input_available() is False
@@ -115,7 +117,7 @@ def test_input_unavailable_without_tty():
         sc.Select().add("a").run_one()
 
 
-# ── output redirection ──────────────────────────────────────────────────────────
+# ── output redirection ────────────────────────────────────────────
 def test_scoped_output_redirect(tmp_path):
     path = tmp_path / "out.txt"
     with open(path, "w") as f, sc.ScopedOutput(f):
@@ -124,7 +126,7 @@ def test_scoped_output_redirect(tmp_path):
     assert "captured" in sc.strip_ansi(content)
 
 
-# ── interior NUL rejection ──────────────────────────────────────────────────────
+# ── interior NUL rejection ────────────────────────────────────────
 def test_interior_nul_rejected():
     with pytest.raises(ValueError):
         sc.println("a\x00b")

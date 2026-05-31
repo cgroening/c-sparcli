@@ -60,7 +60,8 @@ typedef struct ScTextareaOpts {
     /** Box width; `0` = full terminal width. */
     int width;
 
-    /** Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h */
+    /** Custom key shortcuts; borrowed, must outlive the call.
+        @see sparcli_shortcut.h */
     const ScShortcut *shortcuts;
 
     /** Number of entries in `shortcuts`. */
@@ -69,7 +70,8 @@ typedef struct ScTextareaOpts {
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
 
-    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    /** Optional rich prompt (mixed styles); overrides the string prompt.
+        Borrowed. */
     const struct ScText *prompt_text;
 
     /** Parse the string prompt as inline markup. */
@@ -81,7 +83,8 @@ typedef struct ScTextareaOpts {
     /** Editor command; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi. */
     const char *editor;
 
-    /** Key that opens the editor; zero-init = Ctrl-G. @see sparcli_shortcut.h */
+    /** Key that opens the editor; zero-init = Ctrl-G.
+        @see sparcli_shortcut.h */
     ScKeyChord editor_key;
 } ScTextareaOpts;
 

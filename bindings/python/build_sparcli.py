@@ -810,12 +810,13 @@ if __name__ == "__main__":
     # Build the extension and drop the compiled module next to the package
     # source (src/sparcli/_sparcli_cffi.*), so `PYTHONPATH=src` imports work
     # without an install. (`pip install` goes through setup.py's cffi_modules.)
-    # We compile from this directory — where the csrc/cinclude symlinks resolve —
-    # then copy just the shared object into src/sparcli and clean the scratch.
+    # We compile from this directory (where the csrc/cinclude symlinks
+    # resolve), then copy the shared object into src/sparcli and clean up.
     import shutil
 
     built = ffibuilder.compile(verbose=True)
     dst_dir = os.path.join(_HERE, "src", "sparcli")
     shutil.copyfile(built, os.path.join(dst_dir, os.path.basename(built)))
     shutil.rmtree(os.path.join(_HERE, "sparcli"), ignore_errors=True)
-    print("installed", os.path.basename(built), "->", os.path.relpath(dst_dir, _HERE))
+    print("installed", os.path.basename(built),
+          "->", os.path.relpath(dst_dir, _HERE))

@@ -67,7 +67,7 @@ void sc_align_text(const ScText *text, ScHAlign halign, int width) {
 }
 
 
-/** Prints one content line with `left_pad` spaces before and `right_pad` after. */
+/** Prints one content line with `left_pad` spaces before, `right_pad` after. */
 static void print_padded_line(
     const char *line, int left_pad, int right_pad
 ) {

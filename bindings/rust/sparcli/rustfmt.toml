@@ -1,0 +1,2 @@
+# Project style rule: lines wrap at 80 columns (overrides rustfmt's 100 default).
+max_width = 80

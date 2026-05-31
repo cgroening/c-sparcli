@@ -31,10 +31,10 @@ typedef struct ScColItem {
     /** Horizontal placement of the content when the column is wider. */
     ScHAlign halign;
 
-    /** When `true`, `valign` overrides `ScColumnsOpts.valign` for this column. */
+    /** When `true`, `valign` overrides `ScColumnsOpts.valign` for this col. */
     bool valign_set;
 
-    /** Vertical alignment override; effective only when `valign_set` is `true`. */
+    /** Vertical alignment override; used only when `valign_set` is `true`. */
     ScVAlign valign;
 
     /**

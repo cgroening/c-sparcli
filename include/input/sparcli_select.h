@@ -68,7 +68,8 @@ typedef struct ScSelectOpts {
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
 
-    /** Custom key shortcuts; borrowed, must outlive the run. @see sparcli_shortcut.h */
+    /** Custom key shortcuts; borrowed, must outlive the run.
+        @see sparcli_shortcut.h */
     const ScShortcut *shortcuts;
 
     /** Number of entries in `shortcuts`. */
@@ -77,7 +78,8 @@ typedef struct ScSelectOpts {
     /** Optional: receives the fired shortcut id (RETURN mode), else `-1`. */
     int *out_shortcut_id;
 
-    /** Optional rich prompt (mixed styles); overrides the string prompt. Borrowed. */
+    /** Optional rich prompt (mixed styles); overrides the string prompt.
+        Borrowed. */
     const struct ScText *prompt_text;
 
     /** Parse the string prompt as inline markup. */
@@ -113,7 +115,9 @@ SPARCLI_EXPORT void sc_select_set_cursor(ScSelect *select, size_t index);
  * Pre-checks or unchecks `index` (multi-select) before `sc_select_run`, to seed
  * a default set of selected items. No-op out of range.
  */
-SPARCLI_EXPORT void sc_select_set_checked(ScSelect *select, size_t index, bool on);
+SPARCLI_EXPORT void sc_select_set_checked(
+    ScSelect *select, size_t index, bool on
+);
 
 /**
  * Runs the interactive selection.
@@ -148,7 +152,9 @@ SPARCLI_EXPORT size_t sc_select_cursor(const ScSelect *select);
  * when out of range. The pointer is owned by the selection — copy it if you
  * need it past the next mutation.
  */
-SPARCLI_EXPORT const char *sc_select_label(const ScSelect *select, size_t index);
+SPARCLI_EXPORT const char *sc_select_label(
+    const ScSelect *select, size_t index
+);
 
 /**
  * Replaces the label of the item at `index` (the new string is copied). No-op

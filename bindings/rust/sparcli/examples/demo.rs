@@ -13,10 +13,12 @@ use sparcli::*;
 
 fn heading(title: &str) {
     println("", Style::default());
-    rule(RuleOpts::new()
-        .kind(BorderType::Double)
-        .title(title)
-        .align(Align::Left));
+    rule(
+        RuleOpts::new()
+            .kind(BorderType::Double)
+            .title(title)
+            .align(Align::Left),
+    );
     println("", Style::default());
 }
 
@@ -51,7 +53,10 @@ fn output_section() {
     print("italic ", Style::italic());
     print("under ", Style::new().attr(Attr::UNDERLINE));
     println("rgb", Style::new().fg(Color::rgb(120, 200, 255)));
-    markup::println("[bold red]Error:[/] not found  [on cyan] 200 OK [/]  [rgb(255,170,0)]warn[/]");
+    markup::println(concat!(
+        "[bold red]Error:[/] not found  [on cyan] 200 OK [/]  ",
+        "[rgb(255,170,0)]warn[/]",
+    ));
     let mut t = Text::new();
     t.append("multi-", Style::default())
         .append("span ", Style::bold().fg(Color::GREEN))
@@ -61,7 +66,10 @@ fn output_section() {
 
     // Panels (several borders) + alerts.
     heading("Panels & alerts");
-    panel("auto-fit content", PanelOpts::new().single().title("single"));
+    panel(
+        "auto-fit content",
+        PanelOpts::new().single().title("single"),
+    );
     panel(
         "rounded, full width, centered",
         PanelOpts::new()
@@ -85,12 +93,21 @@ fn output_section() {
 
     // Badges + rule variants.
     heading("Badges & rules");
-    badge("NEW", BadgeOpts::new().style(Style::bold().bg(Color::GREEN).fg(Color::BLACK)));
+    badge(
+        "NEW",
+        BadgeOpts::new().style(Style::bold().bg(Color::GREEN).fg(Color::BLACK)),
+    );
     print("  ", Style::default());
     badge("v1.2", BadgeOpts::new().caps("(", ")").style(Style::dim()));
     println("", Style::default());
     rule(RuleOpts::new().kind(BorderType::Single));
-    rule(RuleOpts::new().kind(BorderType::Thick).title("centered").width(40).align(Align::Center));
+    rule(
+        RuleOpts::new()
+            .kind(BorderType::Thick)
+            .title("centered")
+            .width(40)
+            .align(Align::Center),
+    );
 
     // Table: header, alignment, striped, colspan, footer.
     heading("Table");
@@ -101,7 +118,11 @@ fn output_section() {
         .column("Price", ColOpts::new().align(Align::Right));
     table.row(["Apples", "12", "3.40"]);
     table.row_bg(["Bananas", "5", "1.10"], Color::rgb(30, 30, 30));
-    table.row([Cell::new("Subtotal").colspan(2), Cell::skip(), Cell::new("4.50").align(Align::Right)]);
+    table.row([
+        Cell::new("Subtotal").colspan(2),
+        Cell::skip(),
+        Cell::new("4.50").align(Align::Right),
+    ]);
     table.footer_row(["Total", "17", "4.50"]);
     table.print(
         TableOpts::new()
@@ -127,7 +148,8 @@ fn output_section() {
     tree.add("lib.rs", src, Style::default());
     tree.add("README", root, Style::dim());
 
-    let mut kv = Kv::new(KvOpts::new().key_style(Style::bold().fg(Color::CYAN)));
+    let mut kv =
+        Kv::new(KvOpts::new().key_style(Style::bold().fg(Color::CYAN)));
     kv.add("Name", "sparcli")
         .add("Lang", "C + Rust")
         .add("Version", version_string());
@@ -135,11 +157,9 @@ fn output_section() {
     let lst = capture::list(&list);
     let tre = capture::tree(&tree);
     let kvr = capture::kv(&kv);
-    let mut cols = Columns::new(
-        ColumnsOpts::new()
-            .gap(2)
-            .separator(BorderStyle::new(BorderType::Single).color(Color::rgb(80, 80, 100))),
-    );
+    let mut cols = Columns::new(ColumnsOpts::new().gap(2).separator(
+        BorderStyle::new(BorderType::Single).color(Color::rgb(80, 80, 100)),
+    ));
     cols.add_rendered(&lst, ColItem::new())
         .add_rendered(&tre, ColItem::new())
         .add_rendered(&kvr, ColItem::new());
@@ -152,7 +172,15 @@ fn output_section() {
     if let Some(stacked) = vstack(&[&a, &b], 1) {
         stacked.align(Align::Center, 0);
     }
-    pad_str("padded + indented", PadOpts { left: 6, top: 1, bottom: 1, ..Default::default() });
+    pad_str(
+        "padded + indented",
+        PadOpts {
+            left: 6,
+            top: 1,
+            bottom: 1,
+            ..Default::default()
+        },
+    );
 
     // Progress bar (animated) + spinner (animated).
     heading("Progress & spinner");
@@ -171,7 +199,12 @@ fn output_section() {
     }
     bar.finish(100.0, 100.0);
 
-    let mut sp = Spinner::new("Crunching", SpinnerOpts::new().kind(SpinnerType::Dots).color(Color::CYAN));
+    let mut sp = Spinner::new(
+        "Crunching",
+        SpinnerOpts::new()
+            .kind(SpinnerType::Dots)
+            .color(Color::CYAN),
+    );
     for _ in 0..24 {
         sp.tick();
         sleep(Duration::from_millis(40));
@@ -184,7 +217,9 @@ fn output_section() {
 fn input_section() -> sparcli::Result<()> {
     heading("Input widgets");
 
-    if let Some(yes) = confirm("Run the input demo?", ConfirmOpts::new().default_yes(true))? {
+    if let Some(yes) =
+        confirm("Run the input demo?", ConfirmOpts::new().default_yes(true))?
+    {
         println(&format!("  confirm -> {yes}"), Style::dim());
     }
 
@@ -198,7 +233,9 @@ fn input_section() -> sparcli::Result<()> {
             .external_editor(true)
             .shortcuts(&sc),
     )? {
-        Some(_) if sc.fired() == 1 => println("  text -> F2/help requested", Style::dim()),
+        Some(_) if sc.fired() == 1 => {
+            println("  text -> F2/help requested", Style::dim())
+        }
         Some(name) => println(&format!("  text -> {name:?}"), Style::dim()),
         None => println("  text -> cancelled", Style::dim()),
     }
@@ -208,12 +245,18 @@ fn input_section() -> sparcli::Result<()> {
     p.append("Rename ", Style::default())
         .append("Apple", Style::italic())
         .append(" to", Style::default());
-    if let Some(v) = text_input("", TextInputOpts::new().prompt_text(&p).initial("Apple"))? {
+    if let Some(v) =
+        text_input("", TextInputOpts::new().prompt_text(&p).initial("Apple"))?
+    {
         println(&format!("  rename -> {v:?}"), Style::dim());
     }
 
-    if let Some(pw) = password_input("Password", PasswordOpts::new().mask("•"))? {
-        println(&format!("  password -> {} chars", pw.chars().count()), Style::dim());
+    if let Some(pw) = password_input("Password", PasswordOpts::new().mask("•"))?
+    {
+        println(
+            &format!("  password -> {} chars", pw.chars().count()),
+            Style::dim(),
+        );
     }
 
     if let Some(n) = number_input(
@@ -227,7 +270,10 @@ fn input_section() -> sparcli::Result<()> {
         "Notes (Ctrl-D submit · Ctrl-G editor)",
         TextareaOpts::new().boxed(48).external_editor(true),
     )? {
-        println(&format!("  textarea -> {} bytes", notes.len()), Style::dim());
+        println(
+            &format!("  textarea -> {} bytes", notes.len()),
+            Style::dim(),
+        );
     }
 
     // Single select.
@@ -238,7 +284,8 @@ fn input_section() -> sparcli::Result<()> {
     }
 
     // Multi select.
-    let mut multi = Select::new(SelectOpts::new().prompt("Pick toppings").multi(true));
+    let mut multi =
+        Select::new(SelectOpts::new().prompt("Pick toppings").multi(true));
     multi.add("Cheese").add("Olives").add("Basil").add("Chili");
     if let Some(idx) = multi.run()? {
         println(&format!("  multi-select -> {idx:?}"), Style::dim());
@@ -246,7 +293,9 @@ fn input_section() -> sparcli::Result<()> {
 
     // Fuzzy finder.
     let mut fz = Fuzzy::new(FuzzyOpts::new().prompt("Find a city"));
-    for c in ["Tokyo", "London", "Berlin", "Paris", "Oslo", "Madrid", "Lisbon"] {
+    for c in [
+        "Tokyo", "London", "Berlin", "Paris", "Oslo", "Madrid", "Lisbon",
+    ] {
         fz.add(c);
     }
     if let Some(i) = fz.run()? {
@@ -254,8 +303,16 @@ fn input_section() -> sparcli::Result<()> {
     }
 
     // Date picker.
-    if let Some(d) = datepicker(None, DatePickerOpts::new().prompt("Pick a date").week_start(WeekStart::Monday))? {
-        println(&format!("  date -> {:04}-{:02}-{:02}", d.year, d.month, d.day), Style::dim());
+    if let Some(d) = datepicker(
+        None,
+        DatePickerOpts::new()
+            .prompt("Pick a date")
+            .week_start(WeekStart::Monday),
+    )? {
+        println(
+            &format!("  date -> {:04}-{:02}-{:02}", d.year, d.month, d.day),
+            Style::dim(),
+        );
     }
 
     Ok(())

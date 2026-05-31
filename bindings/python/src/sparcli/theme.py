@@ -37,7 +37,8 @@ class Theme:
 
 
 def set_theme(theme: Theme | None) -> None:
-    """Install the process-wide input theme. ``None`` clears it. Not thread-safe."""
+    """Install the process-wide input theme. ``None`` clears it. Not
+    thread-safe."""
     global _theme_keep
     if theme is None:
         _theme_keep = []

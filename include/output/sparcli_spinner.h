@@ -68,7 +68,9 @@ SPARCLI_EXPORT void sc_spinner_tick(ScSpinner *spinner);
  * @param success  `true` = print `✔` in green; `false` = print `✖` in red.
  * @param label    Optional label printed after the symbol; may be `NULL`.
  */
-SPARCLI_EXPORT void sc_spinner_finish(ScSpinner *spinner, bool success, const char *label);
+SPARCLI_EXPORT void sc_spinner_finish(
+    ScSpinner *spinner, bool success, const char *label
+);
 
 /**
  * Frees `spinner` and the owned label string.

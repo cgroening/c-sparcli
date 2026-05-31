@@ -96,7 +96,10 @@ static void apply_color_escape(ScColor clr, ColorLayer layer) {
     if (clr.index == 0) {
         return;
     } else if (clr.index == -1) {
-        fprintf(sc_output_stream(), "\033[%d;2;%d;%d;%dm", rgb_prefix, clr.r, clr.g, clr.b);
+        fprintf(
+            sc_output_stream(), "\033[%d;2;%d;%d;%dm",
+            rgb_prefix, clr.r, clr.g, clr.b
+        );
     } else {
         fprintf(sc_output_stream(), "\033[%d%dm", named, clr.index - 1);
     }

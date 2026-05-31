@@ -78,7 +78,9 @@ void sc_table_add_column(
     table_data->column_count++;
 }
 
-void sc_table_add_row(ScTableData *table_data, ScCell *cells, size_t cell_count) {
+void sc_table_add_row(
+    ScTableData *table_data, ScCell *cells, size_t cell_count
+) {
     add_row(table_data, cells, cell_count, SC_ANSI_COLOR_NONE, false);
 }
 

@@ -2,9 +2,9 @@
 //! `cargo run --example input_demo`.
 
 use sparcli::{
-    confirm, datepicker, number_input, password_input, text_input, textarea, ConfirmOpts,
-    DatePickerOpts, Fuzzy, FuzzyOpts, NumberOpts, PasswordOpts, Select, SelectOpts, Shortcuts,
-    TextInputOpts, TextareaOpts,
+    confirm, datepicker, number_input, password_input, text_input, textarea,
+    ConfirmOpts, DatePickerOpts, Fuzzy, FuzzyOpts, NumberOpts, PasswordOpts,
+    Select, SelectOpts, Shortcuts, TextInputOpts, TextareaOpts,
 };
 
 fn main() -> sparcli::Result<()> {
@@ -13,12 +13,19 @@ fn main() -> sparcli::Result<()> {
         return Ok(());
     }
 
-    if let Some(yes) = confirm("Proceed with the demo?", ConfirmOpts::new().default_yes(true))? {
+    if let Some(yes) = confirm(
+        "Proceed with the demo?",
+        ConfirmOpts::new().default_yes(true),
+    )? {
         println!("-> {yes}");
     }
 
-    // Text input with a custom Ctrl-E shortcut and the external editor (Ctrl-G).
-    let sc = Shortcuts::new().on_return(sparcli::key_ctrl('e'), 1, Some("edit elsewhere"));
+    // Text input with a custom Ctrl-E shortcut + external editor (Ctrl-G).
+    let sc = Shortcuts::new().on_return(
+        sparcli::key_ctrl('e'),
+        1,
+        Some("edit elsewhere"),
+    );
     if let Some(name) = text_input(
         "Your name (Ctrl-G editor, Ctrl-E action)",
         TextInputOpts::new()
@@ -37,7 +44,9 @@ fn main() -> sparcli::Result<()> {
         println!("-> {} chars", pw.chars().count());
     }
 
-    if let Some(qty) = number_input("Quantity", NumberOpts::new().range(0.0, 100.0).step(5.0))? {
+    if let Some(qty) =
+        number_input("Quantity", NumberOpts::new().range(0.0, 100.0).step(5.0))?
+    {
         println!("-> {qty}");
     }
 
@@ -62,7 +71,9 @@ fn main() -> sparcli::Result<()> {
         println!("-> index {i}");
     }
 
-    if let Some(d) = datepicker(None, DatePickerOpts::new().prompt("Pick a date"))? {
+    if let Some(d) =
+        datepicker(None, DatePickerOpts::new().prompt("Pick a date"))?
+    {
         println!("-> {:04}-{:02}-{:02}", d.year, d.month, d.day);
     }
 

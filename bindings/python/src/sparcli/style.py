@@ -34,7 +34,9 @@ class Style:
         return cls(Attr.ITALIC, fg, bg)
 
     @classmethod
-    def underline(cls, fg: Color = Color.NONE, bg: Color = Color.NONE) -> "Style":
+    def underline(
+        cls, fg: Color = Color.NONE, bg: Color = Color.NONE
+    ) -> "Style":
         return cls(Attr.UNDERLINE, fg, bg)
 
 

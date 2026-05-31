@@ -18,8 +18,9 @@
  * the default disposition so the process still dies as expected – but with a
  * usable terminal instead of a stuck raw mode.
  *
- * We deliberately do NOT trap the crash signals (SIGSEGV/SIGABRT/SIGBUS/SIGFPE):
- * doing so would override handlers that debuggers, crash reporters and
+ * We deliberately do NOT trap the crash signals
+ * (SIGSEGV/SIGABRT/SIGBUS/SIGFPE): doing so would override handlers that
+ * debuggers, crash reporters and
  * sanitizers install, masking their diagnostics. `atexit` covers clean exits.
  */
 static const int RESTORE_SIGNALS[] = {

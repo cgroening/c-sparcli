@@ -10,7 +10,7 @@ from enum import IntEnum, IntFlag
 
 
 class Attr(IntFlag):
-    """Text attribute bitmask; combine with ``|`` (e.g. ``Attr.BOLD | Attr.ITALIC``)."""
+    """Text attribute bitmask; combine with ``|`` (``Attr.BOLD | Attr.DIM``)."""
 
     NONE = 0
     BOLD = 1

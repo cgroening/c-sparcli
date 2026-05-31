@@ -19,7 +19,9 @@ SPARCLI_BEGIN_DECLS
  * @param halign     Horizontal alignment (LEFT / CENTER / RIGHT).
  * @param width     Target width in columns; `0` = current terminal width.
  */
-SPARCLI_EXPORT void sc_align_print(const ScRendered *rendered, ScHAlign halign, int width);
+SPARCLI_EXPORT void sc_align_print(
+    const ScRendered *rendered, ScHAlign halign, int width
+);
 
 /**
  * Convenience wrapper: captures `str` and aligns it via `sc_align_print`.
@@ -37,6 +39,8 @@ SPARCLI_EXPORT void sc_align_str(const char *str, ScHAlign halign, int width);
  * @param halign  Horizontal alignment.
  * @param width  Target width in columns; `0` = current terminal width.
  */
-SPARCLI_EXPORT void sc_align_text(const ScText *text, ScHAlign halign, int width);
+SPARCLI_EXPORT void sc_align_text(
+    const ScText *text, ScHAlign halign, int width
+);
 
 SPARCLI_END_DECLS

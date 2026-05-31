@@ -18,7 +18,8 @@ def main() -> None:
     sc.println("")
 
     sc.panel("Bordered, titled, full-width panel.",
-             sc.PanelOpts(title="panel", border=sc.BorderStyle(sc.BorderType.ROUNDED),
+             sc.PanelOpts(title="panel",
+                          border=sc.BorderStyle(sc.BorderType.ROUNDED),
                           full_width=True, content_align=sc.Align.CENTER))
 
     sc.alert.success("Everything compiled.")
