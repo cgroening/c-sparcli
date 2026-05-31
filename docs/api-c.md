@@ -987,11 +987,11 @@ selects the widget's built-in default. Every widget has a `prompt_style`,
 `hint_pos` / `hint_style`).
 
 `hint_layout` is an `ScHintLayout` that controls the footer on every widget:
-`SC_HINT_INLINE` (one `·`-separated line — the default), `SC_HINT_STACKED` (one
+`SC_HINT_INLINE` (one `·`-separated line – the default), `SC_HINT_STACKED` (one
 hint per line), or `SC_HINT_HIDDEN` (no footer). The zero-init
 `SC_HINT_LAYOUT_DEFAULT` inherits the theme, then falls back to inline.
 
-`hint_pos` is an `ScHintPosition` that places the footer relative to the widget —
+`hint_pos` is an `ScHintPosition` that places the footer relative to the widget –
 `SC_HINT_POS_TOP`, `SC_HINT_POS_BOTTOM` (default), `SC_HINT_POS_LEFT`, or
 `SC_HINT_POS_RIGHT` (left/right sit beside the widget, top-aligned). It is
 orthogonal to `hint_layout` (e.g. right + stacked, or right + inline). The

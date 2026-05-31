@@ -59,19 +59,19 @@ panel("Hi", { .border = { .type = SC_BORDER_ROUNDED },
 
 The `*Opts` structs are **zero-init-friendly by design**: you brace-initialize
 only the fields you care about, and every field you omit defaults to zero (which
-each option documents as its sensible default). That is the intended idiom — the
+each option documents as its sensible default). That is the intended idiom – the
 short form above leaves the vast majority of fields unset on purpose.
 
 Clang's `-Wmissing-designated-field-initializers` flags exactly this (e.g.
 *"missing field 'initial' initializer"* for `{ .placeholder = "…" }`). The
-warning is **not** part of `-Wall`/`-Wextra` — it only appears if you opt in, or
+warning is **not** part of `-Wall`/`-Wextra` – it only appears if you opt in, or
 via an editor's language server (clangd commonly surfaces it). It is fundamentally
 at odds with this idiom: it even fires inside sparcli's own headers (the inline
 `sc_cell*` helpers brace-init a few `ScCell` fields and leave the rest zero).
 
 **Recommended:** silence that one diagnostic in the consumer. The omitted fields
 are still well-defined zero-initialization, so nothing about behavior, codegen or
-ABI changes — only the (incorrect, for this style) message goes away:
+ABI changes – only the (incorrect, for this style) message goes away:
 
 ```sh
 # Makefile / build flags
@@ -85,12 +85,12 @@ CXXFLAGS += -Wno-missing-designated-field-initializers
 This is safe and portable: the flag is clang-specific, and a `-Wno-…` for an
 unknown warning is silently ignored by GCC. The only trade-off is that it is
 project-wide, so you also lose the check for your *own* structs where omitting a
-field might be an oversight — minor if you, too, rely on zero-init defaults. If
+field might be an oversight – minor if you, too, rely on zero-init defaults. If
 you'd rather keep that check for your code, suppress it editor-only via a
 `.clangd` file (`Diagnostics: { Suppress: [missing-designated-field-initializers] }`).
 
 **Verbose alternative (no flag):** if you don't want to touch warnings, default-
-construct the opts and assign the fields you need — this initializes every field
+construct the opts and assign the fields you need – this initializes every field
 (via value-initialization) and never trips the warning:
 
 ```cpp
@@ -100,7 +100,7 @@ auto name = text_input("Task title", opts);
 ```
 
 It is correct but loses the concise call-site style the wrapper is built around,
-and you would repeat it at every such call — hence the `-Wno-…` flag is usually
+and you would repeat it at every such call – hence the `-Wno-…` flag is usually
 preferable.
 
 Aliases: `Color`, `TextStyle`, `TextAttribute`, `Title`, `Edges`, `BorderStyle`,

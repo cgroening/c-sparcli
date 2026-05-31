@@ -204,7 +204,7 @@ typedef struct ScTitle {
     /**
      * Optional rich title (mixed styles). When non-`NULL` it overrides `text`
      * and `style`, and its visible width is used for layout. Currently honored
-     * by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed —
+     * by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed –
      * must outlive the render call.
      */
     const struct ScText *rich_text;

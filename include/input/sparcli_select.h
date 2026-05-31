@@ -149,7 +149,7 @@ SPARCLI_EXPORT size_t sc_select_cursor(const ScSelect *select);
 
 /**
  * Returns the current label of the item at `index` (current order), or `NULL`
- * when out of range. The pointer is owned by the selection — copy it if you
+ * when out of range. The pointer is owned by the selection – copy it if you
  * need it past the next mutation.
  */
 SPARCLI_EXPORT const char *sc_select_label(

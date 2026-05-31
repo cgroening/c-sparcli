@@ -162,7 +162,7 @@ make test-cpp-golden             # regenerate tests/cpp/expected.txt
 
 The safe Rust crate lives in `bindings/rust/` (a cargo workspace:
 `sparcli-sys` + `sparcli`). `sparcli-sys/build.rs` compiles the C sources with
-the `cc` crate, so these targets need only a Rust toolchain (`cargo`) — no
+the `cc` crate, so these targets need only a Rust toolchain (`cargo`) – no
 prior `make` or install. Kept out of `make test` since cargo may be absent.
 
 ```sh
@@ -171,7 +171,7 @@ make rust-test     # cargo test: non-interactive integration tests + doctests
 cargo clippy --manifest-path bindings/rust/Cargo.toml --all-targets -- -D warnings
 cargo build --manifest-path bindings/rust/Cargo.toml --features regen  # bindgen path (libclang)
 
-# Examples (the workspace has no bin, so plain `cargo run` fails — pick one).
+# Examples (the workspace has no bin, so plain `cargo run` fails – pick one).
 # From the repo root:
 cargo run --manifest-path bindings/rust/Cargo.toml -p sparcli --example demo
 # Or from inside bindings/rust/ :
@@ -187,8 +187,8 @@ FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the
 ### `make python` / `make python-test` – Python bindings
 
 The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode
-wrapper). `build_sparcli.py` compiles the vendored C sources — reached through
-the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) — into
+wrapper). `build_sparcli.py` compiles the vendored C sources – reached through
+the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) – into
 `src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests
 and examples run with `PYTHONPATH=src`, no install required. Needs Python with
 `cffi`; kept out of `make test` since neither may be present.
@@ -204,7 +204,7 @@ PYTHONPATH=src python examples/output_gallery.py  # output only
 PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
 ```
 
-To install into an environment instead — an editable (`-e`) install with build
+To install into an environment instead – an editable (`-e`) install with build
 isolation off, because the C sources are reached via the in-repo symlinks and
 the build must run in place:
 
@@ -214,7 +214,7 @@ pip install --no-build-isolation -e bindings/python
 ```
 
 The `cdef` in `build_sparcli.py` uses cffi's partial-struct (`...;`) syntax, so
-the compiler fills in exact struct layout from the headers — a real mismatch
+the compiler fills in exact struct layout from the headers – a real mismatch
 fails the build. The reference is [`docs/api-python.md`](api-python.md).
 
 ### `make sanitize` – output suite under ASan/UBSan
@@ -270,24 +270,24 @@ make test-input
 The C++/Rust/Python bindings and any external consumer each carry their **own**
 copy of the compiled library (the Rust and Python wrappers compile the C sources
 themselves; pkg-config consumers link the installed `.a`/`.so`). None of them
-pick up a `src/` or `include/` change automatically — after editing the C core,
+pick up a `src/` or `include/` change automatically – after editing the C core,
 rebuild each one you use. All commands are relative to the **project root**.
 
 **All at once:** `make rebuild-all` runs steps 1–3 below in order (C library +
 `install` + Rust + Python); the C++ wrapper is header-only and needs no rebuild.
-It needs `cargo` and a cffi-capable Python — point at one with
+It needs `cargo` and a cffi-capable Python – point at one with
 `make rebuild-all PY=/path/to/python`. `install` defaults to `/usr/local` (needs
 `sudo`); pass a prefix for a user-local install, e.g.
 `make rebuild-all PREFIX=$HOME/.local`. Run the individual steps instead when you
 only touched one binding.
 
 ```sh
-# 1. Core C library + (re)install — needed by pkg-config consumers, the C/C++
+# 1. Core C library + (re)install – needed by pkg-config consumers, the C/C++
 #    headers, and any external project that links the installed lib.
 make                                   # rebuild libsparcli.a + .so + .pc
 make install                           # reinstall (user-local; or `sudo make install`)
 
-# 2. Rust binding — build.rs recompiles the C via cc (no install needed).
+# 2. Rust binding – build.rs recompiles the C via cc (no install needed).
 cargo build --manifest-path bindings/rust/Cargo.toml
 cargo test  --manifest-path bindings/rust/Cargo.toml
 #    If a struct / signature / enum changed, regenerate the committed bindgen
@@ -295,15 +295,15 @@ cargo test  --manifest-path bindings/rust/Cargo.toml
 cargo build --manifest-path bindings/rust/Cargo.toml --features regen
 #    -> commit bindings/rust/sparcli-sys/src/bindings.rs
 
-# 3. Python binding — rebuild the cffi extension (it is NOT rebuilt on import).
+# 3. Python binding – rebuild the cffi extension (it is NOT rebuilt on import).
 make python                            # build in place into src/sparcli/
 make python-test                       # build + headless pytest
-#    An editable install does not auto-rebuild either — re-run it after a change:
+#    An editable install does not auto-rebuild either – re-run it after a change:
 uv pip install --no-build-isolation -e bindings/python
 #    If a struct/signature the wrapper uses changed or was added, first update
 #    the cdef in bindings/python/build_sparcli.py (and the dataclass `_fill`).
 
-# 4. C++ wrapper — header-only; if the C API changed, update include/sparcli.hpp,
+# 4. C++ wrapper – header-only; if the C API changed, update include/sparcli.hpp,
 #    then recompile dependents and rerun the gate:
 make test-cpp
 ```
@@ -352,7 +352,7 @@ cc myapp.c $(pkg-config --cflags --libs sparcli) -o myapp
 
 The default `PREFIX=/usr/local` is **not writable without root** on most macOS
 setups, so `make install` fails there with `Operation not permitted`. Rather
-than `sudo` (which leaves root-owned files in `/usr/local` — and, if you ever
+than `sudo` (which leaves root-owned files in `/usr/local` – and, if you ever
 build *as root*, root-owned objects in the build tree that later block a normal
 `make`), install into your home prefix instead:
 
@@ -366,7 +366,7 @@ make install PREFIX="$HOME/.local"  #   points at ~/.local, not /usr/local
 > would make the loader look there at run time and fail. A clean rebuild with
 > `PREFIX="$HOME/.local"` links it (and writes `sparcli.pc`) for the right path.
 
-`pkg-config` does not search `~/.local` by default, so point it there once — add
+`pkg-config` does not search `~/.local` by default, so point it there once – add
 to `~/.zshrc` (or `~/.bashrc`):
 
 ```sh

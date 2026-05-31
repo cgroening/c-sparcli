@@ -15,11 +15,11 @@ import sparcli as sc
 
 def main() -> int:
     if not sc.input_available():
-        sc.println("No interactive terminal — run this directly in a shell.",
+        sc.println("No interactive terminal – run this directly in a shell.",
                    sc.Style.dim())
         return 1
 
-    sc.rule("sparcli — input demo", sc.RuleOpts(type=sc.BorderType.DOUBLE))
+    sc.rule("sparcli – input demo", sc.RuleOpts(type=sc.BorderType.DOUBLE))
 
     if sc.confirm("Proceed?", sc.ConfirmOpts(default_yes=True)) is None:
         sc.println("cancelled", sc.Style.dim())

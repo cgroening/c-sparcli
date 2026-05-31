@@ -24,7 +24,7 @@ fn heading(title: &str) {
 
 fn main() -> sparcli::Result<()> {
     println(
-        &format!("sparcli {} — Rust wrapper demo", version_string()),
+        &format!("sparcli {} – Rust wrapper demo", version_string()),
         Style::bold().fg(Color::CYAN),
     );
 
@@ -35,7 +35,7 @@ fn main() -> sparcli::Result<()> {
     } else {
         heading("Input widgets");
         println(
-            "Skipped — run this in a real terminal to try the prompts.",
+            "Skipped – run this in a real terminal to try the prompts.",
             Style::dim(),
         );
     }

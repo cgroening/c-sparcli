@@ -12,7 +12,7 @@ from .enums import Align, Attr, BorderType, Position
 class Style:
     """A styled text span: attribute flags + foreground/background color.
 
-    Construct with keyword args — ``Style(attr=Attr.BOLD, fg=Color.GREEN)`` — or
+    Construct with keyword args – ``Style(attr=Attr.BOLD, fg=Color.GREEN)`` – or
     use the convenience constructors :meth:`bold`, :meth:`dim`, :meth:`italic`,
     :meth:`underline`. A default ``Style()`` applies no formatting.
     """

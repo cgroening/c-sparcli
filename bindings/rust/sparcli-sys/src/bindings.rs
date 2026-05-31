@@ -281,7 +281,7 @@ const _: () = {
 pub struct ScTitle {
     #[doc = " Title string; `NULL` = no title."]
     pub text: *const ::std::os::raw::c_char,
-    #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed —\n must outlive the render call."]
+    #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed –\n must outlive the render call."]
     pub rich_text: *mut ScText,
     #[doc = " Text style (bold, color, …) applied to the title."]
     pub style: ScTextStyle,
@@ -1800,7 +1800,7 @@ const _: () = {
         [::std::mem::offset_of!(ScShortcut, hint_label) - 40usize];
 };
 extern "C" {
-    #[doc = " Builds a Ctrl-letter chord, e.g. `sc_key_ctrl('e')`.\n\n `letter` is case-insensitive. Ctrl-C (cancel), Ctrl-H (Backspace), Ctrl-I\n (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable — the terminal never delivers\n them as a distinct Ctrl chord — and are rejected by a debug assert."]
+    #[doc = " Builds a Ctrl-letter chord, e.g. `sc_key_ctrl('e')`.\n\n `letter` is case-insensitive. Ctrl-C (cancel), Ctrl-H (Backspace), Ctrl-I\n (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable – the terminal never delivers\n them as a distinct Ctrl chord – and are rejected by a debug assert."]
     pub fn sc_key_ctrl(letter: ::std::os::raw::c_char) -> ScKeyChord;
 }
 extern "C" {
@@ -2625,7 +2625,7 @@ extern "C" {
     pub fn sc_select_cursor(select: *const ScSelect) -> usize;
 }
 extern "C" {
-    #[doc = " Returns the current label of the item at `index` (current order), or `NULL`\n when out of range. The pointer is owned by the selection — copy it if you\n need it past the next mutation."]
+    #[doc = " Returns the current label of the item at `index` (current order), or `NULL`\n when out of range. The pointer is owned by the selection – copy it if you\n need it past the next mutation."]
     pub fn sc_select_label(select: *const ScSelect, index: usize) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
@@ -2660,7 +2660,7 @@ pub struct ScFuzzyOpts {
     pub headers: *const *const ::std::os::raw::c_char,
     #[doc = " Number of columns (table view)."]
     pub n_cols: usize,
-    #[doc = " Bitmask selecting which columns the query searches (bit `c` = column\n `c`). `0` (the default) searches all columns. Table view only — the list\n view always searches its single label. A row matches when the query\n matches any selected column; its rank uses the best-scoring column."]
+    #[doc = " Bitmask selecting which columns the query searches (bit `c` = column\n `c`). `0` (the default) searches all columns. Table view only – the list\n view always searches its single label. A row matches when the query\n matches any selected column; its rank uses the best-scoring column."]
     pub search_columns: u64,
     #[doc = " Search label; zero-init = bold in `accent`."]
     pub prompt_style: ScTextStyle,
@@ -2925,7 +2925,7 @@ extern "C" {
     #[doc = " Prompts the user to pick a date from a month calendar.\n\n Arrow keys move by day/week; PageUp/PageDown (or `<`/`>`) change month;\n Shift+PageUp/PageDown change year; Enter selects; Esc or Ctrl-C cancels.\n Month/year jumps keep the selected day, clamped to the target month's last\n valid day (e.g. Jan 31 -> Feb 28).\n\n `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view\n (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten\n with the picked date (normalized via `mktime`).\n\n @param io    In: initial date. Out: picked date. Must not be `NULL`.\n @param opts  Rendering options.\n @return      `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
     pub fn sc_datepicker(io: *mut tm, opts: ScDatePickerOpts) -> ScInputStatus;
 }
-#[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed —\n must outlive the render call."]
+#[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed –\n must outlive the render call."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ScText {

@@ -10,7 +10,7 @@ class SparcliError(Exception):
 class SparcliInputUnavailable(SparcliError):
     """An interactive prompt could not run.
 
-    Raised when a widget returns ``SC_INPUT_ERROR`` — typically because there is
+    Raised when a widget returns ``SC_INPUT_ERROR`` – typically because there is
     no controlling terminal (stdin/stdout redirected, running under CI, …) or a
     read error occurred. Catch it to fall back to a non-interactive default.
     """

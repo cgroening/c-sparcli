@@ -15,7 +15,7 @@ class Text:
     :meth:`from_markup`. Freed automatically; also usable as a context manager
     for deterministic release.
 
-    Held by a raw C pointer, so a ``Text`` is **not** thread-safe to share — the
+    Held by a raw C pointer, so a ``Text`` is **not** thread-safe to share – the
     C output target is thread-local; build and use it on one thread.
     """
 

@@ -65,10 +65,10 @@ safe, idiomatic **Rust** and **Python** bindings.
 - **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`,
   namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
 - **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds
-  the C via `cc` — no install needed) with RAII handles, builder options and
+  the C via `cc` – no install needed) with RAII handles, builder options and
   `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
 - **Python bindings included**: a safe, Pythonic package (`bindings/python/`, a
-  cffi wrapper that compiles the C — no install needed) with RAII handles,
+  cffi wrapper that compiles the C – no install needed) with RAII handles,
   `@dataclass` options and `value`/`None` prompts. See
   [`docs/api-python.md`](docs/api-python.md).
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
@@ -157,7 +157,7 @@ by [`tests/cpp/test_cpp.cpp`](tests/cpp/test_cpp.cpp).
 
 Safe, idiomatic bindings live in [`bindings/rust/`](bindings/rust/) (a cargo
 workspace). `sparcli-sys` compiles the C with the `cc` crate, so a plain
-`cargo build` needs only a Rust toolchain — no prior `make` or install. RAII
+`cargo build` needs only a Rust toolchain – no prior `make` or install. RAII
 handles free themselves, `*Opts` use builder methods, callbacks are closures,
 and prompts return `Result<Option<T>>` (`Ok(None)` = cancelled). Full reference:
 [`docs/api-rust.md`](docs/api-rust.md).
@@ -187,7 +187,7 @@ cargo run -p sparcli --example demo          # complete showcase: all widgets
 
 ### Python
 
-Pythonic bindings live in [`bindings/python/`](bindings/python/) — a **cffi**
+Pythonic bindings live in [`bindings/python/`](bindings/python/) – a **cffi**
 (API-mode) wrapper that compiles the C sources into an extension, so building
 needs only a C compiler. RAII handles free themselves, options are
 `@dataclass`es with keyword args, and prompts return the value or `None` on
@@ -306,8 +306,8 @@ lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
 | **Theme** | `sc_input_set_theme` | Process-wide style defaults inherited by every input widget. |
 
 Every widget shows a key-hint footer that is fully configurable: its layout
-(`hint_layout` — inline, stacked one-per-line, or hidden) and its placement
-(`hint_pos` — above, below, left, or right of the widget).
+(`hint_layout` – inline, stacked one-per-line, or hidden) and its placement
+(`hint_pos` – above, below, left, or right of the widget).
 
 ```c
 char *name = NULL;
@@ -318,25 +318,25 @@ if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })
 }
 ```
 
-**Custom shortcuts** — bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on
+**Custom shortcuts** – bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on
 *any* widget via its opts. A `SC_SHORTCUT_RETURN` shortcut closes the prompt and
 reports which key fired (the widget still returns its value); a
-`SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open — handy with
+`SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open – handy with
 `sc_select_remove` / `sc_select_set_label` for live list editing. Labeled
 shortcuts appear in a dim footer automatically.
 
-**Rich prompts** — for partial styling (e.g. `Rename `*`Apple`*` to`) set
+**Rich prompts** – for partial styling (e.g. `Rename `*`Apple`*` to`) set
 `prompt_markup = true` to parse the prompt as markup, or `prompt_text` to pass a
 pre-built multi-style `ScText`. Works inline and in boxed mode.
 
-**External editor** — `sc_text_input` / `sc_textarea` can open the value in
+**External editor** – `sc_text_input` / `sc_textarea` can open the value in
 `$EDITOR` (default chain ending in nvim) with `external_editor = true`; a key
 (default Ctrl-G) suspends the prompt, and save+quit brings the text back. Runs
 shell-free with a `0600` temp file; not available for passwords.
 
 Build a runnable demo of every input widget with
 [`examples/input_demo.c`](examples/input_demo.c), or the shortcuts + rich-prompt
-demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) — F2 renames,
+demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) – F2 renames,
 Ctrl-X deletes):
 
 ```sh

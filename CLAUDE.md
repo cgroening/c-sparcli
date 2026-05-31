@@ -41,7 +41,7 @@ Besides the C library, sparcli ships a header-only **C++ wrapper**
 **Python** package (`bindings/python/`, cffi API-mode). The Rust and Python
 wrappers compile the C sources themselves, so they need no prior `make`/install.
 After changing the C API, rebuild each consumer you use (and update the Python
-`cdef` / regenerate the Rust bindgen output for new/changed symbols) — see the
+`cdef` / regenerate the Rust bindgen output for new/changed symbols) – see the
 "Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the
 per-language references `docs/api-{cpp,rust,python}.md`.
 
@@ -594,7 +594,7 @@ the multi-line in-place redraw (`screen.c`).
 sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the
 `;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
 UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
-`SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` — `poll()` on
+`SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` – `poll()` on
 `/dev/tty` is broken on macOS and would swallow a lone Esc until the next key).
 
 ### Terminal safety / robustness
@@ -683,7 +683,7 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
   `ScTableData` of the visible rows each frame (cursor row via row-bg) and
   `sc_vstack`s query + body + scroll-indicator + footer. `refilter` matches each
   row via `row_matches` across the columns selected by `opts.search_columns`
-  (bitmask; `0` = all, the default), ranking by the best-scoring column — so a
+  (bitmask; `0` = all, the default), ranking by the best-scoring column – so a
   table query can hit (and highlight) any column, not just the first.
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
   `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds
@@ -706,7 +706,7 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
 - **Custom shortcuts** (`input/sparcli_shortcut.h`): every widget's `Sc*Opts`
   carries `shortcuts` / `n_shortcuts` (borrowed `ScShortcut[]`) and an optional
   `out_shortcut_id`. The **prompt engine** (`prompt.c`) matches them before
-  `on_key` — so one implementation covers all widgets — after the reserved
+  `on_key` – so one implementation covers all widgets – after the reserved
   cancel keys (Esc / Ctrl-C can't be bound). Build chords with `sc_key_ctrl('e')`
   / `sc_key_fn(2)` / `sc_key_alt('e')`. `SC_SHORTCUT_RETURN` ends the prompt and
   writes the fired `id` to `*out_shortcut_id` (`-1` = normal submit); the widget

@@ -1,4 +1,4 @@
-"""sparcli — styled terminal output and interactive input widgets for Python.
+"""sparcli – styled terminal output and interactive input widgets for Python.
 
 A safe, Pythonic wrapper over the sparcli C library. Output widgets write to the
 current output stream; input widgets drive a real terminal in raw mode.

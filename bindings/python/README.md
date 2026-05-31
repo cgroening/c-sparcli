@@ -1,12 +1,12 @@
 # sparcli (Python)
 
-Safe, Pythonic bindings for the [sparcli](../../README.md) C library — styled
+Safe, Pythonic bindings for the [sparcli](../../README.md) C library – styled
 terminal output (panels, tables, rules, lists, trees, columns, progress bars,
 spinners, markup) and interactive input widgets (confirm, text/password/number/
 textarea, select, fuzzy finder, date picker).
 
 Built with **cffi** in API mode: a small C extension is compiled from the
-vendored sparcli C sources, so installing needs only a C compiler — no prior
+vendored sparcli C sources, so installing needs only a C compiler – no prior
 `make` and no system-installed library.
 
 ## Quick start
@@ -46,7 +46,7 @@ pip install --no-build-isolation -e bindings/python
 
 (An **editable** (`-e`) install with build isolation **off**: the C sources live
 in the repo, reached via the in-tree `csrc`/`cinclude` symlinks, so the build
-must run in place — an isolated or out-of-tree wheel build would lose them.)
+must run in place – an isolated or out-of-tree wheel build would lose them.)
 
 ## Examples
 

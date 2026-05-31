@@ -9,7 +9,7 @@ use sparcli::{
 
 fn main() -> sparcli::Result<()> {
     if !sparcli::input_available() {
-        eprintln!("No interactive terminal — run this directly in a terminal.");
+        eprintln!("No interactive terminal – run this directly in a terminal.");
         return Ok(());
     }
 

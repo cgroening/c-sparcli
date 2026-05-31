@@ -166,7 +166,7 @@ rust-test:
 # A cffi (API-mode) wrapper. build_sparcli.py compiles the vendored C sources
 # (reached via the csrc/cinclude symlinks) into src/sparcli/_sparcli_cffi.*, so
 # `python build_sparcli.py` builds in place and the tests/examples run with
-# PYTHONPATH=src — no install needed. Needs Python + cffi; kept out of
+# PYTHONPATH=src – no install needed. Needs Python + cffi; kept out of
 # `make test`. For a real install: `pip install --no-build-isolation bindings/python`.
 PY      ?= python3
 PY_DIR   = bindings/python

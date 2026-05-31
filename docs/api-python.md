@@ -5,7 +5,7 @@ Safe, idiomatic Python bindings for sparcli, in `bindings/python/`.
 Built with **cffi** in API / out-of-line mode: `build_sparcli.py` compiles the
 vendored C sources into the `sparcli._sparcli_cffi` extension, so a build needs
 only a C compiler (no prior `make`, no system install). The struct layout is
-verified against the real headers by the C compiler — there is no
+verified against the real headers by the C compiler – there is no
 hand-maintained ABI.
 
 ```python
@@ -68,7 +68,7 @@ kv.print()
 ```
 
 Cells accept a plain `str`, a `sc.Text`, or a `sc.Cell` (for alignment,
-colspan/rowspan, markup or rich text — `sc.Cell.markup("[green]ok[/]")`,
+colspan/rowspan, markup or rich text – `sc.Cell.markup("[green]ok[/]")`,
 `sc.Cell.text(t)`, `sc.Cell.skip()`, `sc.Cell.row_skip()`).
 
 ### Rich text & markup
@@ -136,7 +136,7 @@ notes = sc.textarea("Notes", sc.TextareaOpts(boxed=True, width=48))
 
 sel = sc.Select(sc.SelectOpts(prompt="Pick", multi=True))
 sel.add("a").add("b").add("c")
-chosen = sel.run()          # list[int] (multi) — or sel.run_one() -> int
+chosen = sel.run()          # list[int] (multi) – or sel.run_one() -> int
 
 fz = sc.Fuzzy(sc.FuzzyOpts(prompt="Find"))
 fz.add("Tokyo").add("London")
@@ -154,9 +154,9 @@ default in non-interactive contexts).
 
 ### Input constraints
 
-`text_input`/`password_input` accept a `char_filter` — either a built-in
+`text_input`/`password_input` accept a `char_filter` – either a built-in
 (`sc.filter_digits`, `sc.filter_decimal`, `sc.filter_alpha`, `sc.filter_alnum`,
-`sc.filter_no_space`) or a Python callable `(ch: str) -> bool` — and a
+`sc.filter_no_space`) or a Python callable `(ch: str) -> bool` – and a
 `validate` callable `(value: str) -> str | None` (return an error message to
 keep the prompt open). `text_input` also takes `suggestions=[...]` for Tab
 autocomplete.
@@ -215,7 +215,7 @@ PYTHONPATH=src python examples/output_gallery.py  # output only
 PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
 ```
 
-Install into an environment — an **editable** (`-e`) install with build isolation
+Install into an environment – an **editable** (`-e`) install with build isolation
 **off**, since the C sources are reached through the in-repo `csrc`/`cinclude`
 symlinks and the build must run in place:
 

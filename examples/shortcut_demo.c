@@ -13,7 +13,7 @@
  *
  * Why F2 closes the list to edit: a shortcut callback runs *inside* the prompt
  * session, which is single-instance, so it cannot open a second prompt. Instead
- * F2 is a RETURN-mode shortcut — it ends the select, the caller runs the text
+ * F2 is a RETURN-mode shortcut – it ends the select, the caller runs the text
  * prompt, updates the label, and re-opens the select at the same position.
  */
 

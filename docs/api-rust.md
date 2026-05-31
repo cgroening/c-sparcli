@@ -162,7 +162,7 @@ let notes = textarea("Notes", TextareaOpts::new().external_editor(true))?;
 
 ## Build & test
 
-The workspace has no binary, so plain `cargo run` fails — run an **example**
+The workspace has no binary, so plain `cargo run` fails – run an **example**
 (name the package too, since it is a workspace):
 
 ```sh

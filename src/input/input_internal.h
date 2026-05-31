@@ -140,7 +140,7 @@ static inline char *sc_prompt_plain(
  * Builds the key-hint footer as a standalone `ScRendered` per `layout`:
  * `SC_HINT_INLINE` is one line, `SC_HINT_STACKED` is one line per ` · `-
  * separated item. Returns NULL when hidden, empty, or on allocation failure.
- * Independent of placement — `sc_hint_place` positions the result.
+ * Independent of placement – `sc_hint_place` positions the result.
  *
  * `hint` is the resolved string (widget default or caller override).
  */
@@ -292,7 +292,7 @@ typedef struct ScPromptEditor {
  * `true`; on a non-zero exit, signal, or any error it returns `false` and
  * `*out` is untouched. Shell-free (`execvp` with a whitespace-tokenized argv);
  * the temp file is mode 0600 and unlinked before returning. Does not touch
- * raw mode — the engine suspends/resumes the terminal around the call.
+ * raw mode – the engine suspends/resumes the terminal around the call.
  */
 bool sc_run_editor(const char *cmd, const char *initial, char **out);
 
