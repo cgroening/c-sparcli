@@ -1,0 +1,19 @@
+[package]
+name = "sparcli-sys"
+description = "Raw FFI bindings to the sparcli C library (styled terminal output + input)."
+links = "sparcli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[features]
+# Regenerate the FFI bindings from the C headers with bindgen at build time
+# (needs libclang). Off by default: the committed `src/bindings.rs` is used, so
+# a normal `cargo build` has no libclang dependency.
+regen = ["dep:bindgen"]
+
+[build-dependencies]
+cc = "1"
+bindgen = { version = "0.70", optional = true }

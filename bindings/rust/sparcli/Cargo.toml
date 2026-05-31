@@ -1,0 +1,16 @@
+[package]
+name = "sparcli"
+description = "Safe, idiomatic Rust bindings for sparcli: styled terminal output and interactive prompts."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+sparcli-sys = { path = "../sparcli-sys", version = "0.1.0" }
+libc = "0.2"
+
+[features]
+# Forward bindgen regeneration to the -sys crate.
+regen = ["sparcli-sys/regen"]

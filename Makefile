@@ -148,7 +148,19 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example rust rust-test
+
+# ── Rust binding (bindings/rust/) ─────────────────────────────────────────
+# A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
+# sources via the `cc` crate, so these need only a Rust toolchain (cargo), no
+# prior `make`/install. Kept out of `make test` since cargo may be absent.
+RUST_MANIFEST = bindings/rust/Cargo.toml
+
+rust:
+	cargo build --manifest-path $(RUST_MANIFEST)
+
+rust-test:
+	cargo test --manifest-path $(RUST_MANIFEST)
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 

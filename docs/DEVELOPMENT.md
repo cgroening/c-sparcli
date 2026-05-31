@@ -154,6 +154,32 @@ make test-cpp EXTRA_CFLAGS=-Werror
 make test-cpp-golden             # regenerate tests/cpp/expected.txt
 ```
 
+### `make rust` / `make rust-test` – Rust bindings
+
+The safe Rust crate lives in `bindings/rust/` (a cargo workspace:
+`sparcli-sys` + `sparcli`). `sparcli-sys/build.rs` compiles the C sources with
+the `cc` crate, so these targets need only a Rust toolchain (`cargo`) — no
+prior `make` or install. Kept out of `make test` since cargo may be absent.
+
+```sh
+make rust          # cargo build (compiles the C via cc, links the FFI)
+make rust-test     # cargo test: non-interactive integration tests + doctests
+cargo clippy --manifest-path bindings/rust/Cargo.toml --all-targets -- -D warnings
+cargo build --manifest-path bindings/rust/Cargo.toml --features regen  # bindgen path (libclang)
+
+# Examples (the workspace has no bin, so plain `cargo run` fails — pick one).
+# From the repo root:
+cargo run --manifest-path bindings/rust/Cargo.toml -p sparcli --example demo
+# Or from inside bindings/rust/ :
+cargo run -p sparcli --example demo
+#   `demo` = complete showcase (all output components + all input widgets);
+#   `output_gallery` / `input_demo` are the focused variants.
+```
+
+FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the
+`regen` feature regenerates them from the headers with bindgen. The reference is
+[`docs/api-rust.md`](api-rust.md).
+
 ### `make sanitize` – output suite under ASan/UBSan
 
 Rebuilds and runs the output suite with AddressSanitizer + UBSan in a separate
@@ -315,6 +341,7 @@ src/input/    prompt engine, line editor, shortcut, external editor, confirm,
               text/password/number, textarea, select, fuzzy, datepicker, theme
 include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
+bindings/rust/                 cargo workspace: sparcli-sys (FFI) + sparcli (safe)
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 tests/cpp/                     C++ wrapper assertion suite + golden

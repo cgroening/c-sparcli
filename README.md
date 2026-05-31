@@ -61,6 +61,9 @@ Ships with **Rich-compatible inline markup** and a header-only **C++ wrapper**.
   inside a columns layout.
 - **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`,
   namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
+- **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds
+  the C via `cc` — no install needed) with RAII handles, builder options and
+  `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
   entry points – ready for future Python/Rust bindings.
 - **No runtime dependencies** beyond libc.
