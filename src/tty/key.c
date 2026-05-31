@@ -146,7 +146,10 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
     bool has_param = false;
     while (i < len && buf[i] >= '0' && buf[i] <= '9') {
         has_param = true;
-        param = param * 10 + (buf[i] - '0');
+        // Cap the accumulation so a long digit run can't overflow `int`
+        // (signed overflow is UB). Any real CSI parameter is tiny; values
+        // past the cap already fall through to SC_KEY_NONE.
+        if (param < 1000000) { param = param * 10 + (buf[i] - '0'); }
         i++;
     }
 
@@ -155,7 +158,7 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
     if (i < len && buf[i] == ';') {
         i++;
         while (i < len && buf[i] >= '0' && buf[i] <= '9') {
-            modifier = modifier * 10 + (buf[i] - '0');
+            if (modifier < 1000000) { modifier = modifier * 10 + (buf[i] - '0'); }
             i++;
         }
     }

@@ -142,10 +142,11 @@ void sc_kv_free(ScKV *kv) {
 /** Appends an entry to `kv`, growing the array as needed. */
 static void append_entry(ScKV *kv, const char *key, const char *value) {
     if (kv->entry_count == kv->entry_capacity) {
-        kv->entry_capacity = kv->entry_capacity ? kv->entry_capacity * 2 : 8;
-        kv->entries = realloc(
-            kv->entries, kv->entry_capacity * sizeof(ScKVEntry)
+        void *grown = sc_dynarray_grow(
+            kv->entries, &kv->entry_capacity, sizeof(ScKVEntry), 8
         );
+        if (!grown) { return; }
+        kv->entries = grown;
     }
     kv->entries[kv->entry_count].key = strdup(key ? key : "");
     kv->entries[kv->entry_count].value = strdup(value ? value : "");

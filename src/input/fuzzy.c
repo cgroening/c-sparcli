@@ -114,6 +114,9 @@ void sc_fuzzy_add_row(ScFuzzy *self, const char *const *fields, size_t n) {
         return;
     }
     grow_rows(self);
+    if (self->count == self->cap) {
+        return;   // grow failed (OOM): no slot, so don't write out of bounds
+    }
     char **row = malloc(n * sizeof *row);
     if (!row) {
         return;
@@ -567,14 +570,16 @@ static void grow_rows(ScFuzzy *self) {
         return;
     }
     size_t cap = self->cap ? self->cap * 2 : 8;
+    // Commit each realloc to `self` immediately on success. A naive
+    // "realloc both, free on either failure" leaves `self->rows` dangling
+    // when the first grew (and was thus already freed/moved) but the second
+    // failed. `self->cap` is bumped only after both succeed, so a partial
+    // grow just leaves harmless spare capacity and is retried next time.
     char ***rows = realloc(self->rows, cap * sizeof *rows);
-    size_t *ncols = realloc(self->row_ncols, cap * sizeof *ncols);
-    if (!rows || !ncols) {
-        free(rows);
-        free(ncols);
-        return;
-    }
+    if (!rows) { return; }
     self->rows = rows;
+    size_t *ncols = realloc(self->row_ncols, cap * sizeof *ncols);
+    if (!ncols) { return; }
     self->row_ncols = ncols;
     self->cap = cap;
 }

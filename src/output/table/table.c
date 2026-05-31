@@ -44,6 +44,7 @@ static void free_row(TRow *row);
 
 ScTableData *sc_table_new(void) {
     ScTableData *table_data = malloc(sizeof(ScTableData));
+    if (!table_data) { return NULL; }
     table_data->columns = NULL;
     table_data->column_capacity = 0;
     table_data->column_count = 0;

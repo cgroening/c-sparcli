@@ -209,11 +209,13 @@ static ScListItem *new_item(
 /** Appends `item` to `list`, growing the items array as needed. */
 static void append_item(ScList *list, ScListItem *item) {
     if (list->item_count == list->item_capacity) {
-        list->item_capacity = list->item_capacity
-            ? list->item_capacity * 2 : 4;
-        list->items = realloc(
-            list->items, list->item_capacity * sizeof(ScListItem *)
+        void *grown = sc_dynarray_grow(
+            list->items, &list->item_capacity, sizeof(ScListItem *), 4
         );
+        // On OOM leave `item` unappended. We don't free it: its pointer is
+        // also returned to the caller, so freeing here would dangle that.
+        if (!grown) { return; }
+        list->items = grown;
     }
     list->items[list->item_count++] = item;
 }

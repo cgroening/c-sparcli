@@ -221,12 +221,14 @@ static ScTreeNode *attach_node(
 /** Appends `child` to `parent`, growing the child array as needed. */
 static void append_child(ScTreeNode *parent, ScTreeNode *child) {
     if (parent->child_count == parent->child_capacity) {
-        parent->child_capacity = parent->child_capacity
-            ? parent->child_capacity * 2 : 4;
-        parent->children = realloc(
-            parent->children,
-            parent->child_capacity * sizeof(ScTreeNode *)
+        void *grown = sc_dynarray_grow(
+            parent->children, &parent->child_capacity,
+            sizeof(ScTreeNode *), 4
         );
+        // On OOM leave `child` unattached. We don't free it: its pointer is
+        // also returned to the caller, so freeing here would dangle that.
+        if (!grown) { return; }
+        parent->children = grown;
     }
     parent->children[parent->child_count++] = child;
 }
@@ -234,11 +236,13 @@ static void append_child(ScTreeNode *parent, ScTreeNode *child) {
 /** Appends `node` to `tree->roots`, growing the array as needed. */
 static void append_root(ScTree *tree, ScTreeNode *node) {
     if (tree->root_count == tree->root_capacity) {
-        tree->root_capacity = tree->root_capacity
-            ? tree->root_capacity * 2 : 4;
-        tree->roots = realloc(
-            tree->roots, tree->root_capacity * sizeof(ScTreeNode *)
+        void *grown = sc_dynarray_grow(
+            tree->roots, &tree->root_capacity, sizeof(ScTreeNode *), 4
         );
+        // On OOM leave `node` unattached; its pointer is returned to the
+        // caller, so freeing here would dangle that.
+        if (!grown) { return; }
+        tree->roots = grown;
     }
     tree->roots[tree->root_count++] = node;
 }

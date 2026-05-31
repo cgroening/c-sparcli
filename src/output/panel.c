@@ -267,10 +267,16 @@ static void scan_source_span(ParseBuf *buf, const ScSpan *span) {
  */
 static void append_span(ParseBuf *buf, const char *start, size_t length) {
     if (buf->span_count == buf->span_capacity) {
-        buf->span_capacity *= 2;
-        buf->spans = realloc(buf->spans, buf->span_capacity * sizeof(ScRenderSpan));
+        void *grown = sc_dynarray_grow(
+            buf->spans, &buf->span_capacity,
+            sizeof(ScRenderSpan), SC_INITIAL_CAPACITY
+        );
+        if (!grown) { return; }
+        buf->spans = grown;
     }
-    buf->spans[buf->span_count++] = (ScRenderSpan){ strndup(start, length), buf->style };
+    char *copy = strndup(start, length);
+    if (!copy) { return; }   // skip the span rather than store NULL text
+    buf->spans[buf->span_count++] = (ScRenderSpan){ copy, buf->style };
     buf->span_width += sc_utf8_string_length(start, length);
 }
 
@@ -280,12 +286,24 @@ static void append_span(ParseBuf *buf, const char *start, size_t length) {
  */
 static void flush_line(ParseBuf *buf) {
     if (buf->line_count == buf->line_capacity) {
-        buf->line_capacity *= 2;
-        buf->lines = realloc(buf->lines, buf->line_capacity * sizeof(ScRenderLine));
+        void *grown = sc_dynarray_grow(
+            buf->lines, &buf->line_capacity,
+            sizeof(ScRenderLine), SC_INITIAL_CAPACITY
+        );
+        if (!grown) { goto drop; }
+        buf->lines = grown;
     }
     ScRenderSpan *ls = malloc((buf->span_count + 1) * sizeof(ScRenderSpan));
+    if (!ls) { goto drop; }
     memcpy(ls, buf->spans, buf->span_count * sizeof(ScRenderSpan));
     buf->lines[buf->line_count++] = (ScRenderLine){ ls, buf->span_count, buf->span_width };
+    buf->span_count = 0;
+    buf->span_width = 0;
+    return;
+
+drop:
+    // OOM: drop the pending line, freeing its span strings so they don't leak.
+    for (size_t i = 0; i < buf->span_count; i++) { free(buf->spans[i].text); }
     buf->span_count = 0;
     buf->span_width = 0;
 }

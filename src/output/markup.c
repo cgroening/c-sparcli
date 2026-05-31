@@ -61,6 +61,14 @@ typedef struct Parser {
 
     /** Index of the top frame on the stack. */
     int depth;
+
+    /**
+     * Count of opening tags that could not be pushed because the stack was
+     * full (`depth + 1 >= MAX_STACK_DEPTH`). A matching close decrements this
+     * before popping a real frame, so the stack stays balanced past the limit
+     * (`[/]` always closes the most-recent open).
+     */
+    int dropped_opens;
 } Parser;
 
 
@@ -188,6 +196,7 @@ static void init_parser(
     self->strip_unknown = strip_unknown;
     self->text = sc_text_new();
     self->depth = 0;
+    self->dropped_opens = 0;
     self->stack[0] = (ScTextStyle){
         SC_TEXT_ATTR_NONE,
         SC_ANSI_COLOR_NONE,
@@ -271,7 +280,11 @@ static void handle_closing_tag(
             (size_t)(self->cursor - self->segment_start),
             current_style(self)
         );
-        if (self->depth > 0) { self->depth--; }
+        if (self->dropped_opens > 0) {
+            self->dropped_opens--;   // close an open that never fit the stack
+        } else if (self->depth > 0) {
+            self->depth--;
+        }
         self->cursor = tag_end + 1;
         self->segment_start = self->cursor;
         return;
@@ -350,6 +363,8 @@ static void handle_opening_tag(
     );
     if (self->depth + 1 < MAX_STACK_DEPTH) {
         self->stack[++self->depth] = new_style;
+    } else {
+        self->dropped_opens++;   // remember it so its close stays balanced
     }
     self->cursor = tag_end + 1;
     self->segment_start = self->cursor;

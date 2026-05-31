@@ -103,7 +103,7 @@ static void push_panel_entry(
     ScColItem item, ScPanelOpts panel_opts
 );
 
-static void init_render(ColumnsRender *self, const ScColumns *columns);
+static bool init_render(ColumnsRender *self, const ScColumns *columns);
     static size_t compute_max_height(const ScColumns *columns);
     static void apply_stretch(ColumnsRender *self, size_t max_height);
         static ScRendered *stretch_rendered(
@@ -177,8 +177,10 @@ static int ansi_visible_width(const char *str) {
 
 void sc_rendered_free(ScRendered *rendered) {
     if (!rendered) { return; }
-    for (size_t i = 0; i < rendered->line_count; i++) {
-        free(rendered->lines[i]);
+    if (rendered->lines) {
+        for (size_t i = 0; i < rendered->line_count; i++) {
+            free(rendered->lines[i]);
+        }
     }
     free(rendered->lines);
     free(rendered->column_widths);
@@ -215,15 +217,19 @@ static ScRendered *buffer_to_rendered(const char *buffer, size_t size) {
         if (!newline && line_length == 0) { break; }
 
         if (rendered->line_count == capacity) {
-            capacity *= 2;
-            rendered->lines = realloc(
-                rendered->lines, capacity * sizeof(char *)
-            );
-            rendered->column_widths = realloc(
-                rendered->column_widths, capacity * sizeof(int)
-            );
+            size_t new_cap = capacity * 2;
+            char **grown_lines =
+                realloc(rendered->lines, new_cap * sizeof(char *));
+            if (!grown_lines) { break; }
+            rendered->lines = grown_lines;
+            int *grown_widths =
+                realloc(rendered->column_widths, new_cap * sizeof(int));
+            if (!grown_widths) { break; }
+            rendered->column_widths = grown_widths;
+            capacity = new_cap;
         }
         char *line = strndup(cursor, line_length);
+        if (!line) { break; }
         int visible_width = ansi_visible_width(line);
 
         rendered->lines[rendered->line_count] = line;
@@ -354,6 +360,7 @@ static void render_rule_text_ctx(void *p) {
 
 ScColumns *sc_columns_new(ScColumnsOpts opts) {
     ScColumns *columns = malloc(sizeof(ScColumns));
+    if (!columns) { return NULL; }
     columns->entries = NULL;
     columns->count = 0;
     columns->capacity = 0;
@@ -365,12 +372,17 @@ ScColumns *sc_columns_new(ScColumnsOpts opts) {
 static void push_entry(
     ScColumns *columns, ScRendered *rendered, ScColItem item
 ) {
+    if (!rendered) { return; }   // capture/copy failed (OOM): skip this column
     if (columns->count == columns->capacity) {
-        columns->capacity = columns->capacity
-            ? columns->capacity * 2 : INITIAL_ENTRY_CAPACITY;
-        columns->entries = realloc(
-            columns->entries, columns->capacity * sizeof(ScColEntry)
+        void *grown = sc_dynarray_grow(
+            columns->entries, &columns->capacity,
+            sizeof(ScColEntry), INITIAL_ENTRY_CAPACITY
         );
+        if (!grown) {
+            sc_rendered_free(rendered);   // owned here; drop it on OOM
+            return;
+        }
+        columns->entries = grown;
     }
     columns->entries[columns->count++] = (ScColEntry){
         rendered, item, false, (ScPanelOpts){ 0 }
@@ -382,12 +394,17 @@ static void push_panel_entry(
     ScColumns *columns, ScRendered *rendered,
     ScColItem item, ScPanelOpts panel_opts
 ) {
+    if (!rendered) { return; }   // capture failed (OOM): skip this column
     if (columns->count == columns->capacity) {
-        columns->capacity = columns->capacity
-            ? columns->capacity * 2 : INITIAL_ENTRY_CAPACITY;
-        columns->entries = realloc(
-            columns->entries, columns->capacity * sizeof(ScColEntry)
+        void *grown = sc_dynarray_grow(
+            columns->entries, &columns->capacity,
+            sizeof(ScColEntry), INITIAL_ENTRY_CAPACITY
         );
+        if (!grown) {
+            sc_rendered_free(rendered);   // owned here; drop it on OOM
+            return;
+        }
+        columns->entries = grown;
     }
     columns->entries[columns->count++] = (ScColEntry){
         rendered, item, item.stretch, panel_opts
@@ -470,15 +487,25 @@ void sc_columns_add_rendered(
 ) {
     if (!rendered) { return; }
 
+    // Deep-copy into a fully-formed ScRendered; on any allocation failure
+    // free the partial copy and skip the column (push_entry tolerates NULL).
     ScRendered *copy = malloc(sizeof(ScRendered));
+    if (!copy) { return; }
     copy->line_count = rendered->line_count;
     copy->max_column_width = rendered->max_column_width;
-    copy->lines = malloc(rendered->line_count * sizeof(char *));
+    copy->lines = calloc(rendered->line_count, sizeof(char *));
     copy->column_widths = malloc(rendered->line_count * sizeof(int));
+    if ((rendered->line_count && !copy->lines) || !copy->column_widths) {
+        sc_rendered_free(copy);   // calloc'd lines are NULL → safe to free
+        return;
+    }
+    bool ok = true;
     for (size_t i = 0; i < rendered->line_count; i++) {
         copy->lines[i] = strdup(rendered->lines[i]);
         copy->column_widths[i] = rendered->column_widths[i];
+        if (!copy->lines[i]) { ok = false; break; }
     }
+    if (!ok) { sc_rendered_free(copy); return; }
     push_entry(columns, copy, item);
 }
 
@@ -646,17 +673,27 @@ static char *make_empty_panel_line(
 static ScRendered *stretch_rendered(
     const ScRendered *source, int extra_lines, const ScPanelOpts *opts
 ) {
+    // line_count == 0 would underflow content_end below; nothing to stretch.
+    if (source->line_count == 0) { return NULL; }
+
     int inner_width = source->max_column_width - 2;
     if (inner_width < 0) { inner_width = 0; }
     char *empty_line = make_empty_panel_line(opts, inner_width);
+    if (!empty_line) { return NULL; }   // caller keeps the unstretched copy
     int empty_width = ansi_visible_width(empty_line);
 
     size_t new_count = source->line_count + (size_t)extra_lines;
     ScRendered *extended = malloc(sizeof(ScRendered));
-    extended->lines = malloc(new_count * sizeof(char *));
+    if (!extended) { free(empty_line); return NULL; }
+    extended->lines = calloc(new_count, sizeof(char *));
     extended->column_widths = malloc(new_count * sizeof(int));
     extended->line_count = new_count;
     extended->max_column_width = source->max_column_width;
+    if (!extended->lines || !extended->column_widths) {
+        sc_rendered_free(extended);   // calloc'd lines are NULL → safe
+        free(empty_line);
+        return NULL;
+    }
 
     size_t content_end = source->line_count - 1;
     for (size_t i = 0; i < content_end; i++) {
@@ -683,7 +720,10 @@ void sc_columns_print(const ScColumns *columns) {
     if (!columns || columns->count == 0) { return; }
 
     ColumnsRender self;
-    init_render(&self, columns);
+    if (!init_render(&self, columns)) {
+        cleanup_render(&self);   // tolerates the partially-built context
+        return;
+    }
 
     sc_print_newlines(columns->opts.margin.top);
     render_all_lines(&self);
@@ -692,9 +732,17 @@ void sc_columns_print(const ScColumns *columns) {
     cleanup_render(&self);
 }
 
-/** Builds the per-print render context. */
-static void init_render(ColumnsRender *self, const ScColumns *columns) {
+/**
+ * Builds the per-print render context. Returns `false` on allocation failure,
+ * leaving every buffer either NULL or already populated so `cleanup_render`
+ * can free the partial context safely.
+ */
+static bool init_render(ColumnsRender *self, const ScColumns *columns) {
     self->columns = columns;
+    self->working = NULL;
+    self->column_widths = NULL;
+    self->top_offsets = NULL;
+    self->total_height = 0;
     self->separator = (columns->opts.sep.type > SC_BORDER_NONE)
         ? separator_chars[columns->opts.sep.type] : NULL;
     self->gap = columns->opts.gap > 0
@@ -706,16 +754,19 @@ static void init_render(ColumnsRender *self, const ScColumns *columns) {
 
     size_t max_height = compute_max_height(columns);
     self->working = malloc(columns->count * sizeof(ScRendered *));
+    if (!self->working) { return false; }
     for (size_t i = 0; i < columns->count; i++) {
         self->working[i] = columns->entries[i].rendered;
     }
     apply_stretch(self, max_height);
 
     self->column_widths = malloc(columns->count * sizeof(int));
+    if (!self->column_widths) { return false; }
     compute_column_widths(self);
     distribute_total_width(self);
 
     self->top_offsets = malloc(columns->count * sizeof(int));
+    if (!self->top_offsets) { return false; }
     compute_vertical_offsets(self);
 
     self->total_height = 0;
@@ -724,6 +775,7 @@ static void init_render(ColumnsRender *self, const ScColumns *columns) {
             self->total_height = self->working[i]->line_count;
         }
     }
+    return true;
 }
 
 /** Returns the maximum line count across all entries. */
@@ -750,9 +802,12 @@ static void apply_stretch(ColumnsRender *self, size_t max_height) {
             continue;
         }
         int extra = (int)max_height - (int)entry->rendered->line_count;
-        self->working[i] = stretch_rendered(
+        ScRendered *stretched = stretch_rendered(
             entry->rendered, extra, &entry->panel_opts
         );
+        // On OOM keep the original (unstretched) rendering rather than
+        // poisoning working[i] with NULL.
+        if (stretched) { self->working[i] = stretched; }
     }
 }
 
@@ -915,6 +970,7 @@ static int get_relative_line_index(
 static void render_content_cell(
     const char *line, int content_width, int column_width, ScColItem item
 ) {
+    if (!line) { line = ""; }   // tolerate a NULL line from a failed dup
     int spare = column_width - content_width;
     if (spare < 0) { spare = 0; }
     int left_pad = 0;
@@ -1023,9 +1079,11 @@ static void render_gap_spaces(const ColumnsRender *self) {
 
 /** Frees stretched copies and per-print buffers. */
 static void cleanup_render(ColumnsRender *self) {
-    for (size_t i = 0; i < self->columns->count; i++) {
-        if (self->working[i] != self->columns->entries[i].rendered) {
-            sc_rendered_free(self->working[i]);
+    if (self->working) {
+        for (size_t i = 0; i < self->columns->count; i++) {
+            if (self->working[i] != self->columns->entries[i].rendered) {
+                sc_rendered_free(self->working[i]);
+            }
         }
     }
     free(self->working);
