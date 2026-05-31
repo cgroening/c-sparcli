@@ -162,7 +162,7 @@ const _: () = {
     ["Offset of field: ScColor::g"][::std::mem::offset_of!(ScColor, g) - 5usize];
     ["Offset of field: ScColor::b"][::std::mem::offset_of!(ScColor, b) - 6usize];
 };
-#[doc = " Namespace type for `SC_ANSI_COLOR_...` – groups all predefined ANSI colors\n under dot notation.\n\n Copy `ScAnsiColorNs_` locally to get a short alias:\n @code\n ScAnsiColorNs clr = ScAnsiColorNs_;\n sc_print(\"hi\", (ScTextStyle){ ..., clr.RED, clr.NONE });\n @endcode"]
+#[doc = " Namespace type for `SC_ANSI_COLOR_...` - groups all predefined ANSI colors\n under dot notation.\n\n Copy `ScAnsiColorNs_` locally to get a short alias:\n @code\n ScAnsiColorNs clr = ScAnsiColorNs_;\n sc_print(\"hi\", (ScTextStyle){ ..., clr.RED, clr.NONE });\n @endcode"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ScAnsiColorNs {
@@ -281,7 +281,7 @@ const _: () = {
 pub struct ScTitle {
     #[doc = " Title string; `NULL` = no title."]
     pub text: *const ::std::os::raw::c_char,
-    #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed –\n must outlive the render call."]
+    #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
     pub rich_text: *mut ScText,
     #[doc = " Text style (bold, color, …) applied to the title."]
     pub style: ScTextStyle,
@@ -1098,7 +1098,7 @@ extern "C" {
     pub fn sc_columns_new(opts: ScColumnsOpts) -> *mut ScColumns;
 }
 extern "C" {
-    #[doc = " Captures a table and appends it as a column.\n\n The table is rendered into a temporary buffer **at call time** and the\n resulting frozen rendering is stored. The caller may freely modify or\n free `table` afterwards – the columns layout no longer references it.\n\n @param columns  Layout the column is appended to.\n @param table    Source table; rendered at call time, then no longer\n                 referenced.\n @param opts     Table rendering options (passed by value).\n @param item     Per-column options."]
+    #[doc = " Captures a table and appends it as a column.\n\n The table is rendered into a temporary buffer **at call time** and the\n resulting frozen rendering is stored. The caller may freely modify or\n free `table` afterwards - the columns layout no longer references it.\n\n @param columns  Layout the column is appended to.\n @param table    Source table; rendered at call time, then no longer\n                 referenced.\n @param opts     Table rendering options (passed by value).\n @param item     Per-column options."]
     pub fn sc_columns_add_table(
         columns: *mut ScColumns,
         table: *const ScTableData,
@@ -1284,7 +1284,7 @@ extern "C" {
     pub fn sc_progressbar_set_label(bar: *mut ScProgressBar, label: *const ::std::os::raw::c_char);
 }
 extern "C" {
-    #[doc = " Renders one frame of the bar followed by `\\\\r` so the next call\n overwrites it in place.\n\n @param bar    Bar to render.\n @param value  Current value; treated as a `0.0`–`1.0` ratio when `max == 0`.\n @param max    Maximum value; `0` switches to ratio mode."]
+    #[doc = " Renders one frame of the bar followed by `\\\\r` so the next call\n overwrites it in place.\n\n @param bar    Bar to render.\n @param value  Current value; treated as a `0.0`-`1.0` ratio when `max == 0`.\n @param max    Maximum value; `0` switches to ratio mode."]
     pub fn sc_progressbar_draw(bar: *mut ScProgressBar, value: f64, max: f64);
 }
 extern "C" {
@@ -1496,7 +1496,7 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = " Returns a heap-allocated copy of `str` with all ANSI CSI escape sequences\n removed.\n\n Strips sequences starting with `ESC [` up to and including the final byte\n (`0x40`–`0x7E`). Non-CSI bytes are copied verbatim.\n\n @param str  Source string; `NULL` returns an empty heap string.\n @return     Heap-allocated stripped string; caller must `free()` the result.\n             Returns `NULL` only on allocation failure."]
+    #[doc = " Returns a heap-allocated copy of `str` with all ANSI CSI escape sequences\n removed.\n\n Strips sequences starting with `ESC [` up to and including the final byte\n (`0x40`-`0x7E`). Non-CSI bytes are copied verbatim.\n\n @param str  Source string; `NULL` returns an empty heap string.\n @return     Heap-allocated stripped string; caller must `free()` the result.\n             Returns `NULL` only on allocation failure."]
     pub fn sc_strip_ansi(str_: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
@@ -1628,7 +1628,7 @@ extern "C" {
     pub fn sc_output_stream() -> *mut FILE;
 }
 extern "C" {
-    #[doc = " Sets the stream sparcli will write its output to.\n\n Pass `NULL` to restore the default (`stdout`). The library does not\n take ownership of `out` – the caller remains responsible for opening,\n flushing and closing it.\n\n @param out  Target stream, or `NULL` to revert to `stdout`.\n\n @note The output target is **thread-local**: each thread has its own, so\n threads may render/capture concurrently to independent streams without\n interfering. A thread that never calls this writes to `stdout`."]
+    #[doc = " Sets the stream sparcli will write its output to.\n\n Pass `NULL` to restore the default (`stdout`). The library does not\n take ownership of `out` - the caller remains responsible for opening,\n flushing and closing it.\n\n @param out  Target stream, or `NULL` to revert to `stdout`.\n\n @note The output target is **thread-local**: each thread has its own, so\n threads may render/capture concurrently to independent streams without\n interfering. A thread that never calls this writes to `stdout`."]
     pub fn sc_output_set_stream(out: *mut FILE);
 }
 #[doc = "< User confirmed a value (Enter / selection)."]
@@ -1690,7 +1690,7 @@ pub const ScKeyType_SC_KEY_CTRL_E: ScKeyType = 21;
 pub const ScKeyType_SC_KEY_CTRL_K: ScKeyType = 22;
 pub const ScKeyType_SC_KEY_CTRL_U: ScKeyType = 23;
 pub const ScKeyType_SC_KEY_CTRL_W: ScKeyType = 24;
-#[doc = "< Function keys F1–F12 (SS3 or CSI encoded)."]
+#[doc = "< Function keys F1-F12 (SS3 or CSI encoded)."]
 pub const ScKeyType_SC_KEY_F1: ScKeyType = 25;
 pub const ScKeyType_SC_KEY_F2: ScKeyType = 26;
 pub const ScKeyType_SC_KEY_F3: ScKeyType = 27;
@@ -1800,7 +1800,7 @@ const _: () = {
         [::std::mem::offset_of!(ScShortcut, hint_label) - 40usize];
 };
 extern "C" {
-    #[doc = " Builds a Ctrl-letter chord, e.g. `sc_key_ctrl('e')`.\n\n `letter` is case-insensitive. Ctrl-C (cancel), Ctrl-H (Backspace), Ctrl-I\n (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable – the terminal never delivers\n them as a distinct Ctrl chord – and are rejected by a debug assert."]
+    #[doc = " Builds a Ctrl-letter chord, e.g. `sc_key_ctrl('e')`.\n\n `letter` is case-insensitive. Ctrl-C (cancel), Ctrl-H (Backspace), Ctrl-I\n (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable - the terminal never delivers\n them as a distinct Ctrl chord - and are rejected by a debug assert."]
     pub fn sc_key_ctrl(letter: ::std::os::raw::c_char) -> ScKeyChord;
 }
 extern "C" {
@@ -1999,12 +1999,12 @@ pub type ScValidateFn = ::std::option::Option<
         err_out: *mut *const ::std::os::raw::c_char,
     ) -> bool,
 >;
-#[doc = " Per-character input filter. Return `true` to accept the typed codepoint,\n `false` to reject it (the keystroke is ignored). Use it to constrain input\n to a format – digits only, no spaces, etc. Built-in filters below."]
+#[doc = " Per-character input filter. Return `true` to accept the typed codepoint,\n `false` to reject it (the keystroke is ignored). Use it to constrain input\n to a format - digits only, no spaces, etc. Built-in filters below."]
 pub type ScCharFilter = ::std::option::Option<
     unsafe extern "C" fn(codepoint: u32, ctx: *mut ::std::os::raw::c_void) -> bool,
 >;
 extern "C" {
-    #[doc = " Accepts ASCII digits `0`–`9` only."]
+    #[doc = " Accepts ASCII digits `0`-`9` only."]
     pub fn sc_filter_digits(codepoint: u32, ctx: *mut ::std::os::raw::c_void) -> bool;
 }
 extern "C" {
@@ -2625,7 +2625,7 @@ extern "C" {
     pub fn sc_select_cursor(select: *const ScSelect) -> usize;
 }
 extern "C" {
-    #[doc = " Returns the current label of the item at `index` (current order), or `NULL`\n when out of range. The pointer is owned by the selection – copy it if you\n need it past the next mutation."]
+    #[doc = " Returns the current label of the item at `index` (current order), or `NULL`\n when out of range. The pointer is owned by the selection - copy it if you\n need it past the next mutation."]
     pub fn sc_select_label(select: *const ScSelect, index: usize) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
@@ -2660,7 +2660,7 @@ pub struct ScFuzzyOpts {
     pub headers: *const *const ::std::os::raw::c_char,
     #[doc = " Number of columns (table view)."]
     pub n_cols: usize,
-    #[doc = " Bitmask selecting which columns the query searches (bit `c` = column\n `c`). `0` (the default) searches all columns. Table view only – the list\n view always searches its single label. A row matches when the query\n matches any selected column; its rank uses the best-scoring column."]
+    #[doc = " Bitmask selecting which columns the query searches (bit `c` = column\n `c`). `0` (the default) searches all columns. Table view only - the list\n view always searches its single label. A row matches when the query\n matches any selected column; its rank uses the best-scoring column."]
     pub search_columns: u64,
     #[doc = " Search label; zero-init = bold in `accent`."]
     pub prompt_style: ScTextStyle,
@@ -2925,7 +2925,7 @@ extern "C" {
     #[doc = " Prompts the user to pick a date from a month calendar.\n\n Arrow keys move by day/week; PageUp/PageDown (or `<`/`>`) change month;\n Shift+PageUp/PageDown change year; Enter selects; Esc or Ctrl-C cancels.\n Month/year jumps keep the selected day, clamped to the target month's last\n valid day (e.g. Jan 31 -> Feb 28).\n\n `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view\n (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten\n with the picked date (normalized via `mktime`).\n\n @param io    In: initial date. Out: picked date. Must not be `NULL`.\n @param opts  Rendering options.\n @return      `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
     pub fn sc_datepicker(io: *mut tm, opts: ScDatePickerOpts) -> ScInputStatus;
 }
-#[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed –\n must outlive the render call."]
+#[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ScText {

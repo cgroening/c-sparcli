@@ -216,7 +216,7 @@ static size_t decode_alt_prefix(const char *buf, size_t len, ScKey *out) {
     return used + 1;
 }
 
-/** SS3 (ESC O x): Home/End and F1–F4 on some terminals. */
+/** SS3 (ESC O x): Home/End and F1-F4 on some terminals. */
 static size_t decode_ss3(char final, ScKey *out) {
     switch (final) {
         case 'H': out->type = SC_KEY_HOME; return 3;
@@ -300,7 +300,7 @@ static void make_char(ScKey *out, const char *bytes, size_t seq_len) {
     out->bytes[seq_len] = '\0';
 }
 
-/** Number of bytes a UTF-8 lead byte announces (1–4); 0 = invalid lead. */
+/** Number of bytes a UTF-8 lead byte announces (1-4); 0 = invalid lead. */
 static size_t utf8_seq_len(unsigned char lead) {
     if ((lead & 0x80) == 0x00) {
         return 1;

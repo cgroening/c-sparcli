@@ -43,7 +43,7 @@ typedef struct ScFuzzyOpts {
 
     /**
      * Bitmask selecting which columns the query searches (bit `c` = column
-     * `c`). `0` (the default) searches all columns. Table view only – the list
+     * `c`). `0` (the default) searches all columns. Table view only - the list
      * view always searches its single label. A row matches when the query
      * matches any selected column; its rank uses the best-scoring column.
      */

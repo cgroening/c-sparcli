@@ -96,7 +96,7 @@ static ScRendered *number_render(void *state) {
                             : number_render_inline(self);
 }
 
-/** Inline: "prompt value  [min–max]" then the footer. */
+/** Inline: "prompt value  [min-max]" then the footer. */
 static ScRendered *number_render_inline(NumberState *self) {
     ScText *text = sc_text_new();
     if (!text) {
@@ -192,7 +192,7 @@ static ScRendered *number_render_boxed(NumberState *self) {
                            self->opts.hint_pos, self->opts.hint_style);
 }
 
-/** Writes "[min–max]" into `buf`, or an empty string when unbounded. */
+/** Writes "[min-max]" into `buf`, or an empty string when unbounded. */
 static void range_str(const NumberState *self, char *buf, size_t cap) {
     if (self->bounded) {
         snprintf(buf, cap, "[%.*f\xe2\x80\x93%.*f]", self->opts.decimals,

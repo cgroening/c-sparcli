@@ -197,14 +197,14 @@ def input_section() -> None:
 
 
 def main() -> None:
-    sc.println(f"sparcli {sc.version_string()} – Python wrapper demo",
+    sc.println(f"sparcli {sc.version_string()} - Python wrapper demo",
                sc.Style.bold(sc.Color.CYAN))
     output_section()
     if sc.input_available():
         input_section()
     else:
         heading("Input widgets")
-        sc.println("Skipped – run this in a real terminal to try the prompts.",
+        sc.println("Skipped - run this in a real terminal to try the prompts.",
                    sc.Style.dim())
 
 

@@ -771,9 +771,9 @@ impl Drop for Fuzzy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Date {
     pub year: i32,
-    /// 1–12.
+    /// 1-12.
     pub month: u32,
-    /// 1–31.
+    /// 1-31.
     pub day: u32,
 }
 

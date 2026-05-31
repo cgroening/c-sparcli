@@ -110,7 +110,7 @@ SPARCLI_EXPORT void sc_progressbar_set_label(
  * overwrites it in place.
  *
  * @param bar    Bar to render.
- * @param value  Current value; treated as a `0.0`–`1.0` ratio when `max == 0`.
+ * @param value  Current value; treated as a `0.0`-`1.0` ratio when `max == 0`.
  * @param max    Maximum value; `0` switches to ratio mode.
  */
 SPARCLI_EXPORT void sc_progressbar_draw(

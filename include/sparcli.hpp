@@ -18,7 +18,7 @@
  * exception thrown is `std::bad_alloc`, from a constructor when the underlying
  * `sc_*_new` returns NULL; everything else is exception-free.
  *
- * Why it exists – two C-API footguns it removes:
+ * Why it exists - two C-API footguns it removes:
  * @code
  * // C API: forgetting sc_table_free leaks; and the table BORROWS cell
  * // strings, so a temporary dangles and is read later at print time:
@@ -249,7 +249,7 @@ private:
  * Owning, move-only table (wraps `ScTableData`).
  *
  * The C table only *borrows* cell strings, so this wrapper copies every cell
- * string into an internal arena that lives as long as the table – passing
+ * string into an internal arena that lives as long as the table - passing
  * `std::string` temporaries to `add_row` is therefore safe. Markup cells are
  * owned by the C table itself. @see sc_table_new, sc_table_add_row.
  */
@@ -352,7 +352,7 @@ private:
 
     const char* own(std::string_view s) {
         // The deque lives behind a unique_ptr, so its node addresses are stable
-        // even across a Table move – the borrowed c_str() pointers stay valid.
+        // even across a Table move - the borrowed c_str() pointers stay valid.
         strings_->emplace_back(s);
         return strings_->back().c_str();
     }
@@ -397,7 +397,7 @@ inline Table::Cell cell_markup(std::string_view s)  {
  *
  * String items are copied by the C side. The C list *borrows* any `ScText`, so
  * the wrapper keeps rich-text items alive in a **shared text arena** that lives
- * as long as the root list – sub-lists share that arena, so a rich item added
+ * as long as the root list - sub-lists share that arena, so a rich item added
  * to a sub-list stays valid until the whole list is destroyed.
  * @see sc_list_new, sc_list_add_str, sc_list_add_text, sc_list_add_sub.
  */

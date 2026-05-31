@@ -84,8 +84,8 @@ typedef struct ScShortcut {
  * Builds a Ctrl-letter chord, e.g. `sc_key_ctrl('e')`.
  *
  * `letter` is case-insensitive. Ctrl-C (cancel), Ctrl-H (Backspace), Ctrl-I
- * (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable – the terminal never delivers
- * them as a distinct Ctrl chord – and are rejected by a debug assert.
+ * (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable - the terminal never delivers
+ * them as a distinct Ctrl chord - and are rejected by a debug assert.
  */
 SPARCLI_EXPORT ScKeyChord sc_key_ctrl(char letter);
 

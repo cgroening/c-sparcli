@@ -26,7 +26,7 @@ fn main() {
         .append("OK", Style::bold().fg(Color::GREEN));
     t.print();
     scprintln("", Style::default());
-    markup::println("[bold magenta]markup[/] works too – [italic]nice[/].");
+    markup::println("[bold magenta]markup[/] works too - [italic]nice[/].");
     scprintln("", Style::default());
 
     // Table.

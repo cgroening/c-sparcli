@@ -325,7 +325,7 @@ static int make_stub_editor(void) {
 }
 
 int main(void) {
-    /* The parent needs no controlling terminal – forkpty creates a fresh PTY
+    /* The parent needs no controlling terminal - forkpty creates a fresh PTY
      * for each child, which becomes that child's controlling terminal. So this
      * runs headless (CI) as well as from an interactive shell. */
     if (make_stub_editor() != 0) {

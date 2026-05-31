@@ -234,7 +234,7 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
 ├[0m──────────────────[0m┼[0m──────────[0m┼[0m──────────[0m┼[0m────────────[0m┤[0m
 │[0m Team members[0m     │[0m    1[0m     │[0m[48;2;20;45;90m [0m[48;2;20;45;90m   [0m[48;2;20;45;90m25[0m[48;2;20;45;90m   [0m[48;2;20;45;90m [0m│[0m[48;2;60;40;0m [0m[48;2;60;40;0mUnlimited[0m[48;2;60;40;0m [0m[48;2;60;40;0m [0m│[0m
 ├[0m──────────────────[0m┼[0m──────────[0m┼[0m──────────[0m┼[0m────────────[0m┤[0m
-│[0m Support[0m          │[0m    –[0m     │[0m[48;2;20;45;90m [0m[48;2;20;45;90m [0m[48;2;20;45;90mEmail[0m[48;2;20;45;90m  [0m[48;2;20;45;90m [0m│[0m[48;2;60;40;0m [0m[48;2;60;40;0m   [0m[48;2;60;40;0m24/7[0m[48;2;60;40;0m   [0m[48;2;60;40;0m [0m│[0m
+│[0m Support[0m          │[0m    -[0m     │[0m[48;2;20;45;90m [0m[48;2;20;45;90m [0m[48;2;20;45;90mEmail[0m[48;2;20;45;90m  [0m[48;2;20;45;90m [0m│[0m[48;2;60;40;0m [0m[48;2;60;40;0m   [0m[48;2;60;40;0m24/7[0m[48;2;60;40;0m   [0m[48;2;60;40;0m [0m│[0m
 ├[0m──────────────────[0m┼[0m──────────[0m┼[0m──────────[0m┼[0m────────────[0m┤[0m
 │[0m Custom domain[0m    │[0m    ✗[0m     │[0m[48;2;20;45;90m [0m[48;2;20;45;90m   [0m[48;2;20;45;90m✓[0m[48;2;20;45;90m    [0m[48;2;20;45;90m [0m│[0m[48;2;60;40;0m [0m[48;2;60;40;0m    [0m[48;2;60;40;0m✓[0m[48;2;60;40;0m     [0m[48;2;60;40;0m [0m│[0m
 └[0m──────────────────[0m┴[0m──────────[0m┴[0m──────────[0m┴[0m────────────[0m┘[0m
@@ -462,19 +462,19 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
 
 --- 6. Nested lists ---
   [1m1. [0mBackend[0m
-       – REST API (Go)[0m
-       – Database (Postgres)[0m
-       – Cache (Redis)[0m
+       - REST API (Go)[0m
+       - Database (Postgres)[0m
+       - Cache (Redis)[0m
   [1m2. [0mFrontend[0m
-       – React components[0m
-       – State management[0m
-       – Build tooling[0m
+       - React components[0m
+       - State management[0m
+       - Build tooling[0m
            a. Vite[0m
            b. ESLint[0m
            c. Prettier[0m
   [1m3. [0mDevOps[0m
-       – Docker + Kubernetes[0m
-       – GitHub Actions CI[0m
+       - Docker + Kubernetes[0m
+       - GitHub Actions CI[0m
 
 --- 7. ScText items (mixed styles per item) ---
   • Use [0m[1m[36mconst[0m for values that never change[0m
@@ -482,9 +482,9 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
   • Run [0m[1m[36mmake test[0m before every commit[0m
 
 --- 8. Two lists in columns ---
-[1m[32m+ [0mFast compilation[0m          │    [1m[31m– [0mSteep learning curve[0m  
-[1m[32m+ [0mSmall binary size[0m         │    [1m[31m– [0mVerbose error messages[0m
-[1m[32m+ [0mExcellent performance[0m     │    [1m[31m– [0mLimited reflection[0m    
+[1m[32m+ [0mFast compilation[0m          │    [1m[31m- [0mSteep learning curve[0m  
+[1m[32m+ [0mSmall binary size[0m         │    [1m[31m- [0mVerbose error messages[0m
+[1m[32m+ [0mExcellent performance[0m     │    [1m[31m- [0mLimited reflection[0m    
 [1m[32m+ [0mStrong type system[0m        │                            
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -709,7 +709,7 @@ text with unknown tag[0m
 [36mprintln (adds newline)[0m
 
 --- Markup 9. sc_markup_append ---
-Plain prefix – [0m[1m[31mappended markup[0m – [0m[3m[36msecond append[0m
+Plain prefix - [0m[1m[31mappended markup[0m - [0m[3m[36msecond append[0m
 
 --- Markup 10. sc_cell_m in table ---
 ┌[0m──────────────[0m┬[0m────────────────────────────[0m┐[0m

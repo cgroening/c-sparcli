@@ -1,14 +1,14 @@
 /*
  * readme_screenshots_input.c
  *
- * Generates the INPUT-widget screenshots referenced in README.md – the input
+ * Generates the INPUT-widget screenshots referenced in README.md - the input
  * counterpart of readme_screenshots_output.c. It is fully NON-interactive: it
  * renders each prompt through the internal snapshot frame builders
  * (`sc_*_frame`, declared in src/input/input_internal.h), exactly as the style
  * snapshot suite does, so there is no raw mode and no keystrokes. Sections:
  *
- *   1  hero    – a collage of input-widget frames composed side by side
- *   2  gallery – one representative frame per input widget
+ *   1  hero    - a collage of input-widget frames composed side by side
+ *   2  gallery - one representative frame per input widget
  *
  * Build & run (after `make`):
  *   make run-example EX=readme_screenshots_input
@@ -90,7 +90,7 @@ static ScColumns *hero_columns(void) {
 
 static void hero_intro_panel(void) {
     sc_panel_str(
-        "Interactive prompts – confirm · select · text · password · "
+        "Interactive prompts - confirm · select · text · password · "
         "number · textarea · fuzzy · date.",
         (ScPanelOpts){
             .border = {
@@ -147,7 +147,7 @@ static void hero_row_choices(void) {
     sc_select_free(multi);
 }
 
-/* Row 2: boxed fields (uniform card look) – text, password, number, an empty
+/* Row 2: boxed fields (uniform card look) - text, password, number, an empty
  * field showing its placeholder, and one showing an autocomplete ghost. */
 static void hero_row_fields(void) {
     ScRendered *r_text = sc_text_entry_frame(&(ScTextEntryCfg){
@@ -251,31 +251,31 @@ static void shot_hero(void) {
 /* ───────────────────────────────────────── 2. per-widget gallery ── */
 
 static void gallery_confirm(void) {
-    show("confirm – yes / no",
+    show("confirm - yes / no",
         sc_confirm_frame("Apply changes?", true,
             (ScConfirmOpts){ .accent = SC_ANSI_COLOR_GREEN }));
 }
 
 static void gallery_text(void) {
-    show("text input – value with a character counter",
+    show("text input - value with a character counter",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Name:", .initial = "Ada Lovelace", .max_chars = 40 }));
 }
 
 static void gallery_password(void) {
-    show("password – masked input",
+    show("password - masked input",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Password:", .initial = "hunter2", .mask = "*" }));
 }
 
 static void gallery_number(void) {
-    show("number – bounded value with step",
+    show("number - bounded value with step",
         sc_number_frame("Quantity", 10,
             (ScNumberOpts){ .min = 0, .max = 100, .step = 5 }));
 }
 
 static void gallery_textarea(void) {
-    show("textarea – multi-line, boxed",
+    show("textarea - multi-line, boxed",
         sc_textarea_frame("Notes", "first line\nsecond line\nthird line",
             (ScTextareaOpts){ .boxed = true, .width = 36 }));
 }
@@ -287,7 +287,7 @@ static void gallery_select(void) {
     for (size_t i = 0; i < sizeof items / sizeof items[0]; i++) {
         sc_select_add(select, items[i]);
     }
-    show("select – single choice", sc_select_frame(select));
+    show("select - single choice", sc_select_frame(select));
     sc_select_free(select);
 }
 
@@ -300,7 +300,7 @@ static void gallery_multiselect(void) {
     }
     sc_select_set_checked(select, 0, true);
     sc_select_set_checked(select, 2, true);
-    show("multi-select – checkboxes, two checked", sc_select_frame(select));
+    show("multi-select - checkboxes, two checked", sc_select_frame(select));
     sc_select_free(select);
 }
 
@@ -310,7 +310,7 @@ static void gallery_fuzzy_list(void) {
     for (size_t i = 0; i < sizeof cities / sizeof cities[0]; i++) {
         sc_fuzzy_add(fuzzy, cities[i]);
     }
-    show("fuzzy finder – list view, query 'to' (matches highlighted)",
+    show("fuzzy finder - list view, query 'to' (matches highlighted)",
         sc_fuzzy_frame(fuzzy, "to"));
     sc_fuzzy_free(fuzzy);
 }
@@ -325,13 +325,13 @@ static void gallery_fuzzy_table(void) {
         fuzzy, (const char *[]){ "London", "UK", "9.0" }, 3);
     sc_fuzzy_add_row(
         fuzzy, (const char *[]){ "Lisbon", "Portugal", "0.5" }, 3);
-    show("fuzzy finder – table view", sc_fuzzy_frame(fuzzy, ""));
+    show("fuzzy finder - table view", sc_fuzzy_frame(fuzzy, ""));
     sc_fuzzy_free(fuzzy);
 }
 
 static void gallery_datepicker(void) {
     struct tm seed = seed_date();
-    show("date picker – month grid",
+    show("date picker - month grid",
         sc_datepicker_frame(
             &seed, (ScDatePickerOpts){ .prompt = "Pick a date" }));
 }

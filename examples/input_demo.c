@@ -231,7 +231,7 @@ static void demo_datepicker(void) {
 
 int main(void) {
     sc_markup_println(
-        "\n[bold]sparcli[/] input widgets – step through each prompt "
+        "\n[bold]sparcli[/] input widgets - step through each prompt "
         "([dim]Esc/Ctrl-C to skip one[/])");
 
     if (!sc_input_available()) {

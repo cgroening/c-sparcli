@@ -145,23 +145,23 @@
 
 ════════════════════════════════════ [1mNumber[0m ════════════════════════════════════
 [2mnumber: inline, bounded (range shown)[0m
-  Quantity[0m [0m1[0m0[0m[30m[47m [0m  [0m[2m[0–100][0m
+  Quantity[0m [0m1[0m0[0m[30m[47m [0m  [0m[2m[0-100][0m
   [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 [2mnumber: inline, 2 decimals[0m
-  Price[0m [0m9[0m.[0m9[0m9[0m[30m[47m [0m  [0m[2m[0.00–1000.00][0m
+  Price[0m [0m9[0m.[0m9[0m9[0m[30m[47m [0m  [0m[2m[0.00-1000.00][0m
   [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 [2mnumber: boxed (panel), range on bottom-right[0m
   ╭[0m─[0m [0mQuantity[0m [0m───────────────[0m╮[0m
   │[0m 4[0m2[0m[30m[47m [0m                      │[0m
-  ╰[0m────────────────[0m [0m[2m[0–100][0m [0m─[0m╯[0m
+  ╰[0m────────────────[0m [0m[2m[0-100][0m [0m─[0m╯[0m
   [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 [2mnumber: boxed, double border + cyan prompt[0m
   [34m╔[0m[34m═[0m [0m[1m[36mPort[0m [0m[34m═════════════════════[0m[34m╗[0m
   [34m║[0m 8[0m0[0m8[0m0[0m[30m[47m [0m                      [34m║[0m
-  [34m╚[0m[34m════════════════[0m [0m[2m[1–65535][0m [0m[34m═[0m[34m╝[0m
+  [34m╚[0m[34m════════════════[0m [0m[2m[1-65535][0m [0m[34m═[0m[34m╝[0m
   [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -245,7 +245,7 @@
     [0mYellow[0m
     [0mCyan[0m
   [1m[36m‣ [0m[1m[36mMagenta[0m
-  [2m  ↑ 3–6/8 ↓[0m
+  [2m  ↑ 3-6/8 ↓[0m
   [2m↑/↓ move · enter select · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════

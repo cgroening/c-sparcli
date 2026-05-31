@@ -162,7 +162,7 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
             }
         }
         snprintf(
-            summary, sizeof summary, "? %s – %zu selected", prompt, written
+            summary, sizeof summary, "? %s - %zu selected", prompt, written
         );
     } else if (self->count > 0) {
         if (cap >= 1) {
@@ -243,7 +243,7 @@ static ScRendered *select_render(void *state) {
 }
 
 /**
- * Appends a dim "↑ first–last/total ↓" line when the list scrolls beyond the
+ * Appends a dim "↑ first-last/total ↓" line when the list scrolls beyond the
  * viewport, so a long list never looks silently truncated.
  */
 static void append_scroll_hint(ScText *text, size_t top, size_t end,

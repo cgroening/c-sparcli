@@ -45,7 +45,7 @@ void test_key_decode(void) {
     expect("\x1b[6;2~", SC_KEY_SHIFT_PAGEDOWN, 6, "CSI shift page-down");
     expect("\x1bOH",  SC_KEY_HOME,      3, "SS3 home");
 
-    /* Function keys: SS3 (F1–F4) and CSI (F1–F12). */
+    /* Function keys: SS3 (F1-F4) and CSI (F1-F12). */
     expect("\x1bOP",   SC_KEY_F1,  3, "SS3 F1");
     expect("\x1bOS",   SC_KEY_F4,  3, "SS3 F4");
     expect("\x1b[11~", SC_KEY_F1,  5, "CSI F1");

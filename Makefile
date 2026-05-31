@@ -72,7 +72,7 @@ LIB               = libsparcli.a
 PC_FILE           = sparcli.pc
 
 # Sanitizer build artefacts live in a separate tree so plain `make` and
-# `make sanitize` never share .o files or a .a – mixing them produces undefined
+# `make sanitize` never share .o files or a .a - mixing them produces undefined
 # ASAN/UBSAN symbols at link time.
 SANITIZE_BUILDDIR = build.sanitize.nosync
 SANITIZE_OBJ      = $(patsubst src/%.c,$(SANITIZE_BUILDDIR)/%.o,$(SRC))
@@ -81,7 +81,7 @@ SANITIZE_LIB      = libsparcli-sanitize.a
 SANITIZE_TEST_BIN = tests/output/test_main_sanitize
 SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
 
-# ── Output test suite (tests/output/) – automatic, non-interactive ────────
+# ── Output test suite (tests/output/) - automatic, non-interactive ────────
 TEST_SRC = tests/output/test_main.c \
            tests/output/test_text_attributes.c \
            tests/output/test_colors.c \
@@ -103,7 +103,7 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_markup.c
 TEST_BIN = tests/output/test_main
 
-# ── Input logic + widget suite (tests/input/logic/) – interactive ─────────
+# ── Input logic + widget suite (tests/input/logic/) - interactive ─────────
 # (`ARGS=--logic` runs only the non-interactive logic tests, suitable for CI.)
 INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_confirm.c \
@@ -123,7 +123,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
 
-# ── Input style snapshot suite (tests/input/style/) – non-interactive ─────
+# ── Input style snapshot suite (tests/input/style/) - non-interactive ─────
 STYLE_TEST_SRC = tests/input/style/test_style_main.c \
                  tests/input/style/test_style_confirm.c \
                  tests/input/style/test_style_text.c \
@@ -166,7 +166,7 @@ rust-test:
 # A cffi (API-mode) wrapper. build_sparcli.py compiles the vendored C sources
 # (reached via the csrc/cinclude symlinks) into src/sparcli/_sparcli_cffi.*, so
 # `python build_sparcli.py` builds in place and the tests/examples run with
-# PYTHONPATH=src – no install needed. Needs Python + cffi; kept out of
+# PYTHONPATH=src - no install needed. Needs Python + cffi; kept out of
 # `make test`. For a real install: `pip install --no-build-isolation bindings/python`.
 PY      ?= python3
 PY_DIR   = bindings/python

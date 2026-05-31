@@ -351,7 +351,7 @@ static void format_marker_value(
  * at least `MARKER_VALUE_BUFFER` bytes (enough for any practical roman
  * numeral; the longest cluster within `int` range is < 20 chars).
  *
- * Uses position-tracked `snprintf` so we never run past the buffer end –
+ * Uses position-tracked `snprintf` so we never run past the buffer end -
  * unlike the previous `strcpy`/`strcat` version which silently relied on
  * the caller-provided buffer being large enough.
  */
@@ -385,7 +385,7 @@ static void to_roman(int number, char *buffer, bool uppercase) {
             );
             if (written < 0
                 || (size_t)written >= MARKER_VALUE_BUFFER - position) {
-                /* Would overflow the buffer – stop gracefully. */
+                /* Would overflow the buffer - stop gracefully. */
                 return;
             }
             position += (size_t)written;

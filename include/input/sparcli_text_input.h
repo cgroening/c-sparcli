@@ -28,11 +28,11 @@ typedef bool (*ScValidateFn)(
 /**
  * Per-character input filter. Return `true` to accept the typed codepoint,
  * `false` to reject it (the keystroke is ignored). Use it to constrain input
- * to a format – digits only, no spaces, etc. Built-in filters below.
+ * to a format - digits only, no spaces, etc. Built-in filters below.
  */
 typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
 
-/** Accepts ASCII digits `0`–`9` only. */
+/** Accepts ASCII digits `0`-`9` only. */
 SPARCLI_EXPORT bool sc_filter_digits(uint32_t codepoint, void *ctx);
 /** Accepts digits, a leading sign and a decimal point (`0-9`, `-`, `+`,
     `.`). */

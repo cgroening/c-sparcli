@@ -140,7 +140,7 @@ void test_lists(void) {
         ScListItem *backend_item = sc_list_add_str(list, "Backend", plain);
         ScList *backend_sub = sc_list_add_sub(backend_item, (ScListOpts){
             .marker = SC_LIST_BULLET,
-            .bullet = "\xe2\x80\x93",  /* – */
+            .bullet = "\xe2\x80\x93",  /* - */
             .indent = 2,
         });
         sc_list_add_str(backend_sub, "REST API (Go)", plain);

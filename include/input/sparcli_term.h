@@ -98,7 +98,7 @@ typedef enum ScKeyType {
     SC_KEY_CTRL_K,
     SC_KEY_CTRL_U,
     SC_KEY_CTRL_W,
-    SC_KEY_F1, /**< Function keys F1–F12 (SS3 or CSI encoded). */
+    SC_KEY_F1, /**< Function keys F1-F12 (SS3 or CSI encoded). */
     SC_KEY_F2,
     SC_KEY_F3,
     SC_KEY_F4,

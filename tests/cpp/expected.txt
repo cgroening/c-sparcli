@@ -1,4 +1,4 @@
-[1m[32msparcli[0m – C++ wrapper demo[0m
+[1m[32msparcli[0m - C++ wrapper demo[0m
 [2mplain styled line[0m
 [34m╭[0m[34m─[0m [0m[1m[34mℹ Info[0m [0m[34m─────────────────────────────────────────────────────────────────────[0m[34m╮[0m
 [34m│[0m Header-only C++20 wrapper over the C API.[0m                                    [34m│[0m

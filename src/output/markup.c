@@ -423,7 +423,7 @@ static const char *skip_spaces(const char *cursor, const char *end) {
  * `[0, 255]` channel range.
  *
  * Locale-independent (`strtol` is `LC_NUMERIC`-safe for plain decimal
- * integers – unlike `sscanf("%d", …)` which can be affected on some
+ * integers - unlike `sscanf("%d", …)` which can be affected on some
  * implementations).
  */
 static bool parse_rgb_channel(const char **cursor, int *out_value) {

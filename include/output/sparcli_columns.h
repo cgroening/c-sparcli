@@ -87,7 +87,7 @@ ScColumns *sc_columns_new(ScColumnsOpts opts);
  *
  * The table is rendered into a temporary buffer **at call time** and the
  * resulting frozen rendering is stored. The caller may freely modify or
- * free `table` afterwards – the columns layout no longer references it.
+ * free `table` afterwards - the columns layout no longer references it.
  *
  * @param columns  Layout the column is appended to.
  * @param table    Source table; rendered at call time, then no longer

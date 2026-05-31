@@ -65,7 +65,7 @@ class ProgressBar:
     """An in-place animated progress bar.
 
     ``value``/``max``: when ``max > 0`` the ratio is ``value/max``; when
-    ``max == 0`` ``value`` is already a 0.0–1.0 ratio.
+    ``max == 0`` ``value`` is already a 0.0-1.0 ratio.
     """
 
     __slots__ = ("_p", "_finalizer", "__weakref__")

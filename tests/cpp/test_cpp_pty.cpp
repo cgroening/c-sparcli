@@ -5,7 +5,7 @@
  * These wrappers fill an out-pointer through the C call and then hand it to
  * detail::take(). A previous version wrote `take(out, sc_*(..., &out, ...))`,
  * where the unspecified evaluation order of function arguments let `out` be
- * read (still nullptr) before the call filled it – so a typed value came back
+ * read (still nullptr) before the call filled it - so a typed value came back
  * as an empty string (and the C-allocated string leaked). A non-TTY unit test
  * can't catch this (the prompts return SC_INPUT_ERROR with out == nullptr), so
  * we drive the real interactive path over a pseudo-terminal and assert the

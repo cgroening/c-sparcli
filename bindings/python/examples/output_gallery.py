@@ -10,7 +10,7 @@ import sparcli as sc
 
 
 def main() -> None:
-    sc.rule("sparcli – output gallery", sc.RuleOpts(type=sc.BorderType.DOUBLE))
+    sc.rule("sparcli - output gallery", sc.RuleOpts(type=sc.BorderType.DOUBLE))
     sc.println("")
 
     sc.markup.println("[bold]Styled[/] text with [italic green]markup[/] and "

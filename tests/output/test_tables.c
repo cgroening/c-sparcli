@@ -542,7 +542,7 @@ void test_tables(void) {
             sc_cell("25"), sc_cell("Unlimited"),
         }, 4);
         sc_table_add_row(table, (ScCell[]){
-            sc_cell("Support"), sc_cell("–"),
+            sc_cell("Support"), sc_cell("-"),
             sc_cell("Email"), sc_cell("24/7"),
         }, 4);
         sc_table_add_row(table, (ScCell[]){
@@ -712,7 +712,7 @@ void test_tables(void) {
 
         /*
          * Strings must outlive sc_table_print, so the buffers cannot live in
-         * the loop scope – use one buffer slot per row.
+         * the loop scope - use one buffer slot per row.
          */
         char row_index[10][4];
         char row_name[10][12];

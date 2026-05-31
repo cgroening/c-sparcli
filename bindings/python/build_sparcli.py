@@ -2,13 +2,13 @@
 
 ``set_source`` ``#include``s the real ``sparcli.h`` and compiles the vendored C
 sources straight into the extension module, so a plain ``pip install`` needs
-only a C compiler – no prior ``make`` and no system-installed library (the same
+only a C compiler - no prior ``make`` and no system-installed library (the same
 self-contained story as the Rust ``cc`` build).
 
 The ``cdef`` below uses cffi's *partial struct* syntax (``...;`` at the end of a
 struct body): only the fields the Python layer actually touches are listed, and
 the C compiler fills in the true size, layout and remaining fields. That keeps
-the declaration small and robust to additive field changes in the C headers – a
+the declaration small and robust to additive field changes in the C headers - a
 genuine layout mismatch fails the build instead of corrupting memory at runtime.
 """
 
@@ -26,7 +26,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 # ``cinclude`` symlinks (-> ../../src, ../../include). setuptools requires
 # extension source/include paths to be relative to the setup.py directory and
 # refuses paths that escape it ("..") or are absolute, so we reference the C
-# files through these in-package links – a single source of truth, no copy.
+# files through these in-package links - a single source of truth, no copy.
 _SRC = "csrc"
 _INCLUDE = "cinclude"
 

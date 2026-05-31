@@ -794,7 +794,7 @@ impl List {
     /// Adds a rich-text item (the list takes ownership of `t`).
     pub fn add_text(&mut self, t: Text) -> ListItem {
         // The C list borrows the ScText; leak it so the borrow stays valid for
-        // the list's lifetime (freed with the process – lists are short-lived).
+        // the list's lifetime (freed with the process - lists are short-lived).
         let raw = t.as_mut_ptr();
         std::mem::forget(t);
         let item = unsafe { ffi::sc_list_add_text(self.ptr, raw) };

@@ -12,7 +12,7 @@ SPARCLI_BEGIN_DECLS
  * removed.
  *
  * Strips sequences starting with `ESC [` up to and including the final byte
- * (`0x40`–`0x7E`). Non-CSI bytes are copied verbatim.
+ * (`0x40`-`0x7E`). Non-CSI bytes are copied verbatim.
  *
  * @param str  Source string; `NULL` returns an empty heap string.
  * @return     Heap-allocated stripped string; caller must `free()` the result.

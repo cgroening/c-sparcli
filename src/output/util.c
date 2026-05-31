@@ -95,7 +95,7 @@ static size_t skip_csi_sequence(const char *str, size_t start) {
     return position;
 }
 
-/** Returns `true` when `byte` is a valid CSI final byte (0x40–0x7E). */
+/** Returns `true` when `byte` is a valid CSI final byte (0x40-0x7E). */
 static bool is_csi_final_byte(unsigned char byte) {
     return byte >= CSI_FINAL_MIN && byte <= CSI_FINAL_MAX;
 }

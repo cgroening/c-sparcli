@@ -15,7 +15,7 @@
 
 /*
  * Termination signals after which we restore the terminal, then re-raise with
- * the default disposition so the process still dies as expected – but with a
+ * the default disposition so the process still dies as expected - but with a
  * usable terminal instead of a stuck raw mode.
  *
  * We deliberately do NOT trap the crash signals

@@ -412,7 +412,7 @@ static ScRendered *render_list(ScFuzzy *self) {
 
 /**
  * Appends `label` codepoint-by-codepoint, emphasizing the characters the
- * (greedy, case-insensitive) query subsequence matches – same order as
+ * (greedy, case-insensitive) query subsequence matches - same order as
  * `sc_fuzzy_match`.
  */
 static void append_highlighted(ScText *text, const char *label,
@@ -552,7 +552,7 @@ static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self) {
     return opts;
 }
 
-/** Builds a dim "↑ first–last/total ↓" line, or NULL when nothing is hidden. */
+/** Builds a dim "↑ first-last/total ↓" line, or NULL when nothing is hidden. */
 static ScRendered *render_scroll_hint(ScFuzzy *self) {
     size_t visible = (size_t)self->max_visible;
     size_t end = self->top + visible;

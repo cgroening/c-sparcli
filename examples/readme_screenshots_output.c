@@ -4,10 +4,10 @@
  * Generates the OUTPUT-widget screenshots referenced in README.md. Its input
  * counterpart is readme_screenshots_input.c. Sections:
  *
- *   1  hero      – panel + striped table + two-column layout + progress bar
- *   2  quickstart – output of the Quick Start snippet
- *   3  gallery   – one representative state per widget
- *   4  markup    – before/after view of the inline markup syntax
+ *   1  hero      - panel + striped table + two-column layout + progress bar
+ *   2  quickstart - output of the Quick Start snippet
+ *   3  gallery   - one representative state per widget
+ *   4  markup    - before/after view of the inline markup syntax
  *
  * Build & run (after `make`):
  *   make run-example EX=readme_screenshots_output
@@ -92,7 +92,7 @@ static void shot_hero(void) {
         sc_text_append(body, " and ", s_plain);
         sc_text_append(body, "input", s_b_black_on_magenta);
         sc_text_append(body,
-            " – panels, tables, trees, lists, key-value pairs, badges, rules, ",
+            " - panels, tables, trees, lists, key-value pairs, badges, rules, ",
             s_plain);
         sc_text_append(body, "columns", s_b_green);
         sc_text_append(body, " and progress bars, with Rich-compatible ",
@@ -213,7 +213,7 @@ static void shot_hero(void) {
             (const ScRendered *const *)r_rules, 3, 1
         );
 
-        /* tree | rules, side by side – this fills the area under the list. */
+        /* tree | rules, side by side - this fills the area under the list. */
         ScColumns *under = sc_columns_new((ScColumnsOpts){
             .gap    = 2,
             .sep    = { .type = SC_BORDER_NONE, .color = SC_ANSI_COLOR_NONE },
