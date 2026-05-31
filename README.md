@@ -7,7 +7,7 @@ A C11 library for **styled terminal output** and **interactive prompts**:
 - confirm, text, password, number, textarea, select, fuzzy and date-picker
   prompts.
 
-Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, and
+Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper** and
 safe, idiomatic **Rust** and **Python** bindings.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
