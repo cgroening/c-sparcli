@@ -261,6 +261,64 @@ make run-example EX=shortcut_demo      # custom shortcuts: F2 rename, Ctrl-X del
 make test-input
 ```
 
+### Rebuilding the bindings & consumers after a C-library change
+
+The C++/Rust/Python bindings and any external consumer each carry their **own**
+copy of the compiled library (the Rust and Python wrappers compile the C sources
+themselves; pkg-config consumers link the installed `.a`/`.so`). None of them
+pick up a `src/` or `include/` change automatically — after editing the C core,
+rebuild each one you use. All commands are relative to the **project root**.
+
+**All at once:** `make rebuild-all` runs steps 1–3 below in order (C library +
+`install` + Rust + Python); the C++ wrapper is header-only and needs no rebuild.
+It needs `cargo` and a cffi-capable Python — point at one with
+`make rebuild-all PY=/path/to/python`. `install` defaults to `/usr/local` (needs
+`sudo`); pass a prefix for a user-local install, e.g.
+`make rebuild-all PREFIX=$HOME/.local`. Run the individual steps instead when you
+only touched one binding.
+
+```sh
+# 1. Core C library + (re)install — needed by pkg-config consumers, the C/C++
+#    headers, and any external project that links the installed lib.
+make                                   # rebuild libsparcli.a + .so + .pc
+make install                           # reinstall (user-local; or `sudo make install`)
+
+# 2. Rust binding — build.rs recompiles the C via cc (no install needed).
+cargo build --manifest-path bindings/rust/Cargo.toml
+cargo test  --manifest-path bindings/rust/Cargo.toml
+#    If a struct / signature / enum changed, regenerate the committed bindgen
+#    output (needs libclang) and commit it:
+cargo build --manifest-path bindings/rust/Cargo.toml --features regen
+#    -> commit bindings/rust/sparcli-sys/src/bindings.rs
+
+# 3. Python binding — rebuild the cffi extension (it is NOT rebuilt on import).
+make python                            # build in place into src/sparcli/
+make python-test                       # build + headless pytest
+#    An editable install does not auto-rebuild either — re-run it after a change:
+uv pip install --no-build-isolation -e bindings/python
+#    If a struct/signature the wrapper uses changed or was added, first update
+#    the cdef in bindings/python/build_sparcli.py (and the dataclass `_fill`).
+
+# 4. C++ wrapper — header-only; if the C API changed, update include/sparcli.hpp,
+#    then recompile dependents and rerun the gate:
+make test-cpp
+```
+
+**Easy to forget:**
+
+- **Version bump on ABI changes:** edit `SPARCLI_VERSION_*` in
+  `include/core/sparcli_export.h`; the shared-lib version and `.pc` track it, so
+  re-run `make install` and rebuild every consumer.
+- **Golden files** if you changed rendering on purpose: `make test-output-golden`,
+  `make test-input-style-golden`, `make test-cpp-golden` (review + commit).
+- **Docs in lockstep:** `CLAUDE.md`, the per-language references
+  `docs/api-c.md` / `api-cpp.md` / `api-rust.md` / `api-python.md`, and `README.md`.
+- **External consumers** that link the *installed* library (e.g. the `taskcli`
+  C++ template) must be rebuilt after `make install`.
+- **The cdef is hand-maintained** (Python) and the bindgen output is committed
+  (Rust): a new/changed public function or struct field is invisible to those
+  bindings until you update `build_sparcli.py` / regen `bindings.rs`.
+
 ---
 
 ## Install / packaging

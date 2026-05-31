@@ -148,7 +148,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example rust rust-test python python-test
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example rust rust-test python python-test rebuild-all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -176,6 +176,16 @@ python:
 
 python-test: python
 	cd $(PY_DIR) && PYTHONPATH=src $(PY) -m pytest tests -q
+
+# ── Rebuild everything (C lib + install + Rust + Python) in one go ─────────
+# The C++ wrapper is header-only (nothing to compile on its own); it is picked
+# up by consumers and refreshed through `install`. Needs cargo + a cffi-capable
+# Python; override the latter with `make rebuild-all PY=/path/to/python`.
+rebuild-all:
+	$(MAKE) all
+	$(MAKE) install
+	$(MAKE) rust
+	$(MAKE) python
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 
