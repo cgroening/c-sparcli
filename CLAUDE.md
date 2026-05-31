@@ -45,8 +45,9 @@ src/core/     color, text, print, output(stream), render_wrap, version
 src/output/   panel, rule, list, tree, columns, kv, alert, badge,
               progressbar, spinner, markup, pad, util, + table/
 src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
-src/input/    prompt (loop engine), line_editor, confirm, text_input,
-              password_input, select, fuzzy, datepicker
+src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
+              theme, confirm, text_input, password_input, number_input,
+              textarea, select, fuzzy, datepicker
 include/core/    include/output/    include/input/      (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
 ```

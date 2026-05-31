@@ -104,8 +104,9 @@ make test-input ARGS=--logic   # non-interactive logic checks only (CI-safe)
 ```
 
 `ARGS=--logic` skips the interactive widgets and runs only the pure-logic
-checks – key decoder, line editor, character filters, and the thread-safety
-test – and exits non-zero if any assertion fails.
+checks – key decoder, the shortcut chord matcher, the select label-edit API, the
+line editor, character filters, and the thread-safety test – and exits non-zero
+if any assertion fails.
 
 ### `make test-input-style` – style snapshots
 
@@ -124,7 +125,8 @@ Forks each interactive widget onto a pseudo-terminal, feeds it a canned
 keystroke script, and asserts the returned value – no human needed. Built with
 AddressSanitizer + UndefinedBehaviorSanitizer, so it also gives sanitizer
 coverage of the interactive code paths. Covers confirm, text, number, select,
-textarea, and datepicker.
+textarea, and datepicker, plus custom shortcuts (return/callback/remove),
+Esc-cancel, and the external-editor flow (driven by a stub editor).
 
 ```sh
 make test-input-pty
@@ -309,8 +311,8 @@ src/core/     color, text, print, output stream, render-wrap, version
 src/output/   panel, rule, list, tree, columns, kv, alert, badge,
               progressbar, spinner, markup, pad, util, + table/
 src/tty/      raw mode + signal restore, key decoder, in-place redraw
-src/input/    prompt engine, line editor, confirm, text/password/number,
-              textarea, select, fuzzy, datepicker, theme
+src/input/    prompt engine, line editor, shortcut, external editor, confirm,
+              text/password/number, textarea, select, fuzzy, datepicker, theme
 include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 tests/output/                  output suite

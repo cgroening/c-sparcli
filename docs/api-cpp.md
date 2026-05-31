@@ -331,6 +331,8 @@ Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
 `apply(opts)` wires it into any `*Opts`, and `fired()` reports which RETURN-mode
 shortcut ended the prompt (`-1` if none). Chords: `key_ctrl('e')`, `key_fn(2)`,
 `key_alt('e')`; `key_name(chord)` formats one (`"F2"`, `"^E"`, `"M-e"`).
+(`key_matches(Key, KeyChord)` and `shortcut_find(Key, vector<Shortcut>)` wrap the
+low-level matchers for callers that decode keys themselves.)
 
 ```cpp
 Select sel({ .prompt = "Pick" });
