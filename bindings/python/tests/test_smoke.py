@@ -1,0 +1,130 @@
+"""Non-interactive tests: pure functions, render-and-capture, no-TTY behaviour.
+
+These run headless (no terminal needed). Interactive widget behaviour itself is
+covered by the C library's own PTY suite; here we exercise the Python plumbing.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+import sparcli as sc
+
+
+# ── pure functions ────────────────────────────────────────────────────────────
+def test_version():
+    assert sc.version_string().count(".") == 2
+    maj, minr, pat = sc.version()
+    assert (maj, minr, pat) == tuple(int(x) for x in sc.version_string().split("."))
+
+
+def test_fuzzy_match():
+    ok, score = sc.fuzzy_match("ab", "cab")
+    assert ok and score > 0
+    assert sc.fuzzy_match("xyz", "cab")[0] is False
+    assert sc.fuzzy_match("", "anything")[0] is True  # empty pattern always matches
+
+
+def test_strip_ansi():
+    assert sc.strip_ansi("\033[1;31mhi\033[0m") == "hi"
+    assert sc.strip_ansi("plain") == "plain"
+
+
+def test_truncate():
+    assert sc.truncate("hello world", 5) == "hell…"
+    assert sc.truncate("hi", 10) == "hi"
+    assert sc.truncate("hello", 4, ellipsis="...") == "h..."
+
+
+# ── colors / styles ────────────────────────────────────────────────────────────
+def test_color_constants_and_rgb():
+    assert sc.Color.NONE.index == 0
+    assert sc.Color.RED.index == 2
+    assert sc.Color.rgb(300, -5, 50) == sc.Color(-1, 255, 0, 50)  # clamped
+
+
+def test_attr_flags_combine():
+    combined = sc.Attr.BOLD | sc.Attr.ITALIC
+    assert int(combined) == 1 | 4
+
+
+# ── render & capture ────────────────────────────────────────────────────────────
+def _plain(rendered: sc.Rendered) -> list[str]:
+    return [sc.strip_ansi(line) for line in rendered.lines]
+
+
+def test_capture_panel_contains_content():
+    r = sc.capture.panel("hello", sc.PanelOpts(title="hi"))
+    text = "\n".join(_plain(r))
+    assert "hello" in text
+    assert r.width > 0
+
+
+def test_capture_table_rows():
+    t = sc.Table()
+    t.column("Name").column("Age")
+    t.row(["Ada", "36"])
+    t.row(["Alan", "41"])
+    lines = _plain(sc.capture.table(t, sc.TableOpts(header_row=True)))
+    joined = "\n".join(lines)
+    for token in ("Name", "Age", "Ada", "36", "Alan", "41"):
+        assert token in joined
+
+
+def test_capture_markup_text():
+    t = sc.Text.from_markup("[bold red]Err[/] ok")
+    lines = _plain(sc.capture.text(t))
+    assert "Err ok" in "\n".join(lines)
+    assert t.visible_width >= len("Err ok")
+
+
+def test_vstack_combines():
+    a = sc.capture.string("one")
+    b = sc.capture.string("two")
+    stacked = sc.vstack([a, b], gap=1)
+    plain = _plain(stacked)
+    assert "one" in plain[0]
+    assert "two" in plain[-1]
+    assert sc.vstack([]) is None
+
+
+def test_text_append_chaining():
+    t = sc.Text()
+    assert t.append("a", sc.Style.bold()).append("b") is t
+    assert t.visible_width == 2
+
+
+def test_columns_capture_runs():
+    kv = sc.Kv()
+    kv.add("k", "v")
+    cols = sc.Columns(sc.ColumnsOpts(gap=2))
+    cols.add_rendered(sc.capture.kv(kv)).add_str("side")
+    out = _plain(sc.capture.columns(cols))
+    assert any("k" in line and "v" in line for line in out)
+
+
+# ── no-TTY input behaviour ─────────────────────────────────────────────────────
+def test_input_unavailable_without_tty():
+    # Under pytest stdin/stdout are not a terminal.
+    assert sc.input_available() is False
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.confirm("ok?")
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.text_input("name")
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.Select().add("a").run_one()
+
+
+# ── output redirection ──────────────────────────────────────────────────────────
+def test_scoped_output_redirect(tmp_path):
+    path = tmp_path / "out.txt"
+    with open(path, "w") as f, sc.ScopedOutput(f):
+        sc.println("captured", sc.Style.bold())
+    content = path.read_text()
+    assert "captured" in sc.strip_ansi(content)
+
+
+# ── interior NUL rejection ──────────────────────────────────────────────────────
+def test_interior_nul_rejected():
+    with pytest.raises(ValueError):
+        sc.println("a\x00b")

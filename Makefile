@@ -148,7 +148,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example rust rust-test
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example rust rust-test python python-test
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -161,6 +161,21 @@ rust:
 
 rust-test:
 	cargo test --manifest-path $(RUST_MANIFEST)
+
+# ── Python binding (bindings/python/) ─────────────────────────────────────
+# A cffi (API-mode) wrapper. build_sparcli.py compiles the vendored C sources
+# (reached via the csrc/cinclude symlinks) into src/sparcli/_sparcli_cffi.*, so
+# `python build_sparcli.py` builds in place and the tests/examples run with
+# PYTHONPATH=src — no install needed. Needs Python + cffi; kept out of
+# `make test`. For a real install: `pip install --no-build-isolation bindings/python`.
+PY      ?= python3
+PY_DIR   = bindings/python
+
+python:
+	cd $(PY_DIR) && $(PY) build_sparcli.py
+
+python-test: python
+	cd $(PY_DIR) && PYTHONPATH=src $(PY) -m pytest tests -q
 
 all: $(LIB) $(SHLIB) $(PC_FILE)
 

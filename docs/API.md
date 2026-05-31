@@ -9,9 +9,10 @@ sparcli has one reference page per language interface:
 - **[Rust bindings](api-rust.md)** – the safe, idiomatic `sparcli` crate
   (`bindings/rust/`): RAII handles, builder option structs, `Result<Option<T>>`
   prompts, closures for callbacks.
+- **[Python bindings](api-python.md)** – the Pythonic `sparcli` package
+  (`bindings/python/`): a cffi (API-mode) wrapper with RAII handles, `@dataclass`
+  options, `value | None` prompts and `SparcliInputUnavailable`.
 
 For installation, linking and quick-start examples (C and C++), see the
 [main README](../README.md). For the build/test/contributor workflow, see
 [`DEVELOPMENT.md`](DEVELOPMENT.md).
-
-> Future language bindings (e.g. Python) will get their own `api-*.md` page here.

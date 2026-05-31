@@ -8,7 +8,7 @@ A C11 library for **styled terminal output** and **interactive prompts**:
   prompts.
 
 Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, and
-safe, idiomatic **Rust bindings**.
+safe, idiomatic **Rust** and **Python** bindings.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language: C11](https://img.shields.io/badge/c-11-blue.svg)
@@ -31,6 +31,7 @@ safe, idiomatic **Rust bindings**.
     - [C](#c)
     - [C++ (header-only)](#c-header-only)
     - [Rust](#rust)
+    - [Python](#python)
   - [Installation](#installation)
     - [From source](#from-source)
     - [Linking](#linking)
@@ -67,7 +68,7 @@ safe, idiomatic **Rust bindings**.
   the C via `cc` — no install needed) with RAII handles, builder options and
   `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
-  entry points – the C++ and Rust wrappers build on this; Python is planned.
+  entry points – the C++, Rust and Python wrappers build on this.
 - **No runtime dependencies** beyond libc.
 - **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
 
@@ -178,6 +179,36 @@ fn main() -> sparcli::Result<()> {
 ```sh
 # the workspace has no bin, so run an example (from bindings/rust/):
 cargo run -p sparcli --example demo          # complete showcase: all widgets
+```
+
+### Python
+
+Pythonic bindings live in [`bindings/python/`](bindings/python/) — a **cffi**
+(API-mode) wrapper that compiles the C sources into an extension, so building
+needs only a C compiler. RAII handles free themselves, options are
+`@dataclass`es with keyword args, and prompts return the value or `None` on
+cancel (and raise `SparcliInputUnavailable` with no TTY). Full reference:
+[`docs/api-python.md`](docs/api-python.md).
+
+```python
+import sparcli as sc
+
+sc.panel("Welcome aboard.", sc.PanelOpts(title="Greeting",
+         border=sc.BorderStyle(sc.BorderType.ROUNDED)))
+
+t = sc.Table()                                 # frees itself
+t.column("Name").column("Age", sc.ColOpts(halign=sc.Align.RIGHT))
+t.row(["Ada", "42"])
+t.print(sc.TableOpts(header_row=True))
+
+name = sc.text_input("Your name")              # str, or None if cancelled
+if name:
+    sc.markup.println(f"[green]Hi[/] {name}")
+```
+
+```sh
+make python                                    # build the extension in place
+PYTHONPATH=bindings/python/src python bindings/python/examples/demo.py  # all widgets
 ```
 
 ---
@@ -376,8 +407,8 @@ run it, the golden-file workflow, and the pre-commit checklist.
   (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
 - **Rust bindings** – ✅ ship in [`bindings/rust/`](bindings/rust/) (the safe
   `sparcli` crate over `sparcli-sys`; see [`docs/api-rust.md`](docs/api-rust.md)).
-- **Python bindings** (`sparcli-py`): `cffi`/`ctypes`-based wrapper with
-  Pythonic constructors.
+- **Python bindings** – ✅ ship in [`bindings/python/`](bindings/python/) (the
+  cffi API-mode `sparcli` package; see [`docs/api-python.md`](docs/api-python.md)).
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output
   components (default border style/color, title styling, …), mirroring the
   existing [`sc_input_set_theme`](#input-widgets) for input widgets.

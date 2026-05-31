@@ -1,0 +1,25 @@
+# Virtualenvs
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+src/*.egg-info/
+
+# cffi / compiled extension (built from the C tree via build_sparcli.py)
+src/sparcli/_sparcli_cffi.*
+# stray build scratch dir created by `python build_sparcli.py` (anchored, so it
+# does NOT match the real package at src/sparcli/)
+/sparcli/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# macOS
+.DS_Store

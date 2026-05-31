@@ -180,6 +180,39 @@ FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the
 `regen` feature regenerates them from the headers with bindgen. The reference is
 [`docs/api-rust.md`](api-rust.md).
 
+### `make python` / `make python-test` – Python bindings
+
+The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode
+wrapper). `build_sparcli.py` compiles the vendored C sources — reached through
+the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) — into
+`src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests
+and examples run with `PYTHONPATH=src`, no install required. Needs Python with
+`cffi`; kept out of `make test` since neither may be present.
+
+```sh
+make python                       # build the extension in place
+make python-test                  # build + run the non-interactive pytest suite
+make python-test PY=/path/to/python   # point make at an interpreter that has cffi
+
+# Examples (after `make python`, from bindings/python/):
+PYTHONPATH=src python examples/demo.py            # complete showcase (all widgets)
+PYTHONPATH=src python examples/output_gallery.py  # output only
+PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
+```
+
+To install into an environment instead — an editable (`-e`) install with build
+isolation off, because the C sources are reached via the in-repo symlinks and
+the build must run in place:
+
+```sh
+pip install cffi setuptools wheel
+pip install --no-build-isolation -e bindings/python
+```
+
+The `cdef` in `build_sparcli.py` uses cffi's partial-struct (`...;`) syntax, so
+the compiler fills in exact struct layout from the headers — a real mismatch
+fails the build. The reference is [`docs/api-python.md`](api-python.md).
+
 ### `make sanitize` – output suite under ASan/UBSan
 
 Rebuilds and runs the output suite with AddressSanitizer + UBSan in a separate
@@ -342,6 +375,7 @@ src/input/    prompt engine, line editor, shortcut, external editor, confirm,
 include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 bindings/rust/                 cargo workspace: sparcli-sys (FFI) + sparcli (safe)
+bindings/python/               cffi (API-mode) wrapper: src/sparcli/ + build_sparcli.py
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 tests/cpp/                     C++ wrapper assertion suite + golden
