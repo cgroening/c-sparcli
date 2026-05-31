@@ -7,7 +7,8 @@ A C11 library for **styled terminal output** and **interactive prompts**:
 - confirm, text, password, number, textarea, select, fuzzy and date-picker
   prompts.
 
-Ships with **Rich-compatible inline markup** and a header-only **C++ wrapper**.
+Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, and
+safe, idiomatic **Rust bindings**.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language: C11](https://img.shields.io/badge/c-11-blue.svg)
@@ -29,6 +30,7 @@ Ships with **Rich-compatible inline markup** and a header-only **C++ wrapper**.
   - [Quick start](#quick-start)
     - [C](#c)
     - [C++ (header-only)](#c-header-only)
+    - [Rust](#rust)
   - [Installation](#installation)
     - [From source](#from-source)
     - [Linking](#linking)
@@ -65,7 +67,7 @@ Ships with **Rich-compatible inline markup** and a header-only **C++ wrapper**.
   the C via `cc` — no install needed) with RAII handles, builder options and
   `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
-  entry points – ready for future Python/Rust bindings.
+  entry points – the C++ and Rust wrappers build on this; Python is planned.
 - **No runtime dependencies** beyond libc.
 - **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
 
@@ -145,6 +147,38 @@ t.print();
 
 These guarantees (auto-free, owned cell strings, surviving a move) are verified
 by [`tests/cpp/test_cpp.cpp`](tests/cpp/test_cpp.cpp).
+
+### Rust
+
+Safe, idiomatic bindings live in [`bindings/rust/`](bindings/rust/) (a cargo
+workspace). `sparcli-sys` compiles the C with the `cc` crate, so a plain
+`cargo build` needs only a Rust toolchain — no prior `make` or install. RAII
+handles free themselves, `*Opts` use builder methods, callbacks are closures,
+and prompts return `Result<Option<T>>` (`Ok(None)` = cancelled). Full reference:
+[`docs/api-rust.md`](docs/api-rust.md).
+
+```rust
+use sparcli::*;
+
+fn main() -> sparcli::Result<()> {
+    panel("Welcome aboard.", PanelOpts::new().rounded().title("Greeting"));
+
+    let mut t = Table::new();                  // frees itself
+    t.column("Name", ColOpts::new());
+    t.row(["Ada", "42"]);                      // strings owned → temporaries safe
+    t.print(TableOpts::new().header_row(true));
+
+    if let Some(name) = text_input("Your name", TextInputOpts::new())? {
+        markup::println(&format!("[green]Hi[/] {name}"));
+    }
+    Ok(())
+}
+```
+
+```sh
+# the workspace has no bin, so run an example (from bindings/rust/):
+cargo run -p sparcli --example demo          # complete showcase: all widgets
+```
 
 ---
 
@@ -340,9 +374,10 @@ run it, the golden-file workflow, and the pre-commit checklist.
 
 - **C++ wrapper** – ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp)
   (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
+- **Rust bindings** – ✅ ship in [`bindings/rust/`](bindings/rust/) (the safe
+  `sparcli` crate over `sparcli-sys`; see [`docs/api-rust.md`](docs/api-rust.md)).
 - **Python bindings** (`sparcli-py`): `cffi`/`ctypes`-based wrapper with
   Pythonic constructors.
-- **Rust crate** (`sparcli-rs`): safe `&str`-friendly wrappers around the C API.
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output
   components (default border style/color, title styling, …), mirroring the
   existing [`sc_input_set_theme`](#input-widgets) for input widgets.
