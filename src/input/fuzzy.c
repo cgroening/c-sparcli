@@ -171,7 +171,7 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
     };
     ScInputStatus status =
-        sc_prompt_run(&vtable, self, self->opts.shortcuts ? &sk : NULL);
+        sc_prompt_run(&vtable, self, self->opts.shortcuts ? &sk : NULL, NULL);
 
     if (status == SC_INPUT_OK && self->match_n > 0) {
         // Enter requires a match; a RETURN shortcut can fire with an empty

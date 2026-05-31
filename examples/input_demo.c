@@ -64,11 +64,13 @@ static bool not_empty(const char *value, void *ctx, const char **err) {
 static void demo_text(void) {
     section("Text Input");
 
-    /* Plain inline entry with placeholder + validation. */
+    /* Plain inline entry with placeholder + validation. Ctrl-G opens $EDITOR
+     * (newlines in the result are collapsed to spaces for a single-line field). */
     char *name = NULL;
     ScInputStatus st = sc_text_input(
-        "Your name", &name,
-        (ScTextInputOpts){ .placeholder = "Ada Lovelace", .validate = not_empty }
+        "Your name (Ctrl-G editor)", &name,
+        (ScTextInputOpts){ .placeholder = "Ada Lovelace", .validate = not_empty,
+                           .external_editor = true }
     );
     if (st == SC_INPUT_OK) { printf("  -> \"%s\"\n", name); free(name); }
     note_cancel(st);
@@ -127,9 +129,10 @@ static void demo_textarea(void) {
     section("Textarea");
     char *text = NULL;
     ScInputStatus st = sc_textarea(
-        "Notes (Ctrl-D to submit)", &text,
+        "Notes (Ctrl-D submit · Ctrl-G editor)", &text,
         (ScTextareaOpts){ .placeholder = "Type multiple lines…",
-                          .boxed = true, .width = 48 }
+                          .boxed = true, .width = 48,
+                          .external_editor = true /* Ctrl-G → $EDITOR (nvim) */ }
     );
     if (st == SC_INPUT_OK) { printf("  -> %zu bytes\n", strlen(text)); free(text); }
     note_cancel(st);

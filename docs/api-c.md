@@ -1048,6 +1048,30 @@ sc_text_input(NULL, &out, (ScTextInputOpts){ .initial = name, .prompt_text = p }
 sc_text_free(p);
 ```
 
+### External editor
+
+`sc_text_input` and `sc_textarea` can hand off to the user's `$EDITOR`. Opt in
+per call: `external_editor = true`, optional `editor` command override, and
+`editor_key` (an `ScKeyChord`; zero-init = **Ctrl-G**). Pressing the key
+suspends raw mode, opens the editor on a temp file seeded with the current
+value, and on a clean save+quit replaces the value with the file contents
+(text_input collapses newlines to spaces, since it is single-line). A non-zero editor exit (e.g. `:cq`)
+keeps the old value.
+
+```c
+sc_textarea("Commit message", &msg, (ScTextareaOpts){
+    .external_editor = true,            /* Ctrl-G → editor */
+    .editor          = "nvim",          /* NULL = $VISUAL → $EDITOR → nvim → vi */
+});
+```
+
+Safety: the command runs via `execvp` with a **whitespace-tokenized argv (no
+shell)**; the temp file is `mkstemp` mode `0600` and unlinked before return; the
+terminal is restored on resume (and by the existing `atexit`/signal handlers if
+the process dies). **Password input does not support this** (a plaintext temp
+file + editor swap/undo files would leak the secret). Editor commands with
+quoted/space-containing arguments are not supported (tokenized on whitespace).
+
 ### sc_confirm
 
 Yes/No question. Arrow keys / Tab / `h` / `l` move; `y`/`n` pick directly; Enter

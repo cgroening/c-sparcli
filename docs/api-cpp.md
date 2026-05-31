@@ -367,6 +367,19 @@ auto renamed = text_input("", { .initial = name, .prompt_text = p.get() });
 auto r2 = text_input("Rename [italic]Apple[/] to", { .prompt_markup = true });
 ```
 
+### External editor
+
+`text_input` and `textarea` can open the value in `$EDITOR`. Opt in via the
+opts: `.external_editor = true`, optional `.editor = "nvim"`, and `.editor_key`
+(default Ctrl-G). On save+quit the file replaces the value (text_input keeps the
+newlines collapsed to spaces); a non-zero exit keeps the old value. Runs shell-free with a 0600
+temp file; **not available for `password_input`** (secret would hit disk).
+
+```cpp
+auto msg = textarea("Commit message",
+                    { .external_editor = true, .editor_key = key_ctrl('g') });
+```
+
 ## Escape hatch
 
 Every handle exposes `.get()` returning the raw `Sc*` pointer, so you can always

@@ -146,7 +146,7 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
     };
     ScInputStatus status =
-        sc_prompt_run(&vtable, self, self->opts.shortcuts ? &sk : NULL);
+        sc_prompt_run(&vtable, self, self->opts.shortcuts ? &sk : NULL, NULL);
     if (status != SC_INPUT_OK) {
         return status;
     }

@@ -21,10 +21,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+
+
+/* Path to a stub "editor" script (created in main): writes a fixed two-line
+ * value to its file argument, so the external-editor path can be tested with no
+ * human and no real editor. */
+static char g_editor[256];
+
+/* A stub "editor" that exits non-zero without changing the file (like `:cq`),
+ * so the widget must keep its original value. */
+static char g_editor_fail[256];
 
 
 /* ── The widget under test, run in the forked child ─────────────────────── */
@@ -163,6 +174,38 @@ static int child_case(int c) {
             sc_select_free(sl);
             return (s == SC_INPUT_CANCELLED) ? 0 : 1;
         }
+        case 10: {
+            /* Textarea: Ctrl-G opens the stub editor (writes a two-line value),
+               then Ctrl-D submits. The whole editor output replaces the value. */
+            char *t = NULL;
+            ScInputStatus s = sc_textarea("Notes", &t, (ScTextareaOpts){
+                .external_editor = true, .editor = g_editor });
+            int ok = (s == SC_INPUT_OK && t
+                      && strcmp(t, "from-editor\nsecond") == 0);
+            free(t);
+            return ok ? 0 : 1;
+        }
+        case 11: {
+            /* Text-input: Ctrl-G opens the editor; a multi-line result has its
+               newlines collapsed to spaces (single-line field). Enter submits. */
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("Name", &t, (ScTextInputOpts){
+                .external_editor = true, .editor = g_editor });
+            int ok = (s == SC_INPUT_OK && t
+                      && strcmp(t, "from-editor second") == 0);
+            free(t);
+            return ok ? 0 : 1;
+        }
+        case 12: {
+            /* Editor exits non-zero → original value is kept. */
+            char *t = NULL;
+            ScInputStatus s = sc_textarea("Notes", &t, (ScTextareaOpts){
+                .initial = "keep", .external_editor = true,
+                .editor = g_editor_fail });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "keep") == 0);
+            free(t);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -186,6 +229,9 @@ static const Case CASES[] = {
     { "shortcut-callback", "\x12\x12\r" },  /* Ctrl-R x2 (callback), then enter */
     { "shortcut-remove",   "\x18\x18\r" },  /* Ctrl-X x2 (remove), then enter */
     { "esc-cancels",       "\x1b" },        /* Esc still cancels with shortcuts */
+    { "editor-textarea",   "\x07\x04" },    /* Ctrl-G opens editor, Ctrl-D submits */
+    { "editor-text-input", "\x07\r" },      /* Ctrl-G opens editor, Enter submits */
+    { "editor-cancel-keeps", "\x07\x04" },  /* editor exits nonzero → keep value */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 
@@ -253,13 +299,43 @@ static int run_case(const Case *cs, int index) {
     return pass;
 }
 
+/** Writes the stub "editor" script to `g_editor`; returns 0 on success. */
+static int make_stub_editor(void) {
+    const char *dir = getenv("TMPDIR");
+    if (!dir || !dir[0]) { dir = "/tmp"; }
+    snprintf(g_editor, sizeof g_editor, "%s/sparcli-test-editor-XXXXXX", dir);
+    int fd = mkstemp(g_editor);
+    if (fd < 0) { return -1; }
+    /* Overwrite the file it is given with a fixed two-line value. */
+    const char *script = "#!/bin/sh\nprintf 'from-editor\\nsecond' > \"$1\"\n";
+    if (write(fd, script, strlen(script)) < 0) { close(fd); return -1; }
+    close(fd);
+    if (chmod(g_editor, 0700) != 0) { return -1; }
+
+    /* A second stub that fails without writing (editor "cancel"). */
+    snprintf(g_editor_fail, sizeof g_editor_fail,
+             "%s/sparcli-test-edfail-XXXXXX", dir);
+    int fd2 = mkstemp(g_editor_fail);
+    if (fd2 < 0) { return -1; }
+    const char *fail = "#!/bin/sh\nexit 1\n";
+    if (write(fd2, fail, strlen(fail)) < 0) { close(fd2); return -1; }
+    close(fd2);
+    return chmod(g_editor_fail, 0700);
+}
+
 int main(void) {
     /* The parent needs no controlling terminal – forkpty creates a fresh PTY
      * for each child, which becomes that child's controlling terminal. So this
      * runs headless (CI) as well as from an interactive shell. */
+    if (make_stub_editor() != 0) {
+        fprintf(stderr, "could not create stub editor\n");
+        return 1;
+    }
     printf("\nDriving input widgets over a pseudo-terminal:\n");
     int passed = 0;
     for (int i = 0; i < N_CASES; i++) { passed += run_case(&CASES[i], i); }
+    unlink(g_editor);
+    unlink(g_editor_fail);
     printf("%d/%d cases passed\n", passed, N_CASES);
     return passed == N_CASES ? 0 : 1;
 }

@@ -141,6 +141,15 @@ typedef struct ScTextInputOpts {
 
     /** Parse the string prompt as inline markup, e.g. "Rename [italic]x[/] to". */
     bool prompt_markup;
+
+    /** Enable opening the value in an external editor (off by default). */
+    bool external_editor;
+
+    /** Editor command; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi. */
+    const char *editor;
+
+    /** Key that opens the editor; zero-init = Ctrl-G. @see sparcli_shortcut.h */
+    ScKeyChord editor_key;
 } ScTextInputOpts;
 
 /**

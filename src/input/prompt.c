@@ -54,9 +54,37 @@ static ScRendered *build_shortcut_hint(const ScPromptShortcuts *shortcuts) {
     return rendered;
 }
 
+/**
+ * Suspends the prompt, runs the external editor on the current text, and
+ * applies the result. Restores raw mode and forces a fresh repaint. Returns
+ * false only when the terminal could not be re-entered (caller should abort).
+ */
+static bool run_editor_action(
+    const ScPromptVTable *vtable, void *state,
+    const ScPromptEditor *editor, ScScreen *screen
+) {
+    char *current = vtable->edit_get(state);
+    sc_screen_clear(screen);          // erase our region before handing over
+    sc_tty_end();                     // suspend: restore terminal, drop handlers
+
+    char *edited = NULL;
+    bool ok = sc_run_editor(editor->cmd, current ? current : "", &edited);
+    free(current);
+
+    ScInputStatus resumed = sc_tty_begin();   // resume raw mode
+    sc_tty_input_reset();
+    *screen = (ScScreen){ 0 };         // next draw repaints from scratch
+    if (ok) {
+        vtable->edit_set(state, edited);
+    }
+    free(edited);
+    return resumed == SC_INPUT_OK;
+}
+
 /** Drives one widget's raw-mode draw/read/dispatch loop to completion. */
 ScInputStatus sc_prompt_run(
-    const ScPromptVTable *vtable, void *state, ScPromptShortcuts *shortcuts
+    const ScPromptVTable *vtable, void *state, ScPromptShortcuts *shortcuts,
+    const ScPromptEditor *editor
 ) {
     if (!vtable || !vtable->render || !vtable->on_key) {
         return SC_INPUT_ERROR;
@@ -115,6 +143,21 @@ ScInputStatus sc_prompt_run(
                 continue;
             default:
                 break;
+        }
+
+        // External-editor key (opt-in; text_input/textarea only). Matched
+        // before shortcuts/on_key, after the reserved cancel keys.
+        if (editor && editor->enabled && vtable->edit_get && vtable->edit_set) {
+            ScKeyChord chord = (editor->chord.key == SC_KEY_NONE
+                                && editor->chord.codepoint == 0)
+                ? sc_key_ctrl('g') : editor->chord;
+            if (sc_key_chord_matches(key, chord)) {
+                if (!run_editor_action(vtable, state, editor, &screen)) {
+                    status = SC_INPUT_ERROR;
+                    break;
+                }
+                continue;
+            }
         }
 
         // Custom shortcuts are matched before the widget's own keys (so an

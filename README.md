@@ -257,6 +257,11 @@ shortcuts appear in a dim footer automatically.
 `prompt_markup = true` to parse the prompt as markup, or `prompt_text` to pass a
 pre-built multi-style `ScText`. Works inline and in boxed mode.
 
+**External editor** — `sc_text_input` / `sc_textarea` can open the value in
+`$EDITOR` (default chain ending in nvim) with `external_editor = true`; a key
+(default Ctrl-G) suspends the prompt, and save+quit brings the text back. Runs
+shell-free with a `0600` temp file; not available for passwords.
+
 Build a runnable demo of every input widget with
 [`examples/input_demo.c`](examples/input_demo.c), or the shortcuts + rich-prompt
 demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) — F2 renames,

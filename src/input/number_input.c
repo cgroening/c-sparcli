@@ -50,7 +50,7 @@ ScInputStatus sc_number_input(const char *prompt, double *out,
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
     };
     ScInputStatus status =
-        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL);
+        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL, NULL);
 
     if (status == SC_INPUT_OK) {
         *out = clamp(&state, strtod(state.ed.buf, NULL));

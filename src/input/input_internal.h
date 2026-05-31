@@ -248,7 +248,43 @@ typedef struct ScPromptVTable {
 
     /** Handle one key; set `*done` to accept, `*cancel` to abort. */
     void (*on_key)(void *state, ScKey key, bool *done, bool *cancel);
+
+    /**
+     * Optional external-editor hooks (text_input / textarea only). `edit_get`
+     * returns a heap copy of the current text (caller frees); `edit_set`
+     * replaces the widget's text with the editor result. Both NULL = the
+     * widget does not support editing in an external editor.
+     */
+    char *(*edit_get)(void *state);
+    void  (*edit_set)(void *state, const char *text);
 } ScPromptVTable;
+
+/**
+ * Optional external-editor binding consulted by the engine. Pass `NULL` to
+ * `sc_prompt_run` when no editor is configured. Active only when `enabled` is
+ * true and the vtable provides `edit_get`/`edit_set`.
+ */
+typedef struct ScPromptEditor {
+    /** Enable the editor key (opt-in). */
+    bool enabled;
+
+    /** Editor command override; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi. */
+    const char *cmd;
+
+    /** Key that opens the editor; zero-init = Ctrl-G. */
+    ScKeyChord chord;
+} ScPromptEditor;
+
+/**
+ * Runs `cmd` (resolved per the chain above) on a temp file seeded with
+ * `initial`, on the controlling terminal. On a clean exit (status 0) the saved
+ * contents are returned in `*out` (heap; caller frees) and the function returns
+ * `true`; on a non-zero exit, signal, or any error it returns `false` and
+ * `*out` is untouched. Shell-free (`execvp` with a whitespace-tokenized argv);
+ * the temp file is mode 0600 and unlinked before returning. Does not touch
+ * raw mode — the engine suspends/resumes the terminal around the call.
+ */
+bool sc_run_editor(const char *cmd, const char *initial, char **out);
 
 /**
  * Optional custom shortcuts consulted by the engine before `on_key`, shared
@@ -285,7 +321,8 @@ typedef struct ScPromptShortcuts {
  *         `SC_INPUT_ERROR` when no terminal is available.
  */
 ScInputStatus sc_prompt_run(
-    const ScPromptVTable *vtable, void *state, ScPromptShortcuts *shortcuts
+    const ScPromptVTable *vtable, void *state, ScPromptShortcuts *shortcuts,
+    const ScPromptEditor *editor
 );
 
 
@@ -406,6 +443,11 @@ typedef struct ScTextEntryCfg {
     /** Rich prompt (overrides string prompt) + markup flag. */
     const ScText *prompt_text;
     bool prompt_markup;
+
+    /** External-editor binding (text_input only; password leaves these off). */
+    bool external_editor;
+    const char *editor;
+    ScKeyChord editor_key;
 } ScTextEntryCfg;
 
 /**

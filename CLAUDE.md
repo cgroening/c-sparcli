@@ -733,6 +733,14 @@ unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
   works inline and boxed. Boxed mode routes it through `ScTitle.rich_text` (a new
   `ScText *` on the shared title struct that panels honor; rules/tables ignore it),
   so the box width is computed from the visible width, not the escape bytes.
+- **External editor** (`text_input`/`textarea` only): `external_editor` +
+  optional `editor` command + `editor_key` (zero-init = Ctrl-G). The engine
+  suspends raw mode (`sc_tty_end`), runs `sc_run_editor` (`editor.c`: `mkstemp`
+  0600 → `fork`/`execvp` **no shell** on `/dev/tty` → `waitpid` → read back →
+  `unlink`), then `sc_tty_begin` + fresh repaint. Widgets expose `edit_get`/
+  `edit_set` vtable hooks; the engine owns suspend/resume. Non-zero exit keeps
+  the old value; text_input collapses newlines to spaces (single-line). **Password excluded**
+  (plaintext temp file). `ScPromptEditor` carries the config to `sc_prompt_run`.
 - **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget
   `cursor_style` (text/password/fuzzy editor cell; default black-on-white),
   `error_style` (text/password; default red), `count_style` (text/password

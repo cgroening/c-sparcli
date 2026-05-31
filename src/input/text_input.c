@@ -48,6 +48,8 @@ static ScRendered *text_render(void *state);
     static ScRendered *render_inline(TextState *self);
     static ScRendered *render_boxed(TextState *self);
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel);
+static char *text_edit_get(void *state);
+static void text_edit_set(void *state, const char *text);
     static const char *best_suggestion(const TextState *self);
     static const char *text_default_hint(const TextState *self);
 static void counter_str(char *buf, size_t cap, const TextState *self,
@@ -95,6 +97,9 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .out_shortcut_id = opts.out_shortcut_id,
         .prompt_text     = opts.prompt_text,
         .prompt_markup   = opts.prompt_markup,
+        .external_editor = opts.external_editor,
+        .editor          = opts.editor,
+        .editor_key      = opts.editor_key,
     };
     return sc_text_entry(&cfg, out);
 }
@@ -113,12 +118,18 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
     ScPromptVTable vtable = {
         .render = text_render,
         .on_key = text_on_key,
+        .edit_get = text_edit_get,
+        .edit_set = text_edit_set,
     };
     ScPromptShortcuts sk = {
         cfg->shortcuts, cfg->n_shortcuts, cfg->out_shortcut_id
     };
-    ScInputStatus status =
-        sc_prompt_run(&vtable, &state, cfg->shortcuts ? &sk : NULL);
+    ScPromptEditor ed = {
+        cfg->external_editor, cfg->editor, cfg->editor_key
+    };
+    ScInputStatus status = sc_prompt_run(
+        &vtable, &state, cfg->shortcuts ? &sk : NULL,
+        cfg->external_editor ? &ed : NULL);
 
     if (status == SC_INPUT_OK) {
         *out = dup_str(state.ed.buf);
@@ -485,4 +496,30 @@ bool sc_filter_alnum(uint32_t codepoint, void *ctx) {
 bool sc_filter_no_space(uint32_t codepoint, void *ctx) {
     (void)ctx;
     return codepoint != ' ' && codepoint != '\t';
+}
+
+
+/* External-editor hook: hands the editor a copy of the current value. */
+static char *text_edit_get(void *state) {
+    TextState *self = state;
+    return dup_str(self->ed.buf ? self->ed.buf : "");
+}
+
+/* External-editor hook: replaces the value with the editor result. This is a
+ * single-line field, so newlines (and CRs) are collapsed to spaces and any
+ * trailing whitespace (e.g. the editor's final newline) is trimmed. */
+static void text_edit_set(void *state, const char *text) {
+    TextState *self = state;
+    char *line = dup_str(text ? text : "");
+    if (!line) {
+        return;   // keep the current value on allocation failure
+    }
+    for (char *p = line; *p; p++) {
+        if (*p == '\n' || *p == '\r') { *p = ' '; }
+    }
+    size_t n = strlen(line);
+    while (n > 0 && line[n - 1] == ' ') { line[--n] = '\0'; }
+    sc_le_free(&self->ed);
+    sc_le_init(&self->ed, line);
+    free(line);
 }

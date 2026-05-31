@@ -30,6 +30,8 @@ static ScRendered *ta_render(void *state);
                                    int width);
         static const char *ta_hint(const Textarea *self);
 static void ta_on_key(void *state, ScKey key, bool *done, bool *cancel);
+static char *ta_edit_get(void *state);
+static void ta_edit_set(void *state, const char *text);
     static void insert(Textarea *self, const char *bytes, size_t len);
         static bool ensure_cap(Textarea *self, size_t extra);
     static void del_range(Textarea *self, size_t from, size_t to);
@@ -57,12 +59,18 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
     ScPromptVTable vtable = {
         .render = ta_render,
         .on_key = ta_on_key,
+        .edit_get = ta_edit_get,
+        .edit_set = ta_edit_set,
     };
     ScPromptShortcuts sk = {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
     };
-    ScInputStatus status =
-        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL);
+    ScPromptEditor ed = {
+        opts.external_editor, opts.editor, opts.editor_key
+    };
+    ScInputStatus status = sc_prompt_run(
+        &vtable, &state, opts.shortcuts ? &sk : NULL,
+        opts.external_editor ? &ed : NULL);
     if (status != SC_INPUT_OK) {
         free(state.buf);
         return status;
@@ -114,6 +122,31 @@ static bool init_state(Textarea *self, const char *prompt,
     self->len = len;
     self->cursor = len;
     return true;
+}
+
+/** External-editor hook: hands the editor a copy of the current text. */
+static char *ta_edit_get(void *state) {
+    Textarea *self = state;
+    return strdup(self->buf ? self->buf : "");
+}
+
+/** External-editor hook: replaces the buffer with the editor result. */
+static void ta_edit_set(void *state, const char *text) {
+    Textarea *self = state;
+    size_t len = text ? strlen(text) : 0;
+    char *buf = malloc(len + 32);
+    if (!buf) {
+        return;   // keep the old buffer on allocation failure
+    }
+    if (len) {
+        memcpy(buf, text, len);
+    }
+    buf[len] = '\0';
+    free(self->buf);
+    self->buf = buf;
+    self->cap = len + 32;
+    self->len = len;
+    self->cursor = len;
 }
 
 static ScRendered *ta_render(void *state) {

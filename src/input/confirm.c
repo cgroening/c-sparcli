@@ -43,7 +43,7 @@ ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts) {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
     };
     ScInputStatus status =
-        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL);
+        sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL, NULL);
     if (status != SC_INPUT_OK) {
         return status;
     }

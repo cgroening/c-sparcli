@@ -61,7 +61,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/tty/term.c src/tty/key.c src/tty/screen.c \
           \
           src/input/prompt.c src/input/line_editor.c src/input/theme.c \
-          src/input/shortcut.c src/input/confirm.c \
+          src/input/shortcut.c src/input/editor.c src/input/confirm.c \
           src/input/text_input.c src/input/password_input.c src/input/number_input.c \
           src/input/textarea.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c
