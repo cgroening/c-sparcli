@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import weakref
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from ._ffi import (apply_color, apply_edges, apply_style, apply_title, cstr,
@@ -29,15 +30,21 @@ class Cell:
     rowspan: int = 0
 
     @classmethod
-    def markup(cls, markup: str, **kw) -> "Cell":
+    def markup(cls, markup: str, *, halign: Align | None = None,
+               valign: VAlign | None = None, colspan: int = 0,
+               rowspan: int = 0) -> "Cell":
         """A cell whose text is parsed from markup (owned by the table)."""
-        return cls(markup, kind="markup", **kw)
+        return cls(markup, kind="markup", halign=halign, valign=valign,
+                   colspan=colspan, rowspan=rowspan)
 
     @classmethod
-    def text(cls, t: Text, **kw) -> "Cell":
+    def text(cls, t: Text, *, halign: Align | None = None,
+             valign: VAlign | None = None, colspan: int = 0,
+             rowspan: int = 0) -> "Cell":
         """A rich-text cell (the :class:`~sparcli.text.Text` must outlive
         printing)."""
-        return cls(t, kind="text", **kw)
+        return cls(t, kind="text", halign=halign, valign=valign,
+                   colspan=colspan, rowspan=rowspan)
 
     @classmethod
     def skip(cls) -> "Cell":
@@ -195,7 +202,7 @@ class Table:
         lib.sc_table_add_column(self._p, cstr(local, header), c[0])
         return self
 
-    def _build_row(self, cells):
+    def _build_row(self, cells: Sequence[str | Text | Cell]):
         coerced = [_coerce_cell(x) for x in cells]
         arr = ffi.new("ScCell[]", len(coerced))
         for i, cell in enumerate(coerced):
@@ -237,7 +244,8 @@ class Table:
         if cell.rowspan:
             elem.row_span = cell.rowspan
 
-    def row(self, cells, bg: Color | None = None) -> "Table":
+    def row(self, cells: Sequence[str | Text | Cell],
+            bg: Color | None = None) -> "Table":
         """Append a data row. ``cells`` is a sequence of str / Text / Cell."""
         arr, n = self._build_row(cells)
         if bg is None:
@@ -248,7 +256,7 @@ class Table:
             lib.sc_table_add_row_bg(self._p, arr, n, cbg[0])
         return self
 
-    def footer_row(self, cells) -> "Table":
+    def footer_row(self, cells: Sequence[str | Text | Cell]) -> "Table":
         """Append a footer row."""
         arr, n = self._build_row(cells)
         lib.sc_table_add_footer_row(self._p, arr, n)
