@@ -2,17 +2,12 @@
 
 A C11 library for **styled terminal output** and **interactive prompts**:
 
-- panels, tables, rules, columns, lists, trees, key/value blocks, alerts,
-  badges, progress bars and spinners;
-- confirm, text, password, number, textarea, select, fuzzy and date-picker
-  prompts.
+- panels, tables, rules, columns, lists, trees, key/value blocks, alerts, badges, progress bars and spinners;
+- confirm, text, password, number, textarea, select, fuzzy and date-picker prompts.
 
-Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper** and
-safe, idiomatic **Rust** and **Python** bindings.
+Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper** and safe, idiomatic **Rust** and **Python** bindings.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
-![Language: C11](https://img.shields.io/badge/c-11-blue.svg)
-![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Language: C11](https://img.shields.io/badge/c-11-blue.svg) ![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
 
 ![sparcli hero](docs/images/output_hero.png)
 
@@ -48,31 +43,17 @@ safe, idiomatic **Rust** and **Python** bindings.
 
 ## Features
 
-- **Large set of widgets**: panels, tables, rules, side-by-side columns, lists,
-  trees, key/value blocks, alerts, badges, progress bars, spinners.
-- **Interactive prompts**: confirm, text/password, number, textarea, single &
-  multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
-- **Custom key shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to
-  return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a
-  partly-italic label) – see [Input widgets](#input-widgets).
-- **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`,
-  `[rgb(120,200,255)]…[/]` – same syntax as
-  [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
+- **Large set of widgets**: panels, tables, rules, side-by-side columns, lists, trees, key/value blocks, alerts, badges, progress bars, spinners.
+- **Interactive prompts**: confirm, text/password, number, textarea, single & multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
+- **Custom key shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a partly-italic label) – see [Input widgets](#input-widgets).
+- **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`, `[rgb(120,200,255)]…[/]` – same syntax as [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
 - **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
 - **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
-- **Composable**: capture any widget into a buffer, then pad, align, or place it
-  inside a columns layout.
-- **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`,
-  namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
-- **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds
-  the C via `cc` – no install needed) with RAII handles, builder options and
-  `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
-- **Python bindings included**: a safe, Pythonic package (`bindings/python/`, a
-  cffi wrapper that compiles the C – no install needed) with RAII handles,
-  `@dataclass` options and `value`/`None` prompts. See
-  [`docs/api-python.md`](docs/api-python.md).
-- **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe
-  entry points – the C++, Rust and Python wrappers build on this.
+- **Composable**: capture any widget into a buffer, then pad, align, or place it inside a columns layout.
+- **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`, namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
+- **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds the C via `cc` – no install needed) with RAII handles, builder options and `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
+- **Python bindings included**: a safe, Pythonic package (`bindings/python/`, a cffi wrapper that compiles the C – no install needed) with RAII handles, `@dataclass` options and `value`/`None` prompts. See [`docs/api-python.md`](docs/api-python.md).
+- **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe entry points – the C++, Rust and Python wrappers build on this.
 - **No runtime dependencies** beyond libc.
 - **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
 
@@ -106,10 +87,7 @@ cc hello.c $(pkg-config --cflags --libs sparcli) -o hello && ./hello
 
 ### C++ (header-only)
 
-A header-only C++20 wrapper ships in [`include/sparcli.hpp`](include/sparcli.hpp):
-RAII handles (no manual `free`), owned strings where the C API borrows (so
-temporaries are safe), and `std::optional` returns for input prompts. Full
-reference: [`docs/api-cpp.md`](docs/api-cpp.md).
+A header-only C++20 wrapper ships in [`include/sparcli.hpp`](include/sparcli.hpp): RAII handles (no manual `free`), owned strings where the C API borrows (so temporaries are safe), and `std::optional` returns for input prompts. Full reference: [`docs/api-cpp.md`](docs/api-cpp.md).
 
 ```cpp
 #include <sparcli.hpp>
@@ -150,17 +128,11 @@ t.add_row({ std::to_string(n) });                     // owned → temporary is 
 t.print();
 ```
 
-These guarantees (auto-free, owned cell strings, surviving a move) are verified
-by [`tests/cpp/test_cpp.cpp`](tests/cpp/test_cpp.cpp).
+These guarantees (auto-free, owned cell strings, surviving a move) are verified by [`tests/cpp/test_cpp.cpp`](tests/cpp/test_cpp.cpp).
 
 ### Rust
 
-Safe, idiomatic bindings live in [`bindings/rust/`](bindings/rust/) (a cargo
-workspace). `sparcli-sys` compiles the C with the `cc` crate, so a plain
-`cargo build` needs only a Rust toolchain – no prior `make` or install. RAII
-handles free themselves, `*Opts` use builder methods, callbacks are closures,
-and prompts return `Result<Option<T>>` (`Ok(None)` = cancelled). Full reference:
-[`docs/api-rust.md`](docs/api-rust.md).
+Safe, idiomatic bindings live in [`bindings/rust/`](bindings/rust/) (a cargo workspace). `sparcli-sys` compiles the C with the `cc` crate, so a plain `cargo build` needs only a Rust toolchain – no prior `make` or install. RAII handles free themselves, `*Opts` use builder methods, callbacks are closures, and prompts return `Result<Option<T>>` (`Ok(None)` = cancelled). Full reference: [`docs/api-rust.md`](docs/api-rust.md).
 
 ```rust
 use sparcli::*;
@@ -187,12 +159,7 @@ cargo run -p sparcli --example demo          # complete showcase: all widgets
 
 ### Python
 
-Pythonic bindings live in [`bindings/python/`](bindings/python/) – a **cffi**
-(API-mode) wrapper that compiles the C sources into an extension, so building
-needs only a C compiler. RAII handles free themselves, options are
-`@dataclass`es with keyword args, and prompts return the value or `None` on
-cancel (and raise `SparcliInputUnavailable` with no TTY). Full reference:
-[`docs/api-python.md`](docs/api-python.md).
+Pythonic bindings live in [`bindings/python/`](bindings/python/) – a **cffi** (API-mode) wrapper that compiles the C sources into an extension, so building needs only a C compiler. RAII handles free themselves, options are `@dataclass`es with keyword args, and prompts return the value or `None` on cancel (and raise `SparcliInputUnavailable` with no TTY). Full reference: [`docs/api-python.md`](docs/api-python.md).
 
 ```python
 import sparcli as sc
@@ -233,8 +200,7 @@ make install PREFIX=$HOME/.local
 `make install` lays down:
 
 - `libsparcli.a` (static)
-- `libsparcli.<version>.dylib` / `libsparcli.so.<version>` plus the usual
-  versioned symlinks (`libsparcli.dylib` / `libsparcli.so`)
+- `libsparcli.<version>.dylib` / `libsparcli.so.<version>` plus the usual versioned symlinks (`libsparcli.dylib` / `libsparcli.so`)
 - All public headers under `<prefix>/include`
 - `sparcli.pc` under `<prefix>/lib/pkgconfig`
 
@@ -256,15 +222,13 @@ cc app.c -I<prefix>/include -L<prefix>/lib -lsparcli -o app
 
 - C11 compiler (`cc`, `gcc`, or `clang`)
 - A UTF-8-capable terminal
-- Truecolor support recommended for `[rgb(…)]` markup; 8-color ANSI works
-  everywhere
+- Truecolor support recommended for `[rgb(…)]` markup; 8-color ANSI works everywhere
 
 ---
 
 ## Output widgets
 
-A one-line summary per widget. The full reference – every type, every option,
-every macro – lives in [`docs/api-c.md`](docs/api-c.md).
+A one-line summary per widget. The full reference – every type, every option, every macro – lives in [`docs/api-c.md`](docs/api-c.md).
 
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
@@ -288,10 +252,7 @@ every macro – lives in [`docs/api-c.md`](docs/api-c.md).
 
 ## Input widgets
 
-Interactive prompts that drive a real terminal in raw mode. Each returns an
-`ScInputStatus` – Esc and Ctrl-C cancel, and a non-TTY context (output piped,
-CI) returns an error so callers can fall back to a default. The full reference
-lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
+Interactive prompts that drive a real terminal in raw mode. Each returns an `ScInputStatus` – Esc and Ctrl-C cancel, and a non-TTY context (output piped, CI) returns an error so callers can fall back to a default. The full reference lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
 
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
@@ -305,9 +266,7 @@ lives in [`docs/api-c.md`](docs/api-c.md#input-widgets).
 | **Date picker** | `sc_datepicker` | Month-grid calendar; day/week/month/year navigation. |
 | **Theme** | `sc_input_set_theme` | Process-wide style defaults inherited by every input widget. |
 
-Every widget shows a key-hint footer that is fully configurable: its layout
-(`hint_layout` – inline, stacked one-per-line, or hidden) and its placement
-(`hint_pos` – above, below, left, or right of the widget).
+Every widget shows a key-hint footer that is fully configurable: its layout (`hint_layout` – inline, stacked one-per-line, or hidden) and its placement (`hint_pos` – above, below, left, or right of the widget).
 
 ```c
 char *name = NULL;
@@ -318,26 +277,13 @@ if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })
 }
 ```
 
-**Custom shortcuts** – bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on
-*any* widget via its opts. A `SC_SHORTCUT_RETURN` shortcut closes the prompt and
-reports which key fired (the widget still returns its value); a
-`SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open – handy with
-`sc_select_remove` / `sc_select_set_label` for live list editing. Labeled
-shortcuts appear in a dim footer automatically.
+**Custom shortcuts** – bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on *any* widget via its opts. A `SC_SHORTCUT_RETURN` shortcut closes the prompt and reports which key fired (the widget still returns its value); a `SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open – handy with `sc_select_remove` / `sc_select_set_label` for live list editing. Labeled shortcuts appear in a dim footer automatically.
 
-**Rich prompts** – for partial styling (e.g. `Rename `*`Apple`*` to`) set
-`prompt_markup = true` to parse the prompt as markup, or `prompt_text` to pass a
-pre-built multi-style `ScText`. Works inline and in boxed mode.
+**Rich prompts** – for partial styling (e.g. `Rename `*`Apple`*` to`) set `prompt_markup = true` to parse the prompt as markup, or `prompt_text` to pass a pre-built multi-style `ScText`. Works inline and in boxed mode.
 
-**External editor** – `sc_text_input` / `sc_textarea` can open the value in
-`$EDITOR` (default chain ending in nvim) with `external_editor = true`; a key
-(default Ctrl-G) suspends the prompt, and save+quit brings the text back. Runs
-shell-free with a `0600` temp file; not available for passwords.
+**External editor** – `sc_text_input` / `sc_textarea` can open the value in `$EDITOR` (default chain ending in nvim) with `external_editor = true`; a key (default Ctrl-G) suspends the prompt, and save+quit brings the text back. Runs shell-free with a `0600` temp file; not available for passwords.
 
-Build a runnable demo of every input widget with
-[`examples/input_demo.c`](examples/input_demo.c), or the shortcuts + rich-prompt
-demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) – F2 renames,
-Ctrl-X deletes):
+Build a runnable demo of every input widget with [`examples/input_demo.c`](examples/input_demo.c), or the shortcuts + rich-prompt demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) – F2 renames, Ctrl-X deletes):
 
 ```sh
 make run-example EX=input_demo
@@ -348,10 +294,7 @@ make run-example EX=shortcut_demo
 
 ## Rich-compatible markup
 
-sparcli's inline markup mirrors the syntax used by
-[Rich](https://github.com/Textualize/rich) and
-[Textual](https://github.com/Textualize/textual). Existing Rich strings drop in
-unchanged for the supported tag set:
+sparcli's inline markup mirrors the syntax used by [Rich](https://github.com/Textualize/rich) and [Textual](https://github.com/Textualize/textual). Existing Rich strings drop in unchanged for the supported tag set:
 
 ```c
 sc_markup_println("[bold red]Error:[/] file not found");
@@ -367,12 +310,9 @@ sc_markup_println("[rgb(120,200,255)]custom[/] color");
 | `[rgb(120,200,255)]…[/]` | `[rgb(120,200,255)]…[/]` |
 | `[[`                     | `[[`                     |
 
-By default, unknown tags such as `[blink]` are emitted verbatim. Pass
-`ScMarkupOpts{ .strip_unknown = 1 }` to silently drop them and keep only the
-inner content.
+By default, unknown tags such as `[blink]` are emitted verbatim. Pass `ScMarkupOpts{ .strip_unknown = 1 }` to silently drop them and keep only the inner content.
 
-Any widget that takes an `ScText *` accepts markup via `sc_markup_parse()`. For
-tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
+Any widget that takes an `ScText *` accepts markup via `sc_markup_parse()`. For tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
 
 ![markup demo](docs/images/output_rich_markup.png)
 
@@ -405,23 +345,16 @@ tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 docs/                          API reference and developer guide
 ```
 
-See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/
-install workflow: every `make` target, what each test suite covers and how to
-run it, the golden-file workflow, and the pre-commit checklist.
+See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/ install workflow: every `make` target, what each test suite covers and how to run it, the golden-file workflow, and the pre-commit checklist.
 
 ---
 
 ## Roadmap
 
-- **C++ wrapper** – ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp)
-  (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
-- **Rust bindings** – ✅ ship in [`bindings/rust/`](bindings/rust/) (the safe
-  `sparcli` crate over `sparcli-sys`; see [`docs/api-rust.md`](docs/api-rust.md)).
-- **Python bindings** – ✅ ship in [`bindings/python/`](bindings/python/) (the
-  cffi API-mode `sparcli` package; see [`docs/api-python.md`](docs/api-python.md)).
-- **Output theming** – a process-wide `sc_output_set_theme(...)` for output
-  components (default border style/color, title styling, …), mirroring the
-  existing [`sc_input_set_theme`](#input-widgets) for input widgets.
+- **C++ wrapper** – ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp) (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
+- **Rust bindings** – ✅ ship in [`bindings/rust/`](bindings/rust/) (the safe `sparcli` crate over `sparcli-sys`; see [`docs/api-rust.md`](docs/api-rust.md)).
+- **Python bindings** – ✅ ship in [`bindings/python/`](bindings/python/) (the cffi API-mode `sparcli` package; see [`docs/api-python.md`](docs/api-python.md)).
+- **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
 - **`examples/` directory** with self-contained copy-pasteable snippets.
 - **More widgets** – open an issue with ideas.
 
@@ -429,10 +362,7 @@ run it, the golden-file workflow, and the pre-commit checklist.
 
 ## Inspiration
 
-Heavily inspired by the wonderful [Rich](https://github.com/Textualize/rich) and
-[Textual](https://github.com/Textualize/textual) projects by Will McGugan and
-the Textualize team. The goal of sparcli is to give plain C programs the same
-level of polish for one-shot CLI output – without taking on a full TUI runtime.
+Heavily inspired by the wonderful [Rich](https://github.com/Textualize/rich) and [Textual](https://github.com/Textualize/textual) projects by Will McGugan and the Textualize team. The goal of sparcli is to give plain C programs the same level of polish for one-shot CLI output – without taking on a full TUI runtime.
 
 ---
 

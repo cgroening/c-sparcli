@@ -1,14 +1,9 @@
 # sparcli – Rust API Reference
 
-Safe, idiomatic Rust bindings for sparcli, in the `bindings/rust/` cargo
-workspace:
+Safe, idiomatic Rust bindings for sparcli, in the `bindings/rust/` cargo workspace:
 
-- **`sparcli-sys`** – raw FFI. `build.rs` compiles the C sources with the `cc`
-  crate, so a plain `cargo build` needs only a Rust toolchain (no prior `make`,
-  no system install). Bindings are committed (`src/bindings.rs`); build with
-  `--features regen` to regenerate them with bindgen (needs libclang).
-- **`sparcli`** – the safe wrapper: RAII handles, builder-style option structs,
-  `Result<Option<T>>` prompts, closures for callbacks.
+- **`sparcli-sys`** – raw FFI. `build.rs` compiles the C sources with the `cc` crate, so a plain `cargo build` needs only a Rust toolchain (no prior `make`, no system install). Bindings are committed (`src/bindings.rs`); build with `--features regen` to regenerate them with bindgen (needs libclang).
+- **`sparcli`** – the safe wrapper: RAII handles, builder-style option structs, `Result<Option<T>>` prompts, closures for callbacks.
 
 ```toml
 [dependencies]
@@ -17,20 +12,10 @@ sparcli = { path = "bindings/rust/sparcli" }
 
 ## Design
 
-- **RAII handles** (`Text`, `Table`, `List`, `Tree`, `Kv`, `Columns`,
-  `Rendered`, `ProgressBar`, `Spinner`, `Select`, `Fuzzy`) free themselves on
-  drop. They hold raw pointers and are therefore **not `Send`/`Sync`**: the C
-  output target is thread-local and the input session is process-global, so
-  build and use a handle on one thread (each thread may build its own).
-- **Builders.** Every `*Opts` is a plain struct with `Default` and chainable
-  setters; public fields give full access. Borrowed strings (`Title`, cell
-  text, …) are interned into an internal arena for the duration of the call.
-- **Colors / enums.** `Color::{NONE, RED, …, rgb(r,g,b)}`, `Style::bold()`,
-  `Attr`, `Align`, `VAlign`, `BorderType`, `Position`, `ListMarker`,
-  `ProgressType`, `SpinnerType`, `AlertType`, `WeekStart`, `HintLayout`,
-  `HintPos`.
-- **Prompts** return `Result<Option<T>>`: `Ok(Some(v))` = value, `Ok(None)` =
-  cancelled (Esc/Ctrl-C), `Err(Error::Unavailable)` = no TTY / read error.
+- **RAII handles** (`Text`, `Table`, `List`, `Tree`, `Kv`, `Columns`, `Rendered`, `ProgressBar`, `Spinner`, `Select`, `Fuzzy`) free themselves on drop. They hold raw pointers and are therefore **not `Send`/`Sync`**: the C output target is thread-local and the input session is process-global, so build and use a handle on one thread (each thread may build its own).
+- **Builders.** Every `*Opts` is a plain struct with `Default` and chainable setters; public fields give full access. Borrowed strings (`Title`, cell text, …) are interned into an internal arena for the duration of the call.
+- **Colors / enums.** `Color::{NONE, RED, …, rgb(r,g,b)}`, `Style::bold()`, `Attr`, `Align`, `VAlign`, `BorderType`, `Position`, `ListMarker`, `ProgressType`, `SpinnerType`, `AlertType`, `WeekStart`, `HintLayout`, `HintPos`.
+- **Prompts** return `Result<Option<T>>`: `Ok(Some(v))` = value, `Ok(None)` = cancelled (Esc/Ctrl-C), `Err(Error::Unavailable)` = no TTY / read error.
 - **Escape hatch.** The raw FFI is re-exported as `sparcli::sys`.
 
 ## Output
@@ -128,9 +113,7 @@ let pure = fuzzy_match("ab", "cab");          // (bool, score), no TTY
 
 ### Custom shortcuts
 
-Bind extra keys (Ctrl-letter / F1–F12 / Alt) on any widget. RETURN-mode ends
-the prompt and reports an id via `fired()`; CALLBACK-mode runs a closure and
-keeps the prompt open unless it returns `false`.
+Bind extra keys (Ctrl-letter / F1–F12 / Alt) on any widget. RETURN-mode ends the prompt and reports an id via `fired()`; CALLBACK-mode runs a closure and keeps the prompt open unless it returns `false`.
 
 ```rust
 let sc = Shortcuts::new()
@@ -141,9 +124,7 @@ let yes = confirm("Proceed?", ConfirmOpts::new().shortcuts(&sc))?;
 if sc.fired() == 1 { /* F2 pressed */ }
 ```
 
-Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`,
-`select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`,
-`fuzzy.cursor_index()`, `fuzzy.remove(i)`.
+Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`, `fuzzy.cursor_index()`, `fuzzy.remove(i)`.
 
 ### Rich prompts & external editor
 
@@ -162,8 +143,7 @@ let notes = textarea("Notes", TextareaOpts::new().external_editor(true))?;
 
 ## Build & test
 
-The workspace has no binary, so plain `cargo run` fails – run an **example**
-(name the package too, since it is a workspace):
+The workspace has no binary, so plain `cargo run` fails – run an **example** (name the package too, since it is a workspace):
 
 ```sh
 make rust          # cargo build (compiles the C via cc)
@@ -175,8 +155,6 @@ cargo run -p sparcli --example output_gallery  # output only
 cargo run -p sparcli --example input_demo      # input only (needs a terminal)
 ```
 
-`demo` shows every output component and, in a real terminal, every input widget
-(it auto-skips the input section when piped / no TTY).
+`demo` shows every output component and, in a real terminal, every input widget (it auto-skips the input section when piped / no TTY).
 
-> Publishing to crates.io would vendor the C sources into `sparcli-sys`
-> (currently referenced from the repo root by `build.rs`).
+> Publishing to crates.io would vendor the C sources into `sparcli-sys` (currently referenced from the repo root by `build.rs`).

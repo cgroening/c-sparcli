@@ -1,7 +1,6 @@
 # sparcli – Developer Reference
 
-A C11 library for styled terminal output: colored text, bordered panels,
-feature-rich tables, horizontal rules, and multi-column side-by-side layouts.
+A C11 library for styled terminal output: colored text, bordered panels, feature-rich tables, horizontal rules, and multi-column side-by-side layouts.
 
 ## Build
 
@@ -31,26 +30,13 @@ make rebuild-all          # C lib + install + Rust + Python in one command
 make clean        # removes build trees, .a, shared libs, test binaries
 ```
 
-Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`. The build tracks header
-dependencies (`-MMD -MP`), so editing a header rebuilds dependents without
-`make clean`. Golden-file tests (`*-check`) diff rendered output against
-committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
+Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`. The build tracks header dependencies (`-MMD -MP`), so editing a header rebuilds dependents without `make clean`. Golden-file tests (`*-check`) diff rendered output against committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
 
-Besides the C library, sparcli ships a header-only **C++ wrapper**
-(`include/sparcli.hpp`), a safe **Rust** crate (`bindings/rust/`) and a Pythonic
-**Python** package (`bindings/python/`, cffi API-mode). The Rust and Python
-wrappers compile the C sources themselves, so they need no prior `make`/install.
-After changing the C API, rebuild each consumer you use (and update the Python
-`cdef` / regenerate the Rust bindgen output for new/changed symbols) – see the
-"Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the
-per-language references `docs/api-{cpp,rust,python}.md`.
+Besides the C library, sparcli ships a header-only **C++ wrapper** (`include/sparcli.hpp`), a safe **Rust** crate (`bindings/rust/`) and a Pythonic **Python** package (`bindings/python/`, cffi API-mode). The Rust and Python wrappers compile the C sources themselves, so they need no prior `make`/install. After changing the C API, rebuild each consumer you use (and update the Python `cdef` / regenerate the Rust bindgen output for new/changed symbols) – see the "Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the per-language references `docs/api-{cpp,rust,python}.md`.
 
 ### Directory layout
 
-Sources are grouped by concern. The **output/input boundary is physical**:
-`src/output` (and `core`) is stream-oriented and writes through the
-redirectable `sc_output_stream()`; `src/tty` + `src/input` are tty-oriented
-and drive a real terminal in raw mode (never `sc_output_stream`).
+Sources are grouped by concern. The **output/input boundary is physical**: `src/output` (and `core`) is stream-oriented and writes through the redirectable `sc_output_stream()`; `src/tty` + `src/input` are tty-oriented and drive a real terminal in raw mode (never `sc_output_stream`).
 
 ```
 src/core/     color, text, print, output(stream), render_wrap, version
@@ -64,14 +50,9 @@ include/core/    include/output/    include/input/      (sparcli.h stays at root
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
 ```
 
-Public headers live in `include/{core,output,input}/`; cross-includes use
-**root-relative paths** (`#include "core/sparcli_core.h"`), resolved via
-`-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` is the
-input-only sub-umbrella. `#include <sparcli.h>` is unchanged for users; only
-direct single-header includes moved.
+Public headers live in `include/{core,output,input}/`; cross-includes use **root-relative paths** (`#include "core/sparcli_core.h"`), resolved via `-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` is the input-only sub-umbrella. `#include <sparcli.h>` is unchanged for users; only direct single-header includes moved.
 
-When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC`
-in the Makefile. The build tree mirrors `src/` automatically.
+When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in the Makefile. The build tree mirrors `src/` automatically.
 
 ---
 
@@ -89,16 +70,13 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 | `-1`    | 24-bit RGB mode; uses `r`, `g`, `b` fields |
 | `1`–`8` | Named ANSI color (`SC_ANSI_COLOR_BLACK` … `SC_ANSI_COLOR_WHITE`) |
 
-Zero-init friendly: `(ScColor){0}` ≡ `SC_ANSI_COLOR_NONE`, so leaving any
-color field unset emits no escape codes. Construct explicit black with
-`SC_ANSI_COLOR_BLACK`; RGB with `sc_color_from_rgb(...)`.
+Zero-init friendly: `(ScColor){0}` ≡ `SC_ANSI_COLOR_NONE`, so leaving any color field unset emits no escape codes. Construct explicit black with `SC_ANSI_COLOR_BLACK`; RGB with `sc_color_from_rgb(...)`.
 
 ```c
 ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
 ```
 
-Named macros: `SC_ANSI_COLOR_NONE`, `SC_ANSI_COLOR_BLACK`, `SC_ANSI_COLOR_RED`, `SC_ANSI_COLOR_GREEN`,
-`SC_ANSI_COLOR_YELLOW`, `SC_ANSI_COLOR_BLUE`, `SC_ANSI_COLOR_MAGENTA`, `SC_ANSI_COLOR_CYAN`, `SC_ANSI_COLOR_WHITE`.
+Named macros: `SC_ANSI_COLOR_NONE`, `SC_ANSI_COLOR_BLACK`, `SC_ANSI_COLOR_RED`, `SC_ANSI_COLOR_GREEN`, `SC_ANSI_COLOR_YELLOW`, `SC_ANSI_COLOR_BLUE`, `SC_ANSI_COLOR_MAGENTA`, `SC_ANSI_COLOR_CYAN`, `SC_ANSI_COLOR_WHITE`.
 
 ### ScTextAttribute
 
@@ -128,8 +106,7 @@ sc_print_text(t);
 sc_text_free(t);
 ```
 
-`sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware,
-UTF-8-aware, counts codepoints not bytes).
+`sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware, UTF-8-aware, counts codepoints not bytes).
 
 ### ScBorderType
 
@@ -153,8 +130,7 @@ typedef struct {
 } ScTitle;
 ```
 
-Used directly everywhere a title is needed. `pos` is ignored by rules (no top/bottom distinction).
-Access paths:
+Used directly everywhere a title is needed. `pos` is ignored by rules (no top/bottom distinction). Access paths:
 - `rule_opts.title.text` / `.style` / `.halign` / `.pad`
 - `panel_opts.title.text` / `.style` / `.halign` / `.pad` / `.pos`
 
@@ -194,11 +170,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 
 ## Tables
 
-Table sources live in `src/table/` and are chained via `#include`:
-`table.c` → `table_print.c` → `table_print_init.c` → `table_print_render.c`
-→ `table_print_render_cell.c`, `table_print_render_border.c`, `table_print_render_row.c`.
-Internal types are declared in `src/table/table_internal.h`.
-Only `src/table/table.c` appears in the Makefile `SRC`; the rest are included implicitly.
+Table sources live in `src/table/` and are chained via `#include`: `table.c` → `table_print.c` → `table_print_init.c` → `table_print_render.c` → `table_print_render_cell.c`, `table_print_render_border.c`, `table_print_render_row.c`. Internal types are declared in `src/table/table_internal.h`. Only `src/table/table.c` appears in the Makefile `SRC`; the rest are included implicitly.
 
 ```c
 ScTableData *sc_table_new(void);
@@ -210,8 +182,7 @@ void         sc_table_print(const ScTableData *table, ScTableOpts opts);
 void         sc_table_free(ScTableData *table);
 ```
 
-`ScTableOpts` is passed at **print time**, not at construction – `sc_table_new()` takes
-no arguments. The same `ScTableData *` can be printed multiple times with different opts.
+`ScTableOpts` is passed at **print time**, not at construction – `sc_table_new()` takes no arguments. The same `ScTableData *` can be printed multiple times with different opts.
 
 ### ScTableOpts
 
@@ -273,15 +244,11 @@ typedef struct {
 } ScColOpts;
 ```
 
-**Background priority:** `header/footer bg > per-row bg > stripe bg > col bg`.
-Per-column bg is the lowest-priority fallback: only applied when no row-level
-background is active (`row_bg.index == 0`).
+**Background priority:** `header/footer bg > per-row bg > stripe bg > col bg`. Per-column bg is the lowest-priority fallback: only applied when no row-level background is active (`row_bg.index == 0`).
 
 ### ScCell constructors
 
-Cells are built with `static inline` helpers (**not** macros). Native C uses the
-terse inline forms; FFI bindings that cannot consume `static inline` functions or
-C99 compound literals call the exported descriptive variants instead.
+Cells are built with `static inline` helpers (**not** macros). Native C uses the terse inline forms; FFI bindings that cannot consume `static inline` functions or C99 compound literals call the exported descriptive variants instead.
 
 | Inline helper | FFI variant | Description |
 |---------------|-------------|-------------|
@@ -299,10 +266,7 @@ C99 compound literals call the exported descriptive variants instead.
 | `sc_row_skip()` | `sc_row_skip_placeholder()` | Placeholder row covered by a rowspan |
 | `sc_cell_m(s)` | `sc_cell_from_markup(s)` | Markup cell (owns the parsed ScText) |
 
-Colspan: use `sc_cell_cs(s, n)` (sets `col_span = n`) on the spanning cell; fill
-the remaining positions with `sc_cell_skip()`. Rowspan: use `sc_cell_rs(s, n)`
-(sets `row_span = n`); fill the covered rows with `sc_row_skip()` at the
-corresponding column position.
+Colspan: use `sc_cell_cs(s, n)` (sets `col_span = n`) on the spanning cell; fill the remaining positions with `sc_cell_skip()`. Rowspan: use `sc_cell_rs(s, n)` (sets `row_span = n`); fill the covered rows with `sc_row_skip()` at the corresponding column position.
 
 ---
 
@@ -334,9 +298,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 
 ## Columns
 
-Renders multiple widgets side by side using a capture-and-replay approach:
-each widget is rendered into a `tmpfile()` via `dup2`, then lines are zipped
-horizontally.
+Renders multiple widgets side by side using a capture-and-replay approach: each widget is rendered into a `tmpfile()` via `dup2`, then lines are zipped horizontally.
 
 ```c
 ScColumns *sc_columns_new(ScColumnsOpts opts);
@@ -382,18 +344,11 @@ typedef struct {
 } ScColItem;
 ```
 
-Width priority: `fixed_w` > `min_w`/`max_w` clamping > natural content width.
-Flex columns (fixed_w == 0) participate in `total_width` distribution.
+Width priority: `fixed_w` > `min_w`/`max_w` clamping > natural content width. Flex columns (fixed_w == 0) participate in `total_width` distribution.
 
-**Per-column valign:** Set `valign_set = 1` and `valign` to override the global
-`ScColumnsOpts.valign` for a single column. Zero-initialized `ScColItem` inherits
-the global setting (no override).
+**Per-column valign:** Set `valign_set = 1` and `valign` to override the global `ScColumnsOpts.valign` for a single column. Zero-initialized `ScColItem` inherits the global setting (no override).
 
-**Per-column background (`bg`):** Applied to padding spaces (lp/rp alignment padding)
-and empty slots when the column has fewer lines than the tallest column. Uses the
-zero-init sentinel (`{0,0,0,0}` = not set), so `(ScColItem){ 0 }` works naturally
-with no background. Does not affect the captured widget content itself (which already
-has its own embedded ANSI codes).
+**Per-column background (`bg`):** Applied to padding spaces (lp/rp alignment padding) and empty slots when the column has fewer lines than the tallest column. Uses the zero-init sentinel (`{0,0,0,0}` = not set), so `(ScColItem){ 0 }` works naturally with no background. Does not affect the captured widget content itself (which already has its own embedded ANSI codes).
 
 ```c
 sc_columns_add_text(cols, t2, (ScColItem){ .valign_set = 1, .valign = SC_VALIGN_TOP    });
@@ -416,8 +371,7 @@ void        sc_list_print   (const ScList *l);
 void        sc_list_free    (ScList *l);
 ```
 
-`sc_list_add_sub` attaches a sub-list to an item; the sub-list is owned by the item
-and freed when the parent list is freed.
+`sc_list_add_sub` attaches a sub-list to an item; the sub-list is owned by the item and freed when the parent list is freed.
 
 ### ScListMarker
 
@@ -444,19 +398,13 @@ and freed when the parent list is freed.
 | `width` | 0 = terminal width |
 | `margin` | Symmetric left+right outer margin |
 
-**Zero-init of `marker_style`:** Unlike other `ScTextStyle` fields, a zero-initialized
-`marker_style` in `ScListOpts` is explicitly treated as "no formatting" by the renderer.
-You can safely write `(ScListOpts){ .marker = SC_LIST_NUMBER }` without specifying
-`marker_style` and no color escape codes will be emitted for the marker.
+**Zero-init of `marker_style`:** Unlike other `ScTextStyle` fields, a zero-initialized `marker_style` in `ScListOpts` is explicitly treated as "no formatting" by the renderer. You can safely write `(ScListOpts){ .marker = SC_LIST_NUMBER }` without specifying `marker_style` and no color escape codes will be emitted for the marker.
 
-**Alignment:** Numbered/alpha/roman markers are right-aligned within a field sized to
-the widest marker value in the list (e.g. `VIII.` sets the field width for all items).
+**Alignment:** Numbered/alpha/roman markers are right-aligned within a field sized to the widest marker value in the list (e.g. `VIII.` sets the field width for all items).
 
-**Hanging indent:** Continuation lines of a word-wrapped item are indented to the same
-column as the start of the text (i.e., aligned under the first word, not the marker).
+**Hanging indent:** Continuation lines of a word-wrapped item are indented to the same column as the start of the text (i.e., aligned under the first word, not the marker).
 
-**Nesting:** Sub-lists start at `text_start` of the parent item. Each level's
-`indent` adds further indentation relative to that base.
+**Nesting:** Sub-lists start at `text_start` of the parent item. Each level's `indent` adds further indentation relative to that base.
 
 **Integration with ScColumns:** use `sc_columns_add_list(cl, list, item)`.
 
@@ -474,8 +422,7 @@ void           sc_progressbar_finish   (ScProgressBar *b, double value, double m
 void           sc_progressbar_free     (ScProgressBar *b);
 ```
 
-`value`/`max` convention: if `max > 0`, ratio = value/max; if `max == 0`, value is already a 0.0–1.0 ratio.
-`show_value` only takes effect when `max > 0`.
+`value`/`max` convention: if `max > 0`, ratio = value/max; if `max == 0`, value is already a 0.0–1.0 ratio. `show_value` only takes effect when `max > 0`.
 
 ### ScProgressType
 
@@ -532,8 +479,7 @@ void       sc_spinner_finish   (ScSpinner *s, bool success, const char *label);
 void       sc_spinner_free     (ScSpinner *s);
 ```
 
-`sc_spinner_tick` advances to the next frame, prints `frame label\r`, and calls `fflush`.
-`sc_spinner_finish` clears the line, then prints `✔ label\n` (success=true) or `✖ label\n` (success=false) in green/red.
+`sc_spinner_tick` advances to the next frame, prints `frame label\r`, and calls `fflush`. `sc_spinner_finish` clears the line, then prints `✔ label\n` (success=true) or `✖ label\n` (success=false) in green/red.
 
 ### ScSpinnerType
 
@@ -566,60 +512,25 @@ sc_spinner_free(s);
 
 ## Input Widgets
 
-Interactive prompts. **Tty-oriented**, not stream-oriented: they open
-`/dev/tty` (fallback stdin/stdout), enter raw mode, read decoded keys, and
-redraw in place – they do **not** go through `sc_output_stream()`. Every
-widget returns `ScInputStatus` (`SC_INPUT_OK` / `SC_INPUT_CANCELLED` /
-`SC_INPUT_ERROR`); Esc and Ctrl-C always cancel; non-TTY contexts return
-`SC_INPUT_ERROR` (so callers can fall back to a default). On `SC_INPUT_OK`
-the interactive region is erased and a one-line summary is printed in its
-place. Header: `input/sparcli_input.h` (in the `sparcli.h` umbrella).
+Interactive prompts. **Tty-oriented**, not stream-oriented: they open `/dev/tty` (fallback stdin/stdout), enter raw mode, read decoded keys, and redraw in place – they do **not** go through `sc_output_stream()`. Every widget returns `ScInputStatus` (`SC_INPUT_OK` / `SC_INPUT_CANCELLED` / `SC_INPUT_ERROR`); Esc and Ctrl-C always cancel; non-TTY contexts return `SC_INPUT_ERROR` (so callers can fall back to a default). On `SC_INPUT_OK` the interactive region is erased and a one-line summary is printed in its place. Header: `input/sparcli_input.h` (in the `sparcli.h` umbrella).
 
 ### Architecture
 
-All widgets are thin state machines over one engine, `sc_prompt_run`
-(`src/input/prompt.c`), which owns the raw-mode + draw/read/dispatch loop.
-Each widget supplies an `ScPromptVTable { render, on_key }`; `render` builds
-a frame as an `ScText` and `sc_capture_text`s it – so input reuses the entire
-output renderer stack as its view layer. Shared pieces: `ScLineEditor`
-(`line_editor.c`, UTF-8 cursor/insert/delete/word-kill) backs text/password
-inputs and the fuzzy query; the TTY layer (`src/tty/`) provides raw mode +
-signal-safe restore (`term.c`), the escape-sequence decoder (`key.c`), and
-the multi-line in-place redraw (`screen.c`).
+All widgets are thin state machines over one engine, `sc_prompt_run` (`src/input/prompt.c`), which owns the raw-mode + draw/read/dispatch loop. Each widget supplies an `ScPromptVTable { render, on_key }`; `render` builds a frame as an `ScText` and `sc_capture_text`s it – so input reuses the entire output renderer stack as its view layer. Shared pieces: `ScLineEditor` (`line_editor.c`, UTF-8 cursor/insert/delete/word-kill) backs text/password inputs and the fuzzy query; the TTY layer (`src/tty/`) provides raw mode + signal-safe restore (`term.c`), the escape-sequence decoder (`key.c`), and the multi-line in-place redraw (`screen.c`).
 
 ### Key decoding
 
-`sc_key_decode(buf, len, &key)` is a **pure, unit-tested** decoder
-(`ScKey { type, codepoint, bytes }`) handling control bytes, CSI/SS3
-sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the
-`;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial
-UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to
-`SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` – `poll()` on
-`/dev/tty` is broken on macOS and would swallow a lone Esc until the next key).
+`sc_key_decode(buf, len, &key)` is a **pure, unit-tested** decoder (`ScKey { type, codepoint, bytes }`) handling control bytes, CSI/SS3 sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the `;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to `SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` – `poll()` on `/dev/tty` is broken on macOS and would swallow a lone Esc until the next key).
 
 ### Terminal safety / robustness
 
-The input side manipulates global terminal state, so `src/tty/term.c` is
-defensive about always handing back a usable terminal:
+The input side manipulates global terminal state, so `src/tty/term.c` is defensive about always handing back a usable terminal:
 
-- **Restore-on-signal:** raw mode + cursor are restored on `SIGINT`/`SIGTERM`/
-  `SIGHUP`/`SIGQUIT` (then the signal is re-raised with the default handler) and
-  via `atexit`. Crash signals (SIGSEGV/ABRT/…) are intentionally **not** trapped,
-  so debuggers/sanitizers keep their handlers; `atexit` covers clean exits.
-- **Resize:** `SIGWINCH` sets a flag; `sc_tty_read_key` returns `SC_KEY_RESIZE`
-  (the blocking `read` is interrupted, `EINTR`), and `sc_prompt_run` clears and
-  repaints so content reflows. Other `EINTR` retries transparently.
-- **Height clamp:** `sc_screen_draw` never draws more lines than the terminal
-  has rows, so a frame taller than the window can't scroll the screen and break
-  the cursor-up arithmetic (widgets also bound their own height).
-- **One prompt at a time:** `sc_prompt_run` atomically claims a single global
-  TTY session (`atomic_bool`) and returns `SC_INPUT_ERROR` if one is already
-  running – so a nested or cross-thread call fails safely instead of corrupting
-  state. The key buffer is reset at `sc_tty_begin` so stale bytes never leak
-  between prompts.
-- **Coverage:** `make test-input-pty` drives every interactive widget over a
-  PTY under ASan/UBSan (headless), complementing the pure-logic and snapshot
-  suites.
+- **Restore-on-signal:** raw mode + cursor are restored on `SIGINT`/`SIGTERM`/ `SIGHUP`/`SIGQUIT` (then the signal is re-raised with the default handler) and via `atexit`. Crash signals (SIGSEGV/ABRT/…) are intentionally **not** trapped, so debuggers/sanitizers keep their handlers; `atexit` covers clean exits.
+- **Resize:** `SIGWINCH` sets a flag; `sc_tty_read_key` returns `SC_KEY_RESIZE` (the blocking `read` is interrupted, `EINTR`), and `sc_prompt_run` clears and repaints so content reflows. Other `EINTR` retries transparently.
+- **Height clamp:** `sc_screen_draw` never draws more lines than the terminal has rows, so a frame taller than the window can't scroll the screen and break the cursor-up arithmetic (widgets also bound their own height).
+- **One prompt at a time:** `sc_prompt_run` atomically claims a single global TTY session (`atomic_bool`) and returns `SC_INPUT_ERROR` if one is already running – so a nested or cross-thread call fails safely instead of corrupting state. The key buffer is reset at `sc_tty_begin` so stale bytes never leak between prompts.
+- **Coverage:** `make test-input-pty` drives every interactive widget over a PTY under ASan/UBSan (headless), complementing the pure-logic and snapshot suites.
 
 ### Widgets
 
@@ -645,146 +556,34 @@ void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
 ```
 
-- **TextInput/Password** share `sc_text_entry` (`text_input.c`, configured via
-  the internal `ScTextEntryCfg`); password is the masked variant (`opts.mask`,
-  default `"*"`). Both accept an optional `validate` callback that keeps the
-  prompt open and shows an error line. A character counter is shown under the
-  field by default – `count` (no limit) or `count/max` when `max_chars > 0`,
-  which also caps input. Hide it with `hide_char_count`; style it via
-  `count_style` (default dim). Counts UTF-8 codepoints, not bytes.
-  Set `boxed = true` to render inside a panel (prompt = top title, counter =
-  bottom-right border via the panel `subtitle`); `border` sets the box style
-  (zero-init type = rounded) and `width` the panel width (0 = full terminal
-  width). A validation error stacks below the box via `sc_vstack`. Long values
-  scroll horizontally within `width` with `‹`/`›` edge markers (line editor).
-  Optional input constraints: `char_filter` (built-ins `sc_filter_digits`,
-  `sc_filter_decimal`, `sc_filter_alpha`, `sc_filter_alnum`, `sc_filter_no_space`)
-  rejects disallowed keystrokes; `suggestions`/`n_suggestions` show a dim
-  autocomplete ghost that Tab accepts.
-- **NumberInput** (`number_input.c`) reuses the line editor with a decimal
-  filter; ↑/↓ step by `step`, value clamped to `[min, max]` when `max > min`,
-  formatted to `decimals` places. `boxed = true` renders inside a panel (range
-  shown on the bottom-right border); `border`/`width` as for text input.
-- **Textarea** (`textarea.c`, self-contained multi-line buffer): Enter inserts a
-  newline, Ctrl-D submits, arrows move across lines/cols, Home/End within a line.
-  Long logical lines **soft-wrap** to the field width (char-level; cursor stays
-  correct; navigation remains logical-line based). `boxed = true` renders the
-  editor inside a panel (prompt = top title, footer stacked below); `border`/
-  `width` as for text input.
-- **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows
-  move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` /
-  `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the
-  list scrolls beyond the viewport.
-- **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are
-  highlighted (bold+underline, accent fg) in the list and in the matched table
-  cells (`render_table` builds those cells as highlighted `ScText` via
-  `append_highlighted`, borrowed by the table and freed after capture); the
-  query field scrolls horizontally (`‹`/`›`) when long; table view builds an
-  `ScTableData` of the visible rows each frame (cursor row via row-bg) and
-  `sc_vstack`s query + body + scroll-indicator + footer. `refilter` matches each
-  row via `row_matches` across the columns selected by `opts.search_columns`
-  (bitmask; `0` = all, the default), ranking by the best-scoring column – so a
-  table query can hit (and highlight) any column, not just the first.
-- **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or
-  `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds
-  today. Month/year jumps keep the selected day, clamped to the target month's
-  last valid day (e.g. Jan 31 → Feb 28). `week_start` is `ScWeekStart`.
-- **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter
-  select · esc cancel`) by default; override the text with `hint`, restyle with
-  `hint_style`, and choose its layout with `hint_layout` (`ScHintLayout`:
-  `SC_HINT_INLINE` one `·`-separated line / `SC_HINT_STACKED` one hint per line /
-  `SC_HINT_HIDDEN` none; zero-init `SC_HINT_LAYOUT_DEFAULT` inherits the theme,
-  then inline). Stacked is rendered by splitting the hint on ` · `. Its
-  placement is `hint_pos` (`ScHintPosition`: `SC_HINT_POS_TOP`/`_BOTTOM`(default)/
-  `_LEFT`/`_RIGHT`; left/right sit beside the widget, top-aligned), orthogonal to
-  layout. `sc_compose_hint` (input_internal.h) builds the hint block and places
-  it: vstack for top/bottom, a 2-column `ScColumns` for left/right.
-- **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults
-  (accent, styles, markers, border, `hint_layout`) that every widget inherits for
-  any zero-init option. Precedence: per-call opts > theme > built-in default.
-  Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`).
-- **Custom shortcuts** (`input/sparcli_shortcut.h`): every widget's `Sc*Opts`
-  carries `shortcuts` / `n_shortcuts` (borrowed `ScShortcut[]`) and an optional
-  `out_shortcut_id`. The **prompt engine** (`prompt.c`) matches them before
-  `on_key` – so one implementation covers all widgets – after the reserved
-  cancel keys (Esc / Ctrl-C can't be bound). Build chords with `sc_key_ctrl('e')`
-  / `sc_key_fn(2)` / `sc_key_alt('e')`. `SC_SHORTCUT_RETURN` ends the prompt and
-  writes the fired `id` to `*out_shortcut_id` (`-1` = normal submit); the widget
-  still returns its value. `SC_SHORTCUT_CALLBACK` runs `on_fire(id, user)` in
-  place and stays open unless it returns `false`; `sc_select_cursor` /
-  `sc_fuzzy_cursor_index` expose the live selection to such callbacks, and
-  `sc_select_remove` / `sc_fuzzy_remove` delete the highlighted item live (the
-  emptied-list run tails are guarded). A callback can't open a second prompt
-  (single-session), so the "edit an item" pattern is a RETURN shortcut +
-  `sc_select_label` / `sc_select_set_label` + `sc_select_set_cursor` in a caller
-  re-run loop (see `examples/shortcut_demo.c`). A shortcut with a `hint_label` is shown in
-  a dim footer the **engine** stacks under every frame (key name via
-  `sc_key_chord_name`, e.g. `^X delete`), discoverable on any widget with no
-  per-widget code. The key
-  decoder now also yields `SC_KEY_F1..F12`, Alt via an `ESC`-prefix
-  (`ScKey.mods & SC_MOD_ALT`), and generic Ctrl-letters as `SC_KEY_CHAR` +
-  `SC_MOD_CTRL`. The C++ wrapper adds `sparcli::Shortcuts` (a builder with a
-  `std::function` callback arena) + `key_ctrl/key_fn/key_alt`; `sc.apply(opts)`
-  wires it and `sc.fired()` reads the result.
+- **TextInput/Password** share `sc_text_entry` (`text_input.c`, configured via the internal `ScTextEntryCfg`); password is the masked variant (`opts.mask`, default `"*"`). Both accept an optional `validate` callback that keeps the prompt open and shows an error line. A character counter is shown under the field by default – `count` (no limit) or `count/max` when `max_chars > 0`, which also caps input. Hide it with `hide_char_count`; style it via `count_style` (default dim). Counts UTF-8 codepoints, not bytes. Set `boxed = true` to render inside a panel (prompt = top title, counter = bottom-right border via the panel `subtitle`); `border` sets the box style (zero-init type = rounded) and `width` the panel width (0 = full terminal width). A validation error stacks below the box via `sc_vstack`. Long values scroll horizontally within `width` with `‹`/`›` edge markers (line editor). Optional input constraints: `char_filter` (built-ins `sc_filter_digits`, `sc_filter_decimal`, `sc_filter_alpha`, `sc_filter_alnum`, `sc_filter_no_space`) rejects disallowed keystrokes; `suggestions`/`n_suggestions` show a dim autocomplete ghost that Tab accepts.
+- **NumberInput** (`number_input.c`) reuses the line editor with a decimal filter; ↑/↓ step by `step`, value clamped to `[min, max]` when `max > min`, formatted to `decimals` places. `boxed = true` renders inside a panel (range shown on the bottom-right border); `border`/`width` as for text input.
+- **Textarea** (`textarea.c`, self-contained multi-line buffer): Enter inserts a newline, Ctrl-D submits, arrows move across lines/cols, Home/End within a line. Long logical lines **soft-wrap** to the field width (char-level; cursor stays correct; navigation remains logical-line based). `boxed = true` renders the editor inside a panel (prompt = top title, footer stacked below); `border`/ `width` as for text input.
+- **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` / `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the list scrolls beyond the viewport.
+- **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are highlighted (bold+underline, accent fg) in the list and in the matched table cells (`render_table` builds those cells as highlighted `ScText` via `append_highlighted`, borrowed by the table and freed after capture); the query field scrolls horizontally (`‹`/`›`) when long; table view builds an `ScTableData` of the visible rows each frame (cursor row via row-bg) and `sc_vstack`s query + body + scroll-indicator + footer. `refilter` matches each row via `row_matches` across the columns selected by `opts.search_columns` (bitmask; `0` = all, the default), ranking by the best-scoring column – so a table query can hit (and highlight) any column, not just the first.
+- **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds today. Month/year jumps keep the selected day, clamped to the target month's last valid day (e.g. Jan 31 → Feb 28). `week_start` is `ScWeekStart`.
+- **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter select · esc cancel`) by default; override the text with `hint`, restyle with `hint_style`, and choose its layout with `hint_layout` (`ScHintLayout`: `SC_HINT_INLINE` one `·`-separated line / `SC_HINT_STACKED` one hint per line / `SC_HINT_HIDDEN` none; zero-init `SC_HINT_LAYOUT_DEFAULT` inherits the theme, then inline). Stacked is rendered by splitting the hint on ` · `. Its placement is `hint_pos` (`ScHintPosition`: `SC_HINT_POS_TOP`/`_BOTTOM`(default)/ `_LEFT`/`_RIGHT`; left/right sit beside the widget, top-aligned), orthogonal to layout. `sc_compose_hint` (input_internal.h) builds the hint block and places it: vstack for top/bottom, a 2-column `ScColumns` for left/right.
+- **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults (accent, styles, markers, border, `hint_layout`) that every widget inherits for any zero-init option. Precedence: per-call opts > theme > built-in default. Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`).
+- **Custom shortcuts** (`input/sparcli_shortcut.h`): every widget's `Sc*Opts` carries `shortcuts` / `n_shortcuts` (borrowed `ScShortcut[]`) and an optional `out_shortcut_id`. The **prompt engine** (`prompt.c`) matches them before `on_key` – so one implementation covers all widgets – after the reserved cancel keys (Esc / Ctrl-C can't be bound). Build chords with `sc_key_ctrl('e')` / `sc_key_fn(2)` / `sc_key_alt('e')`. `SC_SHORTCUT_RETURN` ends the prompt and writes the fired `id` to `*out_shortcut_id` (`-1` = normal submit); the widget still returns its value. `SC_SHORTCUT_CALLBACK` runs `on_fire(id, user)` in place and stays open unless it returns `false`; `sc_select_cursor` / `sc_fuzzy_cursor_index` expose the live selection to such callbacks, and `sc_select_remove` / `sc_fuzzy_remove` delete the highlighted item live (the emptied-list run tails are guarded). A callback can't open a second prompt (single-session), so the "edit an item" pattern is a RETURN shortcut + `sc_select_label` / `sc_select_set_label` + `sc_select_set_cursor` in a caller re-run loop (see `examples/shortcut_demo.c`). A shortcut with a `hint_label` is shown in a dim footer the **engine** stacks under every frame (key name via `sc_key_chord_name`, e.g. `^X delete`), discoverable on any widget with no per-widget code. The key decoder now also yields `SC_KEY_F1..F12`, Alt via an `ESC`-prefix (`ScKey.mods & SC_MOD_ALT`), and generic Ctrl-letters as `SC_KEY_CHAR` + `SC_MOD_CTRL`. The C++ wrapper adds `sparcli::Shortcuts` (a builder with a `std::function` callback arena) + `key_ctrl/key_fn/key_alt`; `sc.apply(opts)` wires it and `sc.fired()` reads the result.
 
 ### Styling (all opts fields are zero-init-friendly)
 
-Every visual element is configurable through the widget's `Sc*Opts`; a
-zero-init field selects the built-in default, so existing zero-init callers are
-unaffected. Helper `sc_style_set()` (`input_internal.h`) decides
-"caller-supplied vs default" for each `ScTextStyle`; glyph fields fall back when
-`NULL`.
+Every visual element is configurable through the widget's `Sc*Opts`; a zero-init field selects the built-in default, so existing zero-init callers are unaffected. Helper `sc_style_set()` (`input_internal.h`) decides "caller-supplied vs default" for each `ScTextStyle`; glyph fields fall back when `NULL`.
 
-- **Prompt/label:** every widget has a `prompt_style` for its prompt/heading
-  (confirm's styles the question text and the `? ` prefix). Defaults: bold in
-  `accent` (fuzzy), bold (datepicker), unstyled elsewhere.
-- **Rich prompt:** for *partial* styling (e.g. `Rename `*`Apple`*` to`) every
-  widget's opts also take `prompt_text` (a borrowed `ScText *`, overrides the
-  string prompt) and `prompt_markup` (parse the string prompt as markup).
-  Precedence `prompt_text > prompt_markup > plain+prompt_style`. Resolved by the
-  shared `sc_prompt_append`/`sc_prompt_build`/`sc_prompt_width` (`input_internal.h`);
-  works inline and boxed. Boxed mode routes it through `ScTitle.rich_text` (a new
-  `ScText *` on the shared title struct that panels honor; rules/tables ignore it),
-  so the box width is computed from the visible width, not the escape bytes.
-- **External editor** (`text_input`/`textarea` only): `external_editor` +
-  optional `editor` command + `editor_key` (zero-init = Ctrl-G). The engine
-  suspends raw mode (`sc_tty_end`), runs `sc_run_editor` (`editor.c`: `mkstemp`
-  0600 → `fork`/`execvp` **no shell** on `/dev/tty` → `waitpid` → read back →
-  `unlink`), then `sc_tty_begin` + fresh repaint. Widgets expose `edit_get`/
-  `edit_set` vtable hooks; the engine owns suspend/resume. Non-zero exit keeps
-  the old value; text_input collapses newlines to spaces (single-line). **Password excluded**
-  (plaintext temp file). `ScPromptEditor` carries the config to `sc_prompt_run`;
-  the editor key is matched before custom shortcuts (same chord → editor wins).
-- **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget
-  `cursor_style` (text/password/fuzzy editor cell; default black-on-white),
-  `error_style` (text/password; default red), `count_style` (text/password
-  character counter; default dim), `selected_style` (select/fuzzy cursor row),
-  `counter_style` (fuzzy), `header_style`/`weekday_style`/`selected_style`
-  (datepicker), and a `summary_style` on every widget.
-- **Glyphs:** `cursor_marker`/`marker` and `checkbox_on`/`checkbox_off`
-  (select), `cursor_marker`/`marker` (fuzzy list), `header_prev`/`header_next`
-  (datepicker).
-- **Summary line:** printed via `sc_println` over `sc_output_stream` (styled by
-  `summary_style`); set `hide_summary = true` to suppress it entirely.
-- **Fuzzy table view:** `ScFuzzyOpts.table_opts` is passed through to the table
-  renderer (border, header, padding, …); the cursor row is highlighted with
-  `accent` regardless. Zero-init `table_opts` → single border + bold header.
-- **Week start:** `ScDatePickerOpts.week_start` is an `ScWeekStart` enum
-  (`SC_WEEK_START_DEFAULT`=Monday, `…_MONDAY`, `…_SUNDAY`) – a plain `0` cannot
-  mean both "unset" and "Sunday", so Sunday is an explicit value.
+- **Prompt/label:** every widget has a `prompt_style` for its prompt/heading (confirm's styles the question text and the `? ` prefix). Defaults: bold in `accent` (fuzzy), bold (datepicker), unstyled elsewhere.
+- **Rich prompt:** for *partial* styling (e.g. `Rename `*`Apple`*` to`) every widget's opts also take `prompt_text` (a borrowed `ScText *`, overrides the string prompt) and `prompt_markup` (parse the string prompt as markup). Precedence `prompt_text > prompt_markup > plain+prompt_style`. Resolved by the shared `sc_prompt_append`/`sc_prompt_build`/`sc_prompt_width` (`input_internal.h`); works inline and boxed. Boxed mode routes it through `ScTitle.rich_text` (a new `ScText *` on the shared title struct that panels honor; rules/tables ignore it), so the box width is computed from the visible width, not the escape bytes.
+- **External editor** (`text_input`/`textarea` only): `external_editor` + optional `editor` command + `editor_key` (zero-init = Ctrl-G). The engine suspends raw mode (`sc_tty_end`), runs `sc_run_editor` (`editor.c`: `mkstemp` 0600 → `fork`/`execvp` **no shell** on `/dev/tty` → `waitpid` → read back → `unlink`), then `sc_tty_begin` + fresh repaint. Widgets expose `edit_get`/ `edit_set` vtable hooks; the engine owns suspend/resume. Non-zero exit keeps the old value; text_input collapses newlines to spaces (single-line). **Password excluded** (plaintext temp file). `ScPromptEditor` carries the config to `sc_prompt_run`; the editor key is matched before custom shortcuts (same chord → editor wins).
+- **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget `cursor_style` (text/password/fuzzy editor cell; default black-on-white), `error_style` (text/password; default red), `count_style` (text/password character counter; default dim), `selected_style` (select/fuzzy cursor row), `counter_style` (fuzzy), `header_style`/`weekday_style`/`selected_style` (datepicker), and a `summary_style` on every widget.
+- **Glyphs:** `cursor_marker`/`marker` and `checkbox_on`/`checkbox_off` (select), `cursor_marker`/`marker` (fuzzy list), `header_prev`/`header_next` (datepicker).
+- **Summary line:** printed via `sc_println` over `sc_output_stream` (styled by `summary_style`); set `hide_summary = true` to suppress it entirely.
+- **Fuzzy table view:** `ScFuzzyOpts.table_opts` is passed through to the table renderer (border, header, padding, …); the cursor row is highlighted with `accent` regardless. Zero-init `table_opts` → single border + bold header.
+- **Week start:** `ScDatePickerOpts.week_start` is an `ScWeekStart` enum (`SC_WEEK_START_DEFAULT`=Monday, `…_MONDAY`, `…_SUNDAY`) – a plain `0` cannot mean both "unset" and "Sunday", so Sunday is an explicit value.
 
-`accent` itself defaults per widget when zero-init (`index == 0`): green
-(confirm), cyan (select/fuzzy/datepicker).
+`accent` itself defaults per widget when zero-init (`index == 0`): green (confirm), cyan (select/fuzzy/datepicker).
 
 ### Style snapshot tests
 
-Each widget exposes an **internal** frame builder (`sc_confirm_frame`,
-`sc_text_entry_frame`, `sc_select_frame`, `sc_fuzzy_frame`,
-`sc_datepicker_frame`; decls in `input_internal.h`) that runs the normal render
-path over a constructed state and returns the captured `ScRendered`. The
-`tests/input/style/` suite uses these to print every widget in many styles
-**without a TTY** (`make test-input-style`); `sc_pad_print` writes the frame to
-`sc_output_stream`.
+Each widget exposes an **internal** frame builder (`sc_confirm_frame`, `sc_text_entry_frame`, `sc_select_frame`, `sc_fuzzy_frame`, `sc_datepicker_frame`; decls in `input_internal.h`) that runs the normal render path over a constructed state and returns the captured `ScRendered`. The `tests/input/style/` suite uses these to print every widget in many styles **without a TTY** (`make test-input-style`); `sc_pad_print` writes the frame to `sc_output_stream`.
 
 ## Internal Helpers (`src/internal.h`)
 
@@ -801,29 +600,14 @@ Not part of the public API. Used by all source files that include `internal.h`:
 
 ## Key Invariants
 
-- **Concurrency:** the output target is **thread-local** (`_Thread_local
-  current_output` in `core/output.c`), so multiple threads may render/capture
-  concurrently to independent streams (TSan-clean; see `test_threads`). Each
-  widget object is per-instance, so independent objects are independent. The
-  **interactive input session is process-wide** (one terminal, process-global
-  signal handlers): only one prompt runs at a time, enforced by an atomic claim
-  in `sc_prompt_run` – a concurrent/nested attempt returns `SC_INPUT_ERROR`. The
-  global theme (`sc_input_set_theme`) is shared, set-once config.
+- **Concurrency:** the output target is **thread-local** (`_Thread_local current_output` in `core/output.c`), so multiple threads may render/capture concurrently to independent streams (TSan-clean; see `test_threads`). Each widget object is per-instance, so independent objects are independent. The **interactive input session is process-wide** (one terminal, process-global signal handlers): only one prompt runs at a time, enforced by an atomic claim in `sc_prompt_run` – a concurrent/nested attempt returns `SC_INPUT_ERROR`. The global theme (`sc_input_set_theme`) is shared, set-once config.
 - **`SC_ANSI_COLOR_NONE` sentinel is `index = 0`**, identical to a zero-initialized `ScColor`. Any unset color field renders as "no color" automatically; no explicit assignment needed. Named colors use `index = 1..8` (BLACK..WHITE); RGB uses `index = -1`.
-- `sc_print()` always appends `\033[0m` (reset), even when opts are all-none.
-  This is intentional to isolate styling.
-- The `h` horizontal-line character from `ScBorderType` is used by both
-  panel titles, table titles, rules, and column separators – all from the same
-  logical table in each file.
-- `ScText` / `ScTableData` / `ScColumns` all heap-allocate; always call the
-  corresponding `_free()` function.
-- `ScColumns` captures widget output at `sc_columns_add_*` time. Modifying a
-  table after adding it to a columns layout has no effect.
-- Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no
-  space fits in the column width, the line is truncated.
-- **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`,
-  `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting.
-  Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
+- `sc_print()` always appends `\033[0m` (reset), even when opts are all-none. This is intentional to isolate styling.
+- The `h` horizontal-line character from `ScBorderType` is used by both panel titles, table titles, rules, and column separators – all from the same logical table in each file.
+- `ScText` / `ScTableData` / `ScColumns` all heap-allocate; always call the corresponding `_free()` function.
+- `ScColumns` captures widget output at `sc_columns_add_*` time. Modifying a table after adding it to a columns layout has no effect.
+- Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no space fits in the column width, the line is truncated.
+- **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`, `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting. Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
 
 ---
 
@@ -877,15 +661,13 @@ void sc_alert_success(const char *content);
 | `SC_ALERT_ERROR` | ✖ | Red |
 | `SC_ALERT_SUCCESS` | ✔ | Green |
 
-All alerts render `full_width = 1` with `SC_BORDER_SINGLE` and a colored left-aligned title.
-Content may contain `\n` for multi-line bodies.
+All alerts render `full_width = 1` with `SC_BORDER_SINGLE` and a colored left-aligned title. Content may contain `\n` for multi-line bodies.
 
 ---
 
 ## Badge
 
-Inline styled text token. `sc_print_badge` writes to stdout (no trailing newline).
-`sc_text_append_badge` appends the composed badge string as a single span to an `ScText`.
+Inline styled text token. `sc_print_badge` writes to stdout (no trailing newline). `sc_text_append_badge` appends the composed badge string as a single span to an `ScText`.
 
 ```c
 void sc_print_badge      (const char *text, ScBadgeOpts opts);
@@ -913,21 +695,15 @@ char *sc_truncate  (const char *str, int max_cols, const char *ellipsis);
 void  sc_clear_line(void);
 ```
 
-- `sc_strip_ansi`: returns a heap-allocated copy of `str` with all ANSI CSI escape
-  sequences removed. Caller must `free()` the result.
-- `sc_truncate`: if the visible width of `str` exceeds `max_cols`, returns a
-  heap-allocated truncated copy with `ellipsis` appended (may be `NULL`). If it
-  fits, returns `strdup(str)`. Caller must `free()` the result.
-- `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to
-  overwrite the current terminal line in place.
+- `sc_strip_ansi`: returns a heap-allocated copy of `str` with all ANSI CSI escape sequences removed. Caller must `free()` the result.
+- `sc_truncate`: if the visible width of `str` exceeds `max_cols`, returns a heap-allocated truncated copy with `ellipsis` appended (may be `NULL`). If it fits, returns `strdup(str)`. Caller must `free()` the result.
+- `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to overwrite the current terminal line in place.
 
 ---
 
 ## Capture API
 
-Renders any widget into a heap-allocated `ScRendered`. Caller must free with
-`sc_rendered_free()`. Use the result with `sc_pad_print`, `sc_align_print`, or
-`sc_columns_add_rendered`.
+Renders any widget into a heap-allocated `ScRendered`. Caller must free with `sc_rendered_free()`. Use the result with `sc_pad_print`, `sc_align_print`, or `sc_columns_add_rendered`.
 
 ```c
 ScRendered *sc_capture_str        (const char *s);
@@ -943,8 +719,7 @@ ScRendered *sc_capture_rule_str   (const char *title, ScRuleOpts opts);
 ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
 ```
 
-The same `ScRendered *` can be passed to multiple print functions (e.g. first
-`sc_pad_print`, then `sc_align_print`).
+The same `ScRendered *` can be passed to multiple print functions (e.g. first `sc_pad_print`, then `sc_align_print`).
 
 ### sc_vstack – stack widgets vertically in one column
 
@@ -952,15 +727,9 @@ The same `ScRendered *` can be passed to multiple print functions (e.g. first
 ScRendered *sc_vstack(const ScRendered *const *parts, size_t n, int gap);
 ```
 
-Concatenates `n` captured renderings top-to-bottom into a single `ScRendered`,
-with `gap` blank lines between adjacent parts. This is how you place **two (or
-more) widgets one above the other inside a single column** – capture each
-widget, `sc_vstack` them, then `sc_columns_add_rendered` the result.
+Concatenates `n` captured renderings top-to-bottom into a single `ScRendered`, with `gap` blank lines between adjacent parts. This is how you place **two (or more) widgets one above the other inside a single column** – capture each widget, `sc_vstack` them, then `sc_columns_add_rendered` the result.
 
-Inputs are **not** consumed: the caller still owns every `parts[i]` and frees
-them (and the returned value) with `sc_rendered_free`. Returns `NULL` when
-`n == 0`; `gap` is clamped to `>= 0`. `max_column_width` of the result is the
-widest line across all parts.
+Inputs are **not** consumed: the caller still owns every `parts[i]` and frees them (and the returned value) with `sc_rendered_free`. Returns `NULL` when `n == 0`; `gap` is clamped to `>= 0`. `max_column_width` of the result is the widest line across all parts.
 
 ```c
 ScRendered *r_list  = sc_capture_list(list);
@@ -984,11 +753,9 @@ void sc_pad_str  (const char *s,       ScPadOpts opts);   /* capture + print */
 void sc_pad_text (const ScText *t,     ScPadOpts opts);   /* capture + print */
 ```
 
-`sc_pad_print` prints `top` blank lines, then each content line with `left` spaces
-prepended and `right` spaces appended, then `bottom` blank lines.
+`sc_pad_print` prints `top` blank lines, then each content line with `left` spaces prepended and `right` spaces appended, then `bottom` blank lines.
 
-`right` padding (trailing spaces per line) is mostly useful in composed contexts
-(e.g. coloured backgrounds); it has no visible effect on a plain terminal.
+`right` padding (trailing spaces per line) is mostly useful in composed contexts (e.g. coloured backgrounds); it has no visible effect on a plain terminal.
 
 **Usage:**
 ```c
@@ -1011,8 +778,7 @@ void sc_align_str  (const char *s,       ScHAlign halign, int width);
 void sc_align_text (const ScText *t,     ScHAlign halign, int width);
 ```
 
-Aligns every line of the rendered output within `width` columns.
-`SC_ALIGN_LEFT` is a no-op (prints as-is).
+Aligns every line of the rendered output within `width` columns. `SC_ALIGN_LEFT` is a no-op (prints as-is).
 
 **Usage:**
 ```c
@@ -1030,8 +796,7 @@ sc_align_str("Centered heading", SC_ALIGN_CENTER, 0);
 void sc_columns_add_rendered(ScColumns *cl, const ScRendered *r, ScColItem item);
 ```
 
-Inserts an already-captured `ScRendered` into a `ScColumns` layout.
-The columns layout makes a deep copy, so the caller may free `r` immediately after.
+Inserts an already-captured `ScRendered` into a `ScColumns` layout. The columns layout makes a deep copy, so the caller may free `r` immediately after.
 
 ```c
 ScRendered *r = sc_capture_table(t, opts);
@@ -1129,8 +894,7 @@ ScText *t = sc_markup_parse_opts(
 static inline ScCell sc_cell_m(const char *s);  /* parses s as inline markup */
 ```
 
-The cell **owns** the parsed `ScText`; `sc_table_free` frees it automatically.
-No separate free needed. (FFI variant: `sc_cell_from_markup(s)`.)
+The cell **owns** the parsed `ScText`; `sc_table_free` frees it automatically. No separate free needed. (FFI variant: `sc_cell_from_markup(s)`.)
 
 ```c
 sc_table_add_row(t, (ScCell[]){
@@ -1140,7 +904,6 @@ sc_table_add_row(t, (ScCell[]){
 sc_table_free(t);  /* frees markup ScText automatically */
 ```
 
-**Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default
-(including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
+**Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default (including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
 
 **`[[` escape:** Two consecutive opening brackets produce a single literal `[`.

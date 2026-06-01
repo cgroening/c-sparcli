@@ -1,12 +1,8 @@
 # sparcli – Developer Guide
 
-Build, test, and install workflow for working on sparcli itself. For the public
-API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and
-[C++](api-cpp.md) references); for architecture and house conventions see
-[`../CLAUDE.md`](../CLAUDE.md).
+Build, test, and install workflow for working on sparcli itself. For the public API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and [C++](api-cpp.md) references); for architecture and house conventions see [`../CLAUDE.md`](../CLAUDE.md).
 
-**Requirements:** a C11 compiler (`cc`, clang, or gcc), `make`, and a POSIX
-system. The interactive PTY test suite uses `forkpty`.
+**Requirements:** a C11 compiler (`cc`, clang, or gcc), `make`, and a POSIX system. The interactive PTY test suite uses `forkpty`.
 
 ---
 
@@ -23,45 +19,30 @@ make python          # build the Python binding (see "make python" below)
 make rebuild-all     # C lib + install + Rust + Python in one command
 ```
 
-Compiler flags are `-std=c11 -Wall -Wextra`. Treat warnings as errors with the
-`EXTRA_CFLAGS` hook (recommended before committing, and how CI-style checks are
-run):
+Compiler flags are `-std=c11 -Wall -Wextra`. Treat warnings as errors with the `EXTRA_CFLAGS` hook (recommended before committing, and how CI-style checks are run):
 
 ```sh
 make EXTRA_CFLAGS=-Werror
 ```
 
-`EXTRA_CFLAGS` takes any extra flags, so it also serves debug builds:
-`make EXTRA_CFLAGS='-g -O0'`.
+`EXTRA_CFLAGS` takes any extra flags, so it also serves debug builds: `make EXTRA_CFLAGS='-g -O0'`.
 
 **Good to know:**
 
-- **Header-dependency tracking** is automatic (`-MMD -MP`): editing a header
-  rebuilds every dependent object on the next `make` – you do **not** need
-  `make clean` after changing a header.
-- The **sanitizer build** uses a separate build tree and a separate `.a`, so it
-  never contaminates the normal artefacts.
-- Tests link against the **static** `libsparcli.a`, so running them never
-  depends on the install path or the dynamic-loader search order.
-- **Linux and macOS** are both supported; the shared-library naming
-  (`.so`/`.dylib` + soname) and the `-lutil` link for `forkpty` (PTY suite) are
-  selected automatically by the Makefile.
+- **Header-dependency tracking** is automatic (`-MMD -MP`): editing a header rebuilds every dependent object on the next `make` – you do **not** need `make clean` after changing a header.
+- The **sanitizer build** uses a separate build tree and a separate `.a`, so it never contaminates the normal artefacts.
+- Tests link against the **static** `libsparcli.a`, so running them never depends on the install path or the dynamic-loader search order.
+- **Linux and macOS** are both supported; the shared-library naming (`.so`/`.dylib` + soname) and the `-lutil` link for `forkpty` (PTY suite) are selected automatically by the Makefile.
 
 ---
 
 ## Tests
 
-The suites split along the output/input boundary. Everything except
-`make test-input` (which needs a real terminal) runs headless.
+The suites split along the output/input boundary. Everything except `make test-input` (which needs a real terminal) runs headless.
 
 ### `make test` – full non-interactive suite
 
-The canonical "is everything OK?" command. Runs all headless gates in order –
-`test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`,
-`test-input-pty`, `test-cpp` – and fails if any does. Command-line overrides
-propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings
-as errors. The interactive widget suite (`make test-input`) needs a real TTY
-and is **not** included. The individual targets it chains are documented below.
+The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-cpp` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
 
 ```sh
 make test                     # run every headless gate
@@ -70,11 +51,7 @@ make test EXTRA_CFLAGS=-Werror
 
 ### `make test-output` – output gallery
 
-The output renderer suite in `tests/output/`, printed to stdout for visual
-inspection (the golden-file gate below is the automated check). Covers: text
-attributes, colors, panels, alerts, tables, rules, trees, lists, progress bar,
-spinner, key-value pairs, badges, utilities, padding, alignment, markup, and
-columns (basic + advanced).
+The output renderer suite in `tests/output/`, printed to stdout for visual inspection (the golden-file gate below is the automated check). Covers: text attributes, colors, panels, alerts, tables, rules, trees, lists, progress bar, spinner, key-value pairs, badges, utilities, padding, alignment, markup, and columns (basic + advanced).
 
 ```sh
 make test-output                              # all output tests
@@ -87,9 +64,7 @@ The two *animated* cases (progress bar, spinner) are skipped by `--no-animated`.
 
 ### `make test-output-check` – output golden-file gate
 
-Runs the output suite with `--no-animated` and diffs it against
-`tests/output/expected.txt`. Fails on any rendering drift. This is the automated
-correctness gate for the output side.
+Runs the output suite with `--no-animated` and diffs it against `tests/output/expected.txt`. Fails on any rendering drift. This is the automated correctness gate for the output side.
 
 ```sh
 make test-output-check     # diff against the committed snapshot
@@ -98,8 +73,7 @@ make test-output-golden    # regenerate the snapshot (after an intended change)
 
 ### `make test-input` – interactive widget suite
 
-Drives every input widget for real in `tests/input/logic/`. **Needs a real
-TTY** – run it in a terminal, not a pipe.
+Drives every input widget for real in `tests/input/logic/`. **Needs a real TTY** – run it in a terminal, not a pipe.
 
 ```sh
 make test-input                # interactive: confirm, text, password, number,
@@ -107,15 +81,11 @@ make test-input                # interactive: confirm, text, password, number,
 make test-input ARGS=--logic   # non-interactive logic checks only (CI-safe)
 ```
 
-`ARGS=--logic` skips the interactive widgets and runs only the pure-logic
-checks – key decoder, the shortcut chord matcher, the select label-edit API, the
-line editor, character filters, and the thread-safety test – and exits non-zero
-if any assertion fails.
+`ARGS=--logic` skips the interactive widgets and runs only the pure-logic checks – key decoder, the shortcut chord matcher, the select label-edit API, the line editor, character filters, and the thread-safety test – and exits non-zero if any assertion fails.
 
 ### `make test-input-style` – style snapshots
 
-Renders every input widget in many styles via the internal frame builders, with
-no TTY and no keystrokes. Safe anywhere.
+Renders every input widget in many styles via the internal frame builders, with no TTY and no keystrokes. Safe anywhere.
 
 ```sh
 make test-input-style          # print all style snapshots
@@ -125,12 +95,7 @@ make test-input-style-golden   # regenerate the snapshot
 
 ### `make test-input-pty` – self-driving PTY suite (ASan/UBSan)
 
-Forks each interactive widget onto a pseudo-terminal, feeds it a canned
-keystroke script, and asserts the returned value – no human needed. Built with
-AddressSanitizer + UndefinedBehaviorSanitizer, so it also gives sanitizer
-coverage of the interactive code paths. Covers confirm, text, number, select,
-textarea, and datepicker, plus custom shortcuts (return/callback/remove),
-Esc-cancel, and the external-editor flow (driven by a stub editor).
+Forks each interactive widget onto a pseudo-terminal, feeds it a canned keystroke script, and asserts the returned value – no human needed. Built with AddressSanitizer + UndefinedBehaviorSanitizer, so it also gives sanitizer coverage of the interactive code paths. Covers confirm, text, number, select, textarea, and datepicker, plus custom shortcuts (return/callback/remove), Esc-cancel, and the external-editor flow (driven by a stub editor).
 
 ```sh
 make test-input-pty
@@ -138,19 +103,12 @@ make test-input-pty
 
 ### `make test-cpp` – C++ wrapper gate
 
-Four checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a
-C++ compiler (`$(CXX)`, default `c++`):
+Four checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a C++ compiler (`$(CXX)`, default `c++`):
 
 1. **Compile** `examples/cpp_demo.cpp` (so the example never bit-rots).
 2. **Golden diff** the demo's output against `tests/cpp/expected.txt`.
-3. **Assertion suite** `tests/cpp/test_cpp.cpp` – verifies the wrapper's
-   ownership/lifetime guarantees (table built from temporaries, `Table` survives
-   a move, List/Tree rich-text arenas) and that it renders like the C API. Built
-   under **AddressSanitizer + UBSan** so arena/RAII/move memory bugs are caught.
-4. **PTY regression** `tests/cpp/test_cpp_pty.cpp` – drives the interactive
-   string prompts (`text_input` / `password_input` / `textarea`) over a
-   pseudo-terminal and asserts the returned value, so the out-param sequencing
-   those wrappers once got wrong stays fixed. Also under ASan/UBSan.
+3. **Assertion suite** `tests/cpp/test_cpp.cpp` – verifies the wrapper's ownership/lifetime guarantees (table built from temporaries, `Table` survives a move, List/Tree rich-text arenas) and that it renders like the C API. Built under **AddressSanitizer + UBSan** so arena/RAII/move memory bugs are caught.
+4. **PTY regression** `tests/cpp/test_cpp_pty.cpp` – drives the interactive string prompts (`text_input` / `password_input` / `textarea`) over a pseudo-terminal and asserts the returned value, so the out-param sequencing those wrappers once got wrong stays fixed. Also under ASan/UBSan.
 
 ```sh
 make test-cpp                    # all three checks
@@ -160,10 +118,7 @@ make test-cpp-golden             # regenerate tests/cpp/expected.txt
 
 ### `make rust` / `make rust-test` – Rust bindings
 
-The safe Rust crate lives in `bindings/rust/` (a cargo workspace:
-`sparcli-sys` + `sparcli`). `sparcli-sys/build.rs` compiles the C sources with
-the `cc` crate, so these targets need only a Rust toolchain (`cargo`) – no
-prior `make` or install. Kept out of `make test` since cargo may be absent.
+The safe Rust crate lives in `bindings/rust/` (a cargo workspace: `sparcli-sys` + `sparcli`). `sparcli-sys/build.rs` compiles the C sources with the `cc` crate, so these targets need only a Rust toolchain (`cargo`) – no prior `make` or install. Kept out of `make test` since cargo may be absent.
 
 ```sh
 make rust          # cargo build (compiles the C via cc, links the FFI)
@@ -180,18 +135,11 @@ cargo run -p sparcli --example demo
 #   `output_gallery` / `input_demo` are the focused variants.
 ```
 
-FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the
-`regen` feature regenerates them from the headers with bindgen. The reference is
-[`docs/api-rust.md`](api-rust.md).
+FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the `regen` feature regenerates them from the headers with bindgen. The reference is [`docs/api-rust.md`](api-rust.md).
 
 ### `make python` / `make python-test` – Python bindings
 
-The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode
-wrapper). `build_sparcli.py` compiles the vendored C sources – reached through
-the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) – into
-`src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests
-and examples run with `PYTHONPATH=src`, no install required. Needs Python with
-`cffi`; kept out of `make test` since neither may be present.
+The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode wrapper). `build_sparcli.py` compiles the vendored C sources – reached through the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) – into `src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests and examples run with `PYTHONPATH=src`, no install required. Needs Python with `cffi`; kept out of `make test` since neither may be present.
 
 ```sh
 make python                       # build the extension in place
@@ -204,40 +152,30 @@ PYTHONPATH=src python examples/output_gallery.py  # output only
 PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
 ```
 
-To install into an environment instead – an editable (`-e`) install with build
-isolation off, because the C sources are reached via the in-repo symlinks and
-the build must run in place:
+To install into an environment instead – an editable (`-e`) install with build isolation off, because the C sources are reached via the in-repo symlinks and the build must run in place:
 
 ```sh
 pip install cffi setuptools wheel
 pip install --no-build-isolation -e bindings/python
 ```
 
-The `cdef` in `build_sparcli.py` uses cffi's partial-struct (`...;`) syntax, so
-the compiler fills in exact struct layout from the headers – a real mismatch
-fails the build. The reference is [`docs/api-python.md`](api-python.md).
+The `cdef` in `build_sparcli.py` uses cffi's partial-struct (`...;`) syntax, so the compiler fills in exact struct layout from the headers – a real mismatch fails the build. The reference is [`docs/api-python.md`](api-python.md).
 
 ### `make sanitize` – output suite under ASan/UBSan
 
-Rebuilds and runs the output suite with AddressSanitizer + UBSan in a separate
-build tree.
+Rebuilds and runs the output suite with AddressSanitizer + UBSan in a separate build tree.
 
 ```sh
 make sanitize ARGS=--no-animated
 ```
 
-> The style and PTY runners take no `ARGS`. The thread-safety test runs as part
-> of `make test-input ARGS=--logic`.
+> The style and PTY runners take no `ARGS`. The thread-safety test runs as part of `make test-input ARGS=--logic`.
 
 ### Golden-file workflow
 
-`test-output-check`, `test-input-style-check` and the C++ `test-cpp` gate diff
-the rendered bytes against committed snapshots (deterministic because, off a
-TTY, the terminal width falls back to 80). When you change rendering **on
-purpose**:
+`test-output-check`, `test-input-style-check` and the C++ `test-cpp` gate diff the rendered bytes against committed snapshots (deterministic because, off a TTY, the terminal width falls back to 80). When you change rendering **on purpose**:
 
-1. regenerate with `make test-output-golden`, `make test-input-style-golden`
-   and/or `make test-cpp-golden`,
+1. regenerate with `make test-output-golden`, `make test-input-style-golden` and/or `make test-cpp-golden`,
 2. review the diff to confirm the change is what you intended,
 3. commit the updated `expected.txt`.
 
@@ -267,19 +205,9 @@ make test-input
 
 ### Rebuilding the bindings & consumers after a C-library change
 
-The C++/Rust/Python bindings and any external consumer each carry their **own**
-copy of the compiled library (the Rust and Python wrappers compile the C sources
-themselves; pkg-config consumers link the installed `.a`/`.so`). None of them
-pick up a `src/` or `include/` change automatically – after editing the C core,
-rebuild each one you use. All commands are relative to the **project root**.
+The C++/Rust/Python bindings and any external consumer each carry their **own** copy of the compiled library (the Rust and Python wrappers compile the C sources themselves; pkg-config consumers link the installed `.a`/`.so`). None of them pick up a `src/` or `include/` change automatically – after editing the C core, rebuild each one you use. All commands are relative to the **project root**.
 
-**All at once:** `make rebuild-all` runs steps 1–3 below in order (C library +
-`install` + Rust + Python); the C++ wrapper is header-only and needs no rebuild.
-It needs `cargo` and a cffi-capable Python – point at one with
-`make rebuild-all PY=/path/to/python`. `install` defaults to `/usr/local` (needs
-`sudo`); pass a prefix for a user-local install, e.g.
-`make rebuild-all PREFIX=$HOME/.local`. Run the individual steps instead when you
-only touched one binding.
+**All at once:** `make rebuild-all` runs steps 1–3 below in order (C library + `install` + Rust + Python); the C++ wrapper is header-only and needs no rebuild. It needs `cargo` and a cffi-capable Python – point at one with `make rebuild-all PY=/path/to/python`. `install` defaults to `/usr/local` (needs `sudo`); pass a prefix for a user-local install, e.g. `make rebuild-all PREFIX=$HOME/.local`. Run the individual steps instead when you only touched one binding.
 
 ```sh
 # 1. Core C library + (re)install – needed by pkg-config consumers, the C/C++
@@ -310,17 +238,11 @@ make test-cpp
 
 **Easy to forget:**
 
-- **Version bump on ABI changes:** edit `SPARCLI_VERSION_*` in
-  `include/core/sparcli_export.h`; the shared-lib version and `.pc` track it, so
-  re-run `make install` and rebuild every consumer.
-- **Golden files** if you changed rendering on purpose: `make test-output-golden`,
-  `make test-input-style-golden`, `make test-cpp-golden` (review + commit).
-- **Docs in lockstep:** `CLAUDE.md`, the per-language references
-  `docs/api-c.md` / `api-cpp.md` / `api-rust.md` / `api-python.md`, and `README.md`.
+- **Version bump on ABI changes:** edit `SPARCLI_VERSION_*` in `include/core/sparcli_export.h`; the shared-lib version and `.pc` track it, so re-run `make install` and rebuild every consumer.
+- **Golden files** if you changed rendering on purpose: `make test-output-golden`, `make test-input-style-golden`, `make test-cpp-golden` (review + commit).
+- **Docs in lockstep:** `CLAUDE.md`, the per-language references `docs/api-c.md` / `api-cpp.md` / `api-rust.md` / `api-python.md`, and `README.md`.
 - **External consumers** that link the *installed* library must be rebuilt after `make install`.
-- **The cdef is hand-maintained** (Python) and the bindgen output is committed
-  (Rust): a new/changed public function or struct field is invisible to those
-  bindings until you update `build_sparcli.py` / regen `bindings.rs`.
+- **The cdef is hand-maintained** (Python) and the bindgen output is committed (Rust): a new/changed public function or struct field is invisible to those bindings until you update `build_sparcli.py` / regen `bindings.rs`.
 
 ---
 
@@ -335,10 +257,8 @@ make uninstall
 
 `make install` lays down:
 
-- `libsparcli.a` and the shared library (with the `soname`/link symlinks) in
-  `$(LIBDIR)`,
-- the public headers under `$(INCLUDEDIR)/{core,output,input}/` (plus the
-  `sparcli.h` umbrella),
+- `libsparcli.a` and the shared library (with the `soname`/link symlinks) in `$(LIBDIR)`,
+- the public headers under `$(INCLUDEDIR)/{core,output,input}/` (plus the `sparcli.h` umbrella),
 - `sparcli.pc` in `$(PKGCONFIGDIR)`.
 
 Consumers then build against it with pkg-config:
@@ -349,24 +269,16 @@ cc myapp.c $(pkg-config --cflags --libs sparcli) -o myapp
 
 ### User-local install (no sudo)
 
-The default `PREFIX=/usr/local` is **not writable without root** on most macOS
-setups, so `make install` fails there with `Operation not permitted`. Rather
-than `sudo` (which leaves root-owned files in `/usr/local` – and, if you ever
-build *as root*, root-owned objects in the build tree that later block a normal
-`make`), install into your home prefix instead:
+The default `PREFIX=/usr/local` is **not writable without root** on most macOS setups, so `make install` fails there with `Operation not permitted`. Rather than `sudo` (which leaves root-owned files in `/usr/local` – and, if you ever build *as root*, root-owned objects in the build tree that later block a normal `make`), install into your home prefix instead:
 
 ```sh
 make clean                          # rebuild so the dylib's install_name
 make install PREFIX="$HOME/.local"  #   points at ~/.local, not /usr/local
 ```
 
-> Why `make clean` first: the shared library's `install_name` is baked in **at
-> link time** from `PREFIX`. Reusing a dylib that was linked for `/usr/local`
-> would make the loader look there at run time and fail. A clean rebuild with
-> `PREFIX="$HOME/.local"` links it (and writes `sparcli.pc`) for the right path.
+> Why `make clean` first: the shared library's `install_name` is baked in **at link time** from `PREFIX`. Reusing a dylib that was linked for `/usr/local` would make the loader look there at run time and fail. A clean rebuild with `PREFIX="$HOME/.local"` links it (and writes `sparcli.pc`) for the right path.
 
-`pkg-config` does not search `~/.local` by default, so point it there once – add
-to `~/.zshrc` (or `~/.bashrc`):
+`pkg-config` does not search `~/.local` by default, so point it there once – add to `~/.zshrc` (or `~/.bashrc`):
 
 ```sh
 # Let pkg-config find libraries installed under ~/.local (e.g. sparcli)
@@ -384,35 +296,24 @@ Remove later with `make uninstall PREFIX="$HOME/.local"`.
 
 ### Default prefix (`/usr/local`) without sudo
 
-If you want to keep the default `PREFIX=/usr/local` (so consumers need no
-`PKG_CONFIG_PATH` setup and pkg-config / the linker find sparcli out of the
-box), the alternative is a **one-time** ownership change of the three install
-directories:
+If you want to keep the default `PREFIX=/usr/local` (so consumers need no `PKG_CONFIG_PATH` setup and pkg-config / the linker find sparcli out of the box), the alternative is a **one-time** ownership change of the three install directories:
 
 ```sh
 sudo install -d -o "$(whoami)" -g admin \
     /usr/local/lib /usr/local/include /usr/local/lib/pkgconfig
 ```
 
-(`install -d` creates the directories if missing and re-owns them if they
-already exist – one command covers both cases.)
+(`install -d` creates the directories if missing and re-owns them if they already exist – one command covers both cases.)
 
-After that, `make install` / `make uninstall` work without `sudo` – for
-sparcli and any other project installing there. This is long-standing
-practice on macOS (Intel-era Homebrew owned `/usr/local` the same way); SIP
-protects `/usr/local` itself, not its contents. No `make clean` is needed
-since the prefix does not change.
+After that, `make install` / `make uninstall` work without `sudo` – for sparcli and any other project installing there. This is long-standing practice on macOS (Intel-era Homebrew owned `/usr/local` the same way); SIP protects `/usr/local` itself, not its contents. No `make clean` is needed since the prefix does not change.
 
-Trade-off: those directories become writable by your user account, so any
-process running as you can place libraries there. Prefer the `~/.local`
-install above if that matters in your environment.
+Trade-off: those directories become writable by your user account, so any process running as you can place libraries there. Prefer the `~/.local` install above if that matters in your environment.
 
 ---
 
 ## Releasing a new version
 
-The version string lives in **three places that must stay in sync** – the most
-common release mistake is bumping only some of them:
+The version string lives in **three places that must stay in sync** – the most common release mistake is bumping only some of them:
 
 | Location | What it drives |
 |----------|----------------|
@@ -422,12 +323,9 @@ common release mistake is bumping only some of them:
 
 Checklist:
 
-1. `make test EXTRA_CFLAGS=-Werror` is green; regenerate goldens if rendering
-   changed intentionally.
+1. `make test EXTRA_CFLAGS=-Werror` is green; regenerate goldens if rendering changed intentionally.
 2. Bump the version in all **three** locations above.
-3. `make clean && make` – `sparcli.pc` and the soname pick up the new value;
-   confirm with `./build.examples.nosync/...` or a quick `sc_version_string()`
-   check.
+3. `make clean && make` – `sparcli.pc` and the soname pick up the new value; confirm with `./build.examples.nosync/...` or a quick `sc_version_string()` check.
 4. Commit, then tag and push: `git tag vX.Y.Z && git push --tags`.
 5. *(optional)* Write GitHub release notes / a CHANGELOG entry.
 
@@ -444,8 +342,7 @@ make run-example EX=readme_screenshots_input  # static gallery of input widgets
 make run-example EX=shortcut_demo             # custom shortcuts + rich prompt (interactive)
 ```
 
-Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new
-`examples/foo.c` in makes `make run-example EX=foo` work – no Makefile edit.
+Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new `examples/foo.c` in makes `make run-example EX=foo` work – no Makefile edit.
 
 ---
 
@@ -467,44 +364,20 @@ tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 tests/cpp/                     C++ wrapper assertion suite + golden
 ```
 
-The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin,
-header-only layer: RAII handle classes, owned strings where the C API borrows
-(tables), `std::optional`/`std::vector` returns for input, and a `.get()`
-escape hatch to the C API. It is verified by `make test-cpp` and documented in
-[`api-cpp.md`](api-cpp.md). Keep both in sync when you add or change public
-C functions.
+The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin, header-only layer: RAII handle classes, owned strings where the C API borrows (tables), `std::optional`/`std::vector` returns for input, and a `.get()` escape hatch to the C API. It is verified by `make test-cpp` and documented in [`api-cpp.md`](api-cpp.md). Keep both in sync when you add or change public C functions.
 
-The **output/input boundary is physical**: `src/core` and `src/output` are
-stream-oriented and write through the redirectable `sc_output_stream()`;
-`src/tty` and `src/input` drive a real terminal in raw mode.
+The **output/input boundary is physical**: `src/core` and `src/output` are stream-oriented and write through the redirectable `sc_output_stream()`; `src/tty` and `src/input` drive a real terminal in raw mode.
 
-To **add a source file**, append its path (e.g. `src/output/foo.c`) to `SRC` in
-the `Makefile` – the build tree mirrors `src/` automatically. Public headers go
-under `include/<area>/`, and cross-includes use root-relative paths
-(`#include "core/sparcli_core.h"`, resolved via `-Iinclude`). The table renderer
-is split into sub-modules that are `#include`-chained from `table.c`, so only
-`src/output/table/table.c` appears in `SRC`.
+To **add a source file**, append its path (e.g. `src/output/foo.c`) to `SRC` in the `Makefile` – the build tree mirrors `src/` automatically. Public headers go under `include/<area>/`, and cross-includes use root-relative paths (`#include "core/sparcli_core.h"`, resolved via `-Iinclude`). The table renderer is split into sub-modules that are `#include`-chained from `table.c`, so only `src/output/table/table.c` appears in `SRC`.
 
-To **add public API**, declare it inside the header's
-`SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` block (these provide the `extern "C"`
-wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` – symbols are
-hidden by default, so an unmarked function won't be part of the shared-library
-ABI.
+To **add public API**, declare it inside the header's `SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` block (these provide the `extern "C"` wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` – symbols are hidden by default, so an unmarked function won't be part of the shared-library ABI.
 
 ### Adding a test
 
-- **Output test:** add `tests/output/test_foo.c`, append it to `TEST_SRC` in the
-  `Makefile`, and register it in `get_all_tests()` in `tests/output/test_main.c`.
-  If it renders deterministic output, regenerate the golden file afterwards
-  (`make test-output-golden`).
-- **Input logic/widget test:** add the source to `INPUT_TEST_SRC`, declare the
-  entry point in `tests/input/logic/test_input.h`, and add it to the runner
-  table in `tests/input/logic/test_input_main.c` (mark it `interactive` or not).
-- **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/`
-  runner, then `make test-input-style-golden`.
-- **C++ wrapper check:** add a `CHECK(...)` case to `tests/cpp/test_cpp.cpp`
-  (no Makefile change – `test-cpp` compiles that file directly); if it changes
-  the demo output, run `make test-cpp-golden`.
+- **Output test:** add `tests/output/test_foo.c`, append it to `TEST_SRC` in the `Makefile`, and register it in `get_all_tests()` in `tests/output/test_main.c`. If it renders deterministic output, regenerate the golden file afterwards (`make test-output-golden`).
+- **Input logic/widget test:** add the source to `INPUT_TEST_SRC`, declare the entry point in `tests/input/logic/test_input.h`, and add it to the runner table in `tests/input/logic/test_input_main.c` (mark it `interactive` or not).
+- **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/` runner, then `make test-input-style-golden`.
+- **C++ wrapper check:** add a `CHECK(...)` case to `tests/cpp/test_cpp.cpp` (no Makefile change – `test-cpp` compiles that file directly); if it changes the demo output, run `make test-cpp-golden`.
 
 See [`../CLAUDE.md`](../CLAUDE.md) for the full module map and type reference.
 
@@ -514,23 +387,16 @@ See [`../CLAUDE.md`](../CLAUDE.md) for the full module map and type reference.
 
 The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
-- Doc comments sit **above** the member/field (`/** … */`), with a blank line
-  between members; enum values keep a trailing `/**< … */`.
+- Doc comments sit **above** the member/field (`/** … */`), with a blank line between members; enum values keep a trailing `/**< … */`.
 - `struct`/`enum` typedefs carry a **tag** (`typedef struct Name { … } Name;`).
-- Horizontal alignment fields/params are `halign`, vertical `valign` – never a
-  bare `align` (that name is reserved for the `sc_align_*` *operation*).
+- Horizontal alignment fields/params are `halign`, vertical `valign` – never a bare `align` (that name is reserved for the `sc_align_*` *operation*).
 - Lines stay within **80 columns**.
-- Zero-initialized `ScColor` / `ScTextStyle` means "not set / no formatting" –
-  rely on it instead of spelling out defaults.
-- String vs rich-text entry points come in `_str` / `_text` pairs; terse inline
-  constructors have FFI-friendly exported variants.
+- Zero-initialized `ScColor` / `ScTextStyle` means "not set / no formatting" – rely on it instead of spelling out defaults.
+- String vs rich-text entry points come in `_str` / `_text` pairs; terse inline constructors have FFI-friendly exported variants.
 
 ---
 
 ## Pre-commit checklist
 
-1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all five
-   headless gates pass.
-2. If you changed rendering on purpose, regenerate the affected golden file
-   (`make test-output-golden` / `make test-input-style-golden` /
-   `make test-cpp-golden`) and commit it.
+1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all five headless gates pass.
+2. If you changed rendering on purpose, regenerate the affected golden file (`make test-output-golden` / `make test-input-style-golden` / `make test-cpp-golden`) and commit it.
