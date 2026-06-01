@@ -145,7 +145,18 @@ static void item_free(ScListItem *item);
 
 ScList *sc_list_new(ScListOpts opts) {
     ScList *list = calloc(1, sizeof(ScList));
+    if (!list) {
+        return NULL;
+    }
     list->opts = opts;
+    // Copy the marker strings so the caller's buffers only need to live
+    // until this call returns (FFI bindings pass temporaries). A failed
+    // copy (OOM) leaves the field NULL = built-in default.
+    list->opts.bullet = opts.bullet ? strdup(opts.bullet) : NULL;
+    list->opts.marker_prefix =
+        opts.marker_prefix ? strdup(opts.marker_prefix) : NULL;
+    list->opts.marker_suffix =
+        opts.marker_suffix ? strdup(opts.marker_suffix) : NULL;
     return list;
 }
 
@@ -171,7 +182,6 @@ ScListItem *sc_list_add_text(ScList *list, const ScText *text) {
 ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts) {
     if (!parent) { return NULL; }
     sc_list_free(parent->sublist);
-    if (!parent) { return NULL; }
     parent->sublist = sc_list_new(opts);
     return parent->sublist;
 }
@@ -190,6 +200,9 @@ void sc_list_free(ScList *list) {
     for (size_t i = 0; i < list->item_count; i++) {
         item_free(list->items[i]);
     }
+    free((char *)list->opts.bullet);
+    free((char *)list->opts.marker_prefix);
+    free((char *)list->opts.marker_suffix);
     free(list->items);
     free(list);
 }

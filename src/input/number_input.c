@@ -96,14 +96,17 @@ ScRendered *sc_number_frame(const char *prompt, double value,
     return rendered;
 }
 
-/** Initializes `self`, seeding the editor with the clamped value. */
+/** Initializes `self`, seeding the editor with the clamped value
+    (or empty when `opts.start_empty` is set). */
 static bool init_state(NumberState *self, const char *prompt,
                        ScNumberOpts opts, double value) {
     self->prompt = prompt;
     self->opts = opts;
     self->bounded = opts.max > opts.min;
-    char buf[64];
-    format_value(self, clamp(self, value), buf, sizeof buf);
+    char buf[64] = "";
+    if (!opts.start_empty) {
+        format_value(self, clamp(self, value), buf, sizeof buf);
+    }
     sc_le_init(&self->ed, buf);
     return self->ed.buf != NULL;
 }
@@ -245,6 +248,11 @@ static void number_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             set_value(self, clamp(self, parse_value(self) - step));
             return;
         case SC_KEY_ENTER:
+            // An empty field is not a number: ignore Enter so the prompt
+            // never submits "nothing" as 0 (matters for start_empty).
+            if (!self->ed.buf || self->ed.buf[0] == '\0') {
+                return;
+            }
             *done = true;
             return;
         case SC_KEY_CHAR:

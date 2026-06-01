@@ -41,6 +41,20 @@ void test_number_format(void) {
               "default separator: value shows 12.99");
     }
     sc_rendered_free(frame);
+
+    /* start_empty: the field renders empty instead of the formatted value. */
+    frame = sc_number_frame(
+        "Amount", 0,
+        (ScNumberOpts){ .decimals = 2, .start_empty = true }
+    );
+    CHECK(frame != NULL && frame->line_count > 0, "start_empty frame renders");
+    if (frame && frame->line_count > 0) {
+        CHECK(!line_contains(frame->lines[0], "0.00"),
+              "start_empty: no pre-filled 0.00 in the field");
+        CHECK(line_contains(frame->lines[0], "Amount"),
+              "start_empty: prompt still shown");
+    }
+    sc_rendered_free(frame);
 }
 
 void test_number(void) {

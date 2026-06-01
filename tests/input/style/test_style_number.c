@@ -18,6 +18,11 @@ void style_number(void) {
                 .min = 0, .max = 100, .step = 0.5, .decimals = 2,
                 .decimal_sep = ',' }));
 
+    style_show("number: start_empty (no pre-filled value)",
+        sc_number_frame("Amount", 0,
+            (ScNumberOpts){
+                .decimals = 2, .decimal_sep = ',', .start_empty = true }));
+
     style_show("number: boxed (panel), range on bottom-right",
         sc_number_frame("Quantity", 42,
             (ScNumberOpts){

@@ -119,6 +119,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_key_decode.c \
                  tests/input/logic/test_shortcut.c \
                  tests/input/logic/test_select_edit.c \
+                 tests/input/logic/test_opts_copy.c \
                  tests/input/logic/test_filters.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main

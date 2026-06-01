@@ -67,12 +67,16 @@ typedef struct ScInputTheme {
 } ScInputTheme;
 
 /**
- * Installs the process-wide input theme (copied). Pass `NULL` to clear it and
- * revert to the built-in defaults. Not thread-safe.
+ * Installs the process-wide input theme. The struct and its string fields
+ * (markers, checkbox glyphs) are copied, so the caller's buffers only need
+ * to live until this call returns. Pass `NULL` to clear it and revert to
+ * the built-in defaults. Not thread-safe.
  */
 SPARCLI_EXPORT void sc_input_set_theme(const ScInputTheme *theme);
 
-/** Returns the current theme (a zeroed struct when none is set). */
+/** Returns the current theme (a zeroed struct when none is set). The string
+    fields point at library-owned copies, valid until the next
+    `sc_input_set_theme` call. */
 SPARCLI_EXPORT ScInputTheme sc_input_theme(void);
 
 SPARCLI_END_DECLS

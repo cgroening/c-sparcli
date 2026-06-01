@@ -21,6 +21,11 @@ typedef struct ScNumberOpts {
     /** Starting value. */
     double initial;
 
+    /** Start with an empty field instead of the formatted `initial` value
+        (type the number directly, no pre-fill to delete). Enter on an empty
+        field is ignored, so the prompt never submits "nothing" as `0`. */
+    bool start_empty;
+
     /** Lower bound (used when `max > min`). */
     double min;
 
@@ -105,10 +110,11 @@ typedef struct ScNumberOpts {
  * Prompts for a number.
  *
  * Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;
- * Enter submits; Esc or Ctrl-C cancels. On `SC_INPUT_OK`, `*out` receives
- * the parsed value, clamped to `[min, max]` when bounded; when
- * `opts.out_text` is set it additionally receives the exact value as a
- * heap string (see `ScNumberOpts.out_text`).
+ * Enter submits; Esc or Ctrl-C cancels. Enter on an empty field is ignored
+ * (clear the field with Ctrl-U, then Enter does nothing until a value is
+ * typed). On `SC_INPUT_OK`, `*out` receives the parsed value, clamped to
+ * `[min, max]` when bounded; when `opts.out_text` is set it additionally
+ * receives the exact value as a heap string (see `ScNumberOpts.out_text`).
  *
  * @param prompt  Label shown before the field. Must not be `NULL`.
  * @param out     Receives the chosen value.

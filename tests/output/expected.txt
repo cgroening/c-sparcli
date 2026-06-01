@@ -496,6 +496,12 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
 [1m[32m+ [0mSmall binary size[0m         │    [1m[31m- [0mVerbose error messages[0m
 [1m[32m+ [0mExcellent performance[0m     │    [1m[31m- [0mLimited reflection[0m    
 [1m[32m+ [0mStrong type system[0m        │                            
+
+--- 9. Opts strings are copied ---
+  # Copied bullet survives[0m
+  # Caller buffer was reused[0m
+  (1) First[0m
+  (2) Second[0m
 ════════════════════════════════════════════════════════════════════════════════
 
 ═════════════════════════════════ [1mProgress Bar[0m ═════════════════════════════════
@@ -532,6 +538,9 @@ Processing   [██████████████████████
 Upload   ❮▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░░░░░░░❯  72%
 Build    ━━━━━━━━━━━━━╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌  45%
 Deploy   |========================>   |  91%
+
+--- 6. Opts strings are copied ---
+<███████████████░░░░░░░░░░░░░░░>  50%
 ════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════════ [1mSpinner[0m ════════════════════════════════════

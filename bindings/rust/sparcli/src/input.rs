@@ -458,6 +458,9 @@ pub fn password_input(
 #[derive(Default)]
 pub struct NumberOpts {
     pub initial: f64,
+    /// Start with an empty field instead of the formatted `initial` value;
+    /// Enter on an empty field is ignored.
+    pub start_empty: bool,
     pub min: f64,
     pub max: f64,
     pub step: f64,
@@ -491,6 +494,10 @@ impl NumberOpts {
         self.initial = v;
         self
     }
+    pub fn start_empty(mut self, on: bool) -> Self {
+        self.start_empty = on;
+        self
+    }
     pub fn decimal_sep(mut self, sep: char) -> Self {
         self.decimal_sep = sep;
         self
@@ -498,6 +505,7 @@ impl NumberOpts {
     fn raw(&self) -> ffi::ScNumberOpts {
         let mut o: ffi::ScNumberOpts = unsafe { mem::zeroed() };
         o.initial = self.initial;
+        o.start_empty = self.start_empty;
         o.min = self.min;
         o.max = self.max;
         o.step = self.step;

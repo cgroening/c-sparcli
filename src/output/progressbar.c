@@ -47,7 +47,8 @@ static const StyleChars style_chars[] = {
 
 /** Persistent progress bar state held between frames. */
 struct ScProgressBar {
-    /** Rendering options captured at construction. */
+    /** Rendering options captured at construction. The cap strings inside
+        are heap copies owned by the bar (freed in `sc_progressbar_free`). */
     ScProgressBarOpts opts;
 
     /** Heap-allocated label string; `NULL` when no label is set. */
@@ -129,7 +130,15 @@ static void render(ScProgressBar *bar, double value, double max, bool final);
 
 ScProgressBar *sc_progressbar_new(ScProgressBarOpts opts) {
     ScProgressBar *bar = calloc(1, sizeof(ScProgressBar));
+    if (!bar) {
+        return NULL;
+    }
     bar->opts = opts;
+    // Copy the cap strings so the caller's buffers only need to live until
+    // this call returns (FFI bindings pass temporaries). A failed copy (OOM)
+    // leaves the cap NULL, which renders as "no cap".
+    bar->opts.left_cap = opts.left_cap ? strdup(opts.left_cap) : NULL;
+    bar->opts.right_cap = opts.right_cap ? strdup(opts.right_cap) : NULL;
     return bar;
 }
 
@@ -151,6 +160,8 @@ void sc_progressbar_finish(ScProgressBar *bar, double value, double max) {
 
 void sc_progressbar_free(ScProgressBar *bar) {
     if (!bar) { return; }
+    free((char *)bar->opts.left_cap);
+    free((char *)bar->opts.right_cap);
     free(bar->label);
     free(bar);
 }

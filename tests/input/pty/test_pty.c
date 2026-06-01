@@ -232,6 +232,48 @@ static int child_case(int c) {
             free(text);
             return ok ? 0 : 1;
         }
+        case 15: {
+            /* start_empty: the field starts empty and Enter on the empty
+               field is ignored; only the typed "5" submits. */
+            double v = -1;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Amount", &v,
+                (ScNumberOpts){ .decimals = 2, .start_empty = true,
+                                .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v == 5.0 && text
+                      && strcmp(text, "5.00") == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
+        case 16: {
+            /* Opts strings are copied: the heap prompt is freed right after
+               construction; under ASan a kept pointer is a use-after-free. */
+            char *prompt = strdup("Category");
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = prompt });
+            free(prompt);
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 0);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 17: {
+            /* Theme glyph strings are copied: the heap marker is freed right
+               after set_theme; the themed select must still render it. */
+            char *marker = strdup("=> ");
+            sc_input_set_theme(&(ScInputTheme){ .cursor_marker = marker });
+            free(marker);
+            ScSelect *sl = sc_select_new((ScSelectOpts){ 0 });
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            sc_select_free(sl);
+            sc_input_set_theme(NULL);
+            return (s == SC_INPUT_OK && idx[0] == 0) ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -260,6 +302,9 @@ static const Case CASES[] = {
     { "editor-cancel-keeps", "\x07\x04" },  /* editor nonzero → keep value */
     { "number-decimal-comma", "\x15" "7,50\r" },  /* Ctrl-U clear, type, enter */
     { "number-clamp-text", "\x15" "150\r" },      /* typed 150 clamps to 100 */
+    { "number-start-empty", "\r5\r" },  /* enter ignored while empty, then 5 */
+    { "fuzzy-heap-prompt", "Gro\r" },   /* prompt freed after new() -> copied */
+    { "theme-heap-strings", "\r" },     /* theme marker freed after set_theme */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

@@ -136,7 +136,10 @@ SPARCLI_EXPORT bool sc_fuzzy_match(
 /**
  * Allocates a new fuzzy finder.
  *
- * @param opts  Configuration (copied internally).
+ * @param opts  Configuration. Copied internally, including the string fields
+ *              (`prompt`, markers, `hint`, `headers`); only the fields
+ *              documented as borrowed (`shortcuts`, `prompt_text`,
+ *              `table_opts` strings) must outlive the finder.
  * @return      Heap-allocated handle; free with `sc_fuzzy_free`.
  */
 SPARCLI_EXPORT ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts);

@@ -70,7 +70,7 @@ class SelectOpts:
 class Select:
     """A scrolling single- or multi-choice list (``opts.multi = True``)."""
 
-    __slots__ = ("_p", "_finalizer", "_n", "__weakref__")
+    __slots__ = ("_p", "_finalizer", "_n", "_keepalive", "__weakref__")
 
     def __init__(self, opts: SelectOpts = SelectOpts()) -> None:
         arena: list = []
@@ -81,6 +81,9 @@ class Select:
             raise MemoryError("sc_select_new failed")
         self._p = p
         self._n = 0
+        # The C side borrows `shortcuts` / `prompt_text` for its lifetime;
+        # keep the opts (and the cffi buffers built from them) alive with it.
+        self._keepalive = (opts, arena)
         self._finalizer = weakref.finalize(self, lib.sc_select_free, p)
 
     def add(self, label: str) -> "Select":
@@ -196,7 +199,7 @@ class FuzzyOpts:
 class Fuzzy:
     """An incremental fuzzy finder, list or table view."""
 
-    __slots__ = ("_p", "_finalizer", "__weakref__")
+    __slots__ = ("_p", "_finalizer", "_keepalive", "__weakref__")
 
     def __init__(self, opts: FuzzyOpts = FuzzyOpts()) -> None:
         arena: list = []
@@ -206,6 +209,10 @@ class Fuzzy:
         if p == ffi.NULL:
             raise MemoryError("sc_fuzzy_new failed")
         self._p = p
+        # The C side borrows `shortcuts` / `prompt_text` / table_opts strings
+        # for its lifetime; keep the opts (and the cffi buffers built from
+        # them) alive with it.
+        self._keepalive = (opts, arena)
         self._finalizer = weakref.finalize(self, lib.sc_fuzzy_free, p)
 
     def add(self, label: str) -> "Fuzzy":

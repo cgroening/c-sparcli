@@ -63,10 +63,13 @@ typedef struct ScListItem ScListItem;
 /**
  * Allocates an empty list.
  *
- * @param opts  Rendering options (marker, indent, width, …).
+ * @param opts  Rendering options (marker, indent, width, …). Copied
+ *              internally, including the marker strings (`bullet`,
+ *              `marker_prefix`, `marker_suffix`); the caller's buffers only
+ *              need to live until this call returns.
  * @return      Heap-allocated list; free with `sc_list_free`.
  */
-ScList *sc_list_new(ScListOpts opts);
+SPARCLI_EXPORT ScList *sc_list_new(ScListOpts opts);
 
 /**
  * Appends a plain-string item to `list`.
@@ -76,7 +79,9 @@ ScList *sc_list_new(ScListOpts opts);
  * @param style  Style applied to `str`.
  * @return       Pointer to the new item; owned by the list.
  */
-ScListItem *sc_list_add_str(ScList *list, const char *str, ScTextStyle style);
+SPARCLI_EXPORT ScListItem *sc_list_add_str(
+    ScList *list, const char *str, ScTextStyle style
+);
 
 /**
  * Appends a rich-text item to `list`.
@@ -85,7 +90,7 @@ ScListItem *sc_list_add_str(ScList *list, const char *str, ScTextStyle style);
  * @param text  Rich-text content; not owned by the list.
  * @return      Pointer to the new item; owned by the list.
  */
-ScListItem *sc_list_add_text(ScList *list, const ScText *text);
+SPARCLI_EXPORT ScListItem *sc_list_add_text(ScList *list, const ScText *text);
 
 /**
  * Attaches a sub-list to `parent`.
@@ -94,10 +99,11 @@ ScListItem *sc_list_add_text(ScList *list, const ScText *text);
  * `parent` and is freed together with the outer list.
  *
  * @param parent  Item the sub-list is attached to.
- * @param opts    Rendering options for the sub-list.
+ * @param opts    Rendering options for the sub-list; copied like in
+ *                `sc_list_new`.
  * @return        Newly allocated sub-list; owned by `parent`.
  */
-ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts);
+SPARCLI_EXPORT ScList *sc_list_add_sub(ScListItem *parent, ScListOpts opts);
 
 /**
  * Renders `list` to stdout.

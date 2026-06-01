@@ -115,7 +115,11 @@ notes = sc.textarea("Notes", sc.TextareaOpts(boxed=True, width=48))
 
 # Exact decimal.Decimal (never via float) – for money. decimal_sep="," lets
 # German users type "12,99"; the Decimal is built from the exact text.
-amount = sc.decimal_input("Amount", sc.NumberOpts(decimals=2, decimal_sep=","))
+# start_empty=True starts with an empty field instead of "0,00" (Enter on an
+# empty field is ignored).
+amount = sc.decimal_input(
+    "Amount", sc.NumberOpts(decimals=2, decimal_sep=",", start_empty=True)
+)
 # -> Decimal("12.99") | None
 
 sel = sc.Select(sc.SelectOpts(prompt="Pick", multi=True))

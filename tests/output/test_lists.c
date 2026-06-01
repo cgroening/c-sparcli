@@ -1,5 +1,6 @@
 #include "sparcli.h"
 #include <stdio.h>
+#include <string.h>
 
 
 static const ScTextStyle plain = {
@@ -252,5 +253,44 @@ void test_lists(void) {
         sc_columns_free(columns);
         sc_list_free(pros);
         sc_list_free(cons);
+    }
+
+    /* ── 9. Opts strings are copied (caller buffers reused) ── */
+    {
+        printf("\n--- 9. Opts strings are copied ---\n");
+        /* Bullet and prefix/suffix come from stack buffers that are clobbered
+           right after sc_list_new: the list must render its own copies. */
+        char bullet[8];
+        snprintf(bullet, sizeof bullet, "#");
+        ScList *bulleted = sc_list_new((ScListOpts){
+            .marker = SC_LIST_BULLET,
+            .bullet = bullet,
+            .indent = 2,
+        });
+        memset(bullet, 'Z', sizeof bullet - 1);
+        bullet[sizeof bullet - 1] = '\0';
+        sc_list_add_str(bulleted, "Copied bullet survives", plain);
+        sc_list_add_str(bulleted, "Caller buffer was reused", plain);
+        sc_list_print(bulleted);
+        sc_list_free(bulleted);
+
+        char prefix[8];
+        char suffix[8];
+        snprintf(prefix, sizeof prefix, "(");
+        snprintf(suffix, sizeof suffix, ")");
+        ScList *numbered = sc_list_new((ScListOpts){
+            .marker = SC_LIST_NUMBER,
+            .marker_prefix = prefix,
+            .marker_suffix = suffix,
+            .indent = 2,
+        });
+        memset(prefix, 'A', sizeof prefix - 1);
+        prefix[sizeof prefix - 1] = '\0';
+        memset(suffix, 'B', sizeof suffix - 1);
+        suffix[sizeof suffix - 1] = '\0';
+        sc_list_add_str(numbered, "First", plain);
+        sc_list_add_str(numbered, "Second", plain);
+        sc_list_print(numbered);
+        sc_list_free(numbered);
     }
 }

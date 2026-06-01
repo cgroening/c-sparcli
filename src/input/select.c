@@ -25,6 +25,8 @@ static const char *const HINT_MULTI =
     "enter confirm \xc2\xb7 esc cancel";
 
 
+static void copy_opts_strings(ScSelect *self);
+static void free_opts_strings(ScSelect *self);
 static ScRendered *select_render(void *state);
     static void append_scroll_hint(ScText *text, size_t top, size_t end,
                                    size_t count);
@@ -39,6 +41,7 @@ ScSelect *sc_select_new(ScSelectOpts opts) {
         return NULL;
     }
     self->opts = opts;
+    copy_opts_strings(self);
     self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
     self->max_visible = opts.max_visible > 0 ? opts.max_visible : 10;
     return self;
@@ -75,6 +78,7 @@ void sc_select_free(ScSelect *self) {
     }
     free(self->items);
     free(self->checked);
+    free_opts_strings(self);
     free(self);
 }
 
@@ -183,6 +187,34 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
 
 ScRendered *sc_select_frame(ScSelect *self) {
     return select_render(self);
+}
+
+/**
+ * Replaces the borrowed string fields of `self->opts` with heap copies, so
+ * the prompt honors the "opts are copied internally" contract: the caller's
+ * strings only need to live until `sc_select_new` returns. A failed copy
+ * (OOM) leaves the field NULL, which falls back to the built-in default.
+ * `shortcuts` and `prompt_text` stay borrowed (documented per-field).
+ */
+static void copy_opts_strings(ScSelect *self) {
+    ScSelectOpts *opts = &self->opts;
+    opts->prompt = sc_dup_opt_str(opts->prompt);
+    opts->cursor_marker = sc_dup_opt_str(opts->cursor_marker);
+    opts->marker = sc_dup_opt_str(opts->marker);
+    opts->checkbox_on = sc_dup_opt_str(opts->checkbox_on);
+    opts->checkbox_off = sc_dup_opt_str(opts->checkbox_off);
+    opts->hint = sc_dup_opt_str(opts->hint);
+}
+
+/** Releases the opts strings duplicated by `copy_opts_strings`. */
+static void free_opts_strings(ScSelect *self) {
+    ScSelectOpts *opts = &self->opts;
+    free((char *)opts->prompt);
+    free((char *)opts->cursor_marker);
+    free((char *)opts->marker);
+    free((char *)opts->checkbox_on);
+    free((char *)opts->checkbox_off);
+    free((char *)opts->hint);
 }
 
 static ScRendered *select_render(void *state) {

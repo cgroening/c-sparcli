@@ -27,6 +27,7 @@ extern int g_input_failures;
 void test_key_decode(void);
 void test_shortcut(void);
 void test_select_edit(void);
+void test_opts_copy(void);
 void test_line_editor(void);
 void test_filters(void);
 void test_number_format(void);

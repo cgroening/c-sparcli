@@ -133,6 +133,57 @@ def test_input_unavailable_without_tty():
         sc.Select().add("a").run_one()
 
 
+def test_number_opts_start_empty_accepted():
+    # start_empty must reach the C struct (cdef field + _fill); without a
+    # TTY the prompt still raises cleanly instead of erroring on the field.
+    opts = sc.NumberOpts(decimals=2, decimal_sep=",", start_empty=True)
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.decimal_input("amount", opts)
+
+
+def test_fuzzy_outlives_temporary_opts_strings():
+    # The prompt is built from a temporary string; the finder must keep its
+    # own copy so a GC between construction and run() cannot free it
+    # (previously seen as a garbled prompt - use-after-free).
+    import gc
+
+    finder = sc.Fuzzy(sc.FuzzyOpts(prompt="".join(["Cat", "egory"])))
+    finder.add("Groceries")
+    gc.collect()
+    with pytest.raises(sc.SparcliInputUnavailable):
+        finder.run()
+
+
+def test_progressbar_caps_survive_gc(tmp_path):
+    # left/right caps are copied by the C side at construction; the cffi
+    # buffers may be garbage-collected right afterwards (previously a
+    # use-after-free on every draw).
+    import gc
+
+    bar = sc.ProgressBar(sc.ProgressBarOpts(left_cap="<", right_cap=">",
+                                            bar_width=10))
+    gc.collect()
+    path = tmp_path / "bar.txt"
+    with open(path, "w") as f, sc.ScopedOutput(f):
+        bar.finish(1.0, 1.0)
+    out = sc.strip_ansi(path.read_text())
+    assert "<" in out and ">" in out
+
+
+def test_theme_strings_survive_gc():
+    # Theme glyph strings are copied process-wide by the C side; the cffi
+    # buffers may be garbage-collected right after set_theme.
+    import gc
+
+    sc.set_theme(sc.Theme(cursor_marker="==> "))
+    gc.collect()
+    sel = sc.Select()
+    sel.add("a")
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sel.run_one()
+    sc.set_theme(None)
+
+
 # ── output redirection ────────────────────────────────────────────
 def test_scoped_output_redirect(tmp_path):
     path = tmp_path / "out.txt"

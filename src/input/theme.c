@@ -4,6 +4,8 @@
 static ScInputTheme g_theme;  /* zero-init = no theme installed */
 
 
+static void free_theme_strings(void);
+
 /* Field-merge helpers: each fills the target only when the caller left it
  * unset, so per-call options always win over the theme. */
 static void m_color(ScColor *dst, ScColor src);
@@ -13,7 +15,23 @@ static void m_border(ScBorderStyle *dst, ScBorderStyle src);
 
 
 void sc_input_set_theme(const ScInputTheme *theme) {
+    free_theme_strings();
     g_theme = theme ? *theme : (ScInputTheme){ 0 };
+    // Copy the glyph strings so the caller's buffers only need to live until
+    // this call returns (FFI bindings pass temporaries). The copies are owned
+    // by g_theme and released on the next set call.
+    g_theme.cursor_marker = sc_dup_opt_str(g_theme.cursor_marker);
+    g_theme.marker = sc_dup_opt_str(g_theme.marker);
+    g_theme.checkbox_on = sc_dup_opt_str(g_theme.checkbox_on);
+    g_theme.checkbox_off = sc_dup_opt_str(g_theme.checkbox_off);
+}
+
+/** Releases the glyph copies owned by the current theme. */
+static void free_theme_strings(void) {
+    free((char *)g_theme.cursor_marker);
+    free((char *)g_theme.marker);
+    free((char *)g_theme.checkbox_on);
+    free((char *)g_theme.checkbox_off);
 }
 
 ScInputTheme sc_input_theme(void) {

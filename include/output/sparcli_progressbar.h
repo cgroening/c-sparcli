@@ -90,10 +90,12 @@ typedef struct ScProgressBar ScProgressBar;
 /**
  * Allocates a new progress bar.
  *
- * @param opts  Rendering options.
+ * @param opts  Rendering options. Copied internally, including the cap
+ *              strings (`left_cap`, `right_cap`); the caller's buffers only
+ *              need to live until this call returns.
  * @return      Heap-allocated bar; free with `sc_progressbar_free`.
  */
-ScProgressBar *sc_progressbar_new(ScProgressBarOpts opts);
+SPARCLI_EXPORT ScProgressBar *sc_progressbar_new(ScProgressBarOpts opts);
 
 /**
  * Sets or replaces the label printed in front of the bar.

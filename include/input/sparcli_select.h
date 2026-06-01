@@ -92,7 +92,10 @@ typedef struct ScSelect ScSelect;
 /**
  * Allocates a new selection prompt.
  *
- * @param opts  Configuration (copied internally).
+ * @param opts  Configuration. Copied internally, including the string fields
+ *              (`prompt`, markers, checkbox glyphs, `hint`); only the fields
+ *              documented as borrowed (`shortcuts`, `prompt_text`) must
+ *              outlive the prompt.
  * @return      Heap-allocated handle; free with `sc_select_free`.
  */
 SPARCLI_EXPORT ScSelect *sc_select_new(ScSelectOpts opts);

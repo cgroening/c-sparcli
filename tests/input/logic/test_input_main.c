@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
         { "Key Decoder",    test_key_decode,     0 },
         { "Shortcuts",      test_shortcut,       0 },
         { "Select Edit",    test_select_edit,    0 },
+        { "Opts Copy",      test_opts_copy,      0 },
         { "Line Editor",    test_line_editor,    0 },
         { "Char Filters",   test_filters,        0 },
         { "Number Format",  test_number_format,  0 },

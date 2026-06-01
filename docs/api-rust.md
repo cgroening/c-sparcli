@@ -98,9 +98,10 @@ if let Some(n)    = number_input("Qty", NumberOpts::new().range(0.0, 100.0).step
 if let Some(text) = textarea("Notes", TextareaOpts::new().boxed(48))? { /* … */ }
 
 // Exact value as text ('.'-normalized, never via f64) – e.g. for money.
-// decimal_sep(',') shows/accepts a comma while editing.
+// decimal_sep(',') shows/accepts a comma while editing; start_empty(true)
+// starts with an empty field instead of "0,00" (Enter on empty is ignored).
 if let Some(amount) = number_input_text(
-    "Amount", NumberOpts::new().decimals(2).decimal_sep(','),
+    "Amount", NumberOpts::new().decimals(2).decimal_sep(',').start_empty(true),
 )? { /* amount == "12.99" – parse into rust_decimal etc. */ }
 
 let mut sel = Select::new(SelectOpts::new().prompt("Pick").multi(true));

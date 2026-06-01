@@ -48,8 +48,10 @@ def main() -> int:
     sc.println(f"  -> {qty}", sc.Style.dim())
 
     # Exact decimal.Decimal (never via float), comma as separator - for money.
+    # start_empty=True starts with an empty field instead of "0,00".
     amount = sc.decimal_input(
-        "Amount", sc.NumberOpts(decimals=2, step=0.5, decimal_sep=","))
+        "Amount", sc.NumberOpts(decimals=2, step=0.5, decimal_sep=",",
+                                start_empty=True))
     sc.println(f"  -> {amount!r}", sc.Style.dim())
 
     color = sc.Select(sc.SelectOpts(prompt="Favourite color"))

@@ -240,9 +240,10 @@ if (auto qty  = number_input("Qty", { .min = 0, .max = 100, .step = 5 })) { }
 if (auto date = datepicker({}, { .prompt = "Pick a date" })) { /* std::tm */ }
 
 // Exact value as text ('.'-normalized, never via double) – e.g. for money.
-// decimal_sep = ',' shows/accepts a comma while editing.
-if (auto amount = number_input_text("Amount",
-                                    { .decimals = 2, .decimal_sep = ',' })) {
+// decimal_sep = ',' shows/accepts a comma while editing; start_empty starts
+// with an empty field instead of "0,00" (Enter on an empty field is ignored).
+if (auto amount = number_input_text(
+        "Amount", { .start_empty = true, .decimals = 2, .decimal_sep = ',' })) {
     /* *amount == "12.99" – parse into your decimal type */
 }
 

@@ -36,6 +36,8 @@ static const char *const DEFAULT_HINT =
     "enter select \xc2\xb7 esc cancel";
 
 
+static void copy_opts_strings(ScFuzzy *self);
+static void free_opts_strings(ScFuzzy *self);
 static void refilter(ScFuzzy *self);
     static bool row_matches(const ScFuzzy *self, size_t i, const char *query,
                             int *best);
@@ -100,6 +102,7 @@ ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts) {
         return NULL;
     }
     self->opts = opts;
+    copy_opts_strings(self);
     self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
     self->max_visible = opts.max_visible > 0 ? opts.max_visible : 10;
     return self;
@@ -143,6 +146,7 @@ void sc_fuzzy_free(ScFuzzy *self) {
     free(self->rows);
     free(self->row_ncols);
     free(self->matches);
+    free_opts_strings(self);
     free(self);
 }
 
@@ -246,6 +250,46 @@ ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
     free(self->matches);
     self->matches = NULL;
     return rendered;
+}
+
+/**
+ * Replaces the borrowed string fields of `self->opts` with heap copies, so
+ * the finder honors the "opts are copied internally" contract: the caller's
+ * strings only need to live until `sc_fuzzy_new` returns. A failed copy
+ * (OOM) leaves the field NULL, which falls back to the built-in default.
+ * `shortcuts` and `prompt_text` stay borrowed (documented per-field).
+ */
+static void copy_opts_strings(ScFuzzy *self) {
+    ScFuzzyOpts *opts = &self->opts;
+    opts->prompt = sc_dup_opt_str(opts->prompt);
+    opts->cursor_marker = sc_dup_opt_str(opts->cursor_marker);
+    opts->marker = sc_dup_opt_str(opts->marker);
+    opts->hint = sc_dup_opt_str(opts->hint);
+
+    if (opts->headers && opts->n_cols > 0) {
+        char **headers = calloc(opts->n_cols, sizeof *headers);
+        if (headers) {
+            for (size_t c = 0; c < opts->n_cols; c++) {
+                headers[c] = sc_dup_str(opts->headers[c]);
+            }
+        }
+        opts->headers = (const char *const *)headers;
+    }
+}
+
+/** Releases the opts strings duplicated by `copy_opts_strings`. */
+static void free_opts_strings(ScFuzzy *self) {
+    ScFuzzyOpts *opts = &self->opts;
+    free((char *)opts->prompt);
+    free((char *)opts->cursor_marker);
+    free((char *)opts->marker);
+    free((char *)opts->hint);
+    if (opts->headers) {
+        for (size_t c = 0; c < opts->n_cols; c++) {
+            free((char *)opts->headers[c]);
+        }
+        free((void *)opts->headers);
+    }
 }
 
 /**

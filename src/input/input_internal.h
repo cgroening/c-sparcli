@@ -47,6 +47,15 @@ static inline char *sc_dup_str(const char *str) {
     return copy;
 }
 
+/**
+ * Like `sc_dup_str`, but preserves NULL. Used when copying optional opts
+ * strings where NULL means "use the built-in default" (prompt, markers,
+ * hint, ...), so the distinction survives the copy.
+ */
+static inline char *sc_dup_opt_str(const char *str) {
+    return str ? sc_dup_str(str) : NULL;
+}
+
 /** Resolves the zero-init `DEFAULT` layout to the built-in default (inline). */
 static inline ScHintLayout sc_hint_resolved(ScHintLayout layout) {
     return layout == SC_HINT_LAYOUT_DEFAULT ? SC_HINT_INLINE : layout;

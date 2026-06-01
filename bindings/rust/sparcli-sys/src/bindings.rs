@@ -934,7 +934,7 @@ pub struct ScListItem {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[doc = " Allocates an empty list.\n\n @param opts  Rendering options (marker, indent, width, …).\n @return      Heap-allocated list; free with `sc_list_free`."]
+    #[doc = " Allocates an empty list.\n\n @param opts  Rendering options (marker, indent, width, …). Copied\n              internally, including the marker strings (`bullet`,\n              `marker_prefix`, `marker_suffix`); the caller's buffers only\n              need to live until this call returns.\n @return      Heap-allocated list; free with `sc_list_free`."]
     pub fn sc_list_new(opts: ScListOpts) -> *mut ScList;
 }
 extern "C" {
@@ -950,7 +950,7 @@ extern "C" {
     pub fn sc_list_add_text(list: *mut ScList, text: *const ScText) -> *mut ScListItem;
 }
 extern "C" {
-    #[doc = " Attaches a sub-list to `parent`.\n\n Replaces any previously attached sub-list. The returned list is owned by\n `parent` and is freed together with the outer list.\n\n @param parent  Item the sub-list is attached to.\n @param opts    Rendering options for the sub-list.\n @return        Newly allocated sub-list; owned by `parent`."]
+    #[doc = " Attaches a sub-list to `parent`.\n\n Replaces any previously attached sub-list. The returned list is owned by\n `parent` and is freed together with the outer list.\n\n @param parent  Item the sub-list is attached to.\n @param opts    Rendering options for the sub-list; copied like in\n                `sc_list_new`.\n @return        Newly allocated sub-list; owned by `parent`."]
     pub fn sc_list_add_sub(parent: *mut ScListItem, opts: ScListOpts) -> *mut ScList;
 }
 extern "C" {
@@ -1279,7 +1279,7 @@ pub struct ScProgressBar {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[doc = " Allocates a new progress bar.\n\n @param opts  Rendering options.\n @return      Heap-allocated bar; free with `sc_progressbar_free`."]
+    #[doc = " Allocates a new progress bar.\n\n @param opts  Rendering options. Copied internally, including the cap\n              strings (`left_cap`, `right_cap`); the caller's buffers only\n              need to live until this call returns.\n @return      Heap-allocated bar; free with `sc_progressbar_free`."]
     pub fn sc_progressbar_new(opts: ScProgressBarOpts) -> *mut ScProgressBar;
 }
 extern "C" {
@@ -1897,11 +1897,11 @@ const _: () = {
         [::std::mem::offset_of!(ScInputTheme, hint_pos) - 204usize];
 };
 extern "C" {
-    #[doc = " Installs the process-wide input theme (copied). Pass `NULL` to clear it and\n revert to the built-in defaults. Not thread-safe."]
+    #[doc = " Installs the process-wide input theme. The struct and its string fields\n (markers, checkbox glyphs) are copied, so the caller's buffers only need\n to live until this call returns. Pass `NULL` to clear it and revert to\n the built-in defaults. Not thread-safe."]
     pub fn sc_input_set_theme(theme: *const ScInputTheme);
 }
 extern "C" {
-    #[doc = " Returns the current theme (a zeroed struct when none is set)."]
+    #[doc = " Returns the current theme (a zeroed struct when none is set). The string\nfields point at library-owned copies, valid until the next\n`sc_input_set_theme` call."]
     pub fn sc_input_theme() -> ScInputTheme;
 }
 #[doc = " Options for `sc_confirm`.\n\n Zero-initialized opts give a sensible prompt: \"No\" preselected, default\n labels, accent in the terminal's default color."]
@@ -2300,6 +2300,8 @@ extern "C" {
 pub struct ScNumberOpts {
     #[doc = " Starting value."]
     pub initial: f64,
+    #[doc = " Start with an empty field instead of the formatted `initial` value\n(type the number directly, no pre-fill to delete). Enter on an empty\nfield is ignored, so the prompt never submits \"nothing\" as `0`."]
+    pub start_empty: bool,
     #[doc = " Lower bound (used when `max > min`)."]
     pub min: f64,
     #[doc = " Upper bound; `max <= min` = unbounded."]
@@ -2349,55 +2351,57 @@ pub struct ScNumberOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 232usize];
+    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 240usize];
     ["Alignment of ScNumberOpts"][::std::mem::align_of::<ScNumberOpts>() - 8usize];
     ["Offset of field: ScNumberOpts::initial"]
         [::std::mem::offset_of!(ScNumberOpts, initial) - 0usize];
-    ["Offset of field: ScNumberOpts::min"][::std::mem::offset_of!(ScNumberOpts, min) - 8usize];
-    ["Offset of field: ScNumberOpts::max"][::std::mem::offset_of!(ScNumberOpts, max) - 16usize];
-    ["Offset of field: ScNumberOpts::step"][::std::mem::offset_of!(ScNumberOpts, step) - 24usize];
+    ["Offset of field: ScNumberOpts::start_empty"]
+        [::std::mem::offset_of!(ScNumberOpts, start_empty) - 8usize];
+    ["Offset of field: ScNumberOpts::min"][::std::mem::offset_of!(ScNumberOpts, min) - 16usize];
+    ["Offset of field: ScNumberOpts::max"][::std::mem::offset_of!(ScNumberOpts, max) - 24usize];
+    ["Offset of field: ScNumberOpts::step"][::std::mem::offset_of!(ScNumberOpts, step) - 32usize];
     ["Offset of field: ScNumberOpts::decimals"]
-        [::std::mem::offset_of!(ScNumberOpts, decimals) - 32usize];
+        [::std::mem::offset_of!(ScNumberOpts, decimals) - 40usize];
     ["Offset of field: ScNumberOpts::prompt_style"]
-        [::std::mem::offset_of!(ScNumberOpts, prompt_style) - 36usize];
+        [::std::mem::offset_of!(ScNumberOpts, prompt_style) - 44usize];
     ["Offset of field: ScNumberOpts::value_style"]
-        [::std::mem::offset_of!(ScNumberOpts, value_style) - 56usize];
+        [::std::mem::offset_of!(ScNumberOpts, value_style) - 64usize];
     ["Offset of field: ScNumberOpts::cursor_style"]
-        [::std::mem::offset_of!(ScNumberOpts, cursor_style) - 76usize];
+        [::std::mem::offset_of!(ScNumberOpts, cursor_style) - 84usize];
     ["Offset of field: ScNumberOpts::summary_style"]
-        [::std::mem::offset_of!(ScNumberOpts, summary_style) - 96usize];
+        [::std::mem::offset_of!(ScNumberOpts, summary_style) - 104usize];
     ["Offset of field: ScNumberOpts::hide_summary"]
-        [::std::mem::offset_of!(ScNumberOpts, hide_summary) - 116usize];
-    ["Offset of field: ScNumberOpts::hint"][::std::mem::offset_of!(ScNumberOpts, hint) - 120usize];
+        [::std::mem::offset_of!(ScNumberOpts, hide_summary) - 124usize];
+    ["Offset of field: ScNumberOpts::hint"][::std::mem::offset_of!(ScNumberOpts, hint) - 128usize];
     ["Offset of field: ScNumberOpts::hint_layout"]
-        [::std::mem::offset_of!(ScNumberOpts, hint_layout) - 128usize];
+        [::std::mem::offset_of!(ScNumberOpts, hint_layout) - 136usize];
     ["Offset of field: ScNumberOpts::hint_pos"]
-        [::std::mem::offset_of!(ScNumberOpts, hint_pos) - 132usize];
+        [::std::mem::offset_of!(ScNumberOpts, hint_pos) - 140usize];
     ["Offset of field: ScNumberOpts::hint_style"]
-        [::std::mem::offset_of!(ScNumberOpts, hint_style) - 136usize];
+        [::std::mem::offset_of!(ScNumberOpts, hint_style) - 144usize];
     ["Offset of field: ScNumberOpts::boxed"]
-        [::std::mem::offset_of!(ScNumberOpts, boxed) - 156usize];
+        [::std::mem::offset_of!(ScNumberOpts, boxed) - 164usize];
     ["Offset of field: ScNumberOpts::border"]
-        [::std::mem::offset_of!(ScNumberOpts, border) - 160usize];
+        [::std::mem::offset_of!(ScNumberOpts, border) - 168usize];
     ["Offset of field: ScNumberOpts::width"]
-        [::std::mem::offset_of!(ScNumberOpts, width) - 180usize];
+        [::std::mem::offset_of!(ScNumberOpts, width) - 188usize];
     ["Offset of field: ScNumberOpts::shortcuts"]
-        [::std::mem::offset_of!(ScNumberOpts, shortcuts) - 184usize];
+        [::std::mem::offset_of!(ScNumberOpts, shortcuts) - 192usize];
     ["Offset of field: ScNumberOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScNumberOpts, n_shortcuts) - 192usize];
+        [::std::mem::offset_of!(ScNumberOpts, n_shortcuts) - 200usize];
     ["Offset of field: ScNumberOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScNumberOpts, out_shortcut_id) - 200usize];
+        [::std::mem::offset_of!(ScNumberOpts, out_shortcut_id) - 208usize];
     ["Offset of field: ScNumberOpts::prompt_text"]
-        [::std::mem::offset_of!(ScNumberOpts, prompt_text) - 208usize];
+        [::std::mem::offset_of!(ScNumberOpts, prompt_text) - 216usize];
     ["Offset of field: ScNumberOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScNumberOpts, prompt_markup) - 216usize];
+        [::std::mem::offset_of!(ScNumberOpts, prompt_markup) - 224usize];
     ["Offset of field: ScNumberOpts::decimal_sep"]
-        [::std::mem::offset_of!(ScNumberOpts, decimal_sep) - 217usize];
+        [::std::mem::offset_of!(ScNumberOpts, decimal_sep) - 225usize];
     ["Offset of field: ScNumberOpts::out_text"]
-        [::std::mem::offset_of!(ScNumberOpts, out_text) - 224usize];
+        [::std::mem::offset_of!(ScNumberOpts, out_text) - 232usize];
 };
 extern "C" {
-    #[doc = " Prompts for a number.\n\n Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;\n Enter submits; Esc or Ctrl-C cancels. On `SC_INPUT_OK`, `*out` receives\n the parsed value, clamped to `[min, max]` when bounded; when\n `opts.out_text` is set it additionally receives the exact value as a\n heap string (see `ScNumberOpts.out_text`).\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]
+    #[doc = " Prompts for a number.\n\n Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;\n Enter submits; Esc or Ctrl-C cancels. Enter on an empty field is ignored\n (clear the field with Ctrl-U, then Enter does nothing until a value is\n typed). On `SC_INPUT_OK`, `*out` receives the parsed value, clamped to\n `[min, max]` when bounded; when `opts.out_text` is set it additionally\n receives the exact value as a heap string (see `ScNumberOpts.out_text`).\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]
     pub fn sc_number_input(
         prompt: *const ::std::os::raw::c_char,
         out: *mut f64,
@@ -2608,7 +2612,7 @@ pub struct ScSelect {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[doc = " Allocates a new selection prompt.\n\n @param opts  Configuration (copied internally).\n @return      Heap-allocated handle; free with `sc_select_free`."]
+    #[doc = " Allocates a new selection prompt.\n\n @param opts  Configuration. Copied internally, including the string fields\n              (`prompt`, markers, checkbox glyphs, `hint`); only the fields\n              documented as borrowed (`shortcuts`, `prompt_text`) must\n              outlive the prompt.\n @return      Heap-allocated handle; free with `sc_select_free`."]
     pub fn sc_select_new(opts: ScSelectOpts) -> *mut ScSelect;
 }
 extern "C" {
@@ -2774,7 +2778,7 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    #[doc = " Allocates a new fuzzy finder.\n\n @param opts  Configuration (copied internally).\n @return      Heap-allocated handle; free with `sc_fuzzy_free`."]
+    #[doc = " Allocates a new fuzzy finder.\n\n @param opts  Configuration. Copied internally, including the string fields\n              (`prompt`, markers, `hint`, `headers`); only the fields\n              documented as borrowed (`shortcuts`, `prompt_text`,\n              `table_opts` strings) must outlive the finder.\n @return      Heap-allocated handle; free with `sc_fuzzy_free`."]
     pub fn sc_fuzzy_new(opts: ScFuzzyOpts) -> *mut ScFuzzy;
 }
 extern "C" {

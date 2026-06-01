@@ -52,10 +52,15 @@ fn main() -> sparcli::Result<()> {
     }
 
     // Exact text (never via f64), comma as decimal separator - feed the
-    // result to a decimal type for money amounts.
+    // result to a decimal type for money amounts. start_empty starts with
+    // an empty field instead of "0,00".
     if let Some(amount) = number_input_text(
         "Amount",
-        NumberOpts::new().decimals(2).step(0.5).decimal_sep(','),
+        NumberOpts::new()
+            .decimals(2)
+            .step(0.5)
+            .decimal_sep(',')
+            .start_empty(true),
     )? {
         println!("-> {amount} (exact)");
     }

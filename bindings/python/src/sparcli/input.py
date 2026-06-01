@@ -223,6 +223,9 @@ class NumberOpts:
     """Options for :func:`number_input` / :func:`decimal_input`."""
 
     initial: float = 0.0
+    #: Start with an empty field instead of the formatted ``initial`` value;
+    #: Enter on an empty field is ignored.
+    start_empty: bool = False
     min: float = 0.0
     max: float = 0.0
     step: float = 0.0
@@ -246,6 +249,7 @@ class NumberOpts:
 
     def _fill(self, c, arena: list) -> None:
         c.initial = self.initial
+        c.start_empty = self.start_empty
         c.min = self.min
         c.max = self.max
         c.step = self.step

@@ -1,5 +1,6 @@
 #include "sparcli.h"
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 
@@ -136,6 +137,30 @@ void test_progressbar(void) {
         sc_progressbar_set_label(deploy_bar, "Deploy ");
         sc_progressbar_finish(deploy_bar, 0.91, 0.0);
         sc_progressbar_free(deploy_bar);
+    }
+
+    /* ── 6. Opts strings are copied (caller buffers reused) ── */
+    {
+        printf("\n--- 6. Opts strings are copied ---\n");
+        /* The caps come from stack buffers that are clobbered right after
+           sc_progressbar_new: the bar must render its own copies. */
+        char left[8];
+        char right[8];
+        snprintf(left, sizeof left, "<");
+        snprintf(right, sizeof right, ">");
+        ScProgressBar *bar = sc_progressbar_new((ScProgressBarOpts){
+            .type = SC_PROGRESS_BLOCK,
+            .left_cap = left,
+            .right_cap = right,
+            .show_percent = true,
+            .bar_width = 30,
+        });
+        memset(left, 'X', sizeof left - 1);
+        left[sizeof left - 1] = '\0';
+        memset(right, 'Y', sizeof right - 1);
+        right[sizeof right - 1] = '\0';
+        sc_progressbar_finish(bar, 0.5, 0.0);
+        sc_progressbar_free(bar);
     }
 }
 

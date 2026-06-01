@@ -634,6 +634,7 @@ ScInputStatus sc_password_input(const char *prompt, char **out, ScPasswordOpts o
 /* ── Number ────────────────────────────────────────────────────────────── */
 typedef struct {
     double initial;
+    bool start_empty;
     double min;
     double max;
     double step;

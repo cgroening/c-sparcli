@@ -326,6 +326,8 @@ void        sc_list_free    (ScList *l);
 
 `sc_list_add_sub` attaches a sub-list to an item; the sub-list is owned by the item and freed when the parent list is freed.
 
+The opts (including the `bullet`/`marker_prefix`/`marker_suffix` strings) are **copied** by `sc_list_new`/`sc_list_add_sub`, and item strings are copied by `sc_list_add_str` – the caller's buffers only need to live until the respective call returns. Rich-text items (`sc_list_add_text`) stay borrowed and must outlive printing.
+
 ### ScListMarker
 
 | Constant | Style |
@@ -419,6 +421,8 @@ void           sc_progressbar_free     (ScProgressBar *b);
 ```
 
 `value`/`max` convention: if `max > 0`, ratio = value/max; if `max == 0`, value is already a 0.0–1.0 ratio. `show_value` only takes effect when `max > 0`.
+
+The opts (including the `left_cap`/`right_cap` strings) are **copied** by `sc_progressbar_new`, so the caller's buffers only need to live until the call returns.
 
 ### ScProgressType
 
@@ -859,7 +863,11 @@ void      sc_fuzzy_remove (ScFuzzy *f, size_t index);  /* delete row (for callba
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
 void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
+```
 
+**Opts lifetime (handle widgets):** `sc_select_new` / `sc_fuzzy_new` **copy** their opts string fields (prompt, markers, checkbox glyphs, hint, fuzzy headers) and item labels are copied by `sc_*_add`, so the caller's buffers only need to live until the respective call returns. Only `shortcuts` and `prompt_text` stay **borrowed** and must outlive the run.
+
+```c
 /* Custom shortcuts (any widget) – bind extra keys to actions. See "Custom shortcuts". */
 ScKeyChord sc_key_ctrl(char letter);   /* ^letter (Ctrl-C/H/I/J/M not bindable) */
 ScKeyChord sc_key_fn  (int n);         /* F1..F12 */
@@ -976,6 +984,7 @@ Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to 
 | Field | Description |
 |-------|-------------|
 | `initial` | Starting value |
+| `start_empty` | Start with an empty field instead of the formatted `initial` value. Enter on an empty field is ignored, so the prompt never submits "nothing" as `0` |
 | `min` / `max` | Bounds, applied when `max > min` |
 | `step` | Up/Down increment; `0` = 1 |
 | `decimals` | Fractional digits; `0` = integer |
@@ -1064,6 +1073,8 @@ ScInputTheme sc_input_theme(void);                           /* current theme */
 ```
 
 `ScInputTheme` carries `accent`, `border`, the shared styles (`prompt_style`, `selected_style`, `cursor_style`, `count_style`, `summary_style`, `error_style`, `hint_style`), glyphs (`cursor_marker`, `marker`, `checkbox_on`, `checkbox_off`), and `hint_layout`.
+
+The theme struct **and its glyph strings are copied** by `sc_input_set_theme`, so the caller's buffers only need to live until the call returns. The strings returned by `sc_input_theme()` are library-owned copies, valid until the next `sc_input_set_theme` call.
 
 ---
 

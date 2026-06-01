@@ -9,10 +9,6 @@ from .color import Color
 from .enums import HintLayout, HintPos
 from .style import BorderStyle, Style
 
-# Keep theme strings alive for the process: the C side copies the struct but
-# borrows the char* fields.
-_theme_keep: list = []
-
 
 @dataclass
 class Theme:
@@ -39,11 +35,11 @@ class Theme:
 def set_theme(theme: Theme | None) -> None:
     """Install the process-wide input theme. ``None`` clears it. Not
     thread-safe."""
-    global _theme_keep
     if theme is None:
-        _theme_keep = []
         lib.sc_input_set_theme(ffi.NULL)
         return
+    # The C side copies the struct AND its string fields, so the cffi
+    # buffers only need to live until the call returns.
     arena: list = []
     c = ffi.new("ScInputTheme *")
     apply_color(c.accent, theme.accent)
@@ -62,4 +58,3 @@ def set_theme(theme: Theme | None) -> None:
     c.hint_layout = int(theme.hint_layout)
     c.hint_pos = int(theme.hint_pos)
     lib.sc_input_set_theme(c)
-    _theme_keep = arena  # the C copy borrows these strings
