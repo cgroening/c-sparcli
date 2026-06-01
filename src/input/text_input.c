@@ -63,7 +63,6 @@ static ScTextStyle resolve_count_style(const TextState *self);
 static ScTextStyle resolve_error_style(const TextState *self);
 static void print_summary(const char *prompt, const char *value,
                           const char *mask, ScTextStyle summary_style);
-static char *dup_str(const char *str);
 
 
 ScInputStatus sc_text_input(const char *prompt, char **out,
@@ -136,7 +135,7 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
         cfg->external_editor ? &ed : NULL);
 
     if (status == SC_INPUT_OK) {
-        *out = dup_str(state.ed.buf);
+        *out = sc_dup_str(state.ed.buf);
         if (!*out) {
             status = SC_INPUT_ERROR;
         } else if (!cfg->hide_summary) {
@@ -490,16 +489,6 @@ static void print_summary(const char *prompt, const char *value,
     free(line);
 }
 
-static char *dup_str(const char *str) {
-    size_t size = strlen(str) + 1;
-    char *copy = malloc(size);
-    if (copy) {
-        memcpy(copy, str, size);
-    }
-    return copy;
-}
-
-
 /* ── Built-in character filters ─────────────────────────────────────────── */
 
 bool sc_filter_digits(uint32_t codepoint, void *ctx) {
@@ -510,7 +499,8 @@ bool sc_filter_digits(uint32_t codepoint, void *ctx) {
 bool sc_filter_decimal(uint32_t codepoint, void *ctx) {
     (void)ctx;
     return (codepoint >= '0' && codepoint <= '9')
-        || codepoint == '.' || codepoint == '-' || codepoint == '+';
+        || codepoint == '.' || codepoint == ','
+        || codepoint == '-' || codepoint == '+';
 }
 
 bool sc_filter_alpha(uint32_t codepoint, void *ctx) {
@@ -535,7 +525,7 @@ bool sc_filter_no_space(uint32_t codepoint, void *ctx) {
 /* External-editor hook: hands the editor a copy of the current value. */
 static char *text_edit_get(void *state) {
     TextState *self = state;
-    return dup_str(self->ed.buf ? self->ed.buf : "");
+    return sc_dup_str(self->ed.buf);
 }
 
 /* External-editor hook: replaces the value with the editor result. This is a
@@ -543,7 +533,7 @@ static char *text_edit_get(void *state) {
  * trailing whitespace (e.g. the editor's final newline) is trimmed. */
 static void text_edit_set(void *state, const char *text) {
     TextState *self = state;
-    char *line = dup_str(text ? text : "");
+    char *line = sc_dup_str(text);
     if (!line) {
         return;   // keep the current value on allocation failure
     }

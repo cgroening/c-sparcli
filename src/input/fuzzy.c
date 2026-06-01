@@ -53,7 +53,6 @@ static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel);
 static int match_cmp(const void *a, const void *b);
 static void grow_rows(ScFuzzy *self);
 static size_t cp_len(unsigned char lead);
-static char *dup_str(const char *str);
 
 
 bool sc_fuzzy_match(const char *pattern, const char *str, int *score) {
@@ -124,7 +123,7 @@ void sc_fuzzy_add_row(ScFuzzy *self, const char *const *fields, size_t n) {
         return;
     }
     for (size_t c = 0; c < n; c++) {
-        row[c] = dup_str(fields[c]);
+        row[c] = sc_dup_str(fields[c]);
     }
     self->rows[self->count] = row;
     self->row_ncols[self->count] = n;
@@ -657,13 +656,4 @@ static size_t cp_len(unsigned char lead) {
         return 3;
     }
     return 4;
-}
-
-static char *dup_str(const char *str) {
-    size_t size = strlen(str ? str : "") + 1;
-    char *copy = malloc(size);
-    if (copy) {
-        memcpy(copy, str ? str : "", size);
-    }
-    return copy;
 }

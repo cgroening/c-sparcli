@@ -126,6 +126,27 @@ static void test_tree_text_arena() {
     CHECK(contains(out, "leaf-rich"), "tree: rich node survives arena");
 }
 
+// A per-column style (ScColOpts.style) must be applied to unstyled data
+// cells; per-cell markup styling must still win over it.
+static void test_table_column_style() {
+    std::string out = render([] {
+        Table t;
+        t.add_column("Name", { .style = { SC_TEXT_ATTR_BOLD,
+                                          SC_ANSI_COLOR_CYAN,
+                                          SC_ANSI_COLOR_NONE } });
+        t.add_column("Score");
+        t.add_row({ "alpha", "10" });
+        t.add_row({ cell_markup("[red]beta[/]"), "20" });
+        t.print();
+    });
+    CHECK(contains(out, "alpha") && contains(out, "beta"),
+          "table: column-styled cells render");
+    CHECK(out.find("\033[36m") != std::string::npos,
+          "table: column style emits its color code");
+    CHECK(out.find("\033[31m") != std::string::npos,
+          "table: per-cell markup still wins over column style");
+}
+
 // The wrapper must forward to the C API byte-for-byte.
 static void test_wrapper_matches_c() {
     std::string w = render([] {
@@ -153,6 +174,7 @@ int main() {
     test_table_survives_move();
     test_list_text_arena();
     test_tree_text_arena();
+    test_table_column_style();
     test_wrapper_matches_c();
 
     if (g_failures > 0) {

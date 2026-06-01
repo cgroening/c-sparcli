@@ -744,4 +744,36 @@ void test_tables(void) {
         });
         sc_table_free(table);
     }
+
+    printf("\n");
+
+    /* ── 26. Per-column text style (ScColOpts.style) ── */
+    {
+        ScTableData *table = sc_table_new();
+        sc_table_add_column(table, "Service", (ScColOpts){
+            .halign = SC_ALIGN_LEFT, .style = bold_cyan,
+        });
+        sc_table_add_column(table, "Status", (ScColOpts){
+            .halign = SC_ALIGN_LEFT, .style = red,
+        });
+        sc_table_add_column(table, "Uptime", col_right);
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell("api"), sc_cell("degraded"), sc_cell("99.2%"),
+        }, 3);
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell("web"), sc_cell("down"), sc_cell("95.1%"),
+        }, 3);
+        /* Per-cell styling (markup) overrides the column style. */
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell("cache"), sc_cell_m("[green]ok[/]"), sc_cell("100.0%"),
+        }, 3);
+        sc_table_print(table, (ScTableOpts){
+            .border = default_border(SC_BORDER_SINGLE),
+            .header.row = true,
+            .header.style = bold,
+            .title = title_centered_top(" Per-Column Style ", bold_cyan),
+            .cell_pad = { 0, 1, 0, 1 },
+        });
+        sc_table_free(table);
+    }
 }

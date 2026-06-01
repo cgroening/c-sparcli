@@ -62,6 +62,13 @@ static int child_case(int c) {
             std::optional<std::string> r = text_input("Name", o);
             return (r && *r == "ab" && sc.fired() == 42) ? 0 : 1;
         }
+        case 4: {
+            /* number_input_text: comma input comes back as exact
+               '.'-normalized text, never via double. */
+            std::optional<std::string> r = number_input_text(
+                "Amount", { .decimals = 2, .decimal_sep = ',' });
+            return (r && *r == "7.50") ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -75,6 +82,7 @@ static const Case CASES[] = {
     { "password_input", "secret\r" },
     { "textarea",       "a\rb\x04" },   /* a, newline, b, Ctrl-D -> "a\nb" */
     { "shortcut",       "ab\x1b[12~" }, /* type "ab", then F2 fires (id 42) */
+    { "number_input_text", "\x15" "7,50\r" },  /* Ctrl-U clear, type, enter */
 };
 static const int N_CASES = (int)(sizeof CASES / sizeof CASES[0]);
 

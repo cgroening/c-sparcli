@@ -34,8 +34,8 @@ typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
 
 /** Accepts ASCII digits `0`-`9` only. */
 SPARCLI_EXPORT bool sc_filter_digits(uint32_t codepoint, void *ctx);
-/** Accepts digits, a leading sign and a decimal point (`0-9`, `-`, `+`,
-    `.`). */
+/** Accepts digits, a leading sign and a decimal separator (`0-9`, `-`, `+`,
+    `.`, `,`). */
 SPARCLI_EXPORT bool sc_filter_decimal(uint32_t codepoint, void *ctx);
 /** Accepts ASCII letters only. */
 SPARCLI_EXPORT bool sc_filter_alpha(uint32_t codepoint, void *ctx);

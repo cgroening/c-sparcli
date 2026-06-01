@@ -2,8 +2,8 @@
 //! No TTY needed, so they run anywhere (CI included).
 
 use sparcli::{
-    capture, fuzzy_match, key_ctrl, key_fn, Color, PanelOpts, Style, Table,
-    TableOpts, Text,
+    capture, fuzzy_match, key_ctrl, key_fn, ColOpts, Color, PanelOpts, Style,
+    Table, TableOpts, Text,
 };
 
 #[test]
@@ -63,6 +63,19 @@ fn capture_table_renders() {
 }
 
 #[test]
+fn capture_table_column_style() {
+    // A per-column style must color unstyled data cells (cyan = ESC[36m).
+    let mut t = Table::new();
+    t.column("Name", ColOpts::new().style(Style::bold().fg(Color::CYAN)))
+        .column("Age", Default::default());
+    t.row(["Ada", "36"]);
+    let r = capture::table(&t, TableOpts::new().header_row(true));
+    let raw = r.lines().join("\n");
+    assert!(raw.contains("\x1b[36m"));
+    assert!(raw.contains("Ada"));
+}
+
+#[test]
 fn capture_text_markup() {
     let t = Text::markup("[bold]X[/] y");
     let r = capture::text(&t);
@@ -85,4 +98,14 @@ fn input_without_tty_errors() {
     let r = sparcli::confirm("Proceed?", sparcli::ConfirmOpts::new());
     assert!(r.is_err());
     assert!(!sparcli::input_available());
+}
+
+#[test]
+fn number_input_text_without_tty_errors() {
+    // The exact-text variant follows the same no-TTY contract.
+    let r = sparcli::number_input_text(
+        "Amount",
+        sparcli::NumberOpts::new().decimals(2).decimal_sep(','),
+    );
+    assert!(r.is_err());
 }

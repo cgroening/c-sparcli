@@ -30,7 +30,6 @@ static ScRendered *select_render(void *state);
                                    size_t count);
 static void select_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static void reframe(ScSelect *self);
-static char *dup_str(const char *str);
 
 
 ScSelect *sc_select_new(ScSelectOpts opts) {
@@ -62,7 +61,7 @@ void sc_select_add(ScSelect *self, const char *label) {
         self->checked = checked;
         self->cap = cap;
     }
-    self->items[self->count] = dup_str(label);
+    self->items[self->count] = sc_dup_str(label);
     self->checked[self->count] = false;
     self->count++;
 }
@@ -108,7 +107,7 @@ void sc_select_set_label(ScSelect *self, size_t index, const char *label) {
     if (!self || index >= self->count) {
         return;
     }
-    char *copy = dup_str(label);
+    char *copy = sc_dup_str(label);
     if (!copy) {
         return;   // keep the old label on allocation failure
     }
@@ -302,13 +301,4 @@ static void reframe(ScSelect *self) {
     } else if (self->cursor >= self->top + visible) {
         self->top = self->cursor - visible + 1;
     }
-}
-
-static char *dup_str(const char *str) {
-    size_t size = strlen(str ? str : "") + 1;
-    char *copy = malloc(size);
-    if (copy) {
-        memcpy(copy, str ? str : "", size);
-    }
-    return copy;
 }

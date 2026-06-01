@@ -241,10 +241,13 @@ typedef struct {
     ScVAlign valign;
     bool     word_wrap;  /* true = word-wrap, false = truncate */
     ScColor  bg;         /* SC_ANSI_COLOR_NONE = not set */
+    ScTextStyle style;   /* default text style for unstyled cells; zero-init = none */
 } ScColOpts;
 ```
 
 **Background priority:** `header/footer bg > per-row bg > stripe bg > col bg`. Per-column bg is the lowest-priority fallback: only applied when no row-level background is active (`row_bg.index == 0`).
+
+**Per-column text style (`style`):** default attributes + foreground for cell spans that carry no styling of their own. Priority: per-cell/markup style > `header.style`/`footer.style` (section) > column `style`; the fallback is per-field (a bold-only header still picks up the column fg). The style's `bg` member is ignored – use the `bg` field for backgrounds.
 
 ### ScCell constructors
 
@@ -538,7 +541,7 @@ The input side manipulates global terminal state, so `src/tty/term.c` is defensi
 ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts);
 ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts);     /* *out heap; free */
 ScInputStatus sc_password_input(const char *prompt, char **out, ScPasswordOpts opts);  /* *out heap; free */
-ScInputStatus sc_number_input(const char *prompt, double *out, ScNumberOpts opts);     /* min/max/step, ↑/↓ */
+ScInputStatus sc_number_input(const char *prompt, double *out, ScNumberOpts opts);     /* min/max/step, ↑/↓; opts.out_text = exact text out */
 ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts);        /* multi-line; Ctrl-D submits */
 ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts);                     /* io in/out */
 
@@ -557,7 +560,7 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
 ```
 
 - **TextInput/Password** share `sc_text_entry` (`text_input.c`, configured via the internal `ScTextEntryCfg`); password is the masked variant (`opts.mask`, default `"*"`). Both accept an optional `validate` callback that keeps the prompt open and shows an error line. A character counter is shown under the field by default – `count` (no limit) or `count/max` when `max_chars > 0`, which also caps input. Hide it with `hide_char_count`; style it via `count_style` (default dim). Counts UTF-8 codepoints, not bytes. Set `boxed = true` to render inside a panel (prompt = top title, counter = bottom-right border via the panel `subtitle`); `border` sets the box style (zero-init type = rounded) and `width` the panel width (0 = full terminal width). A validation error stacks below the box via `sc_vstack`. Long values scroll horizontally within `width` with `‹`/`›` edge markers (line editor). Optional input constraints: `char_filter` (built-ins `sc_filter_digits`, `sc_filter_decimal`, `sc_filter_alpha`, `sc_filter_alnum`, `sc_filter_no_space`) rejects disallowed keystrokes; `suggestions`/`n_suggestions` show a dim autocomplete ghost that Tab accepts.
-- **NumberInput** (`number_input.c`) reuses the line editor with a decimal filter; ↑/↓ step by `step`, value clamped to `[min, max]` when `max > min`, formatted to `decimals` places. `boxed = true` renders inside a panel (range shown on the bottom-right border); `border`/`width` as for text input.
+- **NumberInput** (`number_input.c`) reuses the line editor with a decimal filter; ↑/↓ step by `step`, value clamped to `[min, max]` when `max > min`, formatted to `decimals` places. `decimal_sep` (`0`/`'.'` = period, `','` = comma) controls the separator shown and accepted while editing; `out_text` (a `char **`) optionally receives the submitted value as an exact heap string – always `'.'`-normalized and clamp-consistent with `*out` – so callers can feed arbitrary-precision decimal types without float round-trips. `boxed = true` renders inside a panel (range shown on the bottom-right border); `border`/`width` as for text input. `sc_filter_decimal` accepts both `.` and `,`.
 - **Textarea** (`textarea.c`, self-contained multi-line buffer): Enter inserts a newline, Ctrl-D submits, arrows move across lines/cols, Home/End within a line. Long logical lines **soft-wrap** to the field width (char-level; cursor stays correct; navigation remains logical-line based). `boxed = true` renders the editor inside a panel (prompt = top title, footer stacked below); `border`/ `width` as for text input.
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` / `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the list scrolls beyond the viewport.
 - **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are highlighted (bold+underline, accent fg) in the list and in the matched table cells (`render_table` builds those cells as highlighted `ScText` via `append_highlighted`, borrowed by the table and freed after capture); the query field scrolls horizontally (`‹`/`›`) when long; table view builds an `ScTableData` of the visible rows each frame (cursor row via row-bg) and `sc_vstack`s query + body + scroll-indicator + footer. `refilter` matches each row via `row_matches` across the columns selected by `opts.search_columns` (bitmask; `0` = all, the default), ranking by the best-scoring column – so a table query can hit (and highlight) any column, not just the first.

@@ -69,6 +69,9 @@ class ColOpts:
     valign: VAlign = VAlign.TOP
     word_wrap: bool = False
     bg: Color = Color.NONE
+    style: Style = field(default_factory=Style)
+    """Default text style for unstyled cells in this column; lower priority
+    than per-cell styling and the header/footer section styles."""
 
     def _fill(self, c) -> None:
         c.min_width = self.min_width
@@ -78,6 +81,7 @@ class ColOpts:
         c.valign = int(self.valign)
         c.word_wrap = self.word_wrap
         apply_color(c.bg, self.bg)
+        apply_style(c.style, self.style)
 
 
 @dataclass
@@ -195,7 +199,9 @@ class Table:
         coerced = [_coerce_cell(x) for x in cells]
         arr = ffi.new("ScCell[]", len(coerced))
         for i, cell in enumerate(coerced):
-            self._fill_cell(arr[i], cell)
+            # Pass a pointer (not the dereferenced element) so _fill_cell can
+            # both set fields and copy a whole struct (markup cells).
+            self._fill_cell(ffi.addressof(arr, i), cell)
         return arr, len(coerced)
 
     def _fill_cell(self, elem, cell: Cell) -> None:

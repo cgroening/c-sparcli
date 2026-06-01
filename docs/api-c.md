@@ -191,10 +191,13 @@ typedef struct {
     ScVAlign valign;
     bool     word_wrap;  /* true = word-wrap, false = truncate */
     ScColor  bg;         /* SC_ANSI_COLOR_NONE = not set */
+    ScTextStyle style;   /* default text style for unstyled cells; zero-init = none */
 } ScColOpts;
 ```
 
 **Background priority:** `header/footer bg > per-row bg > stripe bg > col bg`. Per-column bg is the lowest-priority fallback: only applied when no row-level background is active (`row_bg.index == 0`).
+
+**Per-column text style (`style`):** a default `ScTextStyle` (attributes + foreground) applied to every cell span in the column that carries no styling of its own. Priority: per-cell/markup style > `header.style`/`footer.style` (section) > column `style`. The fallback is per-field – e.g. a bold-only header style still picks up the column's foreground color. The style's `bg` member is ignored; use the `bg` field for column backgrounds.
 
 ### ScCell constructors
 
@@ -869,7 +872,7 @@ const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n)
 typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out);
 typedef bool (*ScCharFilter)(uint32_t codepoint, void *ctx);
 bool sc_filter_digits  (uint32_t cp, void *ctx);   /* 0-9 */
-bool sc_filter_decimal (uint32_t cp, void *ctx);   /* 0-9 . - + */
+bool sc_filter_decimal (uint32_t cp, void *ctx);   /* 0-9 . , - + */
 bool sc_filter_alpha   (uint32_t cp, void *ctx);   /* letters */
 bool sc_filter_alnum   (uint32_t cp, void *ctx);   /* letters + digits */
 bool sc_filter_no_space(uint32_t cp, void *ctx);   /* rejects whitespace */
@@ -976,9 +979,22 @@ Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to 
 | `min` / `max` | Bounds, applied when `max > min` |
 | `step` | Up/Down increment; `0` = 1 |
 | `decimals` | Fractional digits; `0` = integer |
+| `decimal_sep` | Decimal separator for display and input; `0`/`'.'` = period, `','` = comma. Both `.` and `,` keystrokes are accepted and shown as the configured separator |
+| `out_text` | Optional `char **`: on `SC_INPUT_OK` receives the submitted value as a heap string – exact, never round-tripped through `double`. Always `'.'`-separated and reflecting clamping, so it can feed an arbitrary-precision decimal type. Caller frees |
 | `prompt_style` / `value_style` / `cursor_style` | Styles |
 | `boxed` / `border` / `width` | Panel mode (range shown on the bottom-right border) |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
+
+```c
+/* Exact money amount, German-style comma input: */
+double value = 0;
+char *text = NULL;
+sc_number_input("Amount", &value, (ScNumberOpts){
+    .decimals = 2, .step = 0.5, .decimal_sep = ',', .out_text = &text });
+/* user types "12,99" → value == 12.99, text == "12.99" (caller frees) */
+```
+
+Note: `*out` and `*out_text` always agree – when a typed value is clamped to `[min, max]`, the buffer is rewritten before both are produced. With `decimals = 0` a typed fraction is rounded the same way in both. sparcli assumes the C numeric locale (it never calls `setlocale`).
 
 ### sc_textarea
 

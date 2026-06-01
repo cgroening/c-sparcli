@@ -32,7 +32,8 @@ badge("NEW", BadgeOpts::new().style(Style::bold().bg(Color::GREEN)));
 alert::success("done");
 
 let mut t = Table::new();
-t.column("Name", ColOpts::new()).column("Age", ColOpts::new().align(Align::Right));
+t.column("Name", ColOpts::new().style(Style::bold().fg(Color::CYAN)))   // per-column style
+    .column("Age", ColOpts::new().align(Align::Right));
 t.row(["Ada", "36"]).row(["Alan", "41"]);
 t.print(TableOpts::new().border(BorderType::Rounded).header_row(true).striped(true));
 
@@ -95,6 +96,12 @@ if let Some(name) = text_input("Name", TextInputOpts::new().placeholder("Ada"))?
 if let Some(pw)   = password_input("Password", PasswordOpts::new())? { /* … */ }
 if let Some(n)    = number_input("Qty", NumberOpts::new().range(0.0, 100.0).step(5.0))? { /* … */ }
 if let Some(text) = textarea("Notes", TextareaOpts::new().boxed(48))? { /* … */ }
+
+// Exact value as text ('.'-normalized, never via f64) – e.g. for money.
+// decimal_sep(',') shows/accepts a comma while editing.
+if let Some(amount) = number_input_text(
+    "Amount", NumberOpts::new().decimals(2).decimal_sep(','),
+)? { /* amount == "12.99" – parse into rust_decimal etc. */ }
 
 let mut sel = Select::new(SelectOpts::new().prompt("Pick").multi(true));
 sel.add("a").add("b").add("c");

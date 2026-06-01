@@ -63,18 +63,18 @@ static void render_visual_line(const Row *self, int visual_line);
             int content_lines, ScVAlign valign
         );
         static void render_cell_line(
-            const Row *self, const ScRenderLine *line, ScColor cell_bg,
-            int content_width, ScHAlign halign
+            const Row *self, size_t col, const ScRenderLine *line,
+            ScColor cell_bg, int content_width, ScHAlign halign
         );
             static void render_cell_line_aligned(
-                const Row *self, const ScRenderLine *line, ScColor cell_bg,
-                int align_padding, ScHAlign halign
+                const Row *self, size_t col, const ScRenderLine *line,
+                ScColor cell_bg, int align_padding, ScHAlign halign
             );
-                static ScTextStyle apply_section_default_style(
-                    const Row *self, ScTextStyle span_style
+                static ScTextStyle apply_default_span_style(
+                    const Row *self, size_t col, ScTextStyle span_style
                 );
             static void render_cell_line_truncated(
-                const Row *self, const ScRenderLine *line,
+                const Row *self, size_t col, const ScRenderLine *line,
                 ScColor cell_bg, int col_width
             );
         static void render_cell_vertical_separator(
@@ -320,7 +320,7 @@ static void render_row_cell(
         && self->column_lines[col];
     if (has_content) {
         render_cell_line(
-            self, &self->column_lines[col][content_line], cell_bg,
+            self, col, &self->column_lines[col][content_line], cell_bg,
             content_width, halign
         );
     } else {
@@ -412,23 +412,23 @@ static int normal_cell_content_line(
 
 /** Dispatches to aligned or truncated rendering based on line vs width. */
 static void render_cell_line(
-    const Row *self, const ScRenderLine *line, ScColor cell_bg,
+    const Row *self, size_t col, const ScRenderLine *line, ScColor cell_bg,
     int content_width, ScHAlign halign
 ) {
     int padding = content_width - (int)line->visible_width;
     if (padding >= 0) {
-        render_cell_line_aligned(self, line, cell_bg, padding, halign);
+        render_cell_line_aligned(self, col, line, cell_bg, padding, halign);
     } else {
-        render_cell_line_truncated(self, line, cell_bg, content_width);
+        render_cell_line_truncated(self, col, line, cell_bg, content_width);
     }
 }
 
 /**
  * Prints `line` with left/right alignment padding totalling `align_padding`,
- * applying section default styling to unstyled spans.
+ * applying section/column default styling to unstyled spans.
  */
 static void render_cell_line_aligned(
-    const Row *self, const ScRenderLine *line, ScColor cell_bg,
+    const Row *self, size_t col, const ScRenderLine *line, ScColor cell_bg,
     int align_padding, ScHAlign halign
 ) {
     int left_pad = 0;
@@ -443,8 +443,8 @@ static void render_cell_line_aligned(
 
     print_spaces_with_bg(left_pad, cell_bg);
     for (size_t i = 0; i < line->count; i++) {
-        ScTextStyle style = apply_section_default_style(
-            self, line->spans[i].style
+        ScTextStyle style = apply_default_span_style(
+            self, col, line->spans[i].style
         );
         print_span_with_bg(line->spans[i].text, style, cell_bg);
     }
@@ -452,28 +452,28 @@ static void render_cell_line_aligned(
 }
 
 /**
- * Returns `span_style` with header or footer default styling applied to
- * its unstyled fields (`attr == 0` / `fg.index == 0`). Spans that carry
- * their own styling pass through unchanged.
+ * Returns `span_style` with default styling applied to its unstyled fields
+ * (`attr == 0` / `fg.index == 0`). Spans that carry their own styling pass
+ * through unchanged. Priority: per-span style > header/footer section style
+ * > per-column style (`ScColOpts.style`).
  */
-static ScTextStyle apply_section_default_style(
-    const Row *self, ScTextStyle span_style
+static ScTextStyle apply_default_span_style(
+    const Row *self, size_t col, ScTextStyle span_style
 ) {
+    // Section default (header/footer rows).
+    ScTextStyle section_style = { 0 };
     if (self->section == ROW_SECTION_HEADER) {
-        if (span_style.attr == 0) {
-            span_style.attr = self->table->opts.header.style.attr;
-        }
-        if (span_style.fg.index == 0) {
-            span_style.fg = self->table->opts.header.style.fg;
-        }
+        section_style = self->table->opts.header.style;
     } else if (self->section == ROW_SECTION_FOOTER) {
-        if (span_style.attr == 0) {
-            span_style.attr = self->table->opts.footer.style.attr;
-        }
-        if (span_style.fg.index == 0) {
-            span_style.fg = self->table->opts.footer.style.fg;
-        }
+        section_style = self->table->opts.footer.style;
     }
+    if (span_style.attr == 0) { span_style.attr = section_style.attr; }
+    if (span_style.fg.index == 0) { span_style.fg = section_style.fg; }
+
+    // Column default fills whatever per-span and section styling left unset.
+    ScTextStyle col_style = self->table->table_data->columns[col].opts.style;
+    if (span_style.attr == 0) { span_style.attr = col_style.attr; }
+    if (span_style.fg.index == 0) { span_style.fg = col_style.fg; }
     return span_style;
 }
 
@@ -482,12 +482,13 @@ static ScTextStyle apply_section_default_style(
  * the last span at the exact column boundary when needed.
  */
 static void render_cell_line_truncated(
-    const Row *self, const ScRenderLine *line, ScColor cell_bg, int col_width
+    const Row *self, size_t col, const ScRenderLine *line, ScColor cell_bg,
+    int col_width
 ) {
     int remaining = col_width;
     for (size_t i = 0; i < line->count && remaining > 0; i++) {
-        ScTextStyle style = apply_section_default_style(
-            self, line->spans[i].style
+        ScTextStyle style = apply_default_span_style(
+            self, col, line->spans[i].style
         );
         const char *text = line->spans[i].text;
         int span_width = (int)sc_utf8_string_length(text, strlen(text));

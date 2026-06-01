@@ -12,8 +12,8 @@ SPARCLI_BEGIN_DECLS
  * @brief Numeric input with min/max bounds, step and arrow-key adjustment.
  *
  * Built on the shared line editor: the user can type a number directly
- * (digits, sign, decimal point) or adjust it with Up/Down by `step`. The
- * value is clamped to `[min, max]` when bounds are given.
+ * (digits, sign, decimal separator) or adjust it with Up/Down by `step`.
+ * The value is clamped to `[min, max]` when bounds are given.
  */
 
 /** Options for `sc_number_input`. */
@@ -85,14 +85,30 @@ typedef struct ScNumberOpts {
 
     /** Parse the string prompt as inline markup. */
     bool prompt_markup;
+
+    /** Decimal separator for display and input; `0` or `'.'` = period,
+        `','` = comma. Both `.` and `,` keystrokes are always accepted and
+        shown as the configured separator. */
+    char decimal_sep;
+
+    /**
+     * Optional: on `SC_INPUT_OK` receives a heap copy of the submitted value
+     * as text - exact, never round-tripped through `double`. Always uses
+     * `'.'` as decimal separator (machine-readable, e.g. for arbitrary-
+     * precision decimal types) and reflects clamping to `[min, max]`.
+     * Caller frees with `free()`. `NULL` = not requested.
+     */
+    char **out_text;
 } ScNumberOpts;
 
 /**
  * Prompts for a number.
  *
- * Type digits/sign/`.` to edit; Up/Down adjust by `step`; Enter submits;
- * Esc or Ctrl-C cancels. On `SC_INPUT_OK`, `*out` receives the parsed value,
- * clamped to `[min, max]` when bounded.
+ * Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;
+ * Enter submits; Esc or Ctrl-C cancels. On `SC_INPUT_OK`, `*out` receives
+ * the parsed value, clamped to `[min, max]` when bounded; when
+ * `opts.out_text` is set it additionally receives the exact value as a
+ * heap string (see `ScNumberOpts.out_text`).
  *
  * @param prompt  Label shown before the field. Must not be `NULL`.
  * @param out     Receives the chosen value.

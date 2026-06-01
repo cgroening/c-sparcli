@@ -338,6 +338,9 @@ pub struct ColOpts {
     pub valign: VAlign,
     pub word_wrap: bool,
     pub bg: Color,
+    /// Default text style for unstyled cells in this column; lower priority
+    /// than per-cell styling and the header/footer section styles.
+    pub style: Style,
 }
 
 impl ColOpts {
@@ -372,6 +375,10 @@ impl ColOpts {
         self.bg = c;
         self
     }
+    pub fn style(mut self, s: Style) -> Self {
+        self.style = s;
+        self
+    }
     fn raw(&self) -> ffi::ScColOpts {
         ffi::ScColOpts {
             min_width: self.min_width,
@@ -381,6 +388,7 @@ impl ColOpts {
             valign: self.valign.raw(),
             word_wrap: self.word_wrap,
             bg: self.bg.raw(),
+            style: self.style.raw(),
         }
     }
 }

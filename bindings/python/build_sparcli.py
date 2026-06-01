@@ -256,6 +256,7 @@ typedef struct {
     ScVAlign valign;
     bool word_wrap;
     ScColor bg;
+    ScTextStyle style;
     ...;
 } ScColOpts;
 typedef struct {
@@ -654,6 +655,8 @@ typedef struct {
     int *out_shortcut_id;
     const ScText *prompt_text;
     bool prompt_markup;
+    char decimal_sep;
+    char **out_text;
     ...;
 } ScNumberOpts;
 ScInputStatus sc_number_input(const char *prompt, double *out, ScNumberOpts opts);

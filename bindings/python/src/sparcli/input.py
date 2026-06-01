@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as _dt
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 from ._ffi import apply_border, apply_color, apply_style, cstr, ffi, lib
 from ._inputcommon import (fill_char_filter, fill_hint, fill_prompt_text,
@@ -219,13 +220,14 @@ def password_input(
 # ── number ───────────────────────────────────────────────────────────────────
 @dataclass
 class NumberOpts:
-    """Options for :func:`number_input`."""
+    """Options for :func:`number_input` / :func:`decimal_input`."""
 
     initial: float = 0.0
     min: float = 0.0
     max: float = 0.0
     step: float = 0.0
     decimals: int = 0
+    decimal_sep: str = "."
     prompt_style: Style = field(default_factory=Style)
     value_style: Style = field(default_factory=Style)
     cursor_style: Style = field(default_factory=Style)
@@ -248,6 +250,7 @@ class NumberOpts:
         c.max = self.max
         c.step = self.step
         c.decimals = self.decimals
+        c.decimal_sep = (self.decimal_sep or ".").encode("ascii")[:1]
         apply_style(c.prompt_style, self.prompt_style)
         apply_style(c.value_style, self.value_style)
         apply_style(c.cursor_style, self.cursor_style)
@@ -270,6 +273,25 @@ def number_input(prompt: str, opts: NumberOpts = NumberOpts()) -> float | None:
     out = ffi.new("double *")
     st = lib.sc_number_input(cstr(arena, prompt), out, c[0])
     return result(st, lambda: float(out[0]))
+
+
+def decimal_input(
+    prompt: str, opts: NumberOpts = NumberOpts()
+) -> Decimal | None:
+    """Prompt for a number, returning an exact :class:`~decimal.Decimal`.
+
+    Same widget as :func:`number_input`, but the value is constructed from
+    the submitted text (always ``'.'``-separated, clamping applied) and never
+    round-trips through ``float`` - safe for money amounts.
+    """
+    arena: list = []
+    c = ffi.new("ScNumberOpts *")
+    opts._fill(c, arena)
+    out = ffi.new("double *")
+    out_text = ffi.new("char **")
+    c.out_text = out_text
+    st = lib.sc_number_input(cstr(arena, prompt), out, c[0])
+    return result(st, lambda: Decimal(take_cstr(out_text)))
 
 
 # ── textarea ─────────────────────────────────────────────────────────────────

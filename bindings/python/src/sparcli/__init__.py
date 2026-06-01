@@ -32,9 +32,9 @@ from .enums import (Align, Attr, AlertType, BorderType, HintLayout, HintPos,
 from .errors import SparcliError, SparcliInputUnavailable
 from .input import (ConfirmOpts, DatePickerOpts, NumberOpts, PasswordOpts,
                     TextInputOpts, TextareaOpts, confirm, datepicker,
-                    filter_alnum, filter_alpha, filter_decimal, filter_digits,
-                    filter_no_space, input_available, number_input,
-                    password_input, text_input, textarea)
+                    decimal_input, filter_alnum, filter_alpha, filter_decimal,
+                    filter_digits, filter_no_space, input_available,
+                    number_input, password_input, text_input, textarea)
 from .keys import KeyChord, Shortcuts, key_alt, key_ctrl, key_fn
 from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      badge, clear_line, panel, print_, println, rule,
@@ -81,8 +81,8 @@ __all__ = [
     "ProgressBar", "ProgressBarOpts", "Thresholds", "Spinner", "SpinnerOpts",
     # input
     "input_available", "confirm", "ConfirmOpts", "text_input", "TextInputOpts",
-    "password_input", "PasswordOpts", "number_input", "NumberOpts", "textarea",
-    "TextareaOpts", "datepicker", "DatePickerOpts",
+    "password_input", "PasswordOpts", "number_input", "decimal_input",
+    "NumberOpts", "textarea", "TextareaOpts", "datepicker", "DatePickerOpts",
     "Select", "SelectOpts", "Fuzzy", "FuzzyOpts", "fuzzy_match",
     "filter_digits", "filter_decimal", "filter_alpha", "filter_alnum",
     "filter_no_space",

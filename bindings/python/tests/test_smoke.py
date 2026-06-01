@@ -73,6 +73,20 @@ def test_capture_table_rows():
         assert token in joined
 
 
+def test_capture_table_column_style():
+    # A per-column style colors unstyled data cells (cyan = ESC[36m); a
+    # markup cell keeps its own style (red = ESC[31m).
+    t = sc.Table()
+    t.column("Name", sc.ColOpts(style=sc.Style(fg=sc.Color.CYAN)))
+    t.column("Age")
+    t.row(["Ada", "36"])
+    t.row([sc.Cell.markup("[red]Alan[/]"), "41"])
+    raw = "\n".join(sc.capture.table(t, sc.TableOpts(header_row=True)).lines)
+    assert "\x1b[36m" in raw
+    assert "\x1b[31m" in raw
+    assert "Ada" in sc.strip_ansi(raw)
+
+
 def test_capture_markup_text():
     t = sc.Text.from_markup("[bold red]Err[/] ok")
     lines = _plain(sc.capture.text(t))
@@ -113,6 +127,8 @@ def test_input_unavailable_without_tty():
         sc.confirm("ok?")
     with pytest.raises(sc.SparcliInputUnavailable):
         sc.text_input("name")
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.decimal_input("amount", sc.NumberOpts(decimals=2, decimal_sep=","))
     with pytest.raises(sc.SparcliInputUnavailable):
         sc.Select().add("a").run_one()
 

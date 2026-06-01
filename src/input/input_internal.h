@@ -31,6 +31,22 @@ static inline bool sc_style_set(ScTextStyle style) {
     return style.attr != 0 || style.fg.index != 0 || style.bg.index != 0;
 }
 
+/**
+ * Heap-duplicates a NUL-terminated string (`malloc` + `memcpy`); NULL input
+ * duplicates the empty string. Returns NULL on allocation failure. Shared by
+ * every widget that hands heap strings to the caller (text input, number
+ * input, select labels, fuzzy rows, ...).
+ */
+static inline char *sc_dup_str(const char *str) {
+    const char *src = str ? str : "";
+    size_t size = strlen(src) + 1;
+    char *copy = malloc(size);
+    if (copy) {
+        memcpy(copy, src, size);
+    }
+    return copy;
+}
+
 /** Resolves the zero-init `DEFAULT` layout to the built-in default (inline). */
 static inline ScHintLayout sc_hint_resolved(ScHintLayout layout) {
     return layout == SC_HINT_LAYOUT_DEFAULT ? SC_HINT_INLINE : layout;

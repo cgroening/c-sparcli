@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
         { "Select Edit",    test_select_edit,    0 },
         { "Line Editor",    test_line_editor,    0 },
         { "Char Filters",   test_filters,        0 },
+        { "Number Format",  test_number_format,  0 },
         { "Thread Safety",  test_threads,        0 },
         { "Confirm",        test_confirm,        1 },
         { "Text Input",     test_text_input,     1 },

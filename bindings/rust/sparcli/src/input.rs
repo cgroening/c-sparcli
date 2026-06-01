@@ -454,7 +454,7 @@ pub fn password_input(
 
 /* ── Number ──────────────────────────────────────────────────────────────── */
 
-/// Options for [`number_input`].
+/// Options for [`number_input`] / [`number_input_text`].
 #[derive(Default)]
 pub struct NumberOpts {
     pub initial: f64,
@@ -465,6 +465,9 @@ pub struct NumberOpts {
     pub hide_summary: bool,
     pub boxed: bool,
     pub width: i32,
+    /// Decimal separator shown and accepted while editing; `'\0'` or `'.'`
+    /// = period (default), `','` = comma.
+    pub decimal_sep: char,
 }
 
 impl NumberOpts {
@@ -488,23 +491,62 @@ impl NumberOpts {
         self.initial = v;
         self
     }
+    pub fn decimal_sep(mut self, sep: char) -> Self {
+        self.decimal_sep = sep;
+        self
+    }
+    fn raw(&self) -> ffi::ScNumberOpts {
+        let mut o: ffi::ScNumberOpts = unsafe { mem::zeroed() };
+        o.initial = self.initial;
+        o.min = self.min;
+        o.max = self.max;
+        o.step = self.step;
+        o.decimals = self.decimals;
+        o.hide_summary = self.hide_summary;
+        o.boxed = self.boxed;
+        o.width = self.width;
+        o.decimal_sep = if self.decimal_sep == '\0' {
+            0
+        } else {
+            self.decimal_sep as u8 as c_char
+        };
+        o
+    }
 }
 
 /// Numeric entry with min/max/step.
 pub fn number_input(prompt: &str, opts: NumberOpts) -> Result<Option<f64>> {
-    let mut o: ffi::ScNumberOpts = unsafe { mem::zeroed() };
-    o.initial = opts.initial;
-    o.min = opts.min;
-    o.max = opts.max;
-    o.step = opts.step;
-    o.decimals = opts.decimals;
-    o.hide_summary = opts.hide_summary;
-    o.boxed = opts.boxed;
-    o.width = opts.width;
+    let o = opts.raw();
     let mut out = 0.0f64;
     let st =
         unsafe { ffi::sc_number_input(cstring(prompt).as_ptr(), &mut out, o) };
     Ok(status(st)?.then_some(out))
+}
+
+/// Numeric entry returning the exact submitted text instead of an `f64`.
+///
+/// The string is always `'.'`-normalized and reflects clamping to the
+/// configured range, so it can be parsed into an arbitrary-precision decimal
+/// type without ever round-tripping through a float.
+pub fn number_input_text(
+    prompt: &str,
+    opts: NumberOpts,
+) -> Result<Option<String>> {
+    let mut o = opts.raw();
+    let mut value = 0.0f64;
+    let mut text: *mut c_char = std::ptr::null_mut();
+    o.out_text = &mut text;
+    let st = unsafe {
+        ffi::sc_number_input(cstring(prompt).as_ptr(), &mut value, o)
+    };
+    if status(st)? {
+        Ok(Some(unsafe { crate::take_c_string(text) }))
+    } else {
+        if !text.is_null() {
+            unsafe { libc::free(text as *mut c_void) };
+        }
+        Ok(None)
+    }
 }
 
 /* ── Textarea ────────────────────────────────────────────────────────────── */

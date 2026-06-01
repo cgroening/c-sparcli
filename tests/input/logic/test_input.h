@@ -29,6 +29,7 @@ void test_shortcut(void);
 void test_select_edit(void);
 void test_line_editor(void);
 void test_filters(void);
+void test_number_format(void);
 void test_threads(void);
 
 /* Interactive widget tests (require a TTY). */

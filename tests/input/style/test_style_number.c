@@ -12,6 +12,12 @@ void style_number(void) {
             (ScNumberOpts){
                 .min = 0, .max = 1000, .step = 0.5, .decimals = 2 }));
 
+    style_show("number: comma decimal separator",
+        sc_number_frame("Amount", 12.99,
+            (ScNumberOpts){
+                .min = 0, .max = 100, .step = 0.5, .decimals = 2,
+                .decimal_sep = ',' }));
+
     style_show("number: boxed (panel), range on bottom-right",
         sc_number_frame("Quantity", 42,
             (ScNumberOpts){

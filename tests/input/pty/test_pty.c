@@ -206,6 +206,32 @@ static int child_case(int c) {
             free(t);
             return ok ? 0 : 1;
         }
+        case 13: {
+            /* Decimal comma + exact text out: clear the seeded value, type
+               "7,50", expect *out == 7.5 and out_text == "7.50" ('.'-form). */
+            double v = 0;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Amount", &v,
+                (ScNumberOpts){ .decimals = 2, .decimal_sep = ',',
+                                .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v == 7.5 && text
+                      && strcmp(text, "7.50") == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
+        case 14: {
+            /* Clamp + out_text agreement: typed 150 exceeds max 100, so both
+               *out and out_text must reflect the clamped value. */
+            double v = 0;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Qty", &v,
+                (ScNumberOpts){ .min = 0, .max = 100,
+                                .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v == 100.0 && text
+                      && strcmp(text, "100") == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -232,6 +258,8 @@ static const Case CASES[] = {
     { "editor-textarea", "\x07\x04" },  /* Ctrl-G editor, Ctrl-D submits */
     { "editor-text-input", "\x07\r" },  /* Ctrl-G editor, Enter submits */
     { "editor-cancel-keeps", "\x07\x04" },  /* editor nonzero → keep value */
+    { "number-decimal-comma", "\x15" "7,50\r" },  /* Ctrl-U clear, type, enter */
+    { "number-clamp-text", "\x15" "150\r" },      /* typed 150 clamps to 100 */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

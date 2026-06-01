@@ -239,6 +239,13 @@ if (auto note = textarea("Notes")) { /* *note (Ctrl-D submits) */ }
 if (auto qty  = number_input("Qty", { .min = 0, .max = 100, .step = 5 })) { }
 if (auto date = datepicker({}, { .prompt = "Pick a date" })) { /* std::tm */ }
 
+// Exact value as text ('.'-normalized, never via double) – e.g. for money.
+// decimal_sep = ',' shows/accepts a comma while editing.
+if (auto amount = number_input_text("Amount",
+                                    { .decimals = 2, .decimal_sep = ',' })) {
+    /* *amount == "12.99" – parse into your decimal type */
+}
+
 Select sel({ .prompt = "Pick", .multi = true });
 sel.add("a").add("b").add("c");
 sel.set_checked(0);

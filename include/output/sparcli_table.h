@@ -200,6 +200,14 @@ typedef struct ScColOpts {
 
     /** Column background color; `SC_ANSI_COLOR_NONE` = not set. */
     ScColor bg;
+
+    /**
+     * Default text style (attributes + foreground) for unstyled cell spans
+     * in this column; zero-init = none. Lower priority than per-cell styling
+     * and the header/footer section styles. The style's `bg` is ignored -
+     * use the `bg` field above for column backgrounds.
+     */
+    ScTextStyle style;
 } ScColOpts;
 
 /** Border style and color settings for a table. */

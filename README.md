@@ -233,7 +233,7 @@ A one-line summary per widget. The full reference – every type, every option, 
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
 | **Panel** | `sc_panel_*` | Bordered frame with title, padding, margin, optional background. |
-| **Table** | `sc_table_*` | Headers, footers, colspan, rowspan, striping, word-wrap, per-column widths. |
+| **Table** | `sc_table_*` | Headers, footers, colspan, rowspan, striping, word-wrap, per-column widths and styles. |
 | **Rule** | `sc_rule_*` | Horizontal line with optional centered/aligned title. |
 | **Columns** | `sc_columns_*` | Side-by-side layout for any other widgets (with optional separator). |
 | **List** | `sc_list_*` | Bulleted, numbered, alpha, or roman lists with hanging indent and nesting. |
@@ -259,7 +259,7 @@ Interactive prompts that drive a real terminal in raw mode. Each returns an `ScI
 | **Confirm** | `sc_confirm` | Yes/No prompt; arrow / `y` / `n` selection. |
 | **Text input** | `sc_text_input` | Single-line entry with placeholder, validation, autocomplete, char filters, optional boxed panel. |
 | **Password** | `sc_password_input` | Masked single-line entry (configurable mask glyph). |
-| **Number** | `sc_number_input` | Numeric entry with min/max/step and ↑/↓ adjustment. |
+| **Number** | `sc_number_input` | Numeric entry with min/max/step, ↑/↓ adjustment, comma/period decimal separator and exact-text output (decimal-type safe). |
 | **Textarea** | `sc_textarea` | Multi-line entry (Ctrl-D submits) with soft-wrap. |
 | **Select** | `sc_select_*` | Single- or multi-choice list with a scrolling viewport. |
 | **Fuzzy finder** | `sc_fuzzy_*` | Incremental fuzzy search; optional table view. |

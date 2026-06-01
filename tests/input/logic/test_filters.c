@@ -6,9 +6,10 @@
 void test_filters(void) {
     CHECK(sc_filter_digits('5', NULL) && !sc_filter_digits('a', NULL),
           "digits: accepts 0-9, rejects letters");
-    CHECK(sc_filter_decimal('.', NULL) && sc_filter_decimal('-', NULL)
-          && sc_filter_decimal('7', NULL) && !sc_filter_decimal('x', NULL),
-          "decimal: accepts digits/sign/point");
+    CHECK(sc_filter_decimal('.', NULL) && sc_filter_decimal(',', NULL)
+          && sc_filter_decimal('-', NULL) && sc_filter_decimal('7', NULL)
+          && !sc_filter_decimal('x', NULL),
+          "decimal: accepts digits/sign/point/comma");
     CHECK(sc_filter_alpha('A', NULL) && sc_filter_alpha('z', NULL)
           && !sc_filter_alpha('1', NULL),
           "alpha: letters only");

@@ -28,7 +28,8 @@ sc.badge("NEW", sc.BadgeOpts(text_style=sc.Style.bold(bg=sc.Color.GREEN)))
 sc.alert.success("done")                                    # info/debug/warning/error/success
 
 t = sc.Table()
-t.column("Name").column("Age", sc.ColOpts(halign=sc.Align.RIGHT))
+t.column("Name", sc.ColOpts(style=sc.Style.bold(sc.Color.CYAN)))   # per-column style
+t.column("Age", sc.ColOpts(halign=sc.Align.RIGHT))
 t.row(["Ada", "36"]).row(["Alan", "41"])
 t.row([sc.Cell("Subtotal", colspan=2), sc.Cell.skip()])     # colspan + skip placeholder
 t.footer_row(["Total", "77"])
@@ -112,6 +113,11 @@ pw   = sc.password_input("Password", sc.PasswordOpts(mask="•"))
 n    = sc.number_input("Qty", sc.NumberOpts(min=0, max=100, step=5))
 notes = sc.textarea("Notes", sc.TextareaOpts(boxed=True, width=48))
 
+# Exact decimal.Decimal (never via float) – for money. decimal_sep="," lets
+# German users type "12,99"; the Decimal is built from the exact text.
+amount = sc.decimal_input("Amount", sc.NumberOpts(decimals=2, decimal_sep=","))
+# -> Decimal("12.99") | None
+
 sel = sc.Select(sc.SelectOpts(prompt="Pick", multi=True))
 sel.add("a").add("b").add("c")
 chosen = sel.run()          # list[int] (multi) – or sel.run_one() -> int
@@ -131,7 +137,7 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 ### Input constraints
 
-`text_input`/`password_input` accept a `char_filter` – either a built-in (`sc.filter_digits`, `sc.filter_decimal`, `sc.filter_alpha`, `sc.filter_alnum`, `sc.filter_no_space`) or a Python callable `(ch: str) -> bool` – and a `validate` callable `(value: str) -> str | None` (return an error message to keep the prompt open). `text_input` also takes `suggestions=[...]` for Tab autocomplete.
+`text_input`/`password_input` accept a `char_filter` – either a built-in (`sc.filter_digits`, `sc.filter_decimal`, `sc.filter_alpha`, `sc.filter_alnum`, `sc.filter_no_space`) or a Python callable `(ch: str) -> bool` – and a `validate` callable `(value: str) -> str | None` (return an error message to keep the prompt open). `text_input` also takes `suggestions=[...]` for Tab autocomplete. `sc.filter_decimal` accepts both `.` and `,` as decimal separator.
 
 ### Custom shortcuts
 

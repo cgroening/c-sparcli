@@ -480,7 +480,7 @@ const _: () = {
 extern "C" {
     pub fn sc_rendered_free(r: *mut ScRendered);
 }
-#[doc = " Layout and visual options for a bordered content panel.\n\n Zero-initialize to get sensible defaults: no border, no background, no title,\n auto width, no padding, and no margin.\n\n @note `full_width` overrides `width` when both are set; the panel width is\n then `terminal_width - 2` (one column margin each side).\n\n @note `bg` uses the same zero-init sentinel as `ScProgressBarOpts.fill_color`:\n `{0,0,0,0}` (index==0 AND r==g==b==0 together) means \"not set\".\n\n @code\n ScPanelOpts opts = {\n     .border  = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },\n     .title   = {\n         .text = \"Status\", .halign = SC_ALIGN_CENTER, .pad = 1,\n         .pos  = SC_POSITION_TOP\n     },\n     .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },\n     .full_width    = true,\n     .content_align = SC_ALIGN_LEFT,\n };\n sc_panel_str(\"All systems operational.\", opts);\n @endcode"]
+#[doc = " Layout and visual options for a bordered content panel.\n\n Zero-initialize to get sensible defaults: no border, no background, no title,\n auto width, no padding, and no margin.\n\n @note `full_width` overrides `width` when both are set; the panel width is\n then `terminal_width - 2` (one column margin each side).\n\n @note `bg` uses the same zero-init sentinel as\n `ScProgressBarOpts.fill_color`: `{0,0,0,0}` (index==0 AND r==g==b==0\n together) means \"not set\".\n\n @code\n ScPanelOpts opts = {\n     .border  = { SC_BORDER_ROUNDED, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },\n     .title   = {\n         .text = \"Status\", .halign = SC_ALIGN_CENTER, .pad = 1,\n         .pos  = SC_POSITION_TOP\n     },\n     .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },\n     .full_width    = true,\n     .content_align = SC_ALIGN_LEFT,\n };\n sc_panel_str(\"All systems operational.\", opts);\n @endcode"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ScPanelOpts {
@@ -547,7 +547,7 @@ pub struct ScCell {
     pub text: *mut ScText,
     #[doc = " When `true`, `halign` overrides the column's horizontal alignment."]
     pub halign_set: bool,
-    #[doc = " Horizontal alignment override; effective only when `halign_set` is `true`."]
+    #[doc = " Horizontal alignment override; used only when `halign_set` is `true`."]
     pub halign: ScHAlign,
     #[doc = " When `true`, `valign` overrides the column's vertical alignment."]
     pub valign_set: bool,
@@ -628,10 +628,12 @@ pub struct ScColOpts {
     pub word_wrap: bool,
     #[doc = " Column background color; `SC_ANSI_COLOR_NONE` = not set."]
     pub bg: ScColor,
+    #[doc = " Default text style (attributes + foreground) for unstyled cell spans\n in this column; zero-init = none. Lower priority than per-cell styling\n and the header/footer section styles. The style's `bg` is ignored -\n use the `bg` field above for column backgrounds."]
+    pub style: ScTextStyle,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScColOpts"][::std::mem::size_of::<ScColOpts>() - 32usize];
+    ["Size of ScColOpts"][::std::mem::size_of::<ScColOpts>() - 52usize];
     ["Alignment of ScColOpts"][::std::mem::align_of::<ScColOpts>() - 4usize];
     ["Offset of field: ScColOpts::min_width"]
         [::std::mem::offset_of!(ScColOpts, min_width) - 0usize];
@@ -644,6 +646,7 @@ const _: () = {
     ["Offset of field: ScColOpts::word_wrap"]
         [::std::mem::offset_of!(ScColOpts, word_wrap) - 20usize];
     ["Offset of field: ScColOpts::bg"][::std::mem::offset_of!(ScColOpts, bg) - 24usize];
+    ["Offset of field: ScColOpts::style"][::std::mem::offset_of!(ScColOpts, style) - 32usize];
 };
 #[doc = " Border style and color settings for a table."]
 #[repr(C)]
@@ -759,7 +762,7 @@ pub struct ScTableOpts {
     pub margin: ScEdges,
     #[doc = " `0` = auto-size; `>0` = distribute total width across flex columns."]
     pub total_width: ::std::os::raw::c_int,
-    #[doc = " `0` = unlimited; `>0` = truncate data rows at this count with an indicator."]
+    #[doc = " `0` = unlimited; `>0` = truncate data rows at this count, with an\nindicator."]
     pub max_rows: ::std::os::raw::c_int,
     #[doc = " When `true`, reverse the display order of columns."]
     pub right_to_left: bool,
@@ -865,7 +868,7 @@ extern "C" {
     #[doc = " Renders a horizontal rule with an optional rich-text title.\n\n @param title  Rich-text title embedded in the line; `NULL` = no title.\n @param opts   Rendering options (style, color, width, alignment, margin)."]
     pub fn sc_rule_text(title: *const ScText, opts: ScRuleOpts);
 }
-#[doc = "< Fixed character (default `•`); see `ScListOpts.bullet`"]
+#[doc = "< Fixed character (default `•`); see opts.bullet"]
 pub const ScListMarker_SC_LIST_BULLET: ScListMarker = 0;
 #[doc = "< `1`, `2`, `3`, … (decimal counter)"]
 pub const ScListMarker_SC_LIST_NUMBER: ScListMarker = 1;
@@ -887,9 +890,9 @@ pub struct ScListOpts {
     pub marker: ScListMarker,
     #[doc = " Bullet character used when `marker == SC_LIST_BULLET`; `NULL` = `•`."]
     pub bullet: *const ::std::os::raw::c_char,
-    #[doc = " Text placed before the marker value (e.g. `\"(\"` → `(1`); default `\"\"`."]
+    #[doc = " Text before the marker value (e.g. `\"(\"` → `(1`); default `\"\"`."]
     pub marker_prefix: *const ::std::os::raw::c_char,
-    #[doc = " Text placed after the marker value (e.g. `\".\"` → `1.`); default `\".\"`."]
+    #[doc = " Text after the marker value (e.g. `\".\"` → `1.`); default `\".\"`."]
     pub marker_suffix: *const ::std::os::raw::c_char,
     #[doc = " Style applied to the full marker field; zero-init = no formatting."]
     pub marker_style: ScTextStyle,
@@ -1037,9 +1040,9 @@ pub struct ScColItem {
     pub fixed_w: ::std::os::raw::c_int,
     #[doc = " Horizontal placement of the content when the column is wider."]
     pub halign: ScHAlign,
-    #[doc = " When `true`, `valign` overrides `ScColumnsOpts.valign` for this column."]
+    #[doc = " When `true`, `valign` overrides `ScColumnsOpts.valign` for this col."]
     pub valign_set: bool,
-    #[doc = " Vertical alignment override; effective only when `valign_set` is `true`."]
+    #[doc = " Vertical alignment override; used only when `valign_set` is `true`."]
     pub valign: ScVAlign,
     #[doc = " Background color filling padding spaces and empty slots; zero-init =\n no color. Does not affect the captured widget content itself."]
     pub bg: ScColor,
@@ -1174,7 +1177,7 @@ pub const ScProgressType_SC_PROGRESS_BLOCK: ScProgressType = 0;
 pub const ScProgressType_SC_PROGRESS_ASCII: ScProgressType = 1;
 #[doc = "< `━` fill, `╌` empty (heavy horizontal)"]
 pub const ScProgressType_SC_PROGRESS_LINE: ScProgressType = 2;
-#[doc = "< `▓` fill with `▒` edge, `░` empty (shaded blocks)"]
+#[doc = "< `▓` fill with `▒` edge, `░` empty (shaded)"]
 pub const ScProgressType_SC_PROGRESS_SHADED: ScProgressType = 3;
 #[doc = " Visual style of the progress bar's fill and empty cells."]
 pub type ScProgressType = ::std::os::raw::c_uint;
@@ -1764,7 +1767,7 @@ const _: () = {
 };
 #[doc = "< End the prompt and report the id."]
 pub const ScShortcutMode_SC_SHORTCUT_RETURN: ScShortcutMode = 0;
-#[doc = "< Run `on_fire`; stay open unless it returns false."]
+#[doc = "< Run `on_fire`; stay open unless it returns\nfalse."]
 pub const ScShortcutMode_SC_SHORTCUT_CALLBACK: ScShortcutMode = 1;
 #[doc = " How a fired shortcut affects the running prompt."]
 pub type ScShortcutMode = ::std::os::raw::c_uint;
@@ -1774,7 +1777,7 @@ pub type ScShortcutMode = ::std::os::raw::c_uint;
 pub struct ScShortcut {
     #[doc = " Key combination that triggers this shortcut."]
     pub chord: ScKeyChord,
-    #[doc = " Caller-defined id reported via `*out_shortcut_id` in RETURN mode (>= 0)."]
+    #[doc = " Caller-defined id reported via `*out_shortcut_id` in RETURN mode\n(>= 0)."]
     pub id: ::std::os::raw::c_int,
     #[doc = " Behavior when fired."]
     pub mode: ScShortcutMode,
@@ -1823,7 +1826,7 @@ extern "C" {
     #[doc = " Writes a short human-readable name for `chord` into `buf` (e.g. `\"F2\"`,\n `\"^E\"`, `\"M-e\"`). Always NUL-terminates when `cap > 0`. Used to build the\n key-hint footer for labeled shortcuts."]
     pub fn sc_key_chord_name(chord: ScKeyChord, buf: *mut ::std::os::raw::c_char, cap: usize);
 }
-#[doc = " Shared default styling. Any zero-init field falls through to the built-in default."]
+#[doc = " Shared default styling. Any zero-init field falls through to the\nbuilt-in default."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ScInputTheme {
@@ -1931,13 +1934,13 @@ pub struct ScConfirmOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich question (mixed styles); overrides the string + style. Borrowed."]
+    #[doc = " Optional rich question (mixed styles); overrides the string + style.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the question string as inline markup, e.g. \"[bold]Delete?[/]\"."]
     pub prompt_markup: bool,
@@ -2008,7 +2011,7 @@ extern "C" {
     pub fn sc_filter_digits(codepoint: u32, ctx: *mut ::std::os::raw::c_void) -> bool;
 }
 extern "C" {
-    #[doc = " Accepts digits, a leading sign and a decimal point (`0-9`, `-`, `+`, `.`)."]
+    #[doc = " Accepts digits, a leading sign and a decimal separator (`0-9`, `-`, `+`,\n`.`, `,`)."]
     pub fn sc_filter_decimal(codepoint: u32, ctx: *mut ::std::os::raw::c_void) -> bool;
 }
 extern "C" {
@@ -2075,21 +2078,21 @@ pub struct ScTextInputOpts {
     pub validate: ScValidateFn,
     #[doc = " Opaque pointer passed to `validate`."]
     pub validate_ctx: *mut ::std::os::raw::c_void,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
-    #[doc = " Parse the string prompt as inline markup, e.g. \"Rename [italic]x[/] to\"."]
+    #[doc = " Parse the string prompt as inline markup, e.g.\n\"Rename [italic]x[/] to\"."]
     pub prompt_markup: bool,
     #[doc = " Enable opening the value in an external editor (off by default)."]
     pub external_editor: bool,
     #[doc = " Editor command; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi."]
     pub editor: *const ::std::os::raw::c_char,
-    #[doc = " Key that opens the editor; zero-init = Ctrl-G. @see sparcli_shortcut.h"]
+    #[doc = " Key that opens the editor; zero-init = Ctrl-G.\n@see sparcli_shortcut.h"]
     pub editor_key: ScKeyChord,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -2175,7 +2178,7 @@ extern "C" {
 pub struct ScPasswordOpts {
     #[doc = " Dim hint shown while empty; may be `NULL`."]
     pub placeholder: *const ::std::os::raw::c_char,
-    #[doc = " Glyph per character; `NULL` = \"*\". Empty string (\"\") hides the length."]
+    #[doc = " Glyph per character; `NULL` = \"*\". Empty string (\"\") hides the\nlength."]
     pub mask: *const ::std::os::raw::c_char,
     #[doc = " Style for the prompt label."]
     pub prompt_style: ScTextStyle,
@@ -2215,13 +2218,13 @@ pub struct ScPasswordOpts {
     pub validate: ScValidateFn,
     #[doc = " Opaque pointer passed to `validate`."]
     pub validate_ctx: *mut ::std::os::raw::c_void,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,
@@ -2323,26 +2326,30 @@ pub struct ScNumberOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Render inside a bordered panel (prompt = top title, range/footer below)."]
+    #[doc = " Render inside a panel (prompt = top title, range/footer below)."]
     pub boxed: bool,
     #[doc = " Box border (boxed mode); zero-init type = rounded."]
     pub border: ScBorderStyle,
     #[doc = " Box width; `0` = full terminal width."]
     pub width: ::std::os::raw::c_int,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,
+    #[doc = " Decimal separator for display and input; `0` or `'.'` = period,\n`','` = comma. Both `.` and `,` keystrokes are always accepted and\nshown as the configured separator."]
+    pub decimal_sep: ::std::os::raw::c_char,
+    #[doc = " Optional: on `SC_INPUT_OK` receives a heap copy of the submitted value\n as text - exact, never round-tripped through `double`. Always uses\n `'.'` as decimal separator (machine-readable, e.g. for arbitrary-\n precision decimal types) and reflects clamping to `[min, max]`.\n Caller frees with `free()`. `NULL` = not requested."]
+    pub out_text: *mut *mut ::std::os::raw::c_char,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 224usize];
+    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 232usize];
     ["Alignment of ScNumberOpts"][::std::mem::align_of::<ScNumberOpts>() - 8usize];
     ["Offset of field: ScNumberOpts::initial"]
         [::std::mem::offset_of!(ScNumberOpts, initial) - 0usize];
@@ -2384,9 +2391,13 @@ const _: () = {
         [::std::mem::offset_of!(ScNumberOpts, prompt_text) - 208usize];
     ["Offset of field: ScNumberOpts::prompt_markup"]
         [::std::mem::offset_of!(ScNumberOpts, prompt_markup) - 216usize];
+    ["Offset of field: ScNumberOpts::decimal_sep"]
+        [::std::mem::offset_of!(ScNumberOpts, decimal_sep) - 217usize];
+    ["Offset of field: ScNumberOpts::out_text"]
+        [::std::mem::offset_of!(ScNumberOpts, out_text) - 224usize];
 };
 extern "C" {
-    #[doc = " Prompts for a number.\n\n Type digits/sign/`.` to edit; Up/Down adjust by `step`; Enter submits;\n Esc or Ctrl-C cancels. On `SC_INPUT_OK`, `*out` receives the parsed value,\n clamped to `[min, max]` when bounded.\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]
+    #[doc = " Prompts for a number.\n\n Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;\n Enter submits; Esc or Ctrl-C cancels. On `SC_INPUT_OK`, `*out` receives\n the parsed value, clamped to `[min, max]` when bounded; when\n `opts.out_text` is set it additionally receives the exact value as a\n heap string (see `ScNumberOpts.out_text`).\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]
     pub fn sc_number_input(
         prompt: *const ::std::os::raw::c_char,
         out: *mut f64,
@@ -2425,13 +2436,13 @@ pub struct ScTextareaOpts {
     pub border: ScBorderStyle,
     #[doc = " Box width; `0` = full terminal width."]
     pub width: ::std::os::raw::c_int,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,
@@ -2439,7 +2450,7 @@ pub struct ScTextareaOpts {
     pub external_editor: bool,
     #[doc = " Editor command; `NULL`/empty = $VISUAL → $EDITOR → nvim → vi."]
     pub editor: *const ::std::os::raw::c_char,
-    #[doc = " Key that opens the editor; zero-init = Ctrl-G. @see sparcli_shortcut.h"]
+    #[doc = " Key that opens the editor; zero-init = Ctrl-G.\n@see sparcli_shortcut.h"]
     pub editor_key: ScKeyChord,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -2535,13 +2546,13 @@ pub struct ScSelectOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the run. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the run.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,
@@ -2688,13 +2699,13 @@ pub struct ScFuzzyOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the run. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the run.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,
@@ -2865,13 +2876,13 @@ pub struct ScDatePickerOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Custom key shortcuts; borrowed, must outlive the call. @see sparcli_shortcut.h"]
+    #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
     pub n_shortcuts: usize,
     #[doc = " Optional: receives the fired shortcut id (RETURN mode), else `-1`."]
     pub out_shortcut_id: *mut ::std::os::raw::c_int,
-    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt. Borrowed."]
+    #[doc = " Optional rich prompt (mixed styles); overrides the string prompt.\nBorrowed."]
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,

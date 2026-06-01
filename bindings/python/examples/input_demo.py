@@ -47,6 +47,11 @@ def main() -> int:
                           sc.NumberOpts(min=0, max=10, step=1, initial=3))
     sc.println(f"  -> {qty}", sc.Style.dim())
 
+    # Exact decimal.Decimal (never via float), comma as separator - for money.
+    amount = sc.decimal_input(
+        "Amount", sc.NumberOpts(decimals=2, step=0.5, decimal_sep=","))
+    sc.println(f"  -> {amount!r}", sc.Style.dim())
+
     color = sc.Select(sc.SelectOpts(prompt="Favourite color"))
     color.add("red").add("green").add("blue")
     sc.println(f"  -> index {color.run_one()}", sc.Style.dim())

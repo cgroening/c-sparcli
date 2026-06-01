@@ -1,6 +1,47 @@
 #include "test_input.h"
 #include "sparcli.h"
+#include "input/input_internal.h"   /* sc_number_frame */
 
+#include <stdlib.h>
+#include <string.h>
+
+
+/** Strips ANSI codes from `line` and checks it contains `needle`. */
+static bool line_contains(const char *line, const char *needle) {
+    char *plain = sc_strip_ansi(line);
+    bool found = plain && strstr(plain, needle) != NULL;
+    free(plain);
+    return found;
+}
+
+/** Non-interactive: display formatting via the frame builder. */
+void test_number_format(void) {
+    /* Comma separator: value and range both render with ','. */
+    ScRendered *frame = sc_number_frame(
+        "Price", 12.99,
+        (ScNumberOpts){ .min = 0, .max = 100, .step = 0.5, .decimals = 2,
+                        .decimal_sep = ',' }
+    );
+    CHECK(frame != NULL && frame->line_count > 0, "comma frame renders");
+    if (frame && frame->line_count > 0) {
+        CHECK(line_contains(frame->lines[0], "12,99"),
+              "decimal_sep ',': value shows 12,99");
+        CHECK(line_contains(frame->lines[0], "[0,00-100,00]"),
+              "decimal_sep ',': range shows [0,00-100,00]");
+    }
+    sc_rendered_free(frame);
+
+    /* Default separator: value renders with '.'. */
+    frame = sc_number_frame(
+        "Price", 12.99, (ScNumberOpts){ .decimals = 2 }
+    );
+    CHECK(frame != NULL && frame->line_count > 0, "default frame renders");
+    if (frame && frame->line_count > 0) {
+        CHECK(line_contains(frame->lines[0], "12.99"),
+              "default separator: value shows 12.99");
+    }
+    sc_rendered_free(frame);
+}
 
 void test_number(void) {
     double v = 0;

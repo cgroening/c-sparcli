@@ -1049,6 +1049,19 @@ inline std::optional<double> number_input(std::string_view prompt,
         return out;
     return std::nullopt;
 }
+/** Numeric entry returning the exact submitted text ('.'-normalized, never
+ *  round-tripped through `double`), so the caller can construct an arbitrary-
+ *  precision decimal type. @return the string, or nullopt.
+ *  @see ScNumberOpts.out_text */
+inline std::optional<std::string> number_input_text(std::string_view prompt,
+                                                    NumberOpts opts = {}) {
+    double value = 0.0;
+    char* out = nullptr;
+    opts.out_text = &out;
+    const InputStatus st =
+        sc_number_input(detail::z(prompt).c_str(), &value, opts);
+    return detail::take(out, st);
+}
 /** Month-grid date picker (a zeroed `seed` starts at today). @return the picked
  *  date, or nullopt. @see sc_datepicker */
 inline std::optional<std::tm> datepicker(std::tm seed = {},

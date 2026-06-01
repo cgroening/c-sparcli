@@ -2,9 +2,10 @@
 //! `cargo run --example input_demo`.
 
 use sparcli::{
-    confirm, datepicker, number_input, password_input, text_input, textarea,
-    ConfirmOpts, DatePickerOpts, Fuzzy, FuzzyOpts, NumberOpts, PasswordOpts,
-    Select, SelectOpts, Shortcuts, TextInputOpts, TextareaOpts,
+    confirm, datepicker, number_input, number_input_text, password_input,
+    text_input, textarea, ConfirmOpts, DatePickerOpts, Fuzzy, FuzzyOpts,
+    NumberOpts, PasswordOpts, Select, SelectOpts, Shortcuts, TextInputOpts,
+    TextareaOpts,
 };
 
 fn main() -> sparcli::Result<()> {
@@ -48,6 +49,15 @@ fn main() -> sparcli::Result<()> {
         number_input("Quantity", NumberOpts::new().range(0.0, 100.0).step(5.0))?
     {
         println!("-> {qty}");
+    }
+
+    // Exact text (never via f64), comma as decimal separator - feed the
+    // result to a decimal type for money amounts.
+    if let Some(amount) = number_input_text(
+        "Amount",
+        NumberOpts::new().decimals(2).step(0.5).decimal_sep(','),
+    )? {
+        println!("-> {amount} (exact)");
     }
 
     if let Some(notes) = textarea(
