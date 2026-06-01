@@ -317,8 +317,7 @@ make test-cpp
   `make test-input-style-golden`, `make test-cpp-golden` (review + commit).
 - **Docs in lockstep:** `CLAUDE.md`, the per-language references
   `docs/api-c.md` / `api-cpp.md` / `api-rust.md` / `api-python.md`, and `README.md`.
-- **External consumers** that link the *installed* library (e.g. the `taskcli`
-  C++ template) must be rebuilt after `make install`.
+- **External consumers** that link the *installed* library must be rebuilt after `make install`.
 - **The cdef is hand-maintained** (Python) and the bindgen output is committed
   (Rust): a new/changed public function or struct field is invisible to those
   bindings until you update `build_sparcli.py` / regen `bindings.rs`.
@@ -382,6 +381,31 @@ pkg-config --cflags --libs sparcli   # → -I$HOME/.local/include -L$HOME/.local
 ```
 
 Remove later with `make uninstall PREFIX="$HOME/.local"`.
+
+### Default prefix (`/usr/local`) without sudo
+
+If you want to keep the default `PREFIX=/usr/local` (so consumers need no
+`PKG_CONFIG_PATH` setup and pkg-config / the linker find sparcli out of the
+box), the alternative is a **one-time** ownership change of the three install
+directories:
+
+```sh
+sudo install -d -o "$(whoami)" -g admin \
+    /usr/local/lib /usr/local/include /usr/local/lib/pkgconfig
+```
+
+(`install -d` creates the directories if missing and re-owns them if they
+already exist – one command covers both cases.)
+
+After that, `make install` / `make uninstall` work without `sudo` – for
+sparcli and any other project installing there. This is long-standing
+practice on macOS (Intel-era Homebrew owned `/usr/local` the same way); SIP
+protects `/usr/local` itself, not its contents. No `make clean` is needed
+since the prefix does not change.
+
+Trade-off: those directories become writable by your user account, so any
+process running as you can place libraries there. Prefer the `~/.local`
+install above if that matters in your environment.
 
 ---
 
