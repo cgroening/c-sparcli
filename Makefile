@@ -79,6 +79,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/prompt.c src/input/line_editor.c src/input/theme.c \
           src/input/shortcut.c src/input/editor.c src/input/confirm.c \
           src/input/text_input.c src/input/password_input.c src/input/number_input.c \
+          src/input/calc.c \
           src/input/textarea.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c \
           \
@@ -138,7 +139,7 @@ TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1 \
 # libFuzzer dependency; the harness entry points are libFuzzer-compatible).
 FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c \
              tests/fuzz/fuzz_sanitize.c tests/fuzz/fuzz_csv.c \
-             tests/fuzz/fuzz_args.c
+             tests/fuzz/fuzz_args.c tests/fuzz/fuzz_calc.c
 FUZZ_BIN   = $(patsubst tests/fuzz/%.c,$(BUILDDIR)/fuzz/%,$(FUZZ_SRC))
 FUZZ_ITERS ?= 200000
 FUZZ_SEED  ?= 1
@@ -186,6 +187,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_select_edit.c \
                  tests/input/logic/test_opts_copy.c \
                  tests/input/logic/test_filters.c \
+                 tests/input/logic/test_calc.c \
                  tests/input/logic/test_sanitize.c \
                  tests/input/logic/test_suggest.c \
                  tests/input/logic/test_threads.c
@@ -542,11 +544,14 @@ fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	    cli/cli_csv.c $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_csv
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_args.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_args
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_calc.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_calc
 	./$(BUILDDIR)/fuzz/fuzz_markup $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_key $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_sanitize $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_csv $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_args $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_calc $(FUZZ_ITERS) $(FUZZ_SEED)
 
 # Static analysis. Each tool is optional: the target degrades to an install
 # hint when a tool is missing, so it can run on any machine.

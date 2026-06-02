@@ -577,6 +577,19 @@ pub struct NumberOpts {
     /// Decimal separator shown and accepted while editing; `'\0'` or `'.'`
     /// = period (default), `','` = comma.
     pub decimal_sep: char,
+
+    /// Calculator mode: typing `=` starts an expression (e.g. `=1,5+2*3`);
+    /// Enter accepts the result, a second Enter submits it. The field shows
+    /// the result rounded to `decimals`, the submitted value keeps full
+    /// precision.
+    pub calculator: bool,
+
+    /// Submit the displayed (rounded) calculator value instead of the
+    /// full-precision result.
+    pub calc_store_rounded: bool,
+
+    /// Display calculator results in full precision instead of rounded.
+    pub calc_show_precise: bool,
 }
 
 impl NumberOpts {
@@ -608,6 +621,18 @@ impl NumberOpts {
         self.decimal_sep = sep;
         self
     }
+    pub fn calculator(mut self, on: bool) -> Self {
+        self.calculator = on;
+        self
+    }
+    pub fn calc_store_rounded(mut self, on: bool) -> Self {
+        self.calc_store_rounded = on;
+        self
+    }
+    pub fn calc_show_precise(mut self, on: bool) -> Self {
+        self.calc_show_precise = on;
+        self
+    }
     fn raw(&self) -> ffi::ScNumberOpts {
         let mut o: ffi::ScNumberOpts = unsafe { mem::zeroed() };
         o.initial = self.initial;
@@ -624,6 +649,9 @@ impl NumberOpts {
         } else {
             self.decimal_sep as u8 as c_char
         };
+        o.calculator = self.calculator;
+        o.calc_store_rounded = self.calc_store_rounded;
+        o.calc_show_precise = self.calc_show_precise;
         o
     }
 }
@@ -847,6 +875,18 @@ impl Drop for Select {
 /* ── Fuzzy ───────────────────────────────────────────────────────────────── */
 
 /// Pure subsequence match (no TTY needed); returns the match flag + score.
+/// Evaluates a basic arithmetic expression (`+ - * /`, parentheses).
+///
+/// Both `.` and `,` work as decimal separator. Returns `None` for invalid
+/// expressions (syntax error, division by zero, overflow). This is the
+/// evaluator behind the number input's calculator mode.
+pub fn calc_eval(expr: &str) -> Option<f64> {
+    let mut result = 0.0f64;
+    let ok =
+        unsafe { ffi::sc_calc_eval(cstring(expr).as_ptr(), &mut result) };
+    ok.then_some(result)
+}
+
 pub fn fuzzy_match(pattern: &str, s: &str) -> (bool, i32) {
     let mut score = 0;
     let ok = unsafe {

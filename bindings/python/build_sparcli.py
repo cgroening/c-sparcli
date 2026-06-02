@@ -74,6 +74,7 @@ _SOURCES = [
     "input/text_input.c",
     "input/password_input.c",
     "input/number_input.c",
+    "input/calc.c",
     "input/textarea.c",
     "input/select.c",
     "input/fuzzy.c",
@@ -774,9 +775,14 @@ typedef struct {
     bool prompt_markup;
     char decimal_sep;
     char **out_text;
+    bool calculator;
+    bool calc_store_rounded;
+    bool calc_show_precise;
+    ScTextStyle error_style;
     ...;
 } ScNumberOpts;
 ScInputStatus sc_number_input(const char *prompt, double *out, ScNumberOpts opts);
+bool sc_calc_eval(const char *expr, double *result);
 
 /* ── Textarea ──────────────────────────────────────────────────────────── */
 typedef struct {

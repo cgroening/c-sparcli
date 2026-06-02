@@ -305,6 +305,64 @@ static int child_case(int c) {
             free(t);
             return ok ? 0 : 1;
         }
+        case 20: {
+            /* Calculator: "=1,5+2*3", Enter accepts the result into the
+               field, the second Enter submits it. 7.5 is exactly
+               representable, so value and text agree at full precision. */
+            double v = 0;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Amount", &v, (ScNumberOpts){
+                .calculator = true, .decimals = 1, .decimal_sep = ',',
+                .start_empty = true, .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v == 7.5 && text
+                      && strcmp(text, "7.5") == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
+        case 21: {
+            /* Calculator: Enter on an invalid expression ("=1+") shows the
+               error and must NOT submit; completing it to "=1+2" then
+               accepting + submitting yields 3. */
+            double v = 0;
+            ScInputStatus s = sc_number_input("Qty", &v, (ScNumberOpts){
+                .calculator = true, .start_empty = true });
+            return (s == SC_INPUT_OK && v == 3.0) ? 0 : 1;
+        }
+        case 22: {
+            /* Calculator default precision: "=10/3" displays rounded
+               (decimals=2) but submits the full-precision result. */
+            double v = 0;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Amount", &v, (ScNumberOpts){
+                .calculator = true, .decimals = 2, .start_empty = true,
+                .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v > 3.33 && v < 3.34
+                      && text && strncmp(text, "3.3333333333", 12) == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
+        case 23: {
+            /* calc_store_rounded: the displayed (rounded) value is what
+               gets submitted. */
+            double v = 0;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Amount", &v, (ScNumberOpts){
+                .calculator = true, .calc_store_rounded = true, .decimals = 2,
+                .start_empty = true, .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v == 3.33 && text
+                      && strcmp(text, "3.33") == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
+        case 24: {
+            /* Editing after accepting a calc result discards the pending
+               exact value: "=2*3" -> accept shows "6", typing '9' makes
+               "69", Enter submits the edited text. */
+            double v = 0;
+            ScInputStatus s = sc_number_input("Qty", &v, (ScNumberOpts){
+                .calculator = true, .start_empty = true });
+            return (s == SC_INPUT_OK && v == 69.0) ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -338,6 +396,11 @@ static const Case CASES[] = {
     { "theme-heap-strings", "\r" },     /* theme marker freed after set_theme */
     { "suggest-dropdown-enter", "ch\x1b[B\r\r" },  /* down, accept, submit */
     { "suggest-dropdown-fuzzy-tab", "cp\t\r" },    /* tab accepts best match */
+    { "calc-accept-submit", "=1,5+2*3\r\r" },      /* accept 7,5 then submit */
+    { "calc-invalid-then-fix", "=1+\r2\r\r" },     /* error, fix, accept, submit */
+    { "calc-full-precision", "=10/3\r\r" },        /* rounded display, exact out */
+    { "calc-store-rounded", "=10/3\r\r" },         /* rounded display == out */
+    { "calc-edit-after-accept", "=2*3\r9\r" },     /* accept "6", edit to "69" */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

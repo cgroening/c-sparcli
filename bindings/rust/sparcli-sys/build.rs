@@ -45,6 +45,7 @@ const SOURCES: &[&str] = &[
     "src/input/text_input.c",
     "src/input/password_input.c",
     "src/input/number_input.c",
+    "src/input/calc.c",
     "src/input/textarea.c",
     "src/input/select.c",
     "src/input/fuzzy.c",

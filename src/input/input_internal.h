@@ -277,6 +277,27 @@ static inline ScRendered *sc_compose_hint(
     return sc_hint_place(body, sc_hint_render(hint, layout, style), pos);
 }
 
+/**
+ * Vertically stacks `bottom` beneath `top`, consuming both. Returns the
+ * combined block, or `top` unchanged when `bottom` is NULL or stacking
+ * fails. Shared by the widgets that stack error lines / extra blocks
+ * under their body (text input, number input).
+ */
+static inline ScRendered *sc_stack_below(ScRendered *top, ScRendered *bottom) {
+    if (!bottom) {
+        return top;
+    }
+    const ScRendered *parts[2] = { top, bottom };
+    ScRendered *stacked = sc_vstack(parts, 2, 0);
+    if (!stacked) {
+        sc_rendered_free(bottom);
+        return top;
+    }
+    sc_rendered_free(top);
+    sc_rendered_free(bottom);
+    return stacked;
+}
+
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
 
@@ -541,6 +562,26 @@ ScRendered *sc_textarea_frame(
 );
 ScRendered *sc_number_frame(
     const char *prompt, double value, ScNumberOpts opts
+);
+
+/** Test-only seed state for calculator-mode number frames. */
+typedef struct ScNumberCalcFrame {
+    /** Editor content including the leading `=` (or the accepted display). */
+    const char *expr;
+
+    /** Render the post-accept state (full-precision value pending). */
+    bool accepted;
+
+    /** Render the invalid-expression error line. */
+    bool error;
+} ScNumberCalcFrame;
+
+/**
+ * Renders a calculator-mode number frame without a TTY (style/logic tests).
+ * `opts.calculator` is forced on; the editor is seeded with `frame.expr`.
+ */
+ScRendered *sc_number_frame_calc(
+    const char *prompt, ScNumberCalcFrame frame, ScNumberOpts opts
 );
 
 

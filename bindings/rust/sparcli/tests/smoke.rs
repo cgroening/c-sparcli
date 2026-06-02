@@ -23,6 +23,27 @@ fn strip_and_truncate() {
 }
 
 #[test]
+fn calc_eval_pure() {
+    // Pure expression evaluator behind the calculator mode.
+    assert_eq!(sparcli::calc_eval("1+2*3"), Some(7.0));
+    assert_eq!(sparcli::calc_eval("1,5+2*3"), Some(7.5));
+    assert_eq!(sparcli::calc_eval("(1+2)*3"), Some(9.0));
+    assert_eq!(sparcli::calc_eval("1/0"), None);
+    assert_eq!(sparcli::calc_eval("garbage"), None);
+
+    // The calculator opts cross the FFI boundary cleanly (no TTY -> error).
+    let r = sparcli::number_input(
+        "Amount",
+        sparcli::NumberOpts::new()
+            .decimals(2)
+            .calculator(true)
+            .calc_store_rounded(true)
+            .calc_show_precise(true),
+    );
+    assert!(r.is_err());
+}
+
+#[test]
 fn fuzzy_match_pure() {
     let (ok, score) = fuzzy_match("ab", "cab");
     assert!(ok);

@@ -69,7 +69,6 @@ static ScRendered *text_render(void *state);
             TextState *self, const ScText *inner);
         static ScRendered *stack_dropdown(TextState *self, ScRendered *top);
         static ScRendered *stack_error_line(TextState *self, ScRendered *panel);
-            static ScRendered *stack_below(ScRendered *top, ScRendered *bottom);
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static bool dropdown_on_key(TextState *self, ScKey key);
         static bool dropdown_dispatch(TextState *self, ScKey key,
@@ -465,7 +464,7 @@ static ScRendered *capture_boxed_panel(TextState *self, const ScText *inner) {
  * inactive or stacking fails.
  */
 static ScRendered *stack_dropdown(TextState *self, ScRendered *top) {
-    return stack_below(top, capture_dropdown(self));
+    return sc_stack_below(top, capture_dropdown(self));
 }
 
 /**
@@ -485,26 +484,7 @@ static ScRendered *stack_error_line(TextState *self, ScRendered *panel) {
     sc_text_append(error_text, self->error, resolve_error_style(self));
     ScRendered *error_rendered = sc_capture_text(error_text);
     sc_text_free(error_text);
-    return stack_below(panel, error_rendered);
-}
-
-/**
- * Vertically stacks `bottom` beneath `top`, consuming both. Returns the
- * combined block, or `top` unchanged when `bottom` is NULL or stacking fails.
- */
-static ScRendered *stack_below(ScRendered *top, ScRendered *bottom) {
-    if (!bottom) {
-        return top;
-    }
-    const ScRendered *parts[2] = { top, bottom };
-    ScRendered *stacked = sc_vstack(parts, 2, 0);
-    if (!stacked) {
-        sc_rendered_free(bottom);
-        return top;
-    }
-    sc_rendered_free(top);
-    sc_rendered_free(bottom);
-    return stacked;
+    return sc_stack_below(panel, error_rendered);
 }
 
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {

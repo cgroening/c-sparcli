@@ -167,6 +167,15 @@ if let Some(amount) = number_input_text(
     "Amount", NumberOpts::new().decimals(2).decimal_sep(',').start_empty(true),
 )? { /* amount == "12.99" – parse into rust_decimal etc. */ }
 
+// Calculator mode: "=" starts an expression (=1,5+2*3); Enter accepts the
+// result, a second Enter submits it (full precision by default).
+if let Some(total) = number_input_text(
+    "Total", NumberOpts::new().decimals(2).calculator(true).start_empty(true),
+)? { /* "=12,99*3" → total == "38.97" */ }
+
+// The evaluator is also available as a pure function:
+assert_eq!(sparcli::calc_eval("1,5+2*3"), Some(7.5));
+
 let mut sel = Select::new(SelectOpts::new().prompt("Pick").multi(true));
 sel.add("a").add("b").add("c");
 if let Some(indices) = sel.run()? { /* Vec<usize> */ }

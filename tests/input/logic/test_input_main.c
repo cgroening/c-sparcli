@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
         { "Line Editor",    test_line_editor,    0 },
         { "Char Filters",   test_filters,        0 },
         { "Number Format",  test_number_format,  0 },
+        { "Calculator",     test_calc,           0 },
         { "ANSI Sanitizer", test_sanitize,       0 },
         { "Suggest Dropdown", test_suggest,      0 },
         { "Thread Safety",  test_threads,        0 },

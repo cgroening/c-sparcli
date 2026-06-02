@@ -234,6 +234,29 @@
   [34m╚[0m[34m════════════════[0m [0m[2m[1-65535][0m [0m[34m═[0m[34m╝[0m
   [2m↑/↓ adjust · enter submit · esc cancel[0m
 
+[2mcalculator: live preview of a valid expression[0m
+  Amount[0m [0m=[0m1[0m,[0m5[0m+[0m2[0m*[0m3[0m[30m[47m [0m[2m = 7,50[0m
+  [2menter accept result · esc cancel[0m
+
+[2mcalculator: invalid expression previews '= ?'[0m
+  Amount[0m [0m=[0m1[0m,[0m5[0m+[0m[30m[47m [0m[2m = ?[0m
+  [2menter accept result · esc cancel[0m
+
+[2mcalculator: error line after Enter on invalid expression[0m
+  Amount[0m [0m=[0m1[0m,[0m5[0m+[0m[30m[47m [0m[2m = ?[0m
+    [0m[31minvalid expression[0m
+  [2menter accept result · esc cancel[0m
+
+[2mcalculator: boxed, preview inside the panel[0m
+  ╭[0m─[0m [0mAmount[0m [0m─────────────────────────[0m╮[0m
+  │[0m =[0m1[0m0[0m0[0m/[0m3[0m[30m[47m [0m[2m = 33,33[0m                  │[0m
+  ╰[0m──────────────────────────────────[0m╯[0m
+  [2menter accept result · esc cancel[0m
+
+[2mcalculator: hint advertises '= calc' when enabled[0m
+  Amount[0m [0m5[0m.[0m0[0m0[0m[30m[47m [0m
+  [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════════ [1mTextarea[0m ═══════════════════════════════════

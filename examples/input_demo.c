@@ -143,6 +143,22 @@ static void demo_number(void) {
     );
     if (st == SC_INPUT_OK) { printf("  -> %.2f\n", price); }
     note_cancel(st);
+
+    /* Calculator mode: type "=" then an expression like =1,5+2*3; Enter
+     * shows the result in the field, a second Enter submits it. The field
+     * displays the rounded value, the submitted value keeps full precision. */
+    double amount = 0;
+    char *exact = NULL;
+    st = sc_number_input(
+        "Amount (try =1,5+2*3)", &amount,
+        (ScNumberOpts){ .decimals = 2, .decimal_sep = ',', .start_empty = true,
+                        .calculator = true, .out_text = &exact }
+    );
+    if (st == SC_INPUT_OK) {
+        printf("  -> %.2f (exact: %s)\n", amount, exact ? exact : "?");
+        free(exact);
+    }
+    note_cancel(st);
 }
 
 static void demo_textarea(void) {

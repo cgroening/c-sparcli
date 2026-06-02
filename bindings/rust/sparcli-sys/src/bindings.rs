@@ -2555,10 +2555,18 @@ pub struct ScNumberOpts {
     pub decimal_sep: ::std::os::raw::c_char,
     #[doc = " Optional: on `SC_INPUT_OK` receives a heap copy of the submitted value\n as text - exact, never round-tripped through `double`. Always uses\n `'.'` as decimal separator (machine-readable, e.g. for arbitrary-\n precision decimal types) and reflects clamping to `[min, max]`.\n Caller frees with `free()`. `NULL` = not requested."]
     pub out_text: *mut *mut ::std::os::raw::c_char,
+    #[doc = " Enable calculator mode: typing `=` as the first character starts an\n arithmetic expression (e.g. `=1,5+2*3`; see `sc_calc_eval` for the\n syntax). A dim live preview shows the result while typing; Enter\n replaces the expression with the result (still editable), a second\n Enter submits it. An invalid expression shows an error line and\n keeps the prompt open.\n\n Precision: the field displays the result rounded to `decimals`, but\n the submitted value (`*out` / `out_text`) keeps the full-precision\n result - a deliberate exception to the \"displayed text == submitted\n value\" rule (`*out` and `*out_text` still always agree). See\n `calc_store_rounded` / `calc_show_precise` to change this."]
+    pub calculator: bool,
+    #[doc = " Submit the displayed value instead of the full-precision result.\n With the default rounded display this stores the value rounded to\n `decimals`, restoring \"displayed == submitted\"."]
+    pub calc_store_rounded: bool,
+    #[doc = " Display calculator results in full precision instead of rounded to\n `decimals`."]
+    pub calc_show_precise: bool,
+    #[doc = " Style of the invalid-expression error line; zero-init = red."]
+    pub error_style: ScTextStyle,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 240usize];
+    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 264usize];
     ["Alignment of ScNumberOpts"][::std::mem::align_of::<ScNumberOpts>() - 8usize];
     ["Offset of field: ScNumberOpts::initial"]
         [::std::mem::offset_of!(ScNumberOpts, initial) - 0usize];
@@ -2606,6 +2614,14 @@ const _: () = {
         [::std::mem::offset_of!(ScNumberOpts, decimal_sep) - 225usize];
     ["Offset of field: ScNumberOpts::out_text"]
         [::std::mem::offset_of!(ScNumberOpts, out_text) - 232usize];
+    ["Offset of field: ScNumberOpts::calculator"]
+        [::std::mem::offset_of!(ScNumberOpts, calculator) - 240usize];
+    ["Offset of field: ScNumberOpts::calc_store_rounded"]
+        [::std::mem::offset_of!(ScNumberOpts, calc_store_rounded) - 241usize];
+    ["Offset of field: ScNumberOpts::calc_show_precise"]
+        [::std::mem::offset_of!(ScNumberOpts, calc_show_precise) - 242usize];
+    ["Offset of field: ScNumberOpts::error_style"]
+        [::std::mem::offset_of!(ScNumberOpts, error_style) - 244usize];
 };
 extern "C" {
     #[doc = " Prompts for a number.\n\n Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;\n Enter submits; Esc or Ctrl-C cancels. Enter on an empty field is ignored\n (clear the field with Ctrl-U, then Enter does nothing until a value is\n typed). On `SC_INPUT_OK`, `*out` receives the parsed value, clamped to\n `[min, max]` when bounded; when `opts.out_text` is set it additionally\n receives the exact value as a heap string (see `ScNumberOpts.out_text`).\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]
@@ -2614,6 +2630,10 @@ extern "C" {
         out: *mut f64,
         opts: ScNumberOpts,
     ) -> ScInputStatus;
+}
+extern "C" {
+    #[doc = " Evaluates a basic arithmetic expression.\n\n Supports `+ - * /`, parentheses, a single unary minus per operand and\n numbers with either `.` or `,` as decimal separator (e.g. `\"1,5+2*3\"`,\n `\"2*-3\"`). Whitespace is ignored; `1++2` and `--3` are rejected.\n Pure function (no terminal dependency), exposed for unit testing and\n reuse; this is the evaluator behind the number input's calculator mode.\n\n @param expr    Expression text (without a leading `=`).\n @param result  Receives the value on success; untouched on failure.\n @return        `true` when the whole expression parses to a finite value;\n                `false` on syntax errors, division by zero or overflow."]
+    pub fn sc_calc_eval(expr: *const ::std::os::raw::c_char, result: *mut f64) -> bool;
 }
 #[doc = " Options for `sc_textarea`."]
 #[repr(C)]

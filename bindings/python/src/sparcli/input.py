@@ -279,6 +279,18 @@ class NumberOpts:
     shortcuts: Shortcuts | None = None
     prompt_text: Text | None = None
     prompt_markup: bool = False
+    #: Calculator mode: typing ``=`` starts an expression (e.g. ``=1,5+2*3``);
+    #: Enter accepts the result into the field, a second Enter submits it.
+    #: By default the field shows the result rounded to ``decimals`` but the
+    #: submitted value keeps full precision.
+    calculator: bool = False
+    #: Submit the displayed (rounded) calculator value instead of the
+    #: full-precision result.
+    calc_store_rounded: bool = False
+    #: Display calculator results in full precision instead of rounded.
+    calc_show_precise: bool = False
+    #: Style of the invalid-expression error line; default red.
+    error_style: Style = field(default_factory=Style)
 
     def _fill(self, c, arena: list) -> None:
         c.initial = self.initial
@@ -300,6 +312,24 @@ class NumberOpts:
         c.width = self.width
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
+        c.calculator = self.calculator
+        c.calc_store_rounded = self.calc_store_rounded
+        c.calc_show_precise = self.calc_show_precise
+        apply_style(c.error_style, self.error_style)
+
+
+def calc_eval(expr: str) -> float | None:
+    """Evaluate a basic arithmetic expression (``+ - * /``, parentheses).
+
+    Both ``.`` and ``,`` work as decimal separator. Returns the result, or
+    ``None`` for invalid expressions (syntax error, division by zero,
+    overflow). This is the evaluator behind the calculator mode.
+    """
+    arena: list = []
+    out = ffi.new("double *")
+    if not lib.sc_calc_eval(cstr(arena, expr), out):
+        return None
+    return float(out[0])
 
 
 def number_input(prompt: str, opts: NumberOpts = NumberOpts()) -> float | None:

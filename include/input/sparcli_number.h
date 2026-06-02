@@ -104,6 +104,38 @@ typedef struct ScNumberOpts {
      * Caller frees with `free()`. `NULL` = not requested.
      */
     char **out_text;
+
+    /**
+     * Enable calculator mode: typing `=` as the first character starts an
+     * arithmetic expression (e.g. `=1,5+2*3`; see `sc_calc_eval` for the
+     * syntax). A dim live preview shows the result while typing; Enter
+     * replaces the expression with the result (still editable), a second
+     * Enter submits it. An invalid expression shows an error line and
+     * keeps the prompt open.
+     *
+     * Precision: the field displays the result rounded to `decimals`, but
+     * the submitted value (`*out` / `out_text`) keeps the full-precision
+     * result - a deliberate exception to the "displayed text == submitted
+     * value" rule (`*out` and `*out_text` still always agree). See
+     * `calc_store_rounded` / `calc_show_precise` to change this.
+     */
+    bool calculator;
+
+    /**
+     * Submit the displayed value instead of the full-precision result.
+     * With the default rounded display this stores the value rounded to
+     * `decimals`, restoring "displayed == submitted".
+     */
+    bool calc_store_rounded;
+
+    /**
+     * Display calculator results in full precision instead of rounded to
+     * `decimals`.
+     */
+    bool calc_show_precise;
+
+    /** Style of the invalid-expression error line; zero-init = red. */
+    ScTextStyle error_style;
 } ScNumberOpts;
 
 /**
@@ -123,5 +155,21 @@ typedef struct ScNumberOpts {
 SPARCLI_EXPORT ScInputStatus sc_number_input(
     const char *prompt, double *out, ScNumberOpts opts
 );
+
+/**
+ * Evaluates a basic arithmetic expression.
+ *
+ * Supports `+ - * /`, parentheses, a single unary minus per operand and
+ * numbers with either `.` or `,` as decimal separator (e.g. `"1,5+2*3"`,
+ * `"2*-3"`). Whitespace is ignored; `1++2` and `--3` are rejected.
+ * Pure function (no terminal dependency), exposed for unit testing and
+ * reuse; this is the evaluator behind the number input's calculator mode.
+ *
+ * @param expr    Expression text (without a leading `=`).
+ * @param result  Receives the value on success; untouched on failure.
+ * @return        `true` when the whole expression parses to a finite value;
+ *                `false` on syntax errors, division by zero or overflow.
+ */
+SPARCLI_EXPORT bool sc_calc_eval(const char *expr, double *result);
 
 SPARCLI_END_DECLS

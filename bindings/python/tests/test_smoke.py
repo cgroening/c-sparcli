@@ -206,6 +206,28 @@ def test_input_unavailable_without_tty():
         sc.Select().add("a").run_one()
 
 
+def test_calc_eval():
+    # Pure expression evaluator behind the number input's calculator mode.
+    assert sc.calc_eval("1+2*3") == 7.0
+    assert sc.calc_eval("1,5+2*3") == 7.5      # comma decimal separator
+    assert sc.calc_eval("(1+2)*3") == 9.0
+    assert sc.calc_eval("2*-3") == -6.0
+    assert sc.calc_eval("1/0") is None         # division by zero
+    assert sc.calc_eval("1++2") is None        # typo
+    assert sc.calc_eval("garbage") is None
+
+
+def test_number_opts_calculator_accepted():
+    # The calculator opts must reach the C struct (cdef fields + _fill);
+    # without a TTY the prompt still raises cleanly.
+    opts = sc.NumberOpts(decimals=2, decimal_sep=",", start_empty=True,
+                         calculator=True, calc_store_rounded=True,
+                         calc_show_precise=True,
+                         error_style=sc.Style(fg=sc.Color.RED))
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.decimal_input("amount", opts)
+
+
 def test_number_opts_start_empty_accepted():
     # start_empty must reach the C struct (cdef field + _fill); without a
     # TTY the prompt still raises cleanly instead of erroring on the field.

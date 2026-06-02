@@ -308,6 +308,12 @@ if (auto note = textarea("Notes")) { /* *note (Ctrl-D submits) */ }
 if (auto qty  = number_input("Qty", { .min = 0, .max = 100, .step = 5 })) { }
 if (auto date = datepicker({}, { .prompt = "Pick a date" })) { /* std::tm */ }
 
+// Calculator mode: "=" starts an expression (=1,5+2*3); Enter accepts the
+// result, a second Enter submits it (full precision by default).
+if (auto total = number_input_text("Total", { .start_empty = true,
+        .decimals = 2, .calculator = true })) { /* "38.97" */ }
+if (auto v = calc_eval("1,5+2*3")) { /* *v == 7.5 – pure, no TTY */ }
+
 // Exact value as text ('.'-normalized, never via double) – e.g. for money.
 // decimal_sep = ',' shows/accepts a comma while editing; start_empty starts
 // with an empty field instead of "0,00" (Enter on an empty field is ignored).

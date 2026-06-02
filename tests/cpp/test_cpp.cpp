@@ -243,6 +243,17 @@ static void test_live_display() {
           "live: transient session prints nothing");
 }
 
+// Calculator: the pure expression evaluator and the NumberOpts fields.
+static void test_calc_eval() {
+    CHECK(calc_eval("1+2*3") == 7.0, "calc: precedence 1+2*3 == 7");
+    CHECK(calc_eval("1,5+2*3") == 7.5, "calc: comma separator");
+    CHECK(calc_eval("(1+2)*3") == 9.0, "calc: parentheses");
+    CHECK(calc_eval("2*-3") == -6.0, "calc: unary minus");
+    CHECK(!calc_eval("1/0").has_value(), "calc: division by zero is invalid");
+    CHECK(!calc_eval("1++2").has_value(), "calc: '1++2' is invalid");
+    CHECK(!calc_eval("garbage").has_value(), "calc: garbage is invalid");
+}
+
 static void test_error_report() {
     ErrorReport report("something broke");
     report.cause("first reason").hint("try --force").code(3);
@@ -352,6 +363,7 @@ int main() {
     test_text_link();
     test_paths_and_pager();
     test_live_display();
+    test_calc_eval();
     test_error_report();
     test_logger();
     test_args_parser();

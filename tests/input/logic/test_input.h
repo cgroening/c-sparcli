@@ -31,6 +31,7 @@ void test_opts_copy(void);
 void test_line_editor(void);
 void test_filters(void);
 void test_number_format(void);
+void test_calc(void);
 void test_sanitize(void);
 void test_suggest(void);
 void test_threads(void);

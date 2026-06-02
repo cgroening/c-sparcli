@@ -1524,6 +1524,15 @@ inline bool fuzzy_match(std::string_view pattern, std::string_view str,
                           detail::z(str).c_str(), score);
 }
 
+/** Pure arithmetic-expression evaluator (no TTY needed); both `.` and `,`
+    work as decimal separator. @return the value, or nullopt for invalid
+    expressions. @see sc_calc_eval */
+inline std::optional<double> calc_eval(std::string_view expr) {
+    double result = 0.0;
+    if (sc_calc_eval(detail::z(expr).c_str(), &result)) return result;
+    return std::nullopt;
+}
+
 /** Sets process-wide input defaults inherited by every widget. */
 inline void set_theme(const InputTheme& theme) { sc_input_set_theme(&theme); }
 /** Clears the process-wide theme (back to built-in defaults). */

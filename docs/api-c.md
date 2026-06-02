@@ -1202,6 +1202,9 @@ Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to 
 | `out_text` | Optional `char **`: on `SC_INPUT_OK` receives the submitted value as a heap string – exact, never round-tripped through `double`. Always `'.'`-separated and reflecting clamping, so it can feed an arbitrary-precision decimal type. Caller frees |
 | `prompt_style` / `value_style` / `cursor_style` | Styles |
 | `boxed` / `border` / `width` | Panel mode (range shown on the bottom-right border) |
+| `calculator` | Enable calculator mode: `=` starts an arithmetic expression (see below) |
+| `calc_store_rounded` / `calc_show_precise` | Calculator precision flags (see below) |
+| `error_style` | Style of the invalid-expression error line; zero-init = red |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ```c
@@ -1214,6 +1217,42 @@ sc_number_input("Amount", &value, (ScNumberOpts){
 ```
 
 Note: `*out` and `*out_text` always agree – when a typed value is clamped to `[min, max]`, the buffer is rewritten before both are produced. With `decimals = 0` a typed fraction is rounded the same way in both. sparcli assumes the C numeric locale (it never calls `setlocale`).
+
+#### Calculator mode
+
+With `calculator = true`, typing `=` as the **first character** switches the field to expression mode: the user types an arithmetic expression (e.g. `=1,5+2*3`), a dim live preview shows the result (`= 7,50`) or `= ?` while the expression is incomplete/invalid. The keys then are:
+
+- **Enter** (on a valid expression): replaces the field content with the result – the "accept" step. The field shows the value rounded to `decimals`; the full-precision result is kept internally. On an invalid expression a red error line appears instead and the prompt stays open.
+- **Enter** again: submits. By default `*out` / `*out_text` carry the **full-precision** result (a deliberate exception to "displayed text == submitted value"; `*out` and `*out_text` still agree, formatted as round-trip-exact `%.17g`).
+- Editing the accepted value (typing, Backspace, ↑/↓) discards the pending exact result – the edited text becomes the value, as usual.
+- Backspacing the leading `=` away exits calculator mode.
+
+Expression syntax (see `sc_calc_eval`): `+ - * /`, parentheses, a single unary minus per operand (`2*-3` works, `1++2` and `--3` are typos and rejected), numbers with `.` or `,` as decimal separator, whitespace ignored. Division by zero and overflow are invalid.
+
+Precision flags:
+
+| Flags | Field shows | `*out` / `out_text` |
+|-------|-------------|---------------------|
+| (default) | rounded to `decimals` | full precision, clamped |
+| `calc_store_rounded` | rounded to `decimals` | the rounded (displayed) value |
+| `calc_show_precise` | full precision | full precision |
+
+```c
+/* Finance entry with calculator: "=12,99*3" → field shows 38,97,
+   submitted text is the exact result. */
+double value = 0;
+char *exact = NULL;
+sc_number_input("Amount", &value, (ScNumberOpts){
+    .decimals = 2, .decimal_sep = ',', .start_empty = true,
+    .calculator = true, .out_text = &exact });
+```
+
+The evaluator itself is public and TTY-free:
+
+```c
+double result;
+if (sc_calc_eval("1,5+2*(3-1)", &result)) { /* result == 5.5 */ }
+```
 
 ### sc_textarea
 

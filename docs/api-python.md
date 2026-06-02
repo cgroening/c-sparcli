@@ -184,6 +184,19 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 ### Input constraints
 
+### Calculator mode (number input)
+
+`NumberOpts(calculator=True)` lets the user type `=` followed by an arithmetic expression (`=1,5+2*3`): a live preview shows the result, Enter accepts it into the field, a second Enter submits. By default the field displays the result rounded to `decimals` while the submitted value (and `decimal_input`'s `Decimal`) keeps full precision; `calc_store_rounded=True` submits the displayed value instead, `calc_show_precise=True` also displays full precision.
+
+```python
+amount = sc.decimal_input("Amount", sc.NumberOpts(
+    decimals=2, decimal_sep=",", start_empty=True, calculator=True))
+# user types "=12,99*3" → Enter → Enter → Decimal("38.97")
+
+sc.calc_eval("1,5+2*3")   # 7.5 – the pure evaluator, no TTY needed
+sc.calc_eval("1/0")       # None (invalid)
+```
+
 `text_input`/`password_input` accept a `char_filter` – either a built-in (`sc.filter_digits`, `sc.filter_decimal`, `sc.filter_alpha`, `sc.filter_alnum`, `sc.filter_no_space`) or a Python callable `(ch: str) -> bool` – and a `validate` callable `(value: str) -> str | None` (return an error message to keep the prompt open). `text_input` also takes `suggestions=[...]` for Tab autocomplete. `sc.filter_decimal` accepts both `.` and `,` as decimal separator.
 
 ### Autocomplete dropdown
