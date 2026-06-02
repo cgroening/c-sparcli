@@ -274,6 +274,37 @@ static int child_case(int c) {
             sc_input_set_theme(NULL);
             return (s == SC_INPUT_OK && idx[0] == 0) ? 0 : 1;
         }
+        case 18: {
+            /* Dropdown autocomplete: type "ch", Down highlights the first
+               match ("checkout"), Enter accepts it into the field, the second
+               Enter submits the accepted value. */
+            static const char *const cmds[] = {
+                "commit", "checkout", "cherry-pick", "clone", "config",
+            };
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("Cmd", &t, (ScTextInputOpts){
+                .suggestions = cmds, .n_suggestions = 5,
+                .suggest = { .mode = SC_SUGGEST_DROPDOWN } });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "checkout") == 0);
+            free(t);
+            return ok ? 0 : 1;
+        }
+        case 19: {
+            /* Dropdown + fuzzy matching: "cp" matches only "cherry-pick";
+               Tab accepts the best match without a highlighted row, then
+               Enter submits it. */
+            static const char *const cmds[] = {
+                "commit", "checkout", "cherry-pick", "clone", "config",
+            };
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("Cmd", &t, (ScTextInputOpts){
+                .suggestions = cmds, .n_suggestions = 5,
+                .suggest = { .mode = SC_SUGGEST_DROPDOWN,
+                             .match = SC_SUGGEST_MATCH_FUZZY } });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "cherry-pick") == 0);
+            free(t);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -305,6 +336,8 @@ static const Case CASES[] = {
     { "number-start-empty", "\r5\r" },  /* enter ignored while empty, then 5 */
     { "fuzzy-heap-prompt", "Gro\r" },   /* prompt freed after new() -> copied */
     { "theme-heap-strings", "\r" },     /* theme marker freed after set_theme */
+    { "suggest-dropdown-enter", "ch\x1b[B\r\r" },  /* down, accept, submit */
+    { "suggest-dropdown-fuzzy-tab", "cp\t\r" },    /* tab accepts best match */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

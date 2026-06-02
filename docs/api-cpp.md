@@ -285,6 +285,15 @@ Each returns `std::optional` / `std::vector`; the result is empty (`std::nullopt
 ```cpp
 if (auto ok   = confirm("Proceed?")) { /* *ok is bool */ }
 if (auto name = text_input("Name", { .placeholder = "Ada" })) { /* *name */ }
+
+// Autocomplete dropdown (C opts used directly): suggestions as a navigable
+// list below the field; arrows move, Tab/Enter accept, prefix/fuzzy matching.
+static const char *cmds[] = { "commit", "checkout", "cherry-pick" };
+if (auto cmd = text_input("Git command", {
+        .suggestions = cmds, .n_suggestions = 3,
+        .suggest = { .mode = SC_SUGGEST_DROPDOWN,
+                     .match = SC_SUGGEST_MATCH_FUZZY,
+                     .border = { .type = SC_BORDER_ROUNDED } } })) { /* *cmd */ }
 if (auto pw   = password_input("Password")) { /* *pw */ }
 if (auto note = textarea("Notes")) { /* *note (Ctrl-D submits) */ }
 if (auto qty  = number_input("Qty", { .min = 0, .max = 100, .step = 5 })) { }

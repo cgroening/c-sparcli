@@ -16,7 +16,7 @@ from ._inputcommon import (fill_char_filter, fill_hint, fill_prompt_text,
                            fill_shortcuts, fill_suggestions, fill_validate,
                            result, take_cstr)
 from .color import Color
-from .enums import HintLayout, HintPos, WeekStart
+from .enums import HintLayout, HintPos, SuggestMatch, SuggestMode, WeekStart
 from .keys import KeyChord, Shortcuts
 from .style import BorderStyle, Style
 from .text import Text
@@ -84,6 +84,37 @@ def confirm(question: str, opts: ConfirmOpts = ConfirmOpts()) -> bool | None:
 
 # ── text input ───────────────────────────────────────────────────────────────
 @dataclass
+class SuggestOpts:
+    """Presentation of the autocomplete ``suggestions`` list.
+
+    The default keeps the classic ghost-text behavior; pass
+    ``SuggestOpts(mode=SuggestMode.DROPDOWN)`` for a navigable list below
+    the field (arrows move the highlight, Tab/Enter accept it).
+    """
+
+    mode: SuggestMode = SuggestMode.GHOST
+    match: SuggestMatch = SuggestMatch.PREFIX
+    max_visible: int = 0
+    border: BorderStyle = field(default_factory=BorderStyle)
+    item_style: Style = field(default_factory=Style)
+    selected_style: Style = field(default_factory=Style)
+    more_style: Style = field(default_factory=Style)
+    cursor_marker: str | None = None
+    marker: str | None = None
+
+    def _fill(self, c, arena: list) -> None:
+        c.mode = int(self.mode)
+        c.match = int(self.match)
+        c.max_visible = self.max_visible
+        apply_border(c.border, self.border)
+        apply_style(c.item_style, self.item_style)
+        apply_style(c.selected_style, self.selected_style)
+        apply_style(c.more_style, self.more_style)
+        c.cursor_marker = cstr(arena, self.cursor_marker)
+        c.marker = cstr(arena, self.marker)
+
+
+@dataclass
 class TextInputOpts:
     """Options for :func:`text_input`."""
 
@@ -107,6 +138,7 @@ class TextInputOpts:
     hint_style: Style = field(default_factory=Style)
     char_filter: object | None = None
     suggestions: list[str] | None = None
+    suggest: SuggestOpts = field(default_factory=SuggestOpts)
     validate: object | None = None
     shortcuts: Shortcuts | None = None
     prompt_text: Text | None = None
@@ -134,6 +166,7 @@ class TextInputOpts:
                   self.hint_style, arena)
         fill_char_filter(c, self.char_filter, arena)
         fill_suggestions(c, self.suggestions, arena)
+        self.suggest._fill(c.suggest, arena)
         fill_validate(c, self.validate, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)

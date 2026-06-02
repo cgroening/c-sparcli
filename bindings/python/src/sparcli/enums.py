@@ -144,3 +144,17 @@ class WeekStart(IntEnum):
     DEFAULT = 0
     MONDAY = 1
     SUNDAY = 2
+
+
+class SuggestMode(IntEnum):
+    """Autocomplete presentation: inline ghost text or dropdown list."""
+
+    GHOST = 0
+    DROPDOWN = 1
+
+
+class SuggestMatch(IntEnum):
+    """Dropdown matching strategy."""
+
+    PREFIX = 0
+    FUZZY = 1

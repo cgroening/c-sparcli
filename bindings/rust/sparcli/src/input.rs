@@ -265,6 +265,105 @@ impl CharFilter {
     }
 }
 
+/// How autocomplete suggestions are presented.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SuggestMode {
+    /// Dim ghost text behind the cursor; Tab accepts (default).
+    #[default]
+    Ghost,
+    /// Dropdown list below the field; arrows navigate, Tab/Enter accept.
+    Dropdown,
+}
+
+/// How typed text is matched against the suggestion list (dropdown mode).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SuggestMatch {
+    /// Case-insensitive prefix match (default).
+    #[default]
+    Prefix,
+    /// Fuzzy subsequence match, best score first.
+    Fuzzy,
+}
+
+/// Presentation options for the autocomplete suggestion list.
+///
+/// `SuggestOpts::default()` keeps the classic ghost-text behavior; use
+/// [`SuggestOpts::dropdown`] for a navigable list below the field.
+#[derive(Clone, Debug, Default)]
+pub struct SuggestOpts {
+    pub mode: SuggestMode,
+    pub match_mode: SuggestMatch,
+    /// Max dropdown rows shown at once; `0` = 5.
+    pub max_visible: i32,
+    /// Frame around the list; default = plain list without a border.
+    pub border: BorderStyle,
+    /// Style of unselected rows.
+    pub item_style: Style,
+    /// Style (incl. background) of the highlighted row; default = bold cyan.
+    pub selected_style: Style,
+    /// Style of the "… +N more" overflow line; default = dim.
+    pub more_style: Style,
+    /// Marker before the highlighted row; `None` = "‣ ".
+    pub cursor_marker: Option<String>,
+    /// Marker before unselected rows; `None` = two spaces.
+    pub marker: Option<String>,
+}
+
+impl SuggestOpts {
+    /// A dropdown suggestion list with default styling.
+    pub fn dropdown() -> Self {
+        SuggestOpts {
+            mode: SuggestMode::Dropdown,
+            ..SuggestOpts::default()
+        }
+    }
+    pub fn fuzzy(mut self) -> Self {
+        self.match_mode = SuggestMatch::Fuzzy;
+        self
+    }
+    pub fn max_visible(mut self, n: i32) -> Self {
+        self.max_visible = n;
+        self
+    }
+    pub fn border(mut self, b: BorderStyle) -> Self {
+        self.border = b;
+        self
+    }
+    pub fn item_style(mut self, s: Style) -> Self {
+        self.item_style = s;
+        self
+    }
+    pub fn selected_style(mut self, s: Style) -> Self {
+        self.selected_style = s;
+        self
+    }
+
+    /// Converts to the FFI struct; `markers` keeps the C strings alive for
+    /// the duration of the call (a `CString`'s heap buffer does not move when
+    /// the handle is pushed into the vec).
+    fn raw(&self, markers: &mut Vec<CString>) -> ffi::ScSuggestOpts {
+        let mut raw: ffi::ScSuggestOpts = unsafe { mem::zeroed() };
+        raw.mode = self.mode as ffi::ScSuggestMode;
+        raw.match_ = self.match_mode as ffi::ScSuggestMatch;
+        raw.max_visible = self.max_visible;
+        raw.border = self.border.raw();
+        raw.item_style = self.item_style.raw();
+        raw.selected_style = self.selected_style.raw();
+        raw.more_style = self.more_style.raw();
+        if let Some(m) = self.cursor_marker.as_deref() {
+            let c = cstring(m);
+            raw.cursor_marker = c.as_ptr();
+            markers.push(c);
+        }
+        if let Some(m) = self.marker.as_deref() {
+            let c = cstring(m);
+            raw.marker = c.as_ptr();
+            markers.push(c);
+        }
+        raw
+    }
+}
+
 /// Options for [`text_input`].
 #[derive(Default)]
 pub struct TextInputOpts<'a> {
@@ -280,6 +379,7 @@ pub struct TextInputOpts<'a> {
     pub width: i32,
     pub char_filter: Option<CharFilter>,
     pub suggestions: Vec<String>,
+    pub suggest: SuggestOpts,
     pub hint_layout: HintLayout,
     pub hint_pos: HintPos,
     pub shortcuts: Option<&'a Shortcuts>,
@@ -317,6 +417,10 @@ impl<'a> TextInputOpts<'a> {
     }
     pub fn suggestions(mut self, s: Vec<String>) -> Self {
         self.suggestions = s;
+        self
+    }
+    pub fn suggest(mut self, s: SuggestOpts) -> Self {
+        self.suggest = s;
         self
     }
     pub fn shortcuts(mut self, s: &'a Shortcuts) -> Self {
@@ -373,6 +477,8 @@ pub fn text_input(prompt: &str, opts: TextInputOpts) -> Result<Option<String>> {
         o.suggestions = sugg_ptrs.as_ptr();
         o.n_suggestions = sugg_ptrs.len();
     }
+    let mut suggest_markers: Vec<CString> = Vec::new();
+    o.suggest = opts.suggest.raw(&mut suggest_markers);
     if let Some(sc) = opts.shortcuts {
         sc.apply(&mut o.shortcuts, &mut o.n_shortcuts, &mut o.out_shortcut_id);
     }

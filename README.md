@@ -264,7 +264,7 @@ Interactive prompts that drive a real terminal in raw mode. Each returns an `ScI
 | Widget | Function family | What it does |
 |--------|----------------|--------------|
 | **Confirm** | `sc_confirm` | Yes/No prompt; arrow / `y` / `n` selection. |
-| **Text input** | `sc_text_input` | Single-line entry with placeholder, validation, autocomplete, char filters, optional boxed panel. |
+| **Text input** | `sc_text_input` | Single-line entry with placeholder, validation, autocomplete (ghost text or navigable dropdown, prefix/fuzzy matching), char filters, optional boxed panel. |
 | **Password** | `sc_password_input` | Masked single-line entry (configurable mask glyph). |
 | **Number** | `sc_number_input` | Numeric entry with min/max/step, ↑/↓ adjustment, comma/period decimal separator and exact-text output (decimal-type safe). |
 | **Textarea** | `sc_textarea` | Multi-line entry (Ctrl-D submits) with soft-wrap. |

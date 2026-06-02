@@ -44,6 +44,59 @@ SPARCLI_EXPORT bool sc_filter_alnum(uint32_t codepoint, void *ctx);
 /** Rejects whitespace; accepts everything else. */
 SPARCLI_EXPORT bool sc_filter_no_space(uint32_t codepoint, void *ctx);
 
+/** How the autocomplete `suggestions` list is presented. */
+typedef enum ScSuggestMode {
+    SC_SUGGEST_GHOST = 0,  /**< Dim ghost text behind the cursor; Tab accepts. */
+    SC_SUGGEST_DROPDOWN,   /**< Dropdown list below the field; arrows navigate. */
+} ScSuggestMode;
+
+/** How typed text is matched against the suggestion list (dropdown mode). */
+typedef enum ScSuggestMatch {
+    SC_SUGGEST_MATCH_PREFIX = 0,  /**< Case-insensitive prefix match. */
+    SC_SUGGEST_MATCH_FUZZY,       /**< Fuzzy subsequence match, best first. */
+} ScSuggestMatch;
+
+/**
+ * Presentation options for the autocomplete suggestion list.
+ *
+ * Zero-init keeps the classic ghost-text behavior. Set
+ * `mode = SC_SUGGEST_DROPDOWN` for a navigable list below the field:
+ * Up/Down move the highlight (Up past the first row returns to the field),
+ * Tab accepts the highlighted row (or the best match when none is
+ * highlighted), Enter accepts the highlighted row - or submits the typed
+ * value when no row is highlighted.
+ */
+typedef struct ScSuggestOpts {
+    /** Ghost text (zero-init) or dropdown list. */
+    ScSuggestMode mode;
+
+    /** Matching strategy; zero-init = case-insensitive prefix. */
+    ScSuggestMatch match;
+
+    /** Max dropdown rows shown at once; `0` = 5. More matches add a dim
+        "… +N more" line. */
+    int max_visible;
+
+    /** Dropdown frame; zero-init type = plain list without a border. */
+    ScBorderStyle border;
+
+    /** Style of unselected dropdown rows; zero-init = no formatting. */
+    ScTextStyle item_style;
+
+    /** Style (incl. background) of the highlighted row; zero-init =
+        bold cyan. */
+    ScTextStyle selected_style;
+
+    /** Style of the "… +N more" overflow line; zero-init = dim. */
+    ScTextStyle more_style;
+
+    /** Marker before the highlighted row; `NULL` = "‣ ". */
+    const char *cursor_marker;
+
+    /** Marker before unselected rows; `NULL` = two spaces. */
+    const char *marker;
+} ScSuggestOpts;
+
 /** Options for `sc_text_input`. */
 typedef struct ScTextInputOpts {
     /** Pre-filled value; `NULL` = empty. */
@@ -116,13 +169,17 @@ typedef struct ScTextInputOpts {
     void *char_filter_ctx;
 
     /**
-     * Autocomplete word list; may be `NULL`. The first case-insensitive prefix
-     * match is shown as dim ghost text; Tab accepts it.
+     * Autocomplete word list; may be `NULL`. By default the first
+     * case-insensitive prefix match is shown as dim ghost text and Tab
+     * accepts it; see `suggest` for the dropdown presentation.
      */
     const char *const *suggestions;
 
     /** Number of entries in `suggestions`. */
     size_t n_suggestions;
+
+    /** Presentation of `suggestions`: ghost text (zero-init) or dropdown. */
+    ScSuggestOpts suggest;
 
     /** Optional validator; may be `NULL`. */
     ScValidateFn validate;

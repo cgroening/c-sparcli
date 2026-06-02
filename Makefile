@@ -186,6 +186,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_opts_copy.c \
                  tests/input/logic/test_filters.c \
                  tests/input/logic/test_sanitize.c \
+                 tests/input/logic/test_suggest.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
 

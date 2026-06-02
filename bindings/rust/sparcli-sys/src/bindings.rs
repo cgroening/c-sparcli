@@ -2118,6 +2118,63 @@ extern "C" {
     #[doc = " Rejects whitespace; accepts everything else."]
     pub fn sc_filter_no_space(codepoint: u32, ctx: *mut ::std::os::raw::c_void) -> bool;
 }
+#[doc = "< Dim ghost text behind the cursor; Tab accepts."]
+pub const ScSuggestMode_SC_SUGGEST_GHOST: ScSuggestMode = 0;
+#[doc = "< Dropdown list below the field; arrows navigate."]
+pub const ScSuggestMode_SC_SUGGEST_DROPDOWN: ScSuggestMode = 1;
+#[doc = " How the autocomplete `suggestions` list is presented."]
+pub type ScSuggestMode = ::std::os::raw::c_uint;
+#[doc = "< Case-insensitive prefix match."]
+pub const ScSuggestMatch_SC_SUGGEST_MATCH_PREFIX: ScSuggestMatch = 0;
+#[doc = "< Fuzzy subsequence match, best first."]
+pub const ScSuggestMatch_SC_SUGGEST_MATCH_FUZZY: ScSuggestMatch = 1;
+#[doc = " How typed text is matched against the suggestion list (dropdown mode)."]
+pub type ScSuggestMatch = ::std::os::raw::c_uint;
+#[doc = " Presentation options for the autocomplete suggestion list.\n\n Zero-init keeps the classic ghost-text behavior. Set\n `mode = SC_SUGGEST_DROPDOWN` for a navigable list below the field:\n Up/Down move the highlight (Up past the first row returns to the field),\n Tab accepts the highlighted row (or the best match when none is\n highlighted), Enter accepts the highlighted row - or submits the typed\n value when no row is highlighted."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScSuggestOpts {
+    #[doc = " Ghost text (zero-init) or dropdown list."]
+    pub mode: ScSuggestMode,
+    #[doc = " Matching strategy; zero-init = case-insensitive prefix."]
+    pub match_: ScSuggestMatch,
+    #[doc = " Max dropdown rows shown at once; `0` = 5. More matches add a dim\n\"… +N more\" line."]
+    pub max_visible: ::std::os::raw::c_int,
+    #[doc = " Dropdown frame; zero-init type = plain list without a border."]
+    pub border: ScBorderStyle,
+    #[doc = " Style of unselected dropdown rows; zero-init = no formatting."]
+    pub item_style: ScTextStyle,
+    #[doc = " Style (incl. background) of the highlighted row; zero-init =\nbold cyan."]
+    pub selected_style: ScTextStyle,
+    #[doc = " Style of the \"… +N more\" overflow line; zero-init = dim."]
+    pub more_style: ScTextStyle,
+    #[doc = " Marker before the highlighted row; `NULL` = \"‣ \"."]
+    pub cursor_marker: *const ::std::os::raw::c_char,
+    #[doc = " Marker before unselected rows; `NULL` = two spaces."]
+    pub marker: *const ::std::os::raw::c_char,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScSuggestOpts"][::std::mem::size_of::<ScSuggestOpts>() - 112usize];
+    ["Alignment of ScSuggestOpts"][::std::mem::align_of::<ScSuggestOpts>() - 8usize];
+    ["Offset of field: ScSuggestOpts::mode"][::std::mem::offset_of!(ScSuggestOpts, mode) - 0usize];
+    ["Offset of field: ScSuggestOpts::match_"]
+        [::std::mem::offset_of!(ScSuggestOpts, match_) - 4usize];
+    ["Offset of field: ScSuggestOpts::max_visible"]
+        [::std::mem::offset_of!(ScSuggestOpts, max_visible) - 8usize];
+    ["Offset of field: ScSuggestOpts::border"]
+        [::std::mem::offset_of!(ScSuggestOpts, border) - 12usize];
+    ["Offset of field: ScSuggestOpts::item_style"]
+        [::std::mem::offset_of!(ScSuggestOpts, item_style) - 32usize];
+    ["Offset of field: ScSuggestOpts::selected_style"]
+        [::std::mem::offset_of!(ScSuggestOpts, selected_style) - 52usize];
+    ["Offset of field: ScSuggestOpts::more_style"]
+        [::std::mem::offset_of!(ScSuggestOpts, more_style) - 72usize];
+    ["Offset of field: ScSuggestOpts::cursor_marker"]
+        [::std::mem::offset_of!(ScSuggestOpts, cursor_marker) - 96usize];
+    ["Offset of field: ScSuggestOpts::marker"]
+        [::std::mem::offset_of!(ScSuggestOpts, marker) - 104usize];
+};
 #[doc = " Options for `sc_text_input`."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2162,10 +2219,12 @@ pub struct ScTextInputOpts {
     pub char_filter: ScCharFilter,
     #[doc = " Opaque pointer passed to `char_filter`."]
     pub char_filter_ctx: *mut ::std::os::raw::c_void,
-    #[doc = " Autocomplete word list; may be `NULL`. The first case-insensitive prefix\n match is shown as dim ghost text; Tab accepts it."]
+    #[doc = " Autocomplete word list; may be `NULL`. By default the first\n case-insensitive prefix match is shown as dim ghost text and Tab\n accepts it; see `suggest` for the dropdown presentation."]
     pub suggestions: *const *const ::std::os::raw::c_char,
     #[doc = " Number of entries in `suggestions`."]
     pub n_suggestions: usize,
+    #[doc = " Presentation of `suggestions`: ghost text (zero-init) or dropdown."]
+    pub suggest: ScSuggestOpts,
     #[doc = " Optional validator; may be `NULL`."]
     pub validate: ScValidateFn,
     #[doc = " Opaque pointer passed to `validate`."]
@@ -2189,7 +2248,7 @@ pub struct ScTextInputOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScTextInputOpts"][::std::mem::size_of::<ScTextInputOpts>() - 328usize];
+    ["Size of ScTextInputOpts"][::std::mem::size_of::<ScTextInputOpts>() - 440usize];
     ["Alignment of ScTextInputOpts"][::std::mem::align_of::<ScTextInputOpts>() - 8usize];
     ["Offset of field: ScTextInputOpts::initial"]
         [::std::mem::offset_of!(ScTextInputOpts, initial) - 0usize];
@@ -2235,26 +2294,28 @@ const _: () = {
         [::std::mem::offset_of!(ScTextInputOpts, suggestions) - 232usize];
     ["Offset of field: ScTextInputOpts::n_suggestions"]
         [::std::mem::offset_of!(ScTextInputOpts, n_suggestions) - 240usize];
+    ["Offset of field: ScTextInputOpts::suggest"]
+        [::std::mem::offset_of!(ScTextInputOpts, suggest) - 248usize];
     ["Offset of field: ScTextInputOpts::validate"]
-        [::std::mem::offset_of!(ScTextInputOpts, validate) - 248usize];
+        [::std::mem::offset_of!(ScTextInputOpts, validate) - 360usize];
     ["Offset of field: ScTextInputOpts::validate_ctx"]
-        [::std::mem::offset_of!(ScTextInputOpts, validate_ctx) - 256usize];
+        [::std::mem::offset_of!(ScTextInputOpts, validate_ctx) - 368usize];
     ["Offset of field: ScTextInputOpts::shortcuts"]
-        [::std::mem::offset_of!(ScTextInputOpts, shortcuts) - 264usize];
+        [::std::mem::offset_of!(ScTextInputOpts, shortcuts) - 376usize];
     ["Offset of field: ScTextInputOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScTextInputOpts, n_shortcuts) - 272usize];
+        [::std::mem::offset_of!(ScTextInputOpts, n_shortcuts) - 384usize];
     ["Offset of field: ScTextInputOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScTextInputOpts, out_shortcut_id) - 280usize];
+        [::std::mem::offset_of!(ScTextInputOpts, out_shortcut_id) - 392usize];
     ["Offset of field: ScTextInputOpts::prompt_text"]
-        [::std::mem::offset_of!(ScTextInputOpts, prompt_text) - 288usize];
+        [::std::mem::offset_of!(ScTextInputOpts, prompt_text) - 400usize];
     ["Offset of field: ScTextInputOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScTextInputOpts, prompt_markup) - 296usize];
+        [::std::mem::offset_of!(ScTextInputOpts, prompt_markup) - 408usize];
     ["Offset of field: ScTextInputOpts::external_editor"]
-        [::std::mem::offset_of!(ScTextInputOpts, external_editor) - 297usize];
+        [::std::mem::offset_of!(ScTextInputOpts, external_editor) - 409usize];
     ["Offset of field: ScTextInputOpts::editor"]
-        [::std::mem::offset_of!(ScTextInputOpts, editor) - 304usize];
+        [::std::mem::offset_of!(ScTextInputOpts, editor) - 416usize];
     ["Offset of field: ScTextInputOpts::editor_key"]
-        [::std::mem::offset_of!(ScTextInputOpts, editor_key) - 312usize];
+        [::std::mem::offset_of!(ScTextInputOpts, editor_key) - 424usize];
 };
 extern "C" {
     #[doc = " Prompts for a single line of text.\n\n On `SC_INPUT_OK`, `*out` receives a heap-allocated string the caller must\n `free()`. `*out` is not modified on cancel/error.\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the entered string (heap; caller frees).\n @param opts    Rendering and validation options."]

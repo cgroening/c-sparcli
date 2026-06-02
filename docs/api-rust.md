@@ -138,6 +138,15 @@ use sparcli::*;
 
 if let Some(yes) = confirm("Proceed?", ConfirmOpts::new().default_yes(true))? { /* … */ }
 if let Some(name) = text_input("Name", TextInputOpts::new().placeholder("Ada"))? { /* … */ }
+
+// Autocomplete dropdown: suggestions as a navigable list below the field
+// (arrows move, Tab/Enter accept; prefix or fuzzy matching).
+if let Some(cmd) = text_input("Git command", TextInputOpts::new()
+    .suggestions(vec!["commit".into(), "checkout".into(), "cherry-pick".into()])
+    .suggest(SuggestOpts::dropdown()
+        .fuzzy()
+        .border(BorderStyle::new(BorderType::Rounded))
+        .selected_style(Style::new().fg(Color::BLACK).bg(Color::CYAN))))? { /* … */ }
 if let Some(pw)   = password_input("Password", PasswordOpts::new())? { /* … */ }
 if let Some(n)    = number_input("Qty", NumberOpts::new().range(0.0, 100.0).step(5.0))? { /* … */ }
 if let Some(text) = textarea("Notes", TextareaOpts::new().boxed(48))? { /* … */ }

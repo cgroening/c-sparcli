@@ -88,6 +88,26 @@ static void demo_text(void) {
     if (st == SC_INPUT_OK) { printf("  -> \"%s\"\n", cmd); free(cmd); }
     note_cancel(st);
 
+    /* Autocomplete dropdown: fuzzy-matched list below the field; arrows
+     * navigate, Tab/Enter accept the highlighted suggestion. */
+    char *fuzzy_cmd = NULL;
+    st = sc_text_input(
+        "Git command (dropdown)", &fuzzy_cmd,
+        (ScTextInputOpts){
+            .suggestions = cmds, .n_suggestions = 5,
+            .suggest = {
+                .mode = SC_SUGGEST_DROPDOWN,
+                .match = SC_SUGGEST_MATCH_FUZZY,
+                .border = { .type = SC_BORDER_ROUNDED },
+                .selected_style = {
+                    SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_CYAN,
+                },
+            },
+        }
+    );
+    if (st == SC_INPUT_OK) { printf("  -> \"%s\"\n", fuzzy_cmd); free(fuzzy_cmd); }
+    note_cancel(st);
+
     /* Boxed mode: prompt on the top border, counter on the bottom-right. */
     char *title = NULL;
     st = sc_text_input(

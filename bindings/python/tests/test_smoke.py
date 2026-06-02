@@ -214,6 +214,25 @@ def test_number_opts_start_empty_accepted():
         sc.decimal_input("amount", opts)
 
 
+def test_text_input_suggest_dropdown_opts_accepted():
+    # The dropdown SuggestOpts must reach the C struct (cdef fields + _fill);
+    # without a TTY the prompt still raises cleanly instead of erroring on
+    # the new fields.
+    opts = sc.TextInputOpts(
+        suggestions=["commit", "checkout", "cherry-pick"],
+        suggest=sc.SuggestOpts(
+            mode=sc.SuggestMode.DROPDOWN,
+            match=sc.SuggestMatch.FUZZY,
+            max_visible=3,
+            border=sc.BorderStyle(type=sc.BorderType.ROUNDED),
+            selected_style=sc.Style(fg=sc.Color.BLACK, bg=sc.Color.CYAN),
+            cursor_marker="> ",
+        ),
+    )
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.text_input("cmd", opts)
+
+
 def test_fuzzy_outlives_temporary_opts_strings():
     # The prompt is built from a temporary string; the finder must keep its
     # own copy so a GC between construction and run() cannot free it

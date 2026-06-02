@@ -127,6 +127,83 @@ void style_text(void) {
             .prompt = "Region:", .initial = "eu-",
             .suggestions = regions, .n_suggestions = 1 }));
 
+    /* ── Dropdown autocomplete (SC_SUGGEST_DROPDOWN) ── */
+
+    static const char *const commands[] = {
+        "commit", "checkout", "cherry-pick", "clone", "config",
+    };
+
+    /* Plain dropdown, prefix matching, no row highlighted. */
+    style_show("dropdown: prefix matches, no highlight",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command:", .initial = "c",
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = { .mode = SC_SUGGEST_DROPDOWN, .max_visible = 3 } }));
+
+    /* Highlighted row (default style: bold cyan + ‣ marker). */
+    style_show("dropdown: second row highlighted (default style)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command:", .initial = "c",
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = { .mode = SC_SUGGEST_DROPDOWN, .max_visible = 3 },
+            .suggest_cursor = 2 }));
+
+    /* Custom selected style: black-on-cyan background + custom markers. */
+    style_show("dropdown: selected_style with background, custom markers",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command:", .initial = "ch",
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = {
+                .mode = SC_SUGGEST_DROPDOWN,
+                .selected_style = {
+                    SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK, SC_ANSI_COLOR_CYAN,
+                },
+                .item_style = {
+                    SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+                },
+                .cursor_marker = "> ", .marker = "  ",
+            },
+            .suggest_cursor = 1 }));
+
+    /* Bordered dropdown: rounded frame around the list. */
+    style_show("dropdown: rounded border frame",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command:", .initial = "c",
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = {
+                .mode = SC_SUGGEST_DROPDOWN, .max_visible = 3,
+                .border = { .type = SC_BORDER_ROUNDED,
+                            .color = SC_ANSI_COLOR_CYAN },
+            },
+            .suggest_cursor = 1 }));
+
+    /* Fuzzy matching: "cp" hits "cherry-pick" (subsequence). */
+    style_show("dropdown: fuzzy matching",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command:", .initial = "cp",
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = { .mode = SC_SUGGEST_DROPDOWN,
+                         .match = SC_SUGGEST_MATCH_FUZZY },
+            .suggest_cursor = 1 }));
+
+    /* Overflow: more matches than max_visible shows a dim "+N more" line. */
+    style_show("dropdown: overflow line (max_visible 2 of 5 matches)",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command:", .initial = "c",
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = { .mode = SC_SUGGEST_DROPDOWN, .max_visible = 2 } }));
+
+    /* Boxed field + bordered dropdown aligned to the box width. */
+    style_show("dropdown: boxed field, dropdown frame matches box width",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Git command", .initial = "c", .boxed = true, .width = 30,
+            .suggestions = commands, .n_suggestions = 5,
+            .suggest = {
+                .mode = SC_SUGGEST_DROPDOWN, .max_visible = 3,
+                .border = { .type = SC_BORDER_ROUNDED },
+            },
+            .suggest_cursor = 1 }));
+
     /* ── Rich prompt: only part of the prompt styled (markup) ── */
     style_show("rich prompt: inline markup (italic name)",
         sc_text_entry_frame(&(ScTextEntryCfg){

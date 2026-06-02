@@ -126,6 +126,9 @@ typedef enum { SC_HINT_POS_DEFAULT = 0, SC_HINT_POS_TOP, SC_HINT_POS_BOTTOM,
                SC_HINT_POS_LEFT, SC_HINT_POS_RIGHT } ScHintPosition;
 typedef enum { SC_WEEK_START_DEFAULT = 0, SC_WEEK_START_MONDAY = 1,
                SC_WEEK_START_SUNDAY = 2 } ScWeekStart;
+typedef enum { SC_SUGGEST_GHOST = 0, SC_SUGGEST_DROPDOWN } ScSuggestMode;
+typedef enum { SC_SUGGEST_MATCH_PREFIX = 0,
+               SC_SUGGEST_MATCH_FUZZY } ScSuggestMatch;
 typedef enum { SC_SHORTCUT_RETURN = 0, SC_SHORTCUT_CALLBACK } ScShortcutMode;
 typedef enum { SC_MOD_NONE = 0, SC_MOD_CTRL = 1, SC_MOD_ALT = 2,
                SC_MOD_PASTED = 4 } ScKeyMods;
@@ -648,6 +651,19 @@ ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts);
 
 /* ── Text input ────────────────────────────────────────────────────────── */
 typedef struct {
+    ScSuggestMode mode;
+    ScSuggestMatch match;
+    int max_visible;
+    ScBorderStyle border;
+    ScTextStyle item_style;
+    ScTextStyle selected_style;
+    ScTextStyle more_style;
+    const char *cursor_marker;
+    const char *marker;
+    ...;
+} ScSuggestOpts;
+
+typedef struct {
     const char *initial;
     const char *placeholder;
     ScTextStyle prompt_style;
@@ -670,6 +686,7 @@ typedef struct {
     void *char_filter_ctx;
     const char *const *suggestions;
     size_t n_suggestions;
+    ScSuggestOpts suggest;
     ScValidateFn validate;
     void *validate_ctx;
     const ScShortcut *shortcuts;

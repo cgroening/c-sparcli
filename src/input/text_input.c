@@ -33,29 +33,71 @@ typedef struct TextState {
     void *char_filter_ctx;
     const char *const *suggestions;
     size_t n_suggestions;
+    ScSuggestOpts suggest;
     bool (*validate)(const char *, void *, const char **);
     void *validate_ctx;
 
     /** Current validation error, or NULL. */
     const char *error;
+
+    /** Highlighted dropdown row; -1 = none (the field itself). */
+    int drop_cursor;
 } TextState;
 
+/** A dropdown candidate: index into `suggestions` + its match score. */
+typedef struct SuggestMatch {
+    size_t index;
+    int score;
+} SuggestMatch;
+
 static const char *const DEFAULT_HINT = "enter submit \xc2\xb7 esc cancel";
+
+/** Dropdown rows shown when `ScSuggestOpts.max_visible` is left at 0. */
+enum { SUGGEST_DEFAULT_VISIBLE = 5 };
 
 
 static TextState state_from_cfg(const ScTextEntryCfg *cfg);
 static ScRendered *text_render(void *state);
     static ScRendered *render_inline(TextState *self);
+        static ScRendered *inline_body_classic(TextState *self);
+        static ScRendered *inline_body_dropdown(TextState *self);
+            static void append_field_line(TextState *self, ScText *text);
+            static ScRendered *capture_meta_lines(TextState *self);
     static ScRendered *render_boxed(TextState *self);
         static ScText *render_boxed_inner(TextState *self, int field);
         static ScRendered *capture_boxed_panel(
             TextState *self, const ScText *inner);
+        static ScRendered *stack_dropdown(TextState *self, ScRendered *top);
         static ScRendered *stack_error_line(TextState *self, ScRendered *panel);
+            static ScRendered *stack_below(ScRendered *top, ScRendered *bottom);
 static void text_on_key(void *state, ScKey key, bool *done, bool *cancel);
+    static bool dropdown_on_key(TextState *self, ScKey key);
+        static bool dropdown_dispatch(TextState *self, ScKey key,
+                                      const SuggestMatch *matches, size_t shown);
+        static void accept_suggestion(TextState *self, const char *suggestion);
 static char *text_edit_get(void *state);
 static void text_edit_set(void *state, const char *text);
+    static const char *ghost_suggestion(const TextState *self);
     static const char *best_suggestion(const TextState *self);
     static const char *text_default_hint(const TextState *self);
+
+/* Dropdown helpers */
+static bool dropdown_enabled(const TextState *self);
+static size_t dropdown_visible(const TextState *self);
+static bool has_dropdown_matches(const TextState *self);
+static size_t collect_matches(const TextState *self, SuggestMatch *out,
+                              size_t cap);
+    static bool suggestion_matches(const TextState *self, const char *candidate,
+                                   int *score);
+    static void insert_match(SuggestMatch *out, size_t *kept, size_t cap,
+                             SuggestMatch match);
+static ScRendered *capture_dropdown(TextState *self);
+    static void append_dropdown_rows(TextState *self, ScText *rows,
+                                     const SuggestMatch *matches, size_t shown,
+                                     size_t total);
+static ScTextStyle resolve_selected_style(const TextState *self);
+static ScTextStyle resolve_more_style(const TextState *self);
+
 static void counter_str(char *buf, size_t cap, const TextState *self,
                         bool parens);
     static size_t cp_count(const char *str);
@@ -93,6 +135,7 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .char_filter_ctx = opts.char_filter_ctx,
         .suggestions     = opts.suggestions,
         .n_suggestions   = opts.n_suggestions,
+        .suggest         = opts.suggest,
         .validate        = opts.validate,
         .validate_ctx    = opts.validate_ctx,
         .shortcuts       = opts.shortcuts,
@@ -186,9 +229,13 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         .char_filter_ctx = cfg->char_filter_ctx,
         .suggestions     = cfg->suggestions,
         .n_suggestions   = cfg->n_suggestions,
+        .suggest         = cfg->suggest,
         .validate        = cfg->validate,
         .validate_ctx    = cfg->validate_ctx,
         .error           = NULL,
+        /* cfg->suggest_cursor is 1-based for snapshot frames; 0 = none. */
+        .drop_cursor     = cfg->suggest_cursor > 0
+                               ? (int)cfg->suggest_cursor - 1 : -1,
     };
 }
 
@@ -197,32 +244,28 @@ static ScRendered *text_render(void *state) {
     return self->boxed ? render_boxed(self) : render_inline(self);
 }
 
-/** Inline: "prompt value", optional ghost, counter line, error line, footer. */
+/** Inline: "prompt value", optional ghost/dropdown, counter, error, footer. */
 static ScRendered *render_inline(TextState *self) {
+    ScRendered *body = dropdown_enabled(self)
+        ? inline_body_dropdown(self)
+        : inline_body_classic(self);
+    return sc_compose_hint(body,
+                           self->hint ? self->hint : text_default_hint(self),
+                           self->hint_layout, self->hint_pos, self->hint_style);
+}
+
+/** Classic single-block body: value line, ghost text, counter, error. */
+static ScRendered *inline_body_classic(TextState *self) {
     ScText *text = sc_text_new();
     if (!text) {
         return NULL;
     }
 
-    sc_prompt_append(text, self->prompt, self->prompt_style,
-                     self->prompt_markup, self->prompt_text);
-    sc_text_append(text, " ", (ScTextStyle){ 0 });
-
-    // Visible value window = line width − prompt − the separating space.
-    int total = self->width > 0 ? self->width : sc_terminal_width();
-    int prompt_w = sc_prompt_width(self->prompt, self->prompt_style,
-                                   self->prompt_markup, self->prompt_text);
-    int field = total - prompt_w - 1;
-    if (field < 1) {
-        field = 1;
-    }
+    append_field_line(self, text);
 
     ScTextStyle placeholder_style = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                                       SC_ANSI_COLOR_NONE };
-    sc_le_render_into(&self->ed, text, self->value_style, self->cursor_style,
-                      self->mask, self->placeholder, placeholder_style, field);
-
-    const char *ghost = best_suggestion(self);
+    const char *ghost = ghost_suggestion(self);
     if (ghost) {
         sc_text_append(text, ghost + self->ed.len, placeholder_style);
     }
@@ -241,9 +284,88 @@ static ScRendered *render_inline(TextState *self) {
     }
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    return sc_compose_hint(body,
-                           self->hint ? self->hint : text_default_hint(self),
-                           self->hint_layout, self->hint_pos, self->hint_style);
+    return body;
+}
+
+/** Dropdown body: value line, suggestion list, then counter/error lines. */
+static ScRendered *inline_body_dropdown(TextState *self) {
+    ScText *field = sc_text_new();
+    if (!field) {
+        return NULL;
+    }
+    append_field_line(self, field);
+    ScRendered *field_block = sc_capture_text(field);
+    sc_text_free(field);
+
+    ScRendered *dropdown = capture_dropdown(self);
+    ScRendered *meta = capture_meta_lines(self);
+
+    const ScRendered *parts[3];
+    size_t count = 0;
+    if (field_block) {
+        parts[count++] = field_block;
+    }
+    if (dropdown) {
+        parts[count++] = dropdown;
+    }
+    if (meta) {
+        parts[count++] = meta;
+    }
+
+    ScRendered *body = sc_vstack(parts, count, 0);
+    sc_rendered_free(field_block);
+    sc_rendered_free(dropdown);
+    sc_rendered_free(meta);
+    return body;
+}
+
+/** Appends "prompt value" (prompt, space, line-editor window) to `text`. */
+static void append_field_line(TextState *self, ScText *text) {
+    sc_prompt_append(text, self->prompt, self->prompt_style,
+                     self->prompt_markup, self->prompt_text);
+    sc_text_append(text, " ", (ScTextStyle){ 0 });
+
+    // Visible value window = line width − prompt − the separating space.
+    int total = self->width > 0 ? self->width : sc_terminal_width();
+    int prompt_w = sc_prompt_width(self->prompt, self->prompt_style,
+                                   self->prompt_markup, self->prompt_text);
+    int field = total - prompt_w - 1;
+    if (field < 1) {
+        field = 1;
+    }
+
+    ScTextStyle placeholder_style = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                                      SC_ANSI_COLOR_NONE };
+    sc_le_render_into(&self->ed, text, self->value_style, self->cursor_style,
+                      self->mask, self->placeholder, placeholder_style, field);
+}
+
+/** Captures the counter/error lines below the field; NULL when neither. */
+static ScRendered *capture_meta_lines(TextState *self) {
+    bool has_counter = !self->hide_char_count;
+    if (!has_counter && !self->error) {
+        return NULL;
+    }
+    ScText *meta = sc_text_new();
+    if (!meta) {
+        return NULL;
+    }
+    if (has_counter) {
+        char buf[48];
+        counter_str(buf, sizeof buf, self, false);
+        sc_text_append(meta, "  ", (ScTextStyle){ 0 });
+        sc_text_append(meta, buf, resolve_count_style(self));
+    }
+    if (self->error) {
+        if (has_counter) {
+            sc_text_append(meta, "\n", (ScTextStyle){ 0 });
+        }
+        sc_text_append(meta, "  ", (ScTextStyle){ 0 });
+        sc_text_append(meta, self->error, resolve_error_style(self));
+    }
+    ScRendered *block = sc_capture_text(meta);
+    sc_text_free(meta);
+    return block;
 }
 
 /**
@@ -269,8 +391,10 @@ static ScRendered *render_boxed(TextState *self) {
         return NULL;
     }
 
-    // Stack an optional validation-error line beneath the box; that combined
-    // block is the body the key-hint footer is then positioned around.
+    // Stack the optional suggestion dropdown and validation-error line beneath
+    // the box; that combined block is the body the key-hint footer is then
+    // positioned around.
+    panel = stack_dropdown(self, panel);
     ScRendered *body = stack_error_line(self, panel);
     return sc_compose_hint(body,
                            self->hint ? self->hint : text_default_hint(self),
@@ -290,7 +414,7 @@ static ScText *render_boxed_inner(TextState *self, int field) {
                                       SC_ANSI_COLOR_NONE };
     sc_le_render_into(&self->ed, inner, self->value_style, self->cursor_style,
                       self->mask, self->placeholder, placeholder_style, field);
-    const char *ghost = best_suggestion(self);
+    const char *ghost = ghost_suggestion(self);
     if (ghost) {
         sc_text_append(inner, ghost + self->ed.len, placeholder_style);
     }
@@ -336,6 +460,15 @@ static ScRendered *capture_boxed_panel(TextState *self, const ScText *inner) {
 }
 
 /**
+ * Stacks the suggestion dropdown beneath the captured box (boxed mode).
+ * Returns the combined block, or `top` unchanged when the dropdown is
+ * inactive or stacking fails.
+ */
+static ScRendered *stack_dropdown(TextState *self, ScRendered *top) {
+    return stack_below(top, capture_dropdown(self));
+}
+
+/**
  * Stacks the optional validation-error line beneath the captured box. When the
  * stack succeeds it frees `panel` and returns the combined block; otherwise it
  * returns `panel` unchanged.
@@ -352,17 +485,25 @@ static ScRendered *stack_error_line(TextState *self, ScRendered *panel) {
     sc_text_append(error_text, self->error, resolve_error_style(self));
     ScRendered *error_rendered = sc_capture_text(error_text);
     sc_text_free(error_text);
-    if (!error_rendered) {
-        return panel;
+    return stack_below(panel, error_rendered);
+}
+
+/**
+ * Vertically stacks `bottom` beneath `top`, consuming both. Returns the
+ * combined block, or `top` unchanged when `bottom` is NULL or stacking fails.
+ */
+static ScRendered *stack_below(ScRendered *top, ScRendered *bottom) {
+    if (!bottom) {
+        return top;
     }
-    const ScRendered *parts[2] = { panel, error_rendered };
+    const ScRendered *parts[2] = { top, bottom };
     ScRendered *stacked = sc_vstack(parts, 2, 0);
     if (!stacked) {
-        sc_rendered_free(error_rendered);
-        return panel;
+        sc_rendered_free(bottom);
+        return top;
     }
-    sc_rendered_free(panel);
-    sc_rendered_free(error_rendered);
+    sc_rendered_free(top);
+    sc_rendered_free(bottom);
     return stacked;
 }
 
@@ -380,18 +521,21 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         && !self->char_filter(key.codepoint, self->char_filter_ctx)) {
         return;
     }
-    // Tab accepts the autocomplete suggestion, if any.
+    // Dropdown navigation/acceptance consumes its keys before the editor.
+    if (dropdown_enabled(self) && dropdown_on_key(self, key)) {
+        return;
+    }
+    // Tab accepts the autocomplete ghost suggestion, if any.
     if (key.type == SC_KEY_TAB) {
-        const char *suggestion = best_suggestion(self);
+        const char *suggestion = ghost_suggestion(self);
         if (suggestion) {
-            sc_le_free(&self->ed);
-            sc_le_init(&self->ed, suggestion);
-            self->error = NULL;
+            accept_suggestion(self, suggestion);
         }
         return;
     }
     if (sc_le_handle(&self->ed, key)) {
         self->error = NULL;   // editing clears the previous validation error
+        self->drop_cursor = -1;   // typing reshapes the dropdown: deselect
         return;
     }
     if (key.type == SC_KEY_ENTER) {
@@ -404,6 +548,81 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         }
         *done = true;
     }
+}
+
+/**
+ * Recomputes the visible dropdown matches and dispatches navigation keys
+ * against them. Returns true when the key was consumed.
+ */
+static bool dropdown_on_key(TextState *self, ScKey key) {
+    size_t cap = dropdown_visible(self);
+    SuggestMatch *matches = malloc(cap * sizeof *matches);
+    if (!matches) {
+        return false;
+    }
+    size_t total = collect_matches(self, matches, cap);
+    size_t shown = total < cap ? total : cap;
+
+    bool consumed = false;
+    if (shown > 0) {
+        consumed = dropdown_dispatch(self, key, matches, shown);
+    } else {
+        self->drop_cursor = -1;
+    }
+    free(matches);
+    return consumed;
+}
+
+/** Applies one key to the dropdown; `matches`/`shown` is the visible list. */
+static bool dropdown_dispatch(TextState *self, ScKey key,
+                              const SuggestMatch *matches, size_t shown) {
+    // The match list may have shrunk since the highlight was set.
+    if (self->drop_cursor >= (int)shown) {
+        self->drop_cursor = (int)shown - 1;
+    }
+    switch (key.type) {
+        case SC_KEY_DOWN:
+            if (self->drop_cursor + 1 < (int)shown) {
+                self->drop_cursor++;
+            }
+            return true;
+        case SC_KEY_UP:
+            // Moving above the first row returns focus to the field (-1).
+            if (self->drop_cursor >= 0) {
+                self->drop_cursor--;
+            }
+            return true;
+        case SC_KEY_TAB: {
+            size_t pick = self->drop_cursor >= 0 ? (size_t)self->drop_cursor : 0;
+            accept_suggestion(self, self->suggestions[matches[pick].index]);
+            return true;
+        }
+        case SC_KEY_ENTER:
+            if (self->drop_cursor >= 0) {
+                size_t pick = (size_t)self->drop_cursor;
+                accept_suggestion(self, self->suggestions[matches[pick].index]);
+                return true;
+            }
+            return false;   // no row highlighted: Enter submits normally
+        default:
+            return false;
+    }
+}
+
+/** Replaces the edited value with `suggestion` and resets dropdown state. */
+static void accept_suggestion(TextState *self, const char *suggestion) {
+    sc_le_free(&self->ed);
+    sc_le_init(&self->ed, suggestion);
+    self->error = NULL;
+    self->drop_cursor = -1;
+}
+
+/** The ghost-text suggestion; NULL in dropdown mode (no ghost is shown). */
+static const char *ghost_suggestion(const TextState *self) {
+    if (self->suggest.mode != SC_SUGGEST_GHOST) {
+        return NULL;
+    }
+    return best_suggestion(self);
 }
 
 /**
@@ -425,15 +644,216 @@ static const char *best_suggestion(const TextState *self) {
 }
 
 /**
- * Default key-hint. When an autocomplete suggestion is currently available
- * (a ghost is shown), it leads with "tab complete" so the Tab binding is
- * discoverable; otherwise it is the plain submit/cancel hint.
+ * Default key-hint. When the dropdown is open it leads with the navigation
+ * keys; when a ghost suggestion is shown it leads with "tab complete" so the
+ * Tab binding is discoverable; otherwise it is the plain submit/cancel hint.
  */
 static const char *text_default_hint(const TextState *self) {
-    if (best_suggestion(self)) {
+    if (dropdown_enabled(self) && has_dropdown_matches(self)) {
+        return "\xe2\x86\x91/\xe2\x86\x93 choose \xc2\xb7 tab/enter accept"
+               " \xc2\xb7 esc cancel";
+    }
+    if (ghost_suggestion(self)) {
         return "tab complete \xc2\xb7 enter submit \xc2\xb7 esc cancel";
     }
     return DEFAULT_HINT;
+}
+
+/* ── Dropdown suggestion list ───────────────────────────────────────────── */
+
+/** True when the dropdown presentation is configured and has data. */
+static bool dropdown_enabled(const TextState *self) {
+    return self->suggest.mode == SC_SUGGEST_DROPDOWN
+        && self->suggestions && self->n_suggestions > 0 && !self->mask;
+}
+
+/** Resolved viewport size: max dropdown rows shown at once. */
+static size_t dropdown_visible(const TextState *self) {
+    return self->suggest.max_visible > 0
+        ? (size_t)self->suggest.max_visible
+        : (size_t)SUGGEST_DEFAULT_VISIBLE;
+}
+
+/** True when at least one suggestion matches the current value. */
+static bool has_dropdown_matches(const TextState *self) {
+    if (self->ed.len == 0) {
+        return false;
+    }
+    for (size_t i = 0; i < self->n_suggestions; i++) {
+        int score = 0;
+        if (self->suggestions[i]
+            && suggestion_matches(self, self->suggestions[i], &score)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Collects the best matches for the current value into `out` (at most `cap`
+ * entries, best score first; insertion order breaks ties). Returns the TOTAL
+ * number of matching suggestions, which may exceed `cap` - the dropdown then
+ * shows a "… +N more" line.
+ */
+static size_t collect_matches(const TextState *self, SuggestMatch *out,
+                              size_t cap) {
+    if (self->ed.len == 0) {
+        return 0;
+    }
+    size_t total = 0;
+    size_t kept = 0;
+    for (size_t i = 0; i < self->n_suggestions; i++) {
+        const char *candidate = self->suggestions[i];
+        int score = 0;
+        if (!candidate || !suggestion_matches(self, candidate, &score)) {
+            continue;
+        }
+        total++;
+        insert_match(out, &kept, cap,
+                     (SuggestMatch){ .index = i, .score = score });
+    }
+    return total;
+}
+
+/**
+ * True when `candidate` matches the typed value. An exact (case-insensitive)
+ * match never counts - there is nothing left to complete, and excluding it
+ * lets the dropdown close after a suggestion is accepted.
+ */
+static bool suggestion_matches(const TextState *self, const char *candidate,
+                               int *score) {
+    if (strcasecmp(candidate, self->ed.buf) == 0) {
+        return false;
+    }
+    if (self->suggest.match == SC_SUGGEST_MATCH_FUZZY) {
+        return sc_fuzzy_match(self->ed.buf, candidate, score);
+    }
+    *score = 0;
+    return strncasecmp(candidate, self->ed.buf, self->ed.len) == 0;
+}
+
+/**
+ * Inserts `match` into the score-sorted (descending) `out` array, keeping at
+ * most `cap` entries. Stable: equal scores keep their insertion order.
+ */
+static void insert_match(SuggestMatch *out, size_t *kept, size_t cap,
+                         SuggestMatch match) {
+    size_t pos = *kept;
+    while (pos > 0 && out[pos - 1].score < match.score) {
+        pos--;
+    }
+    if (pos >= cap) {
+        return;
+    }
+    size_t tail = (*kept < cap ? *kept : cap - 1) - pos;
+    memmove(&out[pos + 1], &out[pos], tail * sizeof *out);
+    out[pos] = match;
+    if (*kept < cap) {
+        (*kept)++;
+    }
+}
+
+/**
+ * Builds the dropdown for the current value as a captured block, framed by
+ * `suggest.border` when set. Returns NULL when the dropdown is inactive
+ * (ghost mode, empty value, or no matching suggestion).
+ */
+static ScRendered *capture_dropdown(TextState *self) {
+    if (!dropdown_enabled(self)) {
+        return NULL;
+    }
+    size_t cap = dropdown_visible(self);
+    SuggestMatch *matches = malloc(cap * sizeof *matches);
+    if (!matches) {
+        return NULL;
+    }
+    size_t total = collect_matches(self, matches, cap);
+    if (total == 0) {
+        free(matches);
+        return NULL;
+    }
+    size_t shown = total < cap ? total : cap;
+
+    ScText *rows = sc_text_new();
+    if (!rows) {
+        free(matches);
+        return NULL;
+    }
+    append_dropdown_rows(self, rows, matches, shown, total);
+    free(matches);
+
+    ScRendered *block;
+    if (self->suggest.border.type != SC_BORDER_NONE) {
+        ScPanelOpts panel_opts = {
+            .border = self->suggest.border,
+            .padding = { .left = 1, .right = 1 },
+            .content_align = SC_ALIGN_LEFT,
+        };
+        // Boxed fields align the dropdown frame with the box width.
+        if (self->boxed) {
+            if (self->width > 0) {
+                panel_opts.width = self->width;
+            } else {
+                panel_opts.full_width = true;
+            }
+        }
+        block = sc_capture_panel_text(rows, panel_opts);
+    } else {
+        block = sc_capture_text(rows);
+    }
+    sc_text_free(rows);
+    return block;
+}
+
+/** Appends the match rows (+ optional "… +N more" line) to `rows`. */
+static void append_dropdown_rows(TextState *self, ScText *rows,
+                                 const SuggestMatch *matches, size_t shown,
+                                 size_t total) {
+    const char *cursor_marker = self->suggest.cursor_marker
+        ? self->suggest.cursor_marker : "\xe2\x80\xa3 ";   /* ‣ */
+    const char *marker = self->suggest.marker ? self->suggest.marker : "  ";
+    ScTextStyle selected_style = resolve_selected_style(self);
+
+    // The highlight may point past the end after the match list shrank.
+    if (self->drop_cursor >= (int)shown) {
+        self->drop_cursor = (int)shown - 1;
+    }
+
+    for (size_t i = 0; i < shown; i++) {
+        bool on_cursor = ((int)i == self->drop_cursor);
+        ScTextStyle row_style = on_cursor ? selected_style
+                                          : self->suggest.item_style;
+        if (i > 0) {
+            sc_text_append(rows, "\n", (ScTextStyle){ 0 });
+        }
+        sc_text_append(rows, on_cursor ? cursor_marker : marker, row_style);
+        sc_text_append(rows, self->suggestions[matches[i].index], row_style);
+    }
+    if (total > shown) {
+        char more[48];
+        snprintf(more, sizeof more, "\xe2\x80\xa6 +%zu more", total - shown);
+        sc_text_append(rows, "\n", (ScTextStyle){ 0 });
+        sc_text_append(rows, marker, (ScTextStyle){ 0 });
+        sc_text_append(rows, more, resolve_more_style(self));
+    }
+}
+
+/** Highlighted-row style; zero-init = bold cyan. */
+static ScTextStyle resolve_selected_style(const TextState *self) {
+    if (sc_style_set(self->suggest.selected_style)) {
+        return self->suggest.selected_style;
+    }
+    return (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN,
+                          SC_ANSI_COLOR_NONE };
+}
+
+/** Overflow-line ("… +N more") style; zero-init = dim. */
+static ScTextStyle resolve_more_style(const TextState *self) {
+    if (sc_style_set(self->suggest.more_style)) {
+        return self->suggest.more_style;
+    }
+    return (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                          SC_ANSI_COLOR_NONE };
 }
 
 /** Formats the character counter; `parens` wraps it as "(n)" / "(n/max)". */

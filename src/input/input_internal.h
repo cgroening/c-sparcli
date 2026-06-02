@@ -485,6 +485,16 @@ typedef struct ScTextEntryCfg {
     void *char_filter_ctx;
     const char *const *suggestions;
     size_t n_suggestions;
+
+    /** Suggestion presentation (ghost vs dropdown) + dropdown styling. */
+    ScSuggestOpts suggest;
+
+    /**
+     * Frame-builder only: 1-based highlighted dropdown row for style
+     * snapshots; 0 = no row highlighted. The live prompt manages the
+     * highlight itself.
+     */
+    size_t suggest_cursor;
     bool (*validate)(const char *, void *, const char **);
     void *validate_ctx;
 

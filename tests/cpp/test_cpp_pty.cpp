@@ -69,6 +69,16 @@ static int child_case(int c) {
                 "Amount", { .decimals = 2, .decimal_sep = ',' });
             return (r && *r == "7.50") ? 0 : 1;
         }
+        case 5: {
+            /* Dropdown autocomplete through the C opts (TextInputOpts is an
+               alias): Down highlights "checkout", Enter accepts it into the
+               field, the second Enter submits. */
+            static const char* cmds[] = { "commit", "checkout", "cherry-pick" };
+            std::optional<std::string> r = text_input("Cmd", {
+                .suggestions = cmds, .n_suggestions = 3,
+                .suggest = { .mode = SC_SUGGEST_DROPDOWN } });
+            return (r && *r == "checkout") ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -83,6 +93,7 @@ static const Case CASES[] = {
     { "textarea",       "a\rb\x04" },   /* a, newline, b, Ctrl-D -> "a\nb" */
     { "shortcut",       "ab\x1b[12~" }, /* type "ab", then F2 fires (id 42) */
     { "number_input_text", "\x15" "7,50\r" },  /* Ctrl-U clear, type, enter */
+    { "suggest_dropdown", "ch\x1b[B\r\r" },     /* down, accept, submit */
 };
 static const int N_CASES = (int)(sizeof CASES / sizeof CASES[0]);
 

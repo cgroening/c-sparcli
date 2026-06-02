@@ -185,6 +185,31 @@ fn input_without_tty_errors() {
 }
 
 #[test]
+fn text_input_suggest_dropdown_without_tty_errors() {
+    // The dropdown SuggestOpts must cross the FFI boundary cleanly; without
+    // a TTY the prompt still errors instead of crashing on the new fields.
+    let r = sparcli::text_input(
+        "Cmd",
+        sparcli::TextInputOpts::new()
+            .suggestions(vec!["commit".into(), "checkout".into()])
+            .suggest(
+                sparcli::SuggestOpts::dropdown()
+                    .fuzzy()
+                    .max_visible(3)
+                    .border(sparcli::BorderStyle::new(
+                        sparcli::BorderType::Rounded,
+                    ))
+                    .selected_style(
+                        sparcli::Style::new()
+                            .fg(sparcli::Color::BLACK)
+                            .bg(sparcli::Color::CYAN),
+                    ),
+            ),
+    );
+    assert!(r.is_err());
+}
+
+#[test]
 fn number_input_text_without_tty_errors() {
     // The exact-text variant follows the same no-TTY contract.
     let r = sparcli::number_input_text(

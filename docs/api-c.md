@@ -1095,11 +1095,44 @@ Single-line entry over a shared line editor (UTF-8 cursor/insert/delete/word- ki
 | `hide_char_count` / `count_style` | Character counter (`count` or `count/max`); default shown, dim |
 | `boxed` / `border` / `width` | Render inside a panel; prompt = top title, counter = bottom-right; `width` 0 = full terminal width |
 | `char_filter` / `char_filter_ctx` | Per-keystroke filter (built-ins `sc_filter_*`) |
-| `suggestions` / `n_suggestions` | Text only: dim autocomplete ghost; Tab accepts. While a suggestion is available the default hint leads with "tab complete" |
+| `suggestions` / `n_suggestions` | Text only: autocomplete word list. Default presentation is a dim ghost (first prefix match; Tab accepts); see `suggest` for the dropdown |
+| `suggest` | `ScSuggestOpts` – presentation of `suggestions`: ghost text (zero-init) or a navigable dropdown list (see below) |
 | `validate` / `validate_ctx` | Validator; keeps the prompt open and shows an error line |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 `*out` is heap-allocated on `SC_INPUT_OK` – the caller must `free()` it.
+
+#### Autocomplete dropdown (`ScSuggestOpts`)
+
+Set `suggest.mode = SC_SUGGEST_DROPDOWN` to present the suggestions as a list below the field instead of inline ghost text. While at least one suggestion matches the typed value, the list is shown and the keys change: **↑/↓** move the highlight (↑ above the first row returns focus to the field), **Tab** accepts the highlighted row (or the best match when none is highlighted), **Enter** accepts the highlighted row – or submits the typed value when no row is highlighted. Works inline and in `boxed` mode (the dropdown stacks beneath the panel and, when framed, matches the box width).
+
+| Field | Description |
+|-------|-------------|
+| `mode` | `SC_SUGGEST_GHOST` (zero-init) or `SC_SUGGEST_DROPDOWN` |
+| `match` | `SC_SUGGEST_MATCH_PREFIX` (zero-init, case-insensitive) or `SC_SUGGEST_MATCH_FUZZY` (subsequence match via `sc_fuzzy_match`, best score first) |
+| `max_visible` | Max rows shown at once; `0` = 5. More matches add a dim `… +N more` line |
+| `border` | `ScBorderStyle` frame around the list; zero-init type = plain list without a border |
+| `item_style` | Style of unselected rows; zero-init = no formatting |
+| `selected_style` | Style (incl. background) of the highlighted row; zero-init = bold cyan |
+| `more_style` | Style of the `… +N more` overflow line; zero-init = dim |
+| `cursor_marker` / `marker` | Markers before the highlighted / unselected rows; `NULL` = `"‣ "` / two spaces |
+
+An exact (case-insensitive) match is never listed – accepting a suggestion therefore closes the dropdown. An empty field shows no suggestions.
+
+```c
+static const char *const cmds[] = { "commit", "checkout", "cherry-pick" };
+char *cmd = NULL;
+sc_text_input("Git command", &cmd, (ScTextInputOpts){
+    .suggestions = cmds, .n_suggestions = 3,
+    .suggest = {
+        .mode  = SC_SUGGEST_DROPDOWN,
+        .match = SC_SUGGEST_MATCH_FUZZY,
+        .border = { .type = SC_BORDER_ROUNDED },
+        .selected_style = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                            SC_ANSI_COLOR_CYAN },   /* black on cyan */
+    },
+});
+```
 
 ### sc_number_input
 

@@ -180,6 +180,23 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 `text_input`/`password_input` accept a `char_filter` – either a built-in (`sc.filter_digits`, `sc.filter_decimal`, `sc.filter_alpha`, `sc.filter_alnum`, `sc.filter_no_space`) or a Python callable `(ch: str) -> bool` – and a `validate` callable `(value: str) -> str | None` (return an error message to keep the prompt open). `text_input` also takes `suggestions=[...]` for Tab autocomplete. `sc.filter_decimal` accepts both `.` and `,` as decimal separator.
 
+### Autocomplete dropdown
+
+By default `suggestions` shows the first prefix match as dim ghost text (Tab accepts). Pass `suggest=sc.SuggestOpts(...)` to present them as a navigable dropdown below the field instead – ↑/↓ move the highlight, Tab/Enter accept it, Enter without a highlight submits the typed value:
+
+```python
+cmd = sc.text_input("Git command", sc.TextInputOpts(
+    suggestions=["commit", "checkout", "cherry-pick"],
+    suggest=sc.SuggestOpts(
+        mode=sc.SuggestMode.DROPDOWN,
+        match=sc.SuggestMatch.FUZZY,           # or PREFIX (default)
+        max_visible=5,                          # rows; more get "… +N more"
+        border=sc.BorderStyle(type=sc.BorderType.ROUNDED),
+        selected_style=sc.Style(fg=sc.Color.BLACK, bg=sc.Color.CYAN),
+    ),
+))
+```
+
 ### Custom shortcuts
 
 Bind extra keys (Ctrl-letter / F1–F12 / Alt) on any widget. RETURN mode ends the prompt and records an id (read with `fired()`); CALLBACK mode runs a Python callable and keeps the prompt open unless it returns `False`.

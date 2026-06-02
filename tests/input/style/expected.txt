@@ -130,6 +130,68 @@
     [0m[2m3[0m
   [2mtab complete · enter submit · esc cancel[0m
 
+[2mdropdown: prefix matches, no highlight[0m
+  Git command:[0m [0mc[0m[30m[47m [0m
+    [0mcommit[0m
+    [0mcheckout[0m
+    [0mcherry-pick[0m
+    [0m[2m… +2 more[0m
+    [0m[2m1[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
+[2mdropdown: second row highlighted (default style)[0m
+  Git command:[0m [0mc[0m[30m[47m [0m
+    [0mcommit[0m
+  [1m[36m‣ [0m[1m[36mcheckout[0m
+    [0mcherry-pick[0m
+    [0m[2m… +2 more[0m
+    [0m[2m1[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
+[2mdropdown: selected_style with background, custom markers[0m
+  Git command:[0m [0mc[0mh[0m[30m[47m [0m
+  [30m[46m> [0m[30m[46mcheckout[0m
+  [2m  [0m[2mcherry-pick[0m
+    [0m[2m2[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
+[2mdropdown: rounded border frame[0m
+  Git command:[0m [0mc[0m[30m[47m [0m
+  [36m╭[0m[36m───────────────[0m[36m╮[0m
+  [36m│[0m [1m[36m‣ [0m[1m[36mcommit[0m      [36m│[0m
+  [36m│[0m   [0mcheckout[0m    [36m│[0m
+  [36m│[0m   [0mcherry-pick[0m [36m│[0m
+  [36m│[0m   [0m[2m… +2 more[0m   [36m│[0m
+  [36m╰[0m[36m───────────────[0m[36m╯[0m
+    [0m[2m1[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
+[2mdropdown: fuzzy matching[0m
+  Git command:[0m [0mc[0mp[0m[30m[47m [0m
+  [1m[36m‣ [0m[1m[36mcherry-pick[0m
+    [0m[2m2[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
+[2mdropdown: overflow line (max_visible 2 of 5 matches)[0m
+  Git command:[0m [0mc[0m[30m[47m [0m
+    [0mcommit[0m
+    [0mcheckout[0m
+    [0m[2m… +3 more[0m
+    [0m[2m1[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
+[2mdropdown: boxed field, dropdown frame matches box width[0m
+  ╭[0m─[0m [0mGit command[0m [0m──────────────[0m╮[0m
+  │[0m c[0m[30m[47m [0m                         │[0m
+  ╰[0m──────────────────────[0m [0m[2m(1)[0m [0m─[0m╯[0m
+  ╭[0m────────────────────────────[0m╮[0m
+  │[0m [1m[36m‣ [0m[1m[36mcommit[0m                   │[0m
+  │[0m   [0mcheckout[0m                 │[0m
+  │[0m   [0mcherry-pick[0m              │[0m
+  │[0m   [0m[2m… +2 more[0m                │[0m
+  ╰[0m────────────────────────────[0m╯[0m
+  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+
 [2mrich prompt: inline markup (italic name)[0m
   Rename [0m[3mApple[0m to[0m [0mA[0mp[0mp[0ml[0me[0m[30m[47m [0m
     [0m[2m5[0m

@@ -30,16 +30,18 @@ from .color import Color
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BorderType, HintLayout,
                     HintPos, ListMarker, LogLevel, PathKind, Position,
-                    ProgressType, SpinnerType, VAlign, WeekStart)
+                    ProgressType, SpinnerType, SuggestMatch, SuggestMode,
+                    VAlign, WeekStart)
 from .log import (Logger, log_add_file, log_debug, log_error,
                   log_hide_timestamps, log_info, log_level, log_reset,
                   log_set_level, log_warning)
 from .errors import SparcliError, SparcliInputUnavailable
 from .input import (ConfirmOpts, DatePickerOpts, NumberOpts, PasswordOpts,
-                    TextInputOpts, TextareaOpts, confirm, datepicker,
-                    decimal_input, filter_alnum, filter_alpha, filter_decimal,
-                    filter_digits, filter_no_space, input_available,
-                    number_input, password_input, text_input, textarea)
+                    SuggestOpts, TextInputOpts, TextareaOpts, confirm,
+                    datepicker, decimal_input, filter_alnum, filter_alpha,
+                    filter_decimal, filter_digits, filter_no_space,
+                    input_available, number_input, password_input, text_input,
+                    textarea)
 from .keys import KeyChord, Shortcuts, key_alt, key_ctrl, key_fn
 from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      allow_ansi, badge, clear_line, panel, print_, println,
@@ -65,7 +67,7 @@ __all__ = [
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",
-    "AnsiMode", "PathKind",
+    "SuggestMode", "SuggestMatch", "AnsiMode", "PathKind",
     # errors
     "SparcliError", "SparcliInputUnavailable",
     # app helpers (XDG paths, pager, pretty errors)
@@ -95,6 +97,7 @@ __all__ = [
     "ProgressBar", "ProgressBarOpts", "Thresholds", "Spinner", "SpinnerOpts",
     # input
     "input_available", "confirm", "ConfirmOpts", "text_input", "TextInputOpts",
+    "SuggestOpts",
     "password_input", "PasswordOpts", "number_input", "decimal_input",
     "NumberOpts", "textarea", "TextareaOpts", "datepicker", "DatePickerOpts",
     "Select", "SelectOpts", "Fuzzy", "FuzzyOpts", "fuzzy_match",
