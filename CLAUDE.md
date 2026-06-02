@@ -167,6 +167,25 @@ Used directly everywhere a title is needed. `pos` is ignored by rules (no top/bo
 
 ---
 
+### ScAnsiMode
+
+Per-widget ANSI passthrough for user strings – controls the escape-injection protection.
+
+```c
+typedef enum {
+    SC_ANSI_MODE_DEFAULT  = 0, /* inherit the sc_set_allow_ansi() global (default) */
+    SC_ANSI_MODE_ALLOW    = 1, /* pass well-formed escape sequences through */
+    SC_ANSI_MODE_SANITIZE = 2, /* always strip escape sequences */
+} ScAnsiMode;
+
+void sc_set_allow_ansi(bool allow);  /* process-wide default; false = strip */
+bool sc_allow_ansi(void);            /* current setting */
+```
+
+By default every user string entering the library is sanitized: control bytes (except `\n`/`\t`) and ANSI escape sequences are removed, so untrusted data cannot inject terminal escape codes. Every output widget opts struct (`ScPanelOpts`, `ScTableOpts`, `ScRuleOpts`, `ScListOpts`, `ScKVOpts`, `ScTreeOpts`, `ScSpinnerOpts`, `ScProgressBarOpts`, `ScBadgeOpts`, `ScMarkupOpts`) carries an `ScAnsiMode ansi` field; zero-init inherits the `sc_set_allow_ansi` global, the explicit values override it per widget. When ANSI is allowed, well-formed escape sequences pass through, stray control bytes are still removed, and all width calculations skip escape sequences – frames and tables stay aligned. Details: see the "ANSI sanitization / trust boundary" Key Invariant.
+
+---
+
 ## Panels
 
 ```c
@@ -192,6 +211,7 @@ void sc_panel_text(const ScText *content, ScPanelOpts opts);
 | `width` | `int` | 0 = auto-fit content |
 | `content_align` | `ScHAlign` | Horizontal alignment of content lines |
 | `full_width` | `bool` | Stretch to terminal width (overrides `width`) |
+| `ansi` | `ScAnsiMode` | ANSI passthrough for content and title strings; zero-init inherits `sc_set_allow_ansi` |
 
 `full_width` takes precedence over `width`. Width is calculated as `terminal_width - 2`.
 
@@ -238,6 +258,7 @@ void         sc_table_free(ScTableData *table);
 | `total_width` | 0 = auto; >0 = distribute width across flex columns |
 | `max_rows` | 0 = unlimited; >0 = truncate with indicator |
 | `rtl` | `bool` – right-to-left column order |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for cell and title strings; zero-init inherits the `sc_set_allow_ansi` global |
 
 ### ScTableHeader / ScTableFooter
 
@@ -327,6 +348,7 @@ void sc_rule_text(const ScText *title, ScRuleOpts opts); // title may be NULL
 | `width` | 0 = full terminal width; >0 = fixed width |
 | `halign` | Placement of the rule when `width > 0` (LEFT/CENTER/RIGHT) |
 | `margin` | `ScEdges` – top/bottom = blank lines; left/right = indent |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for the title string; zero-init inherits the `sc_set_allow_ansi` global |
 
 ---
 
@@ -431,6 +453,7 @@ void        sc_list_free    (ScList *l);
 | `item_gap` | Blank lines between items |
 | `width` | 0 = terminal width |
 | `margin` | Symmetric left+right outer margin |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for item strings; zero-init inherits the `sc_set_allow_ansi` global |
 
 **Zero-init of `marker_style`:** Unlike other `ScTextStyle` fields, a zero-initialized `marker_style` in `ScListOpts` is explicitly treated as "no formatting" by the renderer. You can safely write `(ScListOpts){ .marker = SC_LIST_NUMBER }` without specifying `marker_style` and no color escape codes will be emitted for the marker.
 
@@ -484,6 +507,7 @@ void           sc_progressbar_free     (ScProgressBar *b);
 | `width` | Total line width; 0 = terminal width |
 | `label_width` | Fixed label column width; 0 = natural width |
 | `label_style` | Style for label text |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for the label; zero-init inherits the `sc_set_allow_ansi` global |
 
 **Zero-init of `fill_color`/`empty_color`:** Same as every other `ScColor` field – zero-init equals `SC_ANSI_COLOR_NONE` and emits no escape codes. Use `SC_ANSI_COLOR_BLACK` for explicit black.
 
@@ -531,6 +555,7 @@ void       sc_spinner_free     (ScSpinner *s);
 | `type` | Frame style (see above) |
 | `color` | Spinner character color; zero-init = no color |
 | `label_style` | Style for label text; zero-init = no formatting |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for the label; zero-init inherits the `sc_set_allow_ansi` global |
 
 **Animation pattern:**
 ```c
@@ -668,6 +693,7 @@ void  sc_kv_free (ScKV *kv);
 | `wrap_val` | `1` = word-wrap long values with hanging indent; `0` = truncate |
 | `key_style` | Style for key text; **zero-init = no formatting** |
 | `val_style` | Style for value text; **zero-init = no formatting** |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for key/value strings; zero-init inherits the `sc_set_allow_ansi` global |
 
 **Layout:** `margin + key (padded to key_w) + sep + value + margin`
 
@@ -718,6 +744,7 @@ void sc_text_append_badge(ScText *t, const char *text, ScBadgeOpts opts);
 | `right_cap` | `NULL` = `"]"` |
 | `text_style` | Style for the full badge (caps + padding + text); **zero-init = no formatting** |
 | `pad` | Spaces inside each cap; default 0 |
+| `ansi` | `ScAnsiMode` – ANSI passthrough for the badge text; zero-init inherits the `sc_set_allow_ansi` global |
 
 Badge string: `left_cap + pad×' ' + text + pad×' ' + right_cap`
 
