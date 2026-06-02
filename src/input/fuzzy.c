@@ -504,8 +504,10 @@ static ScRendered *render_table(ScFuzzy *self) {
     uint64_t mask = self->opts.search_columns;   /* 0 = all columns */
     ScTextStyle sel = self->opts.selected_style; /* cursor-row text style */
     bool sel_set = sc_style_set(sel);
+    // calloc(0, ...) is implementation-defined; with no visible rows the
+    // loop below doesn't run, so skip the allocation entirely.
     size_t shown = (end > self->top) ? end - self->top : 0;
-    ScText **texts = calloc(shown * cols, sizeof *texts);
+    ScText **texts = shown > 0 ? calloc(shown * cols, sizeof *texts) : NULL;
     size_t n_texts = 0;
 
     for (size_t i = self->top; i < end; i++) {

@@ -33,6 +33,12 @@ static void render_bottom_border(const Table *table);
 
 
 void table_render(Table *table) {
+    // Bail when any per-print allocation failed (OOM): rendering would
+    // dereference a NULL array.
+    if (!table->column_widths || !table->has_rowspan || !table->row_span
+        || (table->table_data->row_count > 0 && !table->row_heights)) {
+        return;
+    }
     sc_print_newlines(table->opts.margin.top);
     render_top_border(table);
     render_header_row(table);
@@ -108,7 +114,10 @@ static void render_header_row(const Table *table) {
     const ScTableData *data = table->table_data;
     if (!table->opts.header.row) { return; }
 
-    ScCell *header_cells = malloc(data->column_count * sizeof(ScCell));
+    ScCell *header_cells = calloc(data->column_count, sizeof(ScCell));
+    if (!header_cells) {
+        return;   // OOM: skip the header row
+    }
     for (size_t col = 0; col < data->column_count; col++) {
         header_cells[col] = sc_cell(
             data->columns[col].header ? data->columns[col].header : ""
@@ -316,7 +325,10 @@ static void render_truncation_indicator(Table *table, size_t max_rows) {
         .bg = SC_ANSI_COLOR_NONE,
     };
 
-    ScCell *cells = malloc(data->column_count * sizeof(ScCell));
+    ScCell *cells = calloc(data->column_count, sizeof(ScCell));
+    if (!cells) {
+        return;   // OOM: skip the truncation indicator
+    }
     cells[0] = sc_cell_cs(message, (int)data->column_count);
     for (size_t col = 1; col < data->column_count; col++) {
         cells[col] = sc_cell_skip();

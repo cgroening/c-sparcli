@@ -47,9 +47,14 @@ void table_init(
 ) {
     table->table_data = table_data;
     table->opts = opts;
-    table->column_widths = malloc(table_data->column_count * sizeof(int));
+    // calloc throughout: it checks the count*size multiplication for
+    // overflow, unlike a hand-written malloc(n * size).
+    table->column_widths = calloc(table_data->column_count, sizeof(int));
     table->has_rowspan = calloc(table_data->column_count, sizeof(bool));
     table->row_span = calloc(table_data->column_count, sizeof(RowSpan));
+    if (!table->column_widths || !table->has_rowspan || !table->row_span) {
+        return;   // OOM: table_render bails on the NULL arrays
+    }
 
     cache_padding_values(table);
     compute_column_widths(table);
@@ -241,10 +246,14 @@ static int compute_inner_width(const Table *table) {
 
 /* ── Row heights ───────────────────────────────────────────────────────── */
 
-/** Allocates and returns an array of visual heights for all data rows. */
+/** Allocates and returns an array of visual heights for all data rows;
+    NULL on allocation failure (table_render bails in that case). */
 static int *compute_row_heights(const Table *table) {
     size_t row_count = table->table_data->row_count;
-    int *heights = malloc(row_count * sizeof(int));
+    int *heights = calloc(row_count, sizeof(int));
+    if (!heights) {
+        return NULL;
+    }
     for (size_t row = 0; row < row_count; row++) {
         heights[row] = compute_row_height(table, row);
     }

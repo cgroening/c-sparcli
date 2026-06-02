@@ -108,9 +108,15 @@ void render_row(
         .cells = cells,
         .row_bg = row_bg,
         .section = section,
-        .column_lines = malloc(column_count * sizeof(ScRenderLine *)),
-        .column_line_counts = malloc(column_count * sizeof(size_t)),
+        // calloc: overflow-checked count*size and zero-initialized slots.
+        .column_lines = calloc(column_count, sizeof(ScRenderLine *)),
+        .column_line_counts = calloc(column_count, sizeof(size_t)),
     };
+    if (!self.column_lines || !self.column_line_counts) {
+        free(self.column_lines);
+        free(self.column_line_counts);
+        return;   // OOM: skip this row
+    }
 
     size_t max_content_lines = build_column_lines(&self);
     self.row_height = explicit_row_height > 0

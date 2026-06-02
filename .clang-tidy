@@ -1,0 +1,35 @@
+# clang-tidy configuration for sparcli (run via `make lint`).
+#
+# Conservative check selection: real-bug finders (bugprone, clang-analyzer,
+# cert) without the noisy style/readability families - formatting and naming
+# are governed by the project conventions in CLAUDE.md, not by clang-tidy.
+#
+# Disabled checks (with reasons):
+#  - bugprone-easily-swappable-parameters: flags every (width, height)-style
+#    pair; the opts-struct convention already addresses this.
+#  - bugprone-narrowing-conversions / cert-*-cpp: C++-oriented noise for C11.
+#  - bugprone-multi-level-implicit-pointer-conversion: flags the idiomatic
+#    `void *` round-trip of realloc/sc_dynarray_grow on `T **` arrays.
+#  - cert-err33-c: requires checking the return value of every fputs/printf/
+#    fflush; a terminal-rendering library writes constantly and intentionally
+#    ignores stream errors (nothing sensible to do mid-frame).
+#  - clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling:
+#    flags every memcpy/snprintf; the project uses bounded variants already.
+#  - clang-analyzer-security.ArrayBound: alpha check that cannot connect
+#    calloc(n, size) allocations to loops bounded by the same n (symbolic
+#    sizes) and ignores NOLINT, so its false positives are unsuppressible.
+#    Real out-of-bounds bugs of this class are covered dynamically by
+#    `make sanitize` / `make test-input-pty` / `make fuzz` (ASan).
+Checks: >
+  bugprone-*,
+  clang-analyzer-*,
+  cert-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -cert-err33-c,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-security.ArrayBound
+WarningsAsErrors: ''
+HeaderFilterRegex: '(include|src)/.*'
+FormatStyle: none

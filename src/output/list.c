@@ -213,6 +213,9 @@ static ScListItem *new_item(
     bool is_text, const char *str, ScTextStyle style, const ScText *text
 ) {
     ScListItem *item = calloc(1, sizeof(ScListItem));
+    if (!item) {
+        return NULL;
+    }
     item->is_text = is_text;
     item->str = str ? strdup(str) : NULL;
     item->style = style;
@@ -222,6 +225,9 @@ static ScListItem *new_item(
 
 /** Appends `item` to `list`, growing the items array as needed. */
 static void append_item(ScList *list, ScListItem *item) {
+    if (!item) {
+        return;   // allocation failed upstream: nothing to append
+    }
     if (list->item_count == list->item_capacity) {
         void *grown = sc_dynarray_grow(
             list->items, &list->item_capacity, sizeof(ScListItem *), 4
@@ -542,6 +548,10 @@ static char **word_wrap(
     size_t capacity = 8;
     size_t line_count = 0;
     char **lines = malloc(capacity * sizeof(char *));
+    if (!lines) {
+        *out_line_count = 0;
+        return NULL;   // callers iterate out_line_count, so NULL is safe
+    }
 
     if (!text || !*text || max_width < 1) {
         lines[line_count++] = strdup(text && *text ? text : "");
@@ -589,8 +599,12 @@ static char **word_wrap(
         }
 
         if (line_count == capacity) {
+            char **grown = realloc(lines, capacity * 2 * sizeof(char *));
+            if (!grown) {
+                break;   // OOM: keep the lines collected so far
+            }
+            lines = grown;
             capacity *= 2;
-            lines = realloc(lines, capacity * sizeof(char *));
         }
         lines[line_count++] = strndup(
             line_start, (size_t)(line_end - line_start)

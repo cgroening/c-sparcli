@@ -303,7 +303,13 @@ static void render_wrapped_value(const KV *self, const char *value) {
         while (*cursor) {
             const char *word_end = cursor;
             while (*word_end && *word_end != ' ') { word_end++; }
-            int word_bytes = (int)(word_end - cursor);
+            // Clamp the span before the int cast: a pathological word longer
+            // than the buffer must not truncate/overflow the int byte count.
+            ptrdiff_t word_span = word_end - cursor;
+            if (word_span > (ptrdiff_t)sizeof line_buffer) {
+                word_span = (ptrdiff_t)sizeof line_buffer;
+            }
+            int word_bytes = (int)word_span;
             int word_width = (int)sc_utf8_string_length(
                 cursor, (size_t)word_bytes
             );
@@ -311,6 +317,13 @@ static void render_wrapped_value(const KV *self, const char *value) {
 
             bool fits = visible_count + gap + word_width <= self->value_width;
             if (gap > 0 && !fits) { break; }
+
+            // Clamp to the buffer: a single over-long word (no spaces) is
+            // copied even when it exceeds the visible width and would
+            // otherwise overflow the stack buffer.
+            int remaining = (int)sizeof line_buffer - 1 - byte_count - gap;
+            if (remaining <= 0) { break; }
+            if (word_bytes > remaining) { word_bytes = remaining; }
 
             if (gap) { line_buffer[byte_count++] = ' '; }
             memcpy(line_buffer + byte_count, cursor, (size_t)word_bytes);

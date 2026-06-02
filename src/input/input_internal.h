@@ -150,7 +150,11 @@ static inline char *sc_prompt_plain(
         for (size_t i = 0; i < n; i++) {
             ScSpan span = sc_text_span(text, i);
             if (span.raw_str) {
+                // Clamp to the allocation so the copy is provably in-bounds
+                // even if span contents differed between the two passes.
                 size_t len = strlen(span.raw_str);
+                size_t remaining = total - 1 - pos;
+                if (len > remaining) { len = remaining; }
                 memcpy(out + pos, span.raw_str, len);
                 pos += len;
             }

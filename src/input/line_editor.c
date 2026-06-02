@@ -297,7 +297,9 @@ static size_t *build_offsets(const ScLineEditor *self, size_t *out_count) {
          i = next_boundary(self->buf, self->len, i)) {
         cp_count++;
     }
-    size_t *offsets = malloc((cp_count + 1) * sizeof *offsets);
+    // calloc (not malloc) so every entry is provably initialized even if the
+    // boundary iteration below were ever inconsistent with the count above.
+    size_t *offsets = calloc(cp_count + 1, sizeof *offsets);
     if (!offsets) {
         *out_count = 0;
         return NULL;

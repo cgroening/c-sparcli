@@ -81,6 +81,22 @@ SANITIZE_LIB      = libsparcli-sanitize.a
 SANITIZE_TEST_BIN = tests/output/test_main_sanitize
 SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
 
+# ThreadSanitizer build artefacts (TSan cannot be combined with ASan, so it
+# gets its own tree, .a and flags).
+TSAN_BUILDDIR = build.tsan.nosync
+TSAN_OBJ      = $(patsubst src/%.c,$(TSAN_BUILDDIR)/%.o,$(SRC))
+TSAN_DEP      = $(TSAN_OBJ:.o=.d)
+TSAN_LIB      = libsparcli-tsan.a
+TSAN_TEST_BIN = tests/input/logic/test_input_main_tsan
+TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1
+
+# Fuzz harnesses: portable random-input fuzzers built under ASan/UBSan (no
+# libFuzzer dependency; the harness entry points are libFuzzer-compatible).
+FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c
+FUZZ_BIN   = $(patsubst tests/fuzz/%.c,$(BUILDDIR)/fuzz/%,$(FUZZ_SRC))
+FUZZ_ITERS ?= 200000
+FUZZ_SEED  ?= 1
+
 # ── Output test suite (tests/output/) - automatic, non-interactive ────────
 TEST_SRC = tests/output/test_main.c \
            tests/output/test_text_attributes.c \
@@ -149,7 +165,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize pkgconfig shared examples run-example rust rust-test python python-test rebuild-all
+.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -177,6 +193,18 @@ python:
 
 python-test: python
 	cd $(PY_DIR) && PYTHONPATH=src $(PY) -m pytest tests -q
+
+# Poisoned-memory run: freed memory is filled with a marker byte, so any
+# use-after-free in the C layer breaks assertions instead of silently working
+# (a dangling pointer usually still holds the old bytes until the allocator
+# reuses them - this makes the corruption deterministic). PYTHONMALLOC=malloc
+# routes Python/cffi allocations through libc malloc so the poisoning applies
+# to the cffi buffers too. MallocScribble/MallocPreScribble = macOS,
+# MALLOC_PERTURB_ = glibc; the foreign one is silently ignored.
+python-test-debug: python
+	cd $(PY_DIR) && PYTHONPATH=src PYTHONMALLOC=malloc \
+	    MallocScribble=1 MallocPreScribble=1 MALLOC_PERTURB_=85 \
+	    $(PY) -m pytest tests -q
 
 # ── Rebuild everything (C lib + install + Rust + Python) in one go ─────────
 # The C++ wrapper is header-only (nothing to compile on its own); it is picked
@@ -331,6 +359,58 @@ $(SANITIZE_BUILDDIR)/%.o: src/%.c | $(SANITIZE_BUILDDIR)
 $(SANITIZE_BUILDDIR):
 	mkdir -p $(SANITIZE_BUILDDIR)
 
+# Build & run the input logic suite (incl. test_threads) under ThreadSanitizer.
+# Verifies the documented invariant that concurrent rendering/capturing on
+# independent streams is race-free (thread-local output target).
+tsan: $(TSAN_LIB)
+	$(CC) $(CFLAGS) $(TSAN_FLAGS) $(INPUT_TEST_SRC) $(TSAN_LIB) \
+	    $(LDFLAGS) $(TSAN_FLAGS) $(PTHREAD_LDLIBS) -o $(TSAN_TEST_BIN)
+	./$(TSAN_TEST_BIN) --logic
+
+$(TSAN_LIB): $(TSAN_OBJ)
+	$(AR) rcs $@ $^
+
+$(TSAN_BUILDDIR)/%.o: src/%.c | $(TSAN_BUILDDIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(TSAN_FLAGS) -MMD -MP -c $< -o $@
+
+$(TSAN_BUILDDIR):
+	mkdir -p $(TSAN_BUILDDIR)
+
+# Random-input fuzzing of the two external parsers (markup, key decoder) under
+# ASan/UBSan. Deterministic by default (FUZZ_SEED=1); override iterations/seed
+# with `make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42`. The harnesses also expose a
+# libFuzzer-compatible LLVMFuzzerTestOneInput for toolchains that ship libFuzzer
+# (build with -DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address there).
+fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)/fuzz
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_markup.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_markup
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_key.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_key
+	./$(BUILDDIR)/fuzz/fuzz_markup $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_key $(FUZZ_ITERS) $(FUZZ_SEED)
+
+# Static analysis. Each tool is optional: the target degrades to an install
+# hint when a tool is missing, so it can run on any machine.
+LLVM_TIDY = $(shell command -v clang-tidy 2>/dev/null \
+            || ls /opt/homebrew/opt/llvm/bin/clang-tidy 2>/dev/null)
+lint:
+	@if command -v cppcheck >/dev/null 2>&1; then \
+	    echo "── cppcheck ──"; \
+	    cppcheck --enable=warning,performance,portability --std=c11 \
+	        --inline-suppr --quiet --error-exitcode=1 \
+	        -Iinclude -Isrc src/; \
+	else \
+	    echo "cppcheck not installed: brew install cppcheck"; \
+	fi
+	@if [ -n "$(LLVM_TIDY)" ]; then \
+	    echo "── clang-tidy ──"; \
+	    $(LLVM_TIDY) --quiet $(SRC) -- $(CFLAGS); \
+	else \
+	    echo "clang-tidy not installed: brew install llvm"; \
+	fi
+
 # Build all example programs into EXAMPLES_BUILDDIR. Linked against the static
 # .a, same as the test binary, so they don't depend on the install path.
 examples: $(EXAMPLES_BIN)
@@ -370,12 +450,13 @@ uninstall:
 	for h in $(HEADERS); do rm -f "$(DESTDIR)$(INCLUDEDIR)/$${h#include/}"; done
 
 clean:
-	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) $(EXAMPLES_BUILDDIR) \
-	       $(LIB) $(SANITIZE_LIB) \
+	rm -rf $(BUILDDIR) $(SANITIZE_BUILDDIR) $(TSAN_BUILDDIR) \
+	       $(EXAMPLES_BUILDDIR) \
+	       $(LIB) $(SANITIZE_LIB) $(TSAN_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
 	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) \
-	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN)
+	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN)
 
 # Auto-generated header dependencies (-MMD -MP). The leading '-' silences the
 # "no such file" notice on the first build, before any .d exists.
--include $(DEP) $(SANITIZE_DEP)
+-include $(DEP) $(SANITIZE_DEP) $(TSAN_DEP)

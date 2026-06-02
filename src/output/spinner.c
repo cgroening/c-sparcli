@@ -74,6 +74,9 @@ static void render_status_symbol(bool success);
 
 ScSpinner *sc_spinner_new(const char *label, ScSpinnerOpts opts) {
     ScSpinner *spinner = calloc(1, sizeof(ScSpinner));
+    if (!spinner) {
+        return NULL;
+    }
     spinner->opts = opts;
     spinner->label = label ? strdup(label) : NULL;
     return spinner;

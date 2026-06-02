@@ -22,10 +22,19 @@ make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks eac
                   # widget onto a pseudo-terminal and feeds canned keys – gives
                   # interactive coverage with no human. Runs headless (CI).
 make sanitize     # OUTPUT suite under ASan/UBSan
+make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
+                  # thread-safety invariant; own build tree)
+make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
+                  # tools optional, prints install hints when missing)
+make fuzz         # random-input fuzzing of the markup parser + key decoder
+                  # under ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable)
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples / run-example EX=<name>   # build all / build+run one examples/*.c
 make rust / rust-test     # build / test the safe Rust crate (bindings/rust/)
 make python / python-test # build / test the Python package (bindings/python/)
+make python-test-debug    # Python suite with poisoned freed memory: makes
+                  # use-after-free of cffi buffers deterministic (run after
+                  # binding / string-lifetime changes)
 make rebuild-all          # C lib + install + Rust + Python in one command
 make clean        # removes build trees, .a, shared libs, test binaries
 ```

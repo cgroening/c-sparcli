@@ -144,6 +144,7 @@ The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode wrap
 ```sh
 make python                       # build the extension in place
 make python-test                  # build + run the non-interactive pytest suite
+make python-test-debug            # same suite with poisoned freed memory (see below)
 make python-test PY=/path/to/python   # point make at an interpreter that has cffi
 
 # Examples (after `make python`, from bindings/python/):
@@ -161,6 +162,12 @@ pip install --no-build-isolation -e bindings/python
 
 The `cdef` in `build_sparcli.py` uses cffi's partial-struct (`...;`) syntax, so the compiler fills in exact struct layout from the headers – a real mismatch fails the build. The reference is [`docs/api-python.md`](api-python.md).
 
+### `make python-test-debug` – Python suite with poisoned freed memory
+
+Runs the same pytest suite, but with every freed allocation overwritten by a marker byte (`PYTHONMALLOC=malloc` + macOS `MallocScribble`/glibc `MALLOC_PERTURB_`). A use-after-free in the C layer – e.g. a borrowed string whose cffi buffer was garbage-collected – then shows up as garbled output and a failing assertion instead of silently "working" because the old bytes happen to still be there. **Run this after any change to the bindings or to string-lifetime handling.**
+
+This is the gate that would have caught the Select/Fuzzy opts use-after-free found via numcli: tests with string literals can never dangle, and ASan only reports memory that actually gets freed – poisoning makes the dangling read deterministic.
+
 ### `make sanitize` – output suite under ASan/UBSan
 
 Rebuilds and runs the output suite with AddressSanitizer + UBSan in a separate build tree.
@@ -170,6 +177,31 @@ make sanitize ARGS=--no-animated
 ```
 
 > The style and PTY runners take no `ARGS`. The thread-safety test runs as part of `make test-input ARGS=--logic`.
+
+### `make tsan` – logic suite under ThreadSanitizer
+
+Rebuilds the library with `-fsanitize=thread` (own build tree, since TSan and ASan cannot be combined) and runs the non-interactive logic suite, including the thread-safety test. This verifies the documented invariant that concurrent rendering/capturing on independent streams is race-free, instead of just asserting it.
+
+```sh
+make tsan
+```
+
+### `make lint` – static analysis (cppcheck + clang-tidy)
+
+Runs cppcheck and clang-tidy (configured by the repo-root `.clang-tidy`; conservative bug-finding checks, noisy style checks disabled with documented reasons) over `src/`. Each tool is optional – the target prints an install hint (`brew install cppcheck` / `brew install llvm`) when one is missing.
+
+```sh
+make lint
+```
+
+### `make fuzz` – random-input fuzzing of the parsers (ASan/UBSan)
+
+Feeds the two external parsers – the inline-markup parser (`sc_markup_parse`) and the key decoder (`sc_key_decode`) – with pseudo-random byte sequences under ASan/UBSan. Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer).
+
+```sh
+make fuzz                              # 200k inputs per parser, seed 1
+make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42
+```
 
 ### Golden-file workflow
 
@@ -372,6 +404,20 @@ To **add a source file**, append its path (e.g. `src/output/foo.c`) to `SRC` in 
 
 To **add public API**, declare it inside the header's `SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` block (these provide the `extern "C"` wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` – symbols are hidden by default, so an unmarked function won't be part of the shared-library ABI.
 
+### Adding public API – ownership checklist
+
+Every pointer a public API receives needs an explicit answer to *"who owns this, for how long?"*. Getting this wrong is invisible to normal tests (string literals never dangle) and surfaces as use-after-free only in FFI consumers – so it is a design-time checklist, not something tests catch for free:
+
+1. **Does the function store a caller pointer past its own return?** (handle-based `*_new()`, process-wide setters, deferred rendering)
+   - **Default: copy it** (and free the copy in the matching `_free()`). This is the project invariant – see "Opts-string lifetime" in [`../CLAUDE.md`](../CLAUDE.md).
+   - Only **borrow** when copying is genuinely impossible/expensive (e.g. `ScText` content, `shortcuts` callbacks) – then document the required lifetime **per field** in the header.
+2. **Write a lifetime test** that hands over a temporary buffer and clobbers/frees it right after the call:
+   - Logic suite: clobber a stack buffer (pattern: `tests/input/logic/test_opts_copy.c`).
+   - PTY suite: `strdup` + `free` before the run, so ASan sees a real dangling read (pattern: cases `fuzzy-heap-prompt`, `theme-heap-strings`).
+   - Output suite: clobbered buffer + golden comparison (pattern: "Opts strings are copied" cases in `test_lists.c` / `test_progressbar.c`).
+   - Python: construct from a temporary, `gc.collect()`, then use the object (pattern: `test_*_survive_gc` in `bindings/python/tests/test_smoke.py`) – and run it under `make python-test-debug`.
+3. **Update the bindings and docs** (cdef/bindgen/hpp, `api-*.md`, `CLAUDE.md`) – see the rebuild section above.
+
 ### Adding a test
 
 - **Output test:** add `tests/output/test_foo.c`, append it to `TEST_SRC` in the `Makefile`, and register it in `get_all_tests()` in `tests/output/test_main.c`. If it renders deterministic output, regenerate the golden file afterwards (`make test-output-golden`).
@@ -400,3 +446,7 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
 1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all five headless gates pass.
 2. If you changed rendering on purpose, regenerate the affected golden file (`make test-output-golden` / `make test-input-style-golden` / `make test-cpp-golden`) and commit it.
+3. `make sanitize` and `make tsan` – ASan/UBSan and TSan stay clean.
+4. `make lint` and `make fuzz` – no new static-analysis findings, parsers survive random input.
+5. If the bindings or any string-lifetime handling changed: `make rust-test`, `make python-test` and `make python-test-debug`.
+6. If you added public API: walk the **ownership checklist** above (copy vs. documented borrow + lifetime test).

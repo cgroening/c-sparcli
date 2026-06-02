@@ -146,6 +146,7 @@ static void confirm_on_key(void *state, ScKey key, bool *done, bool *cancel) {
                 case 'y': case 'Y': self->value = true;  *done = true; break;
                 case 'n': case 'N': self->value = false; *done = true; break;
                 case 'h': case 'l': self->value = !self->value;        break;
+                default: break;   // any other character is ignored
             }
             return;
         default:

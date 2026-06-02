@@ -130,6 +130,9 @@ static void free_node(ScTreeNode *node);
 
 ScTree *sc_tree_new(ScTreeOpts opts) {
     ScTree *tree = calloc(1, sizeof(ScTree));
+    if (!tree) {
+        return NULL;
+    }
     tree->opts = opts;
     return tree;
 }
@@ -194,6 +197,9 @@ static ScTreeNode *new_node(
     const ScText *text, const char *prefix, ScTextStyle prefix_style
 ) {
     ScTreeNode *node = calloc(1, sizeof(ScTreeNode));
+    if (!node) {
+        return NULL;
+    }
     node->is_text = is_text;
     node->str = str ? strdup(str) : NULL;
     node->text = text;
@@ -210,6 +216,9 @@ static ScTreeNode *new_node(
 static ScTreeNode *attach_node(
     ScTree *tree, ScTreeNode *parent, ScTreeNode *node
 ) {
+    if (!node) {
+        return NULL;   // allocation failed upstream: nothing to attach
+    }
     if (parent) {
         append_child(parent, node);
     } else {
