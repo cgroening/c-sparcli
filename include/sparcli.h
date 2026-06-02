@@ -25,6 +25,7 @@
 #include "output/sparcli_pad.h"          // IWYU pragma: export
 #include "output/sparcli_align.h"        // IWYU pragma: export
 #include "output/sparcli_pager.h"        // IWYU pragma: export
+#include "output/sparcli_live.h"         // IWYU pragma: export
 #include "core/sparcli_output.h"       // IWYU pragma: export
 
 #include "input/sparcli_input.h"        // IWYU pragma: export

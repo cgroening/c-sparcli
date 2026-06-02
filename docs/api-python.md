@@ -117,6 +117,12 @@ with sc.Pager() as pager:
     table.print(sc.TableOpts(header_row=True))
 print(pager.exit_status)
 
+# Live display: re-render a composed frame in place (dashboard).
+# Off-terminal, only the final frame is printed when the session ends.
+with sc.Live() as live:                       # Live(alt_screen=True) = fullscreen
+    for i in range(0, 101, 10):
+        live.update(sc.capture.string(f"progress: {i}%"))
+
 # Pretty errors: message + causes + hint + exit code as a red panel.
 # die() raises SystemExit (never calls the C exit()), so cleanup runs.
 sc.ErrorReport("Config could not be loaded") \

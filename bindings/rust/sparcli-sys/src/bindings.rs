@@ -1712,6 +1712,60 @@ extern "C" {
     #[doc = " Ends a pager session: flushes and closes the pipe, restores the\n previous output stream and `SIGPIPE` disposition, waits for the pager\n process to exit, and frees the handle.\n\n @param pager  Session from `sc_pager_begin`; safe to pass `NULL`.\n @return       The pager's exit status (`0` on clean exit), `0` for\n               no-op sessions, `-1` when the pager was killed by a\n               signal or waiting failed."]
     pub fn sc_pager_end(pager: *mut ScPager) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScLive {
+    _unused: [u8; 0],
+}
+#[doc = " Options for `sc_live_begin`. Zero-init renders in place at the current\n cursor position with a hidden cursor and leaves the final frame on\n screen when the session ends."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScLiveOpts {
+    #[doc = " Render fullscreen on the alternate screen buffer (like `htop`); the\n previous terminal content is restored when the session ends. The\n final frame is then re-printed on the normal screen unless\n `transient` is set."]
+    pub alt_screen: bool,
+    #[doc = " Keep the cursor visible during the session. Zero-init hides the\n cursor (the natural default for live displays) and restores it on\n `sc_live_end`."]
+    pub show_cursor: bool,
+    #[doc = " Erase the live region when the session ends instead of leaving the\n final frame on screen. In non-terminal (buffered) sessions this\n suppresses the final-frame output entirely."]
+    pub transient: bool,
+    #[doc = " Emit the in-place redraw escape codes even when the output stream\n is not a terminal. Without this flag, non-terminal sessions buffer\n updates and print only the final frame (recommended)."]
+    pub always: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScLiveOpts"][::std::mem::size_of::<ScLiveOpts>() - 4usize];
+    ["Alignment of ScLiveOpts"][::std::mem::align_of::<ScLiveOpts>() - 1usize];
+    ["Offset of field: ScLiveOpts::alt_screen"]
+        [::std::mem::offset_of!(ScLiveOpts, alt_screen) - 0usize];
+    ["Offset of field: ScLiveOpts::show_cursor"]
+        [::std::mem::offset_of!(ScLiveOpts, show_cursor) - 1usize];
+    ["Offset of field: ScLiveOpts::transient"]
+        [::std::mem::offset_of!(ScLiveOpts, transient) - 2usize];
+    ["Offset of field: ScLiveOpts::always"][::std::mem::offset_of!(ScLiveOpts, always) - 3usize];
+};
+extern "C" {
+    #[doc = " Starts a live session on the calling thread's `sc_output_stream()`.\n\n The target stream is captured at this call; later captures or stream\n redirections on the same thread do not affect the running session.\n Only one live session should drive a given terminal at a time.\n\n Cleanup safety: cursor visibility and the alternate screen are restored\n via `atexit` on clean exits and on SIGINT/SIGTERM/SIGHUP/SIGQUIT (the\n signal is then re-raised). Crash signals (SIGSEGV/SIGABRT) are not\n trapped.\n\n @param opts  Session options; zero-init for defaults.\n @return      Heap-allocated session handle; `NULL` only on allocation\n              failure. Always pair with `sc_live_end`."]
+    pub fn sc_live_begin(opts: ScLiveOpts) -> *mut ScLive;
+}
+extern "C" {
+    #[doc = " Redraws the live region with `frame`.\n\n On a terminal the previous frame is overwritten in place (the frame is\n clamped to the terminal height). On a non-terminal stream the frame is\n buffered as \"latest state\" and nothing is printed until `sc_live_end`.\n\n The frame is borrowed for the duration of the call; the caller keeps\n ownership and may free it immediately afterwards.\n\n @param live   Live session; `NULL` is ignored.\n @param frame  Pre-rendered frame (`sc_capture_*` / `sc_vstack`)."]
+    pub fn sc_live_update(live: *mut ScLive, frame: *const ScRendered);
+}
+extern "C" {
+    #[doc = " Convenience: captures `str` and updates the live region with it.\n\n @param live  Live session; `NULL` is ignored.\n @param str   Plain (multi-line) string content."]
+    pub fn sc_live_update_str(live: *mut ScLive, str_: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Convenience: captures `text` and updates the live region with it.\n\n @param live  Live session; `NULL` is ignored.\n @param text  Rich-text content."]
+    pub fn sc_live_update_text(live: *mut ScLive, text: *const ScText);
+}
+extern "C" {
+    #[doc = " Convenience: renders `table` with `opts` and updates the live region.\n\n @param live   Live session; `NULL` is ignored.\n @param table  Table to render.\n @param opts   Table rendering options."]
+    pub fn sc_live_update_table(live: *mut ScLive, table: *const ScTableData, opts: ScTableOpts);
+}
+extern "C" {
+    #[doc = " Ends the live session and frees the handle.\n\n Terminal sessions restore the cursor and (in `alt_screen` mode) the\n previous screen content; the final frame stays visible unless\n `transient` was set. Non-terminal sessions print the buffered final\n frame once.\n\n @param live  Live session; `NULL`-safe. The handle is freed."]
+    pub fn sc_live_end(live: *mut ScLive);
+}
 extern "C" {
     #[doc = " Returns the `FILE *` sparcli writes its output to.\n\n Defaults to `stdout` when `sc_output_set_stream` has not been called (or the\n caller has reset the output to `NULL`). All sparcli print/render\n functions go through this stream, so redirecting it lets callers\n capture output into a memory buffer, a log file, or a custom stream\n without intercepting `stdout` globally.\n\n @return  Current output stream; never `NULL`."]
     pub fn sc_output_stream() -> *mut FILE;

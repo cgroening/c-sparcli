@@ -276,6 +276,30 @@ def test_theme_strings_survive_gc():
     sc.set_theme(None)
 
 
+# ── live display ──────────────────────────────────────────────────
+def test_live_buffers_frames_off_terminal(tmp_path):
+    # Off-terminal, a live session buffers updates and prints only the final
+    # frame when it ends; intermediate frames never reach the stream.
+    path = tmp_path / "live.txt"
+    with open(path, "w") as f, sc.ScopedOutput(f):
+        with sc.Live() as live:
+            live.update("frame one")
+            live.update(sc.capture.string("frame two"))
+            live.update("final frame")
+    out = sc.strip_ansi(path.read_text())
+    assert "frame one" not in out
+    assert "frame two" not in out
+    assert "final frame" in out
+
+
+def test_live_transient_prints_nothing(tmp_path):
+    path = tmp_path / "live.txt"
+    with open(path, "w") as f, sc.ScopedOutput(f):
+        with sc.Live(transient=True) as live:
+            live.update("never shown")
+    assert "never shown" not in path.read_text()
+
+
 # ── output redirection ────────────────────────────────────────────
 def test_scoped_output_redirect(tmp_path):
     path = tmp_path / "out.txt"

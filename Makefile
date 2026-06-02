@@ -72,7 +72,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/output/columns.c src/output/rule.c src/output/tree.c src/output/list.c \
           src/output/progressbar.c src/output/spinner.c src/output/kv.c src/output/alert.c \
           src/output/badge.c src/output/util.c src/output/pad.c src/output/markup.c \
-          src/output/pager.c \
+          src/output/pager.c src/output/live.c \
           \
           src/tty/term.c src/tty/key.c src/tty/screen.c \
           \
@@ -156,6 +156,7 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_lists.c \
            tests/output/test_progressbar.c \
            tests/output/test_spinner.c \
+           tests/output/test_live.c \
            tests/output/test_kv.c \
            tests/output/test_alert.c \
            tests/output/test_badge.c \
@@ -233,6 +234,10 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
 .PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
+
+# `make` must build the C library + CLI (as documented), not the first target
+# that happens to be defined above (the rust/python binding helpers).
+.DEFAULT_GOAL := all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C

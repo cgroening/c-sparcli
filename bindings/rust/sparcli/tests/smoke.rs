@@ -115,6 +115,25 @@ fn paths_reject_invalid_app_names() {
 }
 
 #[test]
+fn live_buffers_frames_off_terminal() {
+    // Off-terminal (cargo test pipes output), a live session must buffer
+    // updates silently and survive begin/update/end without crashing; the
+    // FFI structs must cross the boundary cleanly.
+    let live = sparcli::Live::begin(sparcli::LiveOpts::new());
+    let frame = sparcli::capture::str("frame one");
+    live.update(&frame);
+    live.update_str("frame two\nsecond line");
+    live.end();
+
+    // Transient + builder options exercise every opts field.
+    let transient = sparcli::Live::begin(
+        sparcli::LiveOpts::new().transient().show_cursor(),
+    );
+    transient.update_str("never shown");
+    drop(transient);   // Drop ends the session
+}
+
+#[test]
 fn pager_is_noop_off_terminal() {
     // Under `cargo test` stdout is not a terminal -> the session is a no-op
     // and must end cleanly with status 0 without spawning a pager.

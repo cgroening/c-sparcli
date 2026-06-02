@@ -988,6 +988,42 @@ private:
     ScPager* p_;
 };
 
+using LiveOpts = ScLiveOpts;
+
+/**
+ * RAII live-display session: re-renders a composed frame in place, so
+ * multiple widgets form a continuously updating dashboard. Off-terminal,
+ * updates are buffered and only the final frame is printed when the session
+ * ends. @see sc_live_begin
+ */
+class Live {
+public:
+    explicit Live(LiveOpts opts = {}) : l_(sc_live_begin(opts)) {}
+    /** Redraws the live region with a captured frame. @see sc_live_update */
+    void update(const Rendered& frame) {
+        if (l_) { sc_live_update(l_, frame.get()); }
+    }
+    /** Redraws the live region with a plain (multi-line) string. */
+    void update(std::string_view s) {
+        if (l_) { sc_live_update_str(l_, detail::z(s).c_str()); }
+    }
+    /** Ends the session early: restores the terminal and, off-terminal,
+        prints the buffered final frame. */
+    void end() {
+        if (l_) { sc_live_end(l_); l_ = nullptr; }
+    }
+    ~Live() { if (l_) { sc_live_end(l_); } }
+    Live(Live&& o) noexcept : l_(o.l_) { o.l_ = nullptr; }
+    Live& operator=(Live&& o) noexcept {
+        if (this != &o) { end(); l_ = o.l_; o.l_ = nullptr; }
+        return *this;
+    }
+    Live(const Live&) = delete;
+    Live& operator=(const Live&) = delete;
+private:
+    ScLive* l_;
+};
+
 /**
  * Structured error report rendered as a red alert panel: message, cause
  * chain, hint and exit code. The pretty replacement for

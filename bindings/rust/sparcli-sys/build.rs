@@ -32,6 +32,7 @@ const SOURCES: &[&str] = &[
     "src/output/pad.c",
     "src/output/markup.c",
     "src/output/pager.c",
+    "src/output/live.c",
     "src/tty/term.c",
     "src/tty/key.c",
     "src/tty/screen.c",

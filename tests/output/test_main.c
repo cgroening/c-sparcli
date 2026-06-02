@@ -25,6 +25,8 @@ void test_progressbar(void);
 void test_progressbar_animated(void);
 void test_spinner(void);
 void test_spinner_animated(void);
+void test_live(void);
+void test_live_animated(void);
 void test_kv(void);
 void test_alert(void);
 void test_badge(void);
@@ -77,6 +79,8 @@ static Test *get_all_tests(size_t *count) {
         { "Animated Progress Bar",     &test_progressbar_animated, 1 },
         { "Spinner",                   &test_spinner,              0 },
         { "Animated Spinner",          &test_spinner_animated,     1 },
+        { "Live Display",              &test_live,                 0 },
+        { "Animated Live Display",     &test_live_animated,        1 },
         { "Key-Value Pairs",           &test_kv,                   0 },
         { "Badges",                    &test_badge,                0 },
         { "Utilities",                 &test_util,                 0 },

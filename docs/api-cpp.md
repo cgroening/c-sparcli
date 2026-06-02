@@ -247,6 +247,15 @@ auto log = paths::file(SC_PATH_STATE, "myapp", "logs/run.log");
     int status = pager.end();          // or implicit on scope exit
 }
 
+// RAII live display: re-render a composed frame in place (dashboard).
+// Off-terminal, only the final frame is printed when the session ends.
+{
+    Live live;                         // LiveOpts{ .alt_screen, .transient, ... }
+    for (int i = 0; i <= 100; i += 10) {
+        live.update(capture::str("progress: " + std::to_string(i) + "%"));
+    }
+}                                      // destructor restores the terminal
+
 // Pretty errors: message + causes + hint + exit code as a red panel
 ErrorReport("Config could not be loaded")
     .cause("file not found: ~/.config/app/config.toml")

@@ -65,7 +65,7 @@ Sources are grouped by concern. The **output/input boundary is physical**: `src/
 ```
 src/core/     color, text, print, output(stream), render_wrap, sanitize, version
 src/output/   panel, rule, list, tree, columns, kv, alert, badge,
-              progressbar, spinner, markup, pad, util, pager, + table/
+              progressbar, spinner, live, markup, pad, util, pager, + table/
 src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
@@ -1012,6 +1012,31 @@ int status = sc_pager_end(pager);                     /* flush, waitpid, restore
 | `sc_pager_end` | Always required (also after no-op begin); `NULL`-safe; returns pager exit status |
 
 Tests: `tests/app/test_pager.c` (`make test-app`) – uses `cat`/`false` as deterministic pagers with stdout redirected to a temp file.
+
+---
+
+## Live Display (`src/output/live.c`)
+
+Re-renders a composed `ScRendered` frame **in place** (dashboard like Rich `Live`). Stream-oriented: writes escape codes via `fprintf` to the **thread-local** `sc_output_stream()` captured at begin – so it composes with capture/pager (degrades, see below) and never touches the tty layer. Header: `output/sparcli_live.h`.
+
+```c
+ScLive *live = sc_live_begin((ScLiveOpts){ 0 });  /* .alt_screen, .show_cursor, .transient, .always */
+sc_live_update(live, frame);                      /* ScRendered: capture + vstack/columns */
+sc_live_update_str/text/table(live, ...);         /* capture + update + free in one call */
+sc_live_end(live);                                /* restore + final flush + free handle */
+```
+
+| Behavior | Detail |
+|----------|--------|
+| Non-TTY stream | Updates buffered; only the **final frame** printed on end (clean CI/script output). `always` forces escape emission |
+| Redraw | Cursor-up to frame top, overwrite line by line + `\033[K`, then `\033[J` for leftover lines; height-clamped via `sc_terminal_height()` (internal.h) |
+| `alt_screen` | `\033[?1049h/l` fullscreen; final frame re-printed on the normal screen on end (unless `transient`) |
+| Cursor | Hidden during the session (zero-init); `show_cursor` keeps it visible |
+| Cleanup | `atexit` + SIGINT/TERM/HUP/QUIT handlers restore cursor/alt-screen (re-raise after); crash signals not trapped |
+| Ownership | `sc_live_end` frees the handle (pager-style begin/end pair); frames stay caller-owned |
+| Sessions | One per terminal at a time (soft); no background thread (thread-local stream) |
+
+Tests: `tests/output/test_live.c` (`make test-output`; non-TTY path is golden-tested, escape emission verified via memstream + `always`); animated dashboard demo flagged `--no-animated`-skippable. Example: `examples/live_demo.c`.
 
 ---
 

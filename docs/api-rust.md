@@ -113,6 +113,15 @@ let pager = sparcli::Pager::begin(sparcli::PagerOpts::new());
 markup::println("[bold]long report…[/]");
 let status = pager.end();
 
+// Live display: re-render a composed frame in place (dashboard).
+// Off-terminal, only the final frame is printed when the session ends.
+let live = sparcli::Live::begin(sparcli::LiveOpts::new());
+for percent in (0..=100).step_by(10) {
+    let frame = sparcli::capture::str(&format!("progress: {percent}%"));
+    live.update(&frame);   // overwrites the previous frame in place
+}
+live.end();   // or implicit on drop
+
 // Pretty errors: message + causes + hint + exit code as a red panel
 sparcli::ErrorReport::new("Config could not be loaded")
     .cause("file not found: ~/.config/app/config.toml")

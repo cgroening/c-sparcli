@@ -942,6 +942,59 @@ int status = sc_pager_end(pager);     /* user quit less */
 
 ---
 
+## Live Display
+
+Re-renders a composed frame in place, so multiple widgets (tables, panels, progress bars, columns, ...) form a continuously updating dashboard - like Rich's `Live`. Frames are built with the capture API (`sc_capture_*`, `sc_vstack`, `ScColumns`); the live session only handles the in-place redraw. Header: `output/sparcli_live.h`.
+
+```c
+ScLive *sc_live_begin(ScLiveOpts opts);
+void    sc_live_update(ScLive *live, const ScRendered *frame);
+void    sc_live_update_str(ScLive *live, const char *str);
+void    sc_live_update_text(ScLive *live, const ScText *text);
+void    sc_live_update_table(ScLive *live, const ScTableData *table, ScTableOpts opts);
+void    sc_live_end(ScLive *live);   /* restore terminal + free the handle */
+```
+
+### ScLiveOpts
+
+| Field | Description |
+|-------|-------------|
+| `alt_screen` | Fullscreen on the alternate screen buffer (htop-style); the previous terminal content is restored on end. The final frame is then re-printed on the normal screen unless `transient` |
+| `show_cursor` | Keep the cursor visible; **zero-init hides it** during the session (the natural default for live displays) and restores it on end |
+| `transient` | Erase the live region on end instead of leaving the final frame; off-terminal it suppresses the final-frame output |
+| `always` | Emit the redraw escape codes even when the output stream is not a terminal |
+
+```c
+ScLive *live = sc_live_begin((ScLiveOpts){ 0 });
+for (int i = 0; i <= 100; i++) {
+    /* compose the dashboard: any widgets, captured + stacked */
+    ScRendered *table_part = sc_capture_table(status_table, table_opts);
+    ScRendered *bar_part   = sc_capture_str(progress_line);
+    const ScRendered *parts[2] = { table_part, bar_part };
+    ScRendered *frame = sc_vstack(parts, 2, 1);
+
+    sc_live_update(live, frame);   /* overwrites the previous frame in place */
+
+    sc_rendered_free(frame);
+    sc_rendered_free(table_part);
+    sc_rendered_free(bar_part);
+    usleep(100000);
+}
+sc_live_end(live);   /* leaves the final frame on screen */
+```
+
+**Behavior:**
+
+- **Non-TTY output** (pipe, file, capture, CI): updates are buffered and only the **final frame** is printed by `sc_live_end` - the same code produces clean output in scripts. A live session inside a capture or pager degrades the same way.
+- **In-place redraw:** each update rewinds to the top of the previous frame, overwrites line by line (erasing stale content), and erases leftover lines from a previously taller frame. Frames taller than the terminal are clamped to the terminal height.
+- **Frames are caller-built:** rebuild the frame against `sc_terminal_width()` each iteration; the session never re-renders on its own (no background thread - the output stream is thread-local).
+- **Cleanup safety:** cursor visibility and the alternate screen are restored via `atexit` on clean exits and on SIGINT/SIGTERM/SIGHUP/SIGQUIT (the signal is then re-raised). Crash signals (SIGSEGV/SIGABRT) are deliberately not trapped - after a crash in `alt_screen` mode, run `reset`.
+- **One session per terminal** at a time; `sc_live_end` frees the handle (no separate `_free`). `sc_live_end(NULL)` is safe.
+
+Run the demo with `make run-example EX=live_demo`.
+
+---
+
 ## Input Widgets
 
 Interactive prompts: confirm, text, password, number, textarea, single/multi select, fuzzy finder, and a date picker. Unlike the output side (which writes to the redirectable `sc_output_stream()`), input widgets are **tty-oriented**: they open `/dev/tty` (falling back to stdin/stdout), enter raw mode, read decoded keys, and redraw in place. Header: `input/sparcli_input.h` (included by the `sparcli.h` umbrella).

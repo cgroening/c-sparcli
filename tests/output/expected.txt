@@ -558,6 +558,48 @@ Deploy   |========================>   |  91%
 [34m←[0m Deploying...                                                                  [34m↖[0m Deploying...                                                                                                                                                  [32m✔[0m Deployed successfully
 ════════════════════════════════════════════════════════════════════════════════
 
+═════════════════════════════════ [1mLive Display[0m ═════════════════════════════════
+
+--- Live 1. Buffered session: only the final frame ---
+Frame 3: all done!
+
+--- Live 2. Transient session: no final frame ---
+(nothing printed between this line and the header)
+
+--- Live 3. Composed dashboard: final state ---
+╭[0m────────[0m┬[0m─────[0m╮[0m
+│[0m[1mTask[0m    │[0m[1mState[0m│[0m
+├[0m────────[0m┼[0m─────[0m┤[0m
+│[0mdownload[0m│[0mdone[0m │[0m
+├[0m────────[0m┼[0m─────[0m┤[0m
+│[0minstall[0m │[0mdone[0m │[0m
+╰[0m────────[0m┴[0m─────[0m╯[0m
+Total progress: 100%
+
+--- Live 4. sc_live_update_table convenience ---
+┌[0m───────[0m┬[0m──────[0m┐[0m
+│[0mService[0m│[0mStatus[0m│[0m
+├[0m───────[0m┼[0m──────[0m┤[0m
+│[0mapi[0m    │[0monline[0m│[0m
+├[0m───────[0m┼[0m──────[0m┤[0m
+│[0mworker[0m │[0monline[0m│[0m
+└[0m───────[0m┴[0m──────[0m┘[0m
+
+--- Live 5. Redraw escape codes (always = true) ---
+cursor hidden at begin                        yes
+rewind to frame top (2 lines up)              yes
+per-line erase to end of line                 yes
+erase leftover lines below                    yes
+cursor restored at end                        yes
+first frame content drawn                     yes
+second frame content drawn                    yes
+
+--- Live 6. Alt-screen escape codes (always = true) ---
+alt screen entered                            yes
+alt screen left                               yes
+final frame re-printed after leaving          yes
+════════════════════════════════════════════════════════════════════════════════
+
 ═══════════════════════════════ [1mKey-Value Pairs[0m ════════════════════════════════
 
 --- KV 1. Plain ---

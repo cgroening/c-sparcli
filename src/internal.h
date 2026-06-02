@@ -119,6 +119,19 @@ static inline int sc_terminal_width(void) {
 }
 
 /**
+ * Returns the current terminal height in rows, or 24 when it cannot
+ * be determined (terminal not attached, ioctl failure, etc.).
+ */
+static inline int sc_terminal_height(void) {
+    struct winsize window_size;
+    int ioctl_return_code = ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
+    if (ioctl_return_code == 0 && window_size.ws_row > 0) {
+        return (int)window_size.ws_row;
+    }
+    return 24;
+}
+
+/**
  * Counts visible terminal columns in the first `byte_length` bytes of a UTF-8
  * string.
  *

@@ -1542,3 +1542,116 @@ pub fn pad_str(s: &str, opts: PadOpts) {
 pub fn align_str(s: &str, align: Align, width: i32) {
     unsafe { ffi::sc_align_str(cstring(s).as_ptr(), align.raw(), width) };
 }
+
+/* ── Live display ───────────────────────────────────────────────────────── */
+
+/// Options for [`Live::begin`].
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LiveOpts {
+    /// Render fullscreen on the alternate screen buffer (htop-style); the
+    /// previous terminal content is restored when the session ends.
+    pub alt_screen: bool,
+
+    /// Keep the cursor visible (default: hidden during the session).
+    pub show_cursor: bool,
+
+    /// Erase the live region on end instead of leaving the final frame.
+    pub transient: bool,
+
+    /// Emit redraw escape codes even when output is not a terminal.
+    pub always: bool,
+}
+
+impl LiveOpts {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn alt_screen(mut self) -> Self {
+        self.alt_screen = true;
+        self
+    }
+    pub fn show_cursor(mut self) -> Self {
+        self.show_cursor = true;
+        self
+    }
+    pub fn transient(mut self) -> Self {
+        self.transient = true;
+        self
+    }
+    pub fn always(mut self) -> Self {
+        self.always = true;
+        self
+    }
+}
+
+/// A live-display session: re-renders a composed frame in place, so multiple
+/// widgets form a continuously updating dashboard.
+///
+/// Frames are built with the capture API ([`capture`], [`vstack`]); the
+/// session only handles the in-place redraw. When the output stream is not a
+/// terminal, updates are buffered and only the final frame is printed when
+/// the session ends (clean output in scripts and CI).
+///
+/// ```no_run
+/// use sparcli::{capture, Live, LiveOpts};
+///
+/// let live = Live::begin(LiveOpts::new());
+/// for percent in (0..=100).step_by(10) {
+///     let frame = capture::str(&format!("progress: {percent}%"));
+///     live.update(&frame);
+/// }
+/// live.end();
+/// ```
+pub struct Live {
+    ptr: *mut ffi::ScLive,
+}
+
+impl Live {
+    /// Starts a live session on the current thread's output stream.
+    pub fn begin(opts: LiveOpts) -> Live {
+        let raw_opts = ffi::ScLiveOpts {
+            alt_screen: opts.alt_screen,
+            show_cursor: opts.show_cursor,
+            transient: opts.transient,
+            always: opts.always,
+        };
+        let ptr = unsafe { ffi::sc_live_begin(raw_opts) };
+        Live { ptr }
+    }
+
+    /// Redraws the live region with a captured frame.
+    pub fn update(&self, frame: &Rendered) {
+        if !self.ptr.is_null() {
+            unsafe { ffi::sc_live_update(self.ptr, frame.ptr) };
+        }
+    }
+
+    /// Redraws the live region with a plain (multi-line) string.
+    pub fn update_str(&self, content: &str) {
+        if self.ptr.is_null() {
+            return;
+        }
+        let c = cstring(content);
+        unsafe { ffi::sc_live_update_str(self.ptr, c.as_ptr()) };
+    }
+
+    /// Ends the session: restores the terminal and, off-terminal, prints
+    /// the buffered final frame.
+    pub fn end(mut self) {
+        self.finish();
+    }
+
+    /// Shared end path for `end()` and `Drop`.
+    fn finish(&mut self) {
+        if !self.ptr.is_null() {
+            unsafe { ffi::sc_live_end(self.ptr) };
+            self.ptr = std::ptr::null_mut();
+        }
+    }
+}
+
+impl Drop for Live {
+    fn drop(&mut self) {
+        self.finish();
+    }
+}

@@ -218,6 +218,31 @@ static void test_paths_and_pager() {
 
 // ErrorReport must render message/cause/hint through the alert panel and
 // keep its exit code; die() is not testable in-process (it exits).
+// Live display: an off-terminal session buffers updates and prints only the
+// final frame when it ends; transient sessions print nothing.
+static void test_live_display() {
+    std::string out = render([] {
+        Live live;
+        live.update("frame one: starting");
+        live.update("frame two: working");
+        live.update(capture::str("frame three: done"));
+        live.end();
+    });
+    CHECK(!contains(out, "frame one"),
+          "live: intermediate string frames are not printed off-terminal");
+    CHECK(!contains(out, "frame two"),
+          "live: intermediate frames stay buffered until the end");
+    CHECK(contains(out, "frame three: done"),
+          "live: the final frame is printed when the session ends");
+
+    std::string transient_out = render([] {
+        Live live(LiveOpts{ .transient = true });
+        live.update("never shown");
+    });   // destructor ends the session
+    CHECK(!contains(transient_out, "never shown"),
+          "live: transient session prints nothing");
+}
+
 static void test_error_report() {
     ErrorReport report("something broke");
     report.cause("first reason").hint("try --force").code(3);
@@ -326,6 +351,7 @@ int main() {
     test_wrapper_matches_c();
     test_text_link();
     test_paths_and_pager();
+    test_live_display();
     test_error_report();
     test_logger();
     test_args_parser();

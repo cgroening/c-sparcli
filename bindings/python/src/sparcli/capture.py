@@ -155,3 +155,64 @@ def align_str(s: str, halign: Align, width: int = 0) -> None:
 
 def align_text(t: Text, halign: Align, width: int = 0) -> None:
     lib.sc_align_text(t._ptr, int(halign), width)
+
+
+class Live:
+    """Re-render a composed frame in place: a continuously updating dashboard.
+
+    Build each frame with the capture API (:data:`capture`, :func:`vstack`)
+    and pass it to :meth:`update`; the previous frame is overwritten in
+    place. When the output stream is not a terminal (pipes, CI), updates are
+    buffered and only the final frame is printed when the session ends, so
+    the same code produces clean output in scripts.
+
+        with sc.Live() as live:
+            for i in range(101):
+                live.update(sc.capture.string(f"progress: {i}%"))
+
+    Parameters
+    ----------
+    alt_screen
+        Render fullscreen on the alternate screen buffer (htop-style); the
+        previous terminal content is restored when the session ends.
+    show_cursor
+        Keep the cursor visible (default: hidden during the session).
+    transient
+        Erase the live region on end instead of leaving the final frame.
+    always
+        Emit redraw escape codes even when output is not a terminal.
+    """
+
+    __slots__ = ("_live",)
+
+    def __init__(self, alt_screen: bool = False, show_cursor: bool = False,
+                 transient: bool = False, always: bool = False) -> None:
+        opts = ffi.new("ScLiveOpts *")
+        opts.alt_screen = alt_screen
+        opts.show_cursor = show_cursor
+        opts.transient = transient
+        opts.always = always
+        self._live = lib.sc_live_begin(opts[0])
+
+    def update(self, frame: Rendered | str) -> None:
+        """Redraw the live region with a captured frame or a plain string."""
+        if self._live is None:
+            return
+        if isinstance(frame, str):
+            arena: list = []
+            lib.sc_live_update_str(self._live, cstr(arena, frame))
+        else:
+            lib.sc_live_update(self._live, frame._ptr)
+
+    def end(self) -> None:
+        """End the session (idempotent): restore the terminal and, when the
+        output is not a terminal, print the buffered final frame."""
+        if self._live is not None:
+            lib.sc_live_end(self._live)
+            self._live = None
+
+    def __enter__(self) -> "Live":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.end()

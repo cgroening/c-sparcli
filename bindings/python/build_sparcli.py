@@ -79,6 +79,7 @@ _SOURCES = [
     "input/fuzzy.c",
     "input/datepicker.c",
     "output/pager.c",
+    "output/live.c",
     "app/paths.c",
     "app/error.c",
     "log/log.c",
@@ -525,6 +526,20 @@ typedef struct {
 } ScPagerOpts;
 ScPager *sc_pager_begin(ScPagerOpts opts);
 int sc_pager_end(ScPager *pager);
+
+/* ── Live display ──────────────────────────────────────────────────────── */
+typedef struct ScLive ScLive;
+typedef struct {
+    bool alt_screen;
+    bool show_cursor;
+    bool transient;
+    bool always;
+    ...;
+} ScLiveOpts;
+ScLive *sc_live_begin(ScLiveOpts opts);
+void sc_live_update(ScLive *live, const ScRendered *frame);
+void sc_live_update_str(ScLive *live, const char *str);
+void sc_live_end(ScLive *live);
 
 typedef enum {
     SC_LOG_DEBUG = 0, SC_LOG_INFO, SC_LOG_WARN, SC_LOG_ERROR, SC_LOG_OFF

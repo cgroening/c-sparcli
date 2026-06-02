@@ -250,6 +250,7 @@ A one-line summary per widget. The full reference – every type, every option, 
 | **Badge** | `sc_badge_*` | Inline styled token (`[ DONE ]`). |
 | **Progress bar** | `sc_progressbar_*` | Animated progress bar with thresholds and percent/value display. |
 | **Spinner** | `sc_spinner_*` | Animated activity indicator with success/failure finish. |
+| **Live display** | `sc_live_*` | Re-render a composed frame in place: build dashboards from any widgets that update continuously (in-place or fullscreen alternate screen). |
 | **Markup** | `sc_markup_*` | Rich-compatible `[bold red]…[/]` parser. |
 | **Capture** | `sc_capture_*`, `sc_vstack` | Render any widget into a reusable in-memory buffer; `sc_vstack` stacks several buffers into one column. |
 | **Pad** | `sc_pad_*` | Add top/right/bottom/left space around a rendered widget. |
