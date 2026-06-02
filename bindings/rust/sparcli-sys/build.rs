@@ -31,6 +31,7 @@ const SOURCES: &[&str] = &[
     "src/output/util.c",
     "src/output/pad.c",
     "src/output/markup.c",
+    "src/output/pager.c",
     "src/tty/term.c",
     "src/tty/key.c",
     "src/tty/screen.c",
@@ -47,6 +48,7 @@ const SOURCES: &[&str] = &[
     "src/input/select.c",
     "src/input/fuzzy.c",
     "src/input/datepicker.c",
+    "src/app/paths.c",
 ];
 
 fn main() {

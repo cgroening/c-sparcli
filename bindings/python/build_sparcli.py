@@ -78,6 +78,8 @@ _SOURCES = [
     "input/select.c",
     "input/fuzzy.c",
     "input/datepicker.c",
+    "output/pager.c",
+    "app/paths.c",
 ]
 
 ffibuilder = FFI()
@@ -492,6 +494,26 @@ bool sc_allow_ansi(void);
 char *sc_strip_ansi(const char *str);
 char *sc_truncate(const char *str, int max_cols, const char *ellipsis);
 void sc_clear_line(void);
+
+/* ── App: XDG paths + pager ────────────────────────────────────────────── */
+typedef enum {
+    SC_PATH_CONFIG = 0, SC_PATH_DATA, SC_PATH_CACHE, SC_PATH_STATE
+} ScPathKind;
+char *sc_path(ScPathKind kind, const char *appname);
+char *sc_path_config(const char *appname);
+char *sc_path_data(const char *appname);
+char *sc_path_cache(const char *appname);
+char *sc_path_state(const char *appname);
+char *sc_path_file(ScPathKind kind, const char *appname, const char *relative);
+
+typedef struct ScPager ScPager;
+typedef struct {
+    const char *command;
+    bool always;
+    ...;
+} ScPagerOpts;
+ScPager *sc_pager_begin(ScPagerOpts opts);
+int sc_pager_end(ScPager *pager);
 
 /* ── Input: shared key/shortcut machinery ──────────────────────────────── */
 typedef struct {

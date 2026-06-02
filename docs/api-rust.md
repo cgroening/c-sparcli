@@ -100,6 +100,20 @@ panel("\x1b[31mred\x1b[0m", PanelOpts::new().single().ansi(AnsiMode::Allow));
 // AnsiMode::Default (inherit global) / Allow / Sanitize
 ```
 
+### Application helpers (XDG paths, pager)
+
+```rust
+// XDG directories (created on first use); None on failure
+let cfg = sparcli::paths::config("myapp");                  // ~/.config/myapp
+let log = sparcli::paths::file(sparcli::paths::Kind::State, "myapp", "run.log");
+
+// Pager: output is piped through $PAGER / less -R until end()/drop;
+// no-op when the output stream is not a terminal (scripts, pipes, CI)
+let pager = sparcli::Pager::begin(sparcli::PagerOpts::new());
+markup::println("[bold]long report…[/]");
+let status = pager.end();
+```
+
 ## Input
 
 ```rust

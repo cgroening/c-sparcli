@@ -233,6 +233,21 @@ panel("…", { .ansi = SC_ANSI_MODE_ALLOW });            // per-widget override
 set_output(fp);  set_output(nullptr);  // manual; nullptr = stdout
 ```
 
+## Application helpers (XDG paths, pager)
+
+```cpp
+// XDG directories (created on first use); empty optional on failure
+std::optional<std::string> cfg = paths::config("myapp");   // ~/.config/myapp
+auto log = paths::file(SC_PATH_STATE, "myapp", "logs/run.log");
+
+// RAII pager: output is paged until end()/destruction; no-op off terminal
+{
+    Pager pager;                       // PagerOpts{ .command, .always }
+    table.print(opts);                 // paged through $PAGER / less -R
+    int status = pager.end();          // or implicit on scope exit
+}
+```
+
 ## Input widgets
 
 Each returns `std::optional` / `std::vector`; the result is empty (`std::nullopt`) when the user cancels (Esc / Ctrl-C) or no interactive terminal is available. `input_available()` reports whether a prompt can run.

@@ -910,6 +910,84 @@ private:
     std::FILE* prev_;
 };
 
+// ── Application helpers ──────────────────────────────────────────────────────
+// XDG base directories and pager integration. @see sparcli_paths.h,
+// sparcli_pager.h
+
+/** XDG base-directory helpers; directories are created on first use. */
+namespace paths {
+
+using Kind = ScPathKind;
+
+namespace detail {
+/** Wraps a C-heap path into an optional string (empty optional on NULL). */
+inline std::optional<std::string> take_path(char* c) {
+    if (!c) { return std::nullopt; }
+    std::string r(c);
+    std::free(c);
+    return r;
+}
+}  // namespace detail
+
+/** Per-app base directory for `kind` (created). @see sc_path */
+inline std::optional<std::string> dir(Kind kind, std::string_view appname) {
+    return detail::take_path(
+        sc_path(kind, sparcli::detail::z(appname).c_str()));
+}
+/** `~/.config/<app>` (or `$XDG_CONFIG_HOME`). @see sc_path_config */
+inline std::optional<std::string> config(std::string_view appname) {
+    return dir(SC_PATH_CONFIG, appname);
+}
+/** `~/.local/share/<app>` (or `$XDG_DATA_HOME`). @see sc_path_data */
+inline std::optional<std::string> data(std::string_view appname) {
+    return dir(SC_PATH_DATA, appname);
+}
+/** `~/.cache/<app>` (or `$XDG_CACHE_HOME`). @see sc_path_cache */
+inline std::optional<std::string> cache(std::string_view appname) {
+    return dir(SC_PATH_CACHE, appname);
+}
+/** `~/.local/state/<app>` (or `$XDG_STATE_HOME`). @see sc_path_state */
+inline std::optional<std::string> state(std::string_view appname) {
+    return dir(SC_PATH_STATE, appname);
+}
+/** File path inside an app dir (parents created). @see sc_path_file */
+inline std::optional<std::string> file(Kind kind, std::string_view appname,
+                                       std::string_view relative) {
+    return detail::take_path(
+        sc_path_file(kind, sparcli::detail::z(appname).c_str(),
+                     sparcli::detail::z(relative).c_str()));
+}
+
+}  // namespace paths
+
+using PagerOpts = ScPagerOpts;
+
+/**
+ * RAII pager session: between construction and `end()`/destruction, output on
+ * this thread is piped through `$PAGER` / `less -R`. No-op when the output
+ * stream is not a terminal (unless `opts.always`). @see sc_pager_begin
+ */
+class Pager {
+public:
+    explicit Pager(PagerOpts opts = {}) : p_(sc_pager_begin(opts)) {}
+    /** Ends the session early and returns the pager's exit status. */
+    int end() {
+        int status = p_ ? sc_pager_end(p_) : 0;
+        p_ = nullptr;
+        return status;
+    }
+    ~Pager() { if (p_) { sc_pager_end(p_); } }
+    Pager(Pager&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    Pager& operator=(Pager&& o) noexcept {
+        if (this != &o) { end(); p_ = o.p_; o.p_ = nullptr; }
+        return *this;
+    }
+    Pager(const Pager&) = delete;
+    Pager& operator=(const Pager&) = delete;
+private:
+    ScPager* p_;
+};
+
 // ── Custom shortcuts ─────────────────────────────────────────────────────────
 // Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
 // @see sparcli_shortcut.h

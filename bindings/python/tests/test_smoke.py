@@ -120,6 +120,33 @@ def test_text_append_link():
     assert plain.visible_width == 6
 
 
+def test_xdg_paths(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+
+    cfg = sc.config_dir("pytest-app")
+    assert cfg == tmp_path / "cfg" / "pytest-app"
+    assert cfg.is_dir()
+
+    log = sc.app_file(sc.PathKind.STATE, "pytest-app", "logs/run.log")
+    assert log == tmp_path / "state" / "pytest-app" / "logs" / "run.log"
+    assert log.parent.is_dir() and not log.exists()
+
+    # Invalid names raise instead of touching the filesystem
+    import pytest
+    with pytest.raises(sc.SparcliError):
+        sc.config_dir("evil/../name")
+    with pytest.raises(sc.SparcliError):
+        sc.app_file(sc.PathKind.CONFIG, "app", "../escape")
+
+
+def test_pager_noop_off_terminal():
+    # Under pytest the output stream is not a terminal -> no-op session
+    with sc.Pager() as pager:
+        sc.println("paged content")
+    assert pager.exit_status == 0
+
+
 def test_columns_capture_runs():
     kv = sc.Kv()
     kv.add("k", "v")

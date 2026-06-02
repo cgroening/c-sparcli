@@ -72,6 +72,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/output/columns.c src/output/rule.c src/output/tree.c src/output/list.c \
           src/output/progressbar.c src/output/spinner.c src/output/kv.c src/output/alert.c \
           src/output/badge.c src/output/util.c src/output/pad.c src/output/markup.c \
+          src/output/pager.c \
           \
           src/tty/term.c src/tty/key.c src/tty/screen.c \
           \
@@ -79,7 +80,9 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/shortcut.c src/input/editor.c src/input/confirm.c \
           src/input/text_input.c src/input/password_input.c src/input/number_input.c \
           src/input/textarea.c \
-          src/input/select.c src/input/fuzzy.c src/input/datepicker.c
+          src/input/select.c src/input/fuzzy.c src/input/datepicker.c \
+          \
+          src/app/paths.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 DEP               = $(OBJ:.o=.d)
@@ -196,6 +199,13 @@ STYLE_TEST_BIN = tests/input/style/test_style_main
 PTY_TEST_SRC = tests/input/pty/test_pty.c
 PTY_TEST_BIN = tests/input/pty/test_pty
 
+# ── Application-framework suite (tests/app/) - non-interactive ────────────
+# Pure logic tests for the app helpers (XDG paths, pager); safe in CI.
+APP_TEST_SRC = tests/app/test_app_main.c \
+               tests/app/test_paths.c \
+               tests/app/test_pager.c
+APP_TEST_BIN = tests/app/test_app_main
+
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
 EXAMPLES_BUILDDIR = build.examples.nosync
 EXAMPLES_SRC      = $(wildcard examples/*.c)
@@ -204,7 +214,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -308,6 +318,7 @@ test:
 	$(MAKE) test-input ARGS=--logic
 	$(MAKE) test-input-style-check
 	$(MAKE) test-input-pty
+	$(MAKE) test-app
 	$(MAKE) test-cpp
 	$(MAKE) test-cli-check
 	$(MAKE) test-cli-pty
@@ -363,6 +374,12 @@ test-input: $(LIB)
 test-input-style: $(LIB)
 	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
 	./$(STYLE_TEST_BIN) $(ARGS)
+
+# Application-framework logic suite (XDG paths, pager). Pure logic with real
+# child processes (cat/false as pagers); no TTY required, safe in CI.
+test-app: $(LIB)
+	$(CC) $(CFLAGS) $(APP_TEST_SRC) $(LIB) $(LDFLAGS) -o $(APP_TEST_BIN)
+	./$(APP_TEST_BIN)
 
 # Golden-file regression test for the input style snapshots. Non-interactive
 # (the frame builders render without a TTY), so the bytes are deterministic.
@@ -569,7 +586,7 @@ clean:
 	       $(LIB) $(SANITIZE_LIB) $(TSAN_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
 	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) \
-	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN) \
+	       $(PTY_TEST_BIN) $(APP_TEST_BIN) $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN) \
 	       $(CLI_BIN) $(CLI_SANITIZE_BIN) $(CLI_PTY_TEST_BIN)
 
 # Auto-generated header dependencies (-MMD -MP). The leading '-' silences the

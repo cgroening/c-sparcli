@@ -907,6 +907,41 @@ Works inside every widget that accepts `ScText` or markup (panels, table cells, 
 
 ---
 
+## Pager
+
+Routes long output through a pager (`$PAGER` / `less -R`) so the user can scroll instead of losing it off-screen. Header: `output/sparcli_pager.h`.
+
+```c
+ScPager *sc_pager_begin(ScPagerOpts opts);
+int      sc_pager_end(ScPager *pager);
+```
+
+### ScPagerOpts
+
+| Field | Description |
+|-------|-------------|
+| `command` | Pager command, split on whitespace and executed **without a shell**; `NULL`/empty = `$PAGER`, then `less -R` |
+| `always` | `true` = page even when the output stream is not a terminal |
+
+Between `sc_pager_begin` and `sc_pager_end`, everything written through `sc_output_stream()` on the calling thread (all widgets and prints) is piped into the pager process. `sc_pager_end` flushes, waits for the pager to exit, restores the previous output stream, and returns the pager's exit status.
+
+```c
+ScPager *pager = sc_pager_begin((ScPagerOpts){ 0 });
+sc_table_print(table, opts);          /* paged */
+sc_markup_println("[dim]end of report[/]");
+int status = sc_pager_end(pager);     /* user quit less */
+```
+
+**Behavior:**
+
+- **Non-TTY output** (pipe, file, capture, CI): paging is skipped, output goes through unchanged, `sc_pager_end` returns `0` – the same code works in scripts.
+- **`SIGPIPE`-safe:** quitting the pager early (`q` in less) never kills the program; the previous `SIGPIPE` disposition is restored on end.
+- **Missing pager command:** falls back to `cat` (output passes through unpaged but is never lost).
+- **Thread scope:** the redirect uses the thread-local output stream, so other threads' output is unaffected.
+- The handle must always be passed to `sc_pager_end` (also for no-op sessions); `sc_pager_end(NULL)` is safe.
+
+---
+
 ## Input Widgets
 
 Interactive prompts: confirm, text, password, number, textarea, single/multi select, fuzzy finder, and a date picker. Unlike the output side (which writes to the redirectable `sc_output_stream()`), input widgets are **tty-oriented**: they open `/dev/tty` (falling back to stdin/stdout), enter raw mode, read decoded keys, and redraw in place. Header: `input/sparcli_input.h` (included by the `sparcli.h` umbrella).

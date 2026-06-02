@@ -12,7 +12,7 @@ make qa           # EVERY QA gate in one command: test -Werror, sanitize, tsan,
                   # pre-commit validation - run this after any change.
 make test         # FULL non-interactive suite: chains the headless gates below
                   # (test-output-check, test-input ARGS=--logic,
-                  # test-input-style-check, test-input-pty, test-cpp,
+                  # test-input-style-check, test-input-pty, test-app, test-cpp,
                   # test-cli-check, test-cli-pty). The canonical check.
 make test-output  # OUTPUT gallery (tests/output/test_main), printed for eyeballing.
                   # ARGS=--focus / --no-animated (and the combo).
@@ -26,6 +26,8 @@ make test-input-style-check / -golden  # style golden-file diff / regenerate
 make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
                   # widget onto a pseudo-terminal and feeds canned keys – gives
                   # interactive coverage with no human. Runs headless (CI).
+make test-app     # APP framework suite (tests/app/): XDG paths + pager logic
+                  # tests with real child processes; headless (CI).
 make test-cli-check / -golden  # CLI output golden-file diff / regenerate
                   # (tests/cli/run_output.sh drives every output subcommand)
 make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitized
@@ -61,19 +63,22 @@ Sources are grouped by concern. The **output/input boundary is physical**: `src/
 ```
 src/core/     color, text, print, output(stream), render_wrap, sanitize, version
 src/output/   panel, rule, list, tree, columns, kv, alert, badge,
-              progressbar, spinner, markup, pad, util, + table/
+              progressbar, spinner, markup, pad, util, pager, + table/
 src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
               textarea, select, fuzzy, datepicker
+src/app/      application-framework helpers: paths (XDG dirs)
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
-include/core/    include/output/    include/input/      (sparcli.h stays at root)
+include/core/    include/output/    include/input/    include/app/
+                 (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
+tests/app/       framework suite (paths, pager)
 tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 
-Public headers live in `include/{core,output,input}/`; cross-includes use **root-relative paths** (`#include "core/sparcli_core.h"`), resolved via `-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` is the input-only sub-umbrella. `#include <sparcli.h>` is unchanged for users; only direct single-header includes moved.
+Public headers live in `include/{core,output,input,app}/`; cross-includes use **root-relative paths** (`#include "core/sparcli_core.h"`), resolved via `-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` (input widgets) and `app/sparcli_app.h` (framework helpers) are sub-umbrellas. `#include <sparcli.h>` is unchanged for users; only direct single-header includes moved.
 
 When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in the Makefile. The build tree mirrors `src/` automatically. CLI sources go into `CLI_SRC` instead (they compile with `-Iinclude` only – the CLI never includes `src/` internals).
 
@@ -978,3 +983,45 @@ sc_table_free(t);  /* frees markup ScText automatically */
 **Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default (including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
 
 **`[[` escape:** Two consecutive opening brackets produce a single literal `[`.
+
+---
+
+## Pager
+
+Routes long output through `$PAGER` / `less -R`. Stream-oriented: redirects the **thread-local** `sc_output_stream()` into a pipe to the pager child (forked + `execvp`, **no shell**); other threads are unaffected. Header: `output/sparcli_pager.h`, source: `src/output/pager.c`.
+
+```c
+ScPager *pager = sc_pager_begin((ScPagerOpts){ 0 });  /* .command, .always */
+sc_table_print(table, opts);                          /* paged */
+int status = sc_pager_end(pager);                     /* flush, waitpid, restore */
+```
+
+| Behavior | Detail |
+|----------|--------|
+| Non-TTY output stream | No-op (unless `.always`); same code works in scripts/CI |
+| Pager quits early (`q`) | `SIGPIPE` ignored for the session; disposition restored on end |
+| Command missing | Falls back to `cat` (output never lost) |
+| `command` | Split on whitespace, `execvp` without shell; `NULL` = `$PAGER`, then `less -R` |
+| `sc_pager_end` | Always required (also after no-op begin); `NULL`-safe; returns pager exit status |
+
+Tests: `tests/app/test_pager.c` (`make test-app`) – uses `cat`/`false` as deterministic pagers with stdout redirected to a temp file.
+
+---
+
+## XDG Paths (`src/app/`)
+
+Per-application directories per the XDG Base Directory Specification; created (mode 0700) on first use. Header: `app/sparcli_paths.h` (sub-umbrella `app/sparcli_app.h`).
+
+```c
+char *dir = sc_path_config("myapp");      /* ~/.config/myapp (heap; free()) */
+char *log = sc_path_file(SC_PATH_STATE, "myapp", "logs/run.log");
+```
+
+| Function | Result |
+|----------|--------|
+| `sc_path(kind, app)` / `sc_path_config/data/cache/state(app)` | App directory for the kind (`$XDG_*` if absolute, else `$HOME` fallback) |
+| `sc_path_file(kind, app, relative)` | File path inside the app dir; parents created, file not |
+
+All results are heap strings (caller frees); `NULL` on failure. **Validation:** `appname` must be a single safe path component; `relative` may contain subdirectories but no `..`/absolute/control bytes (path-traversal guard). Relative `$XDG_*` values are ignored per spec. Tests: `tests/app/test_paths.c` (sandboxed `$HOME`, never touches real user dirs).
+
+Bindings: C++ `sparcli::paths::*` (`std::optional<std::string>`) + `sparcli::Pager` (RAII); Rust `sparcli::paths::*` (`Option<PathBuf>`) + `Pager` (Drop); Python `sc.config_dir(...)` etc. (`pathlib.Path`, raises `SparcliError`) + `sc.Pager` (context manager).

@@ -15,6 +15,8 @@
 #include <string>
 #include <utility>
 
+#include <unistd.h>
+
 using namespace sparcli;
 
 static int g_failures = 0;
@@ -185,6 +187,35 @@ static void test_text_link() {
           "Text::append_link emits the OSC-8 hyperlink sequence");
 }
 
+// XDG path wrappers must reject invalid names, resolve below $XDG_*, and the
+// Pager must be a clean no-op when the output stream is not a terminal.
+static void test_paths_and_pager() {
+    CHECK(!paths::config("a/b").has_value(),
+          "paths: invalid app name yields empty optional");
+
+    char sandbox_template[] = "/tmp/sparcli-cpp-XXXXXX";
+    char* sandbox = mkdtemp(sandbox_template);
+    if (sandbox) {
+        setenv("XDG_CONFIG_HOME", sandbox, 1);
+        auto dir = paths::config("cpptest");
+        CHECK(dir.has_value() && dir->find(sandbox) == 0,
+              "paths: config dir resolves below $XDG_CONFIG_HOME");
+        unsetenv("XDG_CONFIG_HOME");
+        if (dir) { rmdir(dir->c_str()); }
+        rmdir(sandbox);
+    }
+
+    int pager_status = -1;
+    std::string out = render([&pager_status] {
+        Pager pager;   // output stream is a memstream -> no-op session
+        println("paged content");
+        pager_status = pager.end();
+    });
+    CHECK(pager_status == 0, "pager: no-op session ends with status 0");
+    CHECK(contains(out, "paged content"),
+          "pager: no-op session writes to the original stream");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -195,6 +226,7 @@ int main() {
     test_table_column_style();
     test_wrapper_matches_c();
     test_text_link();
+    test_paths_and_pager();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

@@ -43,7 +43,7 @@ The suites split along the output/input boundary. Everything except `make test-i
 
 ### `make test` – full non-interactive suite
 
-The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-cpp`, `test-cli-check`, `test-cli-pty` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
+The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-app`, `test-cpp`, `test-cli-check`, `test-cli-pty` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
 
 ```sh
 make test                     # run every headless gate
@@ -119,6 +119,14 @@ Forks each interactive widget onto a pseudo-terminal, feeds it a canned keystrok
 
 ```sh
 make test-input-pty
+```
+
+### `make test-app` – application-framework suite
+
+The framework helpers in `tests/app/`: XDG path resolution (environment overrides, `$HOME` fallbacks, directory creation, path-traversal rejection – inside a sandboxed `$HOME`, never touching real user directories) and the pager (no-op off terminal, piping through `cat`, exit-code propagation, `SIGPIPE` robustness, fallback for missing commands). Pure logic with real child processes; no TTY required.
+
+```sh
+make test-app
 ```
 
 ### `make test-cpp` – C++ wrapper gate
@@ -431,11 +439,12 @@ Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new `examp
 ```
 src/core/     color, text, print, output stream, render-wrap, version
 src/output/   panel, rule, list, tree, columns, kv, alert, badge,
-              progressbar, spinner, markup, pad, util, + table/
+              progressbar, spinner, markup, pad, util, pager, + table/
 src/tty/      raw mode + signal restore, key decoder, in-place redraw
 src/input/    prompt engine, line editor, shortcut, external editor, confirm,
               text/password/number, textarea, select, fuzzy, datepicker, theme
-include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
+src/app/      application-framework helpers: paths (XDG dirs)
+include/{core,output,input,app}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 cli/                           the sparcli command-line tool (subcommand per widget)
 completions/                   zsh completion (_sparcli) for the CLI
@@ -443,6 +452,7 @@ bindings/rust/                 cargo workspace: sparcli-sys (FFI) + sparcli (saf
 bindings/python/               cffi (API-mode) wrapper: src/sparcli/ + build_sparcli.py
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
+tests/app/                     application-framework suite (paths, pager)
 tests/cpp/                     C++ wrapper assertion suite + golden
 tests/cli/                     CLI golden-file suite + CLI PTY suite
 ```
@@ -475,6 +485,7 @@ Every pointer a public API receives needs an explicit answer to *"who owns this,
 - **Output test:** add `tests/output/test_foo.c`, append it to `TEST_SRC` in the `Makefile`, and register it in `get_all_tests()` in `tests/output/test_main.c`. If it renders deterministic output, regenerate the golden file afterwards (`make test-output-golden`).
 - **Input logic/widget test:** add the source to `INPUT_TEST_SRC`, declare the entry point in `tests/input/logic/test_input.h`, and add it to the runner table in `tests/input/logic/test_input_main.c` (mark it `interactive` or not).
 - **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/` runner, then `make test-input-style-golden`.
+- **Application-framework test:** add the source to `APP_TEST_SRC`, declare the entry point in `tests/app/test_app.h`, and add it to the runner table in `tests/app/test_app_main.c`.
 - **C++ wrapper check:** add a `CHECK(...)` case to `tests/cpp/test_cpp.cpp` (no Makefile change – `test-cpp` compiles that file directly); if it changes the demo output, run `make test-cpp-golden`.
 - **CLI output case:** add the invocation to `tests/cli/run_output.sh` (use the `section`/`expect_fail` helpers and, for layout-sensitive commands, an explicit `--width`), then `make test-cli-golden`.
 - **CLI input case:** add an entry to the `CASES[]` array in `tests/cli/test_cli_pty.c` (CLI argv, keystrokes, expected stdout + exit code; `no_tty = true` for non-terminal behavior). No Makefile change needed.

@@ -1682,6 +1682,36 @@ extern "C" {
     #[doc = " Convenience wrapper: captures `text` and aligns it via `sc_align_print`.\n\n @param text   Rich-text object to render.\n @param halign  Horizontal alignment.\n @param width  Target width in columns; `0` = current terminal width."]
     pub fn sc_align_text(text: *const ScText, halign: ScHAlign, width: ::std::os::raw::c_int);
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScPager {
+    _unused: [u8; 0],
+}
+#[doc = " Options for `sc_pager_begin`. Zero-init pages through `$PAGER` (falling\n back to `less -R`) and only when the output stream is a terminal."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScPagerOpts {
+    #[doc = " Pager command, split on whitespace and executed without a shell;\n `NULL`/empty = `$PAGER`, then `less -R`."]
+    pub command: *const ::std::os::raw::c_char,
+    #[doc = " Page even when the output stream is not a terminal."]
+    pub always: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScPagerOpts"][::std::mem::size_of::<ScPagerOpts>() - 16usize];
+    ["Alignment of ScPagerOpts"][::std::mem::align_of::<ScPagerOpts>() - 8usize];
+    ["Offset of field: ScPagerOpts::command"]
+        [::std::mem::offset_of!(ScPagerOpts, command) - 0usize];
+    ["Offset of field: ScPagerOpts::always"][::std::mem::offset_of!(ScPagerOpts, always) - 8usize];
+};
+extern "C" {
+    #[doc = " Starts a pager session: forks the pager process and redirects the\n calling thread's `sc_output_stream()` into it.\n\n No-op cases (the returned handle is still valid and must be passed to\n `sc_pager_end`): the output stream is not a terminal and `opts.always`\n is `false`, or the pager process cannot be started.\n\n `SIGPIPE` is ignored for the duration of the session so that quitting\n the pager early (e.g. `q` in `less`) does not terminate the program;\n the previous disposition is restored by `sc_pager_end`.\n\n @param opts  Pager options; zero-init for defaults.\n @return      Heap-allocated session handle; `NULL` only on allocation\n              failure. Always pair with `sc_pager_end`.\n\n @code\n ScPager *pager = sc_pager_begin((ScPagerOpts){ 0 });\n sc_table_print(table, opts);          // paged\n int status = sc_pager_end(pager);     // waits for the pager to exit\n @endcode"]
+    pub fn sc_pager_begin(opts: ScPagerOpts) -> *mut ScPager;
+}
+extern "C" {
+    #[doc = " Ends a pager session: flushes and closes the pipe, restores the\n previous output stream and `SIGPIPE` disposition, waits for the pager\n process to exit, and frees the handle.\n\n @param pager  Session from `sc_pager_begin`; safe to pass `NULL`.\n @return       The pager's exit status (`0` on clean exit), `0` for\n               no-op sessions, `-1` when the pager was killed by a\n               signal or waiting failed."]
+    pub fn sc_pager_end(pager: *mut ScPager) -> ::std::os::raw::c_int;
+}
 extern "C" {
     #[doc = " Returns the `FILE *` sparcli writes its output to.\n\n Defaults to `stdout` when `sc_output_set_stream` has not been called (or the\n caller has reset the output to `NULL`). All sparcli print/render\n functions go through this stream, so redirecting it lets callers\n capture output into a memory buffer, a log file, or a custom stream\n without intercepting `stdout` globally.\n\n @return  Current output stream; never `NULL`."]
     pub fn sc_output_stream() -> *mut FILE;
@@ -3001,6 +3031,47 @@ const _: () = {
 extern "C" {
     #[doc = " Prompts the user to pick a date from a month calendar.\n\n Arrow keys move by day/week; PageUp/PageDown (or `<`/`>`) change month;\n Shift+PageUp/PageDown change year; Enter selects; Esc or Ctrl-C cancels.\n Month/year jumps keep the selected day, clamped to the target month's last\n valid day (e.g. Jan 31 -> Feb 28).\n\n `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view\n (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten\n with the picked date (normalized via `mktime`).\n\n @param io    In: initial date. Out: picked date. Must not be `NULL`.\n @param opts  Rendering options.\n @return      `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
     pub fn sc_datepicker(io: *mut tm, opts: ScDatePickerOpts) -> ScInputStatus;
+}
+#[doc = "< Configuration files (`~/.config`)."]
+pub const ScPathKind_SC_PATH_CONFIG: ScPathKind = 0;
+#[doc = "< Persistent application data (`~/.local/share`)."]
+pub const ScPathKind_SC_PATH_DATA: ScPathKind = 1;
+#[doc = "< Re-creatable cache files (`~/.cache`)."]
+pub const ScPathKind_SC_PATH_CACHE: ScPathKind = 2;
+#[doc = "< Logs, history, runtime state (`~/.local/state`)."]
+pub const ScPathKind_SC_PATH_STATE: ScPathKind = 3;
+#[doc = " The four XDG base-directory kinds.\n\n Each kind maps to an environment variable and a `$HOME` fallback:\n\n | Kind             | Environment variable | Fallback           |\n |------------------|-----------------------|--------------------|\n | `SC_PATH_CONFIG` | `$XDG_CONFIG_HOME`    | `~/.config`        |\n | `SC_PATH_DATA`   | `$XDG_DATA_HOME`      | `~/.local/share`   |\n | `SC_PATH_CACHE`  | `$XDG_CACHE_HOME`     | `~/.cache`         |\n | `SC_PATH_STATE`  | `$XDG_STATE_HOME`     | `~/.local/state`   |"]
+pub type ScPathKind = ::std::os::raw::c_uint;
+extern "C" {
+    #[doc = " Returns the per-application base directory for `kind`, creating it\n (mode 0700, including parents) when it does not exist.\n\n The result is `<base>/<appname>`, e.g. `/home/user/.config/myapp` for\n `SC_PATH_CONFIG`. `appname` must be a single path component: names\n containing `/`, `..` or control characters are rejected.\n\n @param kind     Which base directory to resolve.\n @param appname  Application name (one path component); rejected when\n                 invalid.\n @return         Heap-allocated absolute path; caller must `free()` it.\n                 `NULL` when `appname` is invalid, `$HOME` cannot be\n                 resolved, or directory creation fails."]
+    pub fn sc_path(
+        kind: ScPathKind,
+        appname: *const ::std::os::raw::c_char,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Convenience wrapper: `sc_path(SC_PATH_CONFIG, appname)`."]
+    pub fn sc_path_config(appname: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Convenience wrapper: `sc_path(SC_PATH_DATA, appname)`."]
+    pub fn sc_path_data(appname: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Convenience wrapper: `sc_path(SC_PATH_CACHE, appname)`."]
+    pub fn sc_path_cache(appname: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Convenience wrapper: `sc_path(SC_PATH_STATE, appname)`."]
+    pub fn sc_path_state(appname: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Returns the absolute path of a file inside an application directory,\n creating all parent directories (mode 0700).\n\n The result is `<base>/<appname>/<relative>`, e.g.\n `~/.local/state/myapp/logs/app.log` for\n `sc_path_file(SC_PATH_STATE, \"myapp\", \"logs/app.log\")`. The file itself\n is **not** created, only its parent directories.\n\n `relative` may contain subdirectories but must stay inside the\n application directory: absolute paths, `..` segments and control\n characters are rejected.\n\n @param kind      Which base directory to resolve.\n @param appname   Application name (one path component).\n @param relative  File path relative to the application directory.\n @return          Heap-allocated absolute path; caller must `free()` it.\n                  `NULL` when any argument is invalid or directory\n                  creation fails."]
+    pub fn sc_path_file(
+        kind: ScPathKind,
+        appname: *const ::std::os::raw::c_char,
+        relative: *const ::std::os::raw::c_char,
+    ) -> *mut ::std::os::raw::c_char;
 }
 #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
 #[repr(C)]

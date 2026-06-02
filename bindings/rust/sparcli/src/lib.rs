@@ -29,11 +29,13 @@ use std::os::raw::c_void;
 
 #[macro_use]
 mod style;
+mod app;
 mod error;
 mod input;
 mod output;
 mod text;
 
+pub use app::{paths, Pager, PagerOpts};
 pub use error::{Error, Result};
 pub use input::*;
 pub use output::*;

@@ -101,6 +101,28 @@ fn text_link_has_zero_width_escapes() {
 }
 
 #[test]
+fn paths_reject_invalid_app_names() {
+    // Invalid names must never resolve (no filesystem side effects)
+    assert!(sparcli::paths::config("a/b").is_none());
+    assert!(sparcli::paths::config("..").is_none());
+    assert!(sparcli::paths::config("").is_none());
+    assert!(sparcli::paths::file(
+        sparcli::paths::Kind::Config,
+        "app",
+        "../escape"
+    )
+    .is_none());
+}
+
+#[test]
+fn pager_is_noop_off_terminal() {
+    // Under `cargo test` stdout is not a terminal -> the session is a no-op
+    // and must end cleanly with status 0 without spawning a pager.
+    let pager = sparcli::Pager::begin(sparcli::PagerOpts::new());
+    assert_eq!(pager.end(), 0);
+}
+
+#[test]
 fn input_without_tty_errors() {
     // No controlling terminal under `cargo test`, so prompts return an error
     // (callers fall back to a default), never a panic.

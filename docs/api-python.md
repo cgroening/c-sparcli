@@ -104,6 +104,20 @@ with open("out.txt", "w") as f, sc.ScopedOutput(f):
     sc.println("goes to the file")
 ```
 
+### Application helpers (XDG paths, pager)
+
+```python
+# XDG directories (created on first use); raises sc.SparcliError on failure
+cfg = sc.config_dir("myapp")                                # ~/.config/myapp (Path)
+log = sc.app_file(sc.PathKind.STATE, "myapp", "logs/run.log")
+
+# Pager: output inside the block is piped through $PAGER / less -R;
+# no-op when the output stream is not a terminal (scripts, pipes, CI)
+with sc.Pager() as pager:
+    table.print(sc.TableOpts(header_row=True))
+print(pager.exit_status)
+```
+
 ## Input
 
 Every widget returns its value, or `None` on cancel; it raises `sc.SparcliInputUnavailable` with no TTY.

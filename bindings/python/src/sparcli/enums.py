@@ -100,6 +100,15 @@ class AlertType(IntEnum):
     SUCCESS = 4
 
 
+class PathKind(IntEnum):
+    """XDG base-directory kind (config / data / cache / state)."""
+
+    CONFIG = 0
+    DATA = 1
+    CACHE = 2
+    STATE = 3
+
+
 class HintLayout(IntEnum):
     """Key-hint footer layout."""
 

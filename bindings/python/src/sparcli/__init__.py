@@ -22,13 +22,15 @@ from __future__ import annotations
 
 from . import _sparcli_cffi as sys  # raw FFI escape hatch (ffi, lib)
 from . import capture, markup
+from .app import (Pager, app_dir, app_file, cache_dir, config_dir, data_dir,
+                  state_dir)
 from .capture import (PadOpts, Rendered, align_str, align_text, capture,
                       pad_str, pad_text, vstack)
 from .color import Color
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BorderType, HintLayout,
-                    HintPos, ListMarker, Position, ProgressType, SpinnerType,
-                    VAlign, WeekStart)
+                    HintPos, ListMarker, PathKind, Position, ProgressType,
+                    SpinnerType, VAlign, WeekStart)
 from .errors import SparcliError, SparcliInputUnavailable
 from .input import (ConfirmOpts, DatePickerOpts, NumberOpts, PasswordOpts,
                     TextInputOpts, TextareaOpts, confirm, datepicker,
@@ -60,9 +62,12 @@ __all__ = [
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",
-    "AnsiMode",
+    "AnsiMode", "PathKind",
     # errors
     "SparcliError", "SparcliInputUnavailable",
+    # app helpers (XDG paths, pager)
+    "app_dir", "config_dir", "data_dir", "cache_dir", "state_dir", "app_file",
+    "Pager",
     # simple output
     "print_", "println", "panel", "PanelOpts", "rule", "RuleOpts", "badge",
     "BadgeOpts", "alert", "version", "version_string", "strip_ansi", "truncate",
