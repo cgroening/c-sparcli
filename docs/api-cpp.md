@@ -254,6 +254,16 @@ ErrorReport("Config could not be loaded")
     .code(2)
     .die();                            // renders to stderr, exits(2)
 die(2, "No config found", "Run 'app init'");   // one-shot
+
+// Logging: global logger (colored stderr at INFO + optional files) ...
+logging::set_level(SC_LOG_DEBUG);
+logging::add_file("app.log", SC_LOG_DEBUG);
+logging::info("server started");          // message is data, never a format
+
+// ... or an independent handle-based logger (RAII)
+Logger logger(LoggerOpts{ .hide_timestamps = true });
+logger.add_terminal(stderr, SC_LOG_INFO).add_file("debug.log");
+logger.warn("low disk space");
 ```
 
 ## Input widgets

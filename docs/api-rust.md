@@ -119,6 +119,16 @@ sparcli::ErrorReport::new("Config could not be loaded")
     .hint("Run 'app init' to create a default config")
     .code(2)
     .die(); // renders to stderr, exits(2); print()/print_stderr() don't exit
+
+// Logging: global logger (colored stderr at INFO + optional file sinks)
+sparcli::log::set_level(sparcli::LogLevel::Debug);
+sparcli::log::add_file("app.log", sparcli::LogLevel::Debug);
+sparcli::log::info("server started");      // message is data, never a format
+
+// ... or an independent handle-based logger (file sinks; closed on drop)
+let logger = sparcli::Logger::new(sparcli::LoggerOpts::new().hide_timestamps())
+    .add_file("subsystem.log", sparcli::LogLevel::Debug);
+logger.warn("low disk space");
 ```
 
 ## Input

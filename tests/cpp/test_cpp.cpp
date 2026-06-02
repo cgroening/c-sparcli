@@ -237,6 +237,41 @@ static void test_error_report() {
           "errors: temporary message strings are copied");
 }
 
+// Logger must format records, honor sink levels, and treat messages as
+// data (a literal "%s"/"%d" in the message is never format-expanded).
+static void test_logger() {
+    char* buffer = nullptr;
+    size_t size = 0;
+    std::FILE* sink = open_memstream(&buffer, &size);
+    if (!sink) {
+        CHECK(false, "log: open_memstream available");
+        return;
+    }
+
+    {
+        Logger logger(LoggerOpts{ .hide_timestamps = true });
+        logger.add_terminal(sink, SC_LOG_INFO);
+        logger.info("c++ record with literal %d");
+        logger.debug("filtered out");
+    }
+    std::fflush(sink);
+    std::fclose(sink);
+
+    std::string out(buffer ? buffer : "", size);
+    std::free(buffer);
+    CHECK(contains(out, "INFO")
+              && contains(out, "c++ record with literal %d"),
+          "log: Logger renders the message as data (no format expansion)");
+    CHECK(!contains(out, "filtered out"),
+          "log: sink level filters DEBUG records");
+
+    // Global logger level roundtrip
+    logging::set_level(SC_LOG_ERROR);
+    CHECK(logging::level() == SC_LOG_ERROR, "log: global level roundtrip");
+    logging::reset();
+    CHECK(logging::level() == SC_LOG_INFO, "log: reset restores INFO");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -249,6 +284,7 @@ int main() {
     test_text_link();
     test_paths_and_pager();
     test_error_report();
+    test_logger();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

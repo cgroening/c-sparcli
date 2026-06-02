@@ -33,6 +33,7 @@ int main(void) {
         { "XDG Paths",     test_paths  },
         { "Pager",         test_pager  },
         { "Pretty Errors", test_errors },
+        { "Logging",       test_log    },
     };
     size_t count = sizeof tests / sizeof tests[0];
 

@@ -3122,6 +3122,116 @@ extern "C" {
         hint: *const ::std::os::raw::c_char,
     );
 }
+#[doc = "< Diagnostic detail (dim)."]
+pub const ScLogLevel_SC_LOG_DEBUG: ScLogLevel = 0;
+#[doc = "< Normal progress messages (cyan)."]
+pub const ScLogLevel_SC_LOG_INFO: ScLogLevel = 1;
+#[doc = "< Something unexpected but recoverable (yellow)."]
+pub const ScLogLevel_SC_LOG_WARN: ScLogLevel = 2;
+#[doc = "< Operation failed (red)."]
+pub const ScLogLevel_SC_LOG_ERROR: ScLogLevel = 3;
+#[doc = "< Sink/logger disabled; nothing is emitted."]
+pub const ScLogLevel_SC_LOG_OFF: ScLogLevel = 4;
+#[doc = " Log severity, ordered from most to least verbose."]
+pub type ScLogLevel = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScLogger {
+    _unused: [u8; 0],
+}
+#[doc = " Format options for a logger. Zero-init renders\n `[HH:MM:SS] LEVEL message` with no source location and no markup\n parsing, passing every level (`SC_LOG_DEBUG`)."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScLoggerOpts {
+    #[doc = " Minimum level processed at all; zero-init = `SC_LOG_DEBUG`."]
+    pub level: ScLogLevel,
+    #[doc = " Hide the dim `[HH:MM:SS]` timestamp prefix."]
+    pub hide_timestamps: bool,
+    #[doc = " Render the dim `file:line` suffix passed by the log macros."]
+    pub show_source: bool,
+    #[doc = " Parse `[tag]` markup in messages (after printf formatting)."]
+    pub markup: bool,
+    #[doc = " ANSI passthrough for message text; zero-init inherits the global."]
+    pub ansi: ScAnsiMode,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScLoggerOpts"][::std::mem::size_of::<ScLoggerOpts>() - 12usize];
+    ["Alignment of ScLoggerOpts"][::std::mem::align_of::<ScLoggerOpts>() - 4usize];
+    ["Offset of field: ScLoggerOpts::level"][::std::mem::offset_of!(ScLoggerOpts, level) - 0usize];
+    ["Offset of field: ScLoggerOpts::hide_timestamps"]
+        [::std::mem::offset_of!(ScLoggerOpts, hide_timestamps) - 4usize];
+    ["Offset of field: ScLoggerOpts::show_source"]
+        [::std::mem::offset_of!(ScLoggerOpts, show_source) - 5usize];
+    ["Offset of field: ScLoggerOpts::markup"]
+        [::std::mem::offset_of!(ScLoggerOpts, markup) - 6usize];
+    ["Offset of field: ScLoggerOpts::ansi"][::std::mem::offset_of!(ScLoggerOpts, ansi) - 8usize];
+};
+extern "C" {
+    #[doc = " Allocates a logger with no sinks (records go nowhere until a sink is\n added).\n\n @param opts  Format options; zero-init for defaults.\n @return      Heap-allocated logger; `NULL` on allocation failure.\n              Free with `sc_logger_free`.\n\n @code\n ScLogger *logger = sc_logger_new((ScLoggerOpts){ .show_source = true });\n sc_logger_add_terminal(logger, stderr, SC_LOG_INFO);\n sc_logger_add_file(logger, \"app.log\", SC_LOG_DEBUG);\n sc_logger_info(logger, \"started with %d workers\", 4);\n sc_logger_free(logger);\n @endcode"]
+    pub fn sc_logger_new(opts: ScLoggerOpts) -> *mut ScLogger;
+}
+extern "C" {
+    #[doc = " Adds a colored terminal sink writing to `stream`.\n\n @param logger     Target logger; no-op when `NULL`.\n @param stream     Output stream (e.g. `stderr`); borrowed, not closed\n                   by the logger. No-op when `NULL`.\n @param min_level  Minimum level this sink shows."]
+    pub fn sc_logger_add_terminal(logger: *mut ScLogger, stream: *mut FILE, min_level: ScLogLevel);
+}
+extern "C" {
+    #[doc = " Adds a plain-text file sink (ANSI codes stripped), appending to `path`.\n\n @param logger     Target logger; no-op when `NULL`.\n @param path       Log file path; opened in append mode and closed by\n                   `sc_logger_free`.\n @param min_level  Minimum level this sink records.\n @return           `true` when the file was opened."]
+    pub fn sc_logger_add_file(
+        logger: *mut ScLogger,
+        path: *const ::std::os::raw::c_char,
+        min_level: ScLogLevel,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " Sets the logger's overall minimum level (gates every sink).\n\n @param logger  Target logger; no-op when `NULL`.\n @param level   New minimum level."]
+    pub fn sc_logger_set_level(logger: *mut ScLogger, level: ScLogLevel);
+}
+extern "C" {
+    #[doc = " Emits one record. Use the `sc_logger_debug/info/warn/error` macros,\n which fill in `file` and `line` automatically.\n\n The formatted message is sanitized (ANSI-injection protection) per the\n logger's `ansi` option before rendering.\n\n @param logger  Target logger; no-op when `NULL`.\n @param level   Record severity.\n @param file    Source file (`__FILE__`); `NULL` = no source location.\n @param line    Source line (`__LINE__`).\n @param format  printf-style format string (developer-controlled; never\n                pass user input as the format)."]
+    pub fn sc_logger_log(
+        logger: *mut ScLogger,
+        level: ScLogLevel,
+        file: *const ::std::os::raw::c_char,
+        line: ::std::os::raw::c_int,
+        format: *const ::std::os::raw::c_char,
+        ...
+    );
+}
+extern "C" {
+    #[doc = " Frees a logger: flushes and closes its file sinks (terminal streams\n stay open - they are borrowed).\n\n @param logger  Logger to free; safe to pass `NULL`."]
+    pub fn sc_logger_free(logger: *mut ScLogger);
+}
+extern "C" {
+    #[doc = " Sets the level of the global logger's built-in stderr sink (and the\n overall gate). Default: `SC_LOG_INFO`.\n\n The stderr sink emits colors only when stderr is a terminal.\n\n @param level  New minimum level; `SC_LOG_OFF` silences the terminal."]
+    pub fn sc_log_set_level(level: ScLogLevel);
+}
+extern "C" {
+    #[doc = " Returns the global logger's terminal level."]
+    pub fn sc_log_level() -> ScLogLevel;
+}
+extern "C" {
+    #[doc = " Sets the global logger's format options (`level` inside `opts` is\n ignored - use `sc_log_set_level`).\n\n Configuration is **not** thread-safe: call before spawning threads.\n\n @param opts  New format options."]
+    pub fn sc_log_set_opts(opts: ScLoggerOpts);
+}
+extern "C" {
+    #[doc = " Adds a plain-text file sink to the global logger, appending to `path`.\n\n Configuration is **not** thread-safe: call before spawning threads.\n\n @param path       Log file path (e.g. from `sc_path_file`).\n @param min_level  Minimum level this file records.\n @return           `true` when the file was opened."]
+    pub fn sc_log_add_file(path: *const ::std::os::raw::c_char, min_level: ScLogLevel) -> bool;
+}
+extern "C" {
+    #[doc = " Resets the global logger: closes file sinks and restores the default\n configuration (stderr sink at `SC_LOG_INFO`). Mainly for tests."]
+    pub fn sc_log_reset();
+}
+extern "C" {
+    #[doc = " Emits one record on the global logger. Use the `sc_log_debug/info/\n warn/error` macros, which fill in `file` and `line` automatically.\n\n Thread-safe once configuration is done.\n\n @param level   Record severity.\n @param file    Source file (`__FILE__`); `NULL` = no source location.\n @param line    Source line (`__LINE__`).\n @param format  printf-style format string (developer-controlled)."]
+    pub fn sc_log_log(
+        level: ScLogLevel,
+        file: *const ::std::os::raw::c_char,
+        line: ::std::os::raw::c_int,
+        format: *const ::std::os::raw::c_char,
+        ...
+    );
+}
 #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

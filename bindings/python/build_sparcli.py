@@ -81,6 +81,7 @@ _SOURCES = [
     "output/pager.c",
     "app/paths.c",
     "app/error.c",
+    "log/log.c",
 ]
 
 ffibuilder = FFI()
@@ -515,6 +516,33 @@ typedef struct {
 } ScPagerOpts;
 ScPager *sc_pager_begin(ScPagerOpts opts);
 int sc_pager_end(ScPager *pager);
+
+typedef enum {
+    SC_LOG_DEBUG = 0, SC_LOG_INFO, SC_LOG_WARN, SC_LOG_ERROR, SC_LOG_OFF
+} ScLogLevel;
+typedef struct {
+    ScLogLevel level;
+    bool hide_timestamps;
+    bool show_source;
+    bool markup;
+    ScAnsiMode ansi;
+    ...;
+} ScLoggerOpts;
+typedef struct ScLogger ScLogger;
+ScLogger *sc_logger_new(ScLoggerOpts opts);
+void sc_logger_add_terminal(ScLogger *logger, FILE *stream, ScLogLevel min_level);
+bool sc_logger_add_file(ScLogger *logger, const char *path, ScLogLevel min_level);
+void sc_logger_set_level(ScLogger *logger, ScLogLevel level);
+void sc_logger_log(ScLogger *logger, ScLogLevel level, const char *file,
+                   int line, const char *format, ...);
+void sc_logger_free(ScLogger *logger);
+void sc_log_set_level(ScLogLevel level);
+ScLogLevel sc_log_level(void);
+void sc_log_set_opts(ScLoggerOpts opts);
+bool sc_log_add_file(const char *path, ScLogLevel min_level);
+void sc_log_reset(void);
+void sc_log_log(ScLogLevel level, const char *file, int line,
+                const char *format, ...);
 
 typedef struct ScError ScError;
 ScError *sc_error_new(const char *message);

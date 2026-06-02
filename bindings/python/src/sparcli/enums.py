@@ -109,6 +109,16 @@ class PathKind(IntEnum):
     STATE = 3
 
 
+class LogLevel(IntEnum):
+    """Log severity, ordered from most to least verbose."""
+
+    DEBUG = 0
+    INFO = 1
+    WARN = 2
+    ERROR = 3
+    OFF = 4
+
+
 class HintLayout(IntEnum):
     """Key-hint footer layout."""
 

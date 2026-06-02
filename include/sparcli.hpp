@@ -1045,6 +1045,87 @@ private:
                hint.empty() ? nullptr : detail::z(hint).c_str());
 }
 
+// ── Logging ──────────────────────────────────────────────────────────────────
+// Leveled, colored terminal output + plain-text file sinks. @see sparcli_log.h
+
+using LogLevel = ScLogLevel;
+using LoggerOpts = ScLoggerOpts;
+
+/**
+ * Handle-based logger (RAII): independent sinks and options, e.g. for a
+ * library/subsystem. Messages are passed as data (never as a printf format
+ * string). For the process-wide logger use the `logging::` functions.
+ */
+class Logger {
+public:
+    explicit Logger(LoggerOpts opts = {}) : p_(sc_logger_new(opts)) {
+        if (!p_) { throw std::bad_alloc(); }
+    }
+    ~Logger() { sc_logger_free(p_); }
+    Logger(Logger&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    Logger& operator=(Logger&& o) noexcept {
+        if (this != &o) { sc_logger_free(p_); p_ = o.p_; o.p_ = nullptr; }
+        return *this;
+    }
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+
+    /** Adds a colored terminal sink (stream is borrowed, not closed). */
+    Logger& add_terminal(std::FILE* stream, LogLevel min = SC_LOG_DEBUG) {
+        sc_logger_add_terminal(p_, stream, min);
+        return *this;
+    }
+    /** Adds a plain-text file sink (append mode; closed on destruction). */
+    Logger& add_file(std::string_view path, LogLevel min = SC_LOG_DEBUG) {
+        sc_logger_add_file(p_, detail::z(path).c_str(), min);
+        return *this;
+    }
+    /** Sets the logger-wide minimum level. */
+    Logger& level(LogLevel min) {
+        sc_logger_set_level(p_, min);
+        return *this;
+    }
+
+    /** Emits one record (message is data, not a format string). */
+    void log(LogLevel lvl, std::string_view msg) const {
+        sc_logger_log(p_, lvl, nullptr, 0, "%s", detail::z(msg).c_str());
+    }
+    void debug(std::string_view msg) const { log(SC_LOG_DEBUG, msg); }
+    void info(std::string_view msg)  const { log(SC_LOG_INFO, msg); }
+    void warn(std::string_view msg)  const { log(SC_LOG_WARN, msg); }
+    void error(std::string_view msg) const { log(SC_LOG_ERROR, msg); }
+
+private:
+    ScLogger* p_;
+};
+
+/** The process-wide global logger (built-in stderr sink at INFO). */
+namespace logging {
+
+/** Terminal-sink level (default INFO). @see sc_log_set_level */
+inline void set_level(LogLevel lvl)      { sc_log_set_level(lvl); }
+/** Current terminal-sink level. @see sc_log_level */
+inline LogLevel level()                  { return sc_log_level(); }
+/** Format options (timestamps, source, markup). @see sc_log_set_opts */
+inline void set_opts(LoggerOpts opts)    { sc_log_set_opts(opts); }
+/** Adds a plain-text file sink. @see sc_log_add_file */
+inline bool add_file(std::string_view path, LogLevel min = SC_LOG_DEBUG) {
+    return sc_log_add_file(detail::z(path).c_str(), min);
+}
+/** Closes file sinks + restores defaults. @see sc_log_reset */
+inline void reset()                      { sc_log_reset(); }
+
+/** Emits one record (message is data, not a format string). */
+inline void log(LogLevel lvl, std::string_view msg) {
+    sc_log_log(lvl, nullptr, 0, "%s", detail::z(msg).c_str());
+}
+inline void debug(std::string_view msg) { log(SC_LOG_DEBUG, msg); }
+inline void info(std::string_view msg)  { log(SC_LOG_INFO, msg); }
+inline void warn(std::string_view msg)  { log(SC_LOG_WARN, msg); }
+inline void error(std::string_view msg) { log(SC_LOG_ERROR, msg); }
+
+}  // namespace logging
+
 // ── Custom shortcuts ─────────────────────────────────────────────────────────
 // Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
 // @see sparcli_shortcut.h

@@ -50,6 +50,7 @@ const SOURCES: &[&str] = &[
     "src/input/datepicker.c",
     "src/app/paths.c",
     "src/app/error.c",
+    "src/log/log.c",
 ];
 
 fn main() {

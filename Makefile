@@ -82,7 +82,9 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/textarea.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c \
           \
-          src/app/paths.c src/app/error.c
+          src/app/paths.c src/app/error.c \
+          \
+          src/log/log.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 DEP               = $(OBJ:.o=.d)
@@ -205,7 +207,8 @@ PTY_TEST_BIN = tests/input/pty/test_pty
 APP_TEST_SRC = tests/app/test_app_main.c \
                tests/app/test_paths.c \
                tests/app/test_pager.c \
-               tests/app/test_errors.c
+               tests/app/test_errors.c \
+               tests/app/test_log.c
 APP_TEST_BIN = tests/app/test_app_main
 
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.

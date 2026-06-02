@@ -29,8 +29,11 @@ from .capture import (PadOpts, Rendered, align_str, align_text, capture,
 from .color import Color
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BorderType, HintLayout,
-                    HintPos, ListMarker, PathKind, Position, ProgressType,
-                    SpinnerType, VAlign, WeekStart)
+                    HintPos, ListMarker, LogLevel, PathKind, Position,
+                    ProgressType, SpinnerType, VAlign, WeekStart)
+from .log import (Logger, log_add_file, log_debug, log_error,
+                  log_hide_timestamps, log_info, log_level, log_reset,
+                  log_set_level, log_warning)
 from .errors import SparcliError, SparcliInputUnavailable
 from .input import (ConfirmOpts, DatePickerOpts, NumberOpts, PasswordOpts,
                     TextInputOpts, TextareaOpts, confirm, datepicker,
@@ -68,6 +71,10 @@ __all__ = [
     # app helpers (XDG paths, pager, pretty errors)
     "app_dir", "config_dir", "data_dir", "cache_dir", "state_dir", "app_file",
     "Pager", "ErrorReport",
+    # logging
+    "Logger", "LogLevel", "log_set_level", "log_level", "log_add_file",
+    "log_hide_timestamps", "log_reset", "log_debug", "log_info", "log_warning",
+    "log_error",
     # simple output
     "print_", "println", "panel", "PanelOpts", "rule", "RuleOpts", "badge",
     "BadgeOpts", "alert", "version", "version_string", "strip_ansi", "truncate",

@@ -26,8 +26,8 @@ make test-input-style-check / -golden  # style golden-file diff / regenerate
 make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
                   # widget onto a pseudo-terminal and feeds canned keys – gives
                   # interactive coverage with no human. Runs headless (CI).
-make test-app     # APP framework suite (tests/app/): XDG paths, pager + pretty
-                  # errors logic tests with real child processes; headless (CI).
+make test-app     # APP framework suite (tests/app/): XDG paths, pager, pretty
+                  # errors + logging logic tests; headless (CI).
 make test-cli-check / -golden  # CLI output golden-file diff / regenerate
                   # (tests/cli/run_output.sh drives every output subcommand)
 make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitized
@@ -35,7 +35,7 @@ make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitize
                   # substitution), asserts value + exit code. Headless (CI).
 make sanitize     # OUTPUT suite under ASan/UBSan
 make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
-                  # thread-safety invariant; own build tree)
+                  # thread-safety invariant incl. concurrent logging; own build tree)
 make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
                   # tools optional, prints install hints when missing)
 make fuzz         # random-input fuzzing of the markup parser, key decoder,
@@ -69,12 +69,13 @@ src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
               textarea, select, fuzzy, datepicker
 src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
+src/log/      logging: leveled terminal + plain-text file sinks
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/    include/app/
                  (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
-tests/app/       framework suite (paths, pager, errors)
+tests/app/       framework suite (paths, pager, errors, logging)
 tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 
@@ -670,7 +671,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 
 ## Key Invariants
 
-- **Concurrency:** the output target is **thread-local** (`_Thread_local current_output` in `core/output.c`), so multiple threads may render/capture concurrently to independent streams (TSan-clean; see `test_threads`). Each widget object is per-instance, so independent objects are independent. The **interactive input session is process-wide** (one terminal, process-global signal handlers): only one prompt runs at a time, enforced by an atomic claim in `sc_prompt_run` – a concurrent/nested attempt returns `SC_INPUT_ERROR`. The global theme (`sc_input_set_theme`) is shared, set-once config.
+- **Concurrency:** the output target is **thread-local** (`_Thread_local current_output` in `core/output.c`), so multiple threads may render/capture concurrently to independent streams (TSan-clean; see `test_threads`). Each widget object is per-instance, so independent objects are independent. The **interactive input session is process-wide** (one terminal, process-global signal handlers): only one prompt runs at a time, enforced by an atomic claim in `sc_prompt_run` – a concurrent/nested attempt returns `SC_INPUT_ERROR`. The global theme (`sc_input_set_theme`) is shared, set-once config. The **global logger** follows the same pattern: configuration (level/sinks/opts) is set-once before threads start; the log calls themselves are thread-safe (atomic level, one `fputs` per record).
 - **`SC_ANSI_COLOR_NONE` sentinel is `index = 0`**, identical to a zero-initialized `ScColor`. Any unset color field renders as "no color" automatically; no explicit assignment needed. Named colors use `index = 1..8` (BLACK..WHITE); RGB uses `index = -1`.
 - `sc_print()` always appends `\033[0m` (reset), even when opts are all-none. This is intentional to isolate styling.
 - The `h` horizontal-line character from `ScBorderType` is used by both panel titles, table titles, rules, and column separators – all from the same logical table in each file.
@@ -1052,3 +1053,33 @@ sc_error_print_stderr(e);                /* render to stderr; stream restored; n
 | Rendering | Bold message, dim indented `caused by:` lines, blank line + bold `Hint:` block |
 
 Tests: `tests/app/test_errors.c` (logic: copies, NULL safety, stderr routing) + `tests/output/test_errors.c` (golden rendering). Bindings: C++ `sparcli::ErrorReport` (+ `sparcli::die()`), Rust `sparcli::ErrorReport` (`die() -> !`), Python `sc.ErrorReport` (`die()` raises `SystemExit`, never calls C `exit()`).
+
+---
+
+## Logging (`src/log/`)
+
+Leveled, colored terminal logging + plain-text file sinks. Header: `log/sparcli_log.h`. **Global logger** (`sc_log_*`: process-wide, built-in stderr sink at INFO) and **handle-based loggers** (`sc_logger_*`: own sinks/options).
+
+```c
+sc_log_set_level(SC_LOG_DEBUG);              /* stderr sink level; default INFO */
+sc_log_add_file("app.log", SC_LOG_DEBUG);    /* plain-text file sink (appends) */
+sc_log_info("started on port %d", port);     /* macros pass __FILE__/__LINE__ */
+
+ScLogger *lg = sc_logger_new((ScLoggerOpts){ .hide_timestamps = true });
+sc_logger_add_terminal(lg, stderr, SC_LOG_INFO);   /* colored; stream borrowed */
+sc_logger_add_file(lg, "debug.log", SC_LOG_DEBUG); /* plain; owned + closed on free */
+sc_logger_info(lg, "subsystem ready");
+sc_logger_free(lg);
+```
+
+`ScLoggerOpts`: `level` (zero-init = DEBUG = everything), `hide_timestamps`, `show_source` (file:line suffix), `markup` (parse tags in messages), `ansi`.
+
+| Invariant | Detail |
+|-----------|--------|
+| Render once | Record rendered once (colored); terminal sinks get colored bytes, file sinks `sc_strip_ansi`'d plain text |
+| Output independence | Sinks own their `FILE *`; logging NEVER touches `sc_output_stream()` (no interference with capture/pager) |
+| Trust boundary | Formatted message sanitized (or markup-parsed) exactly once; format strings are developer-controlled (`__attribute__((format))` checked) |
+| Thread safety | Global config (level atomic, sinks set-once: configure before spawning threads); emits are race-free, one `fputs` per record per sink = no torn lines. Handle loggers: not internally synchronized |
+| Global stderr sink | Colors only when stderr `isatty`; level via `sc_log_set_level` (default INFO); `sc_log_reset()` restores defaults (tests) |
+
+Tests: `tests/app/test_log.c` (logic; `make test-app`) + concurrent-logging case in `tests/input/logic/test_threads.c` (runs under `make tsan` - the critical gate). Bindings pass messages as **data** (`"%s"` + string, never a format string): C++ `sparcli::Logger` + `sparcli::logging::*`, Rust `sparcli::Logger` + `sparcli::log::*`, Python `sc.Logger` + `sc.log_info(...)` etc.

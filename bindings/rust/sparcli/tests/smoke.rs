@@ -123,6 +123,48 @@ fn pager_is_noop_off_terminal() {
 }
 
 #[test]
+fn logger_writes_plain_file_records() {
+    use std::io::Read;
+
+    let path = std::env::temp_dir().join(format!(
+        "sparcli-rust-log-{}.log",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+
+    {
+        let logger = sparcli::Logger::new(
+            sparcli::LoggerOpts::new().hide_timestamps(),
+        )
+        .add_file(path.to_str().unwrap(), sparcli::LogLevel::Debug);
+        logger.info("rust record %d");   // literal %d must NOT be interpreted
+        logger.debug("debug detail");
+    } // drop flushes + closes the file sink
+
+    let mut content = String::new();
+    std::fs::File::open(&path)
+        .unwrap()
+        .read_to_string(&mut content)
+        .unwrap();
+    let _ = std::fs::remove_file(&path);
+
+    // Records are plain text (no ESC bytes), and the message is data:
+    // the "%d" arrives literally instead of being format-expanded.
+    assert!(content.contains("INFO"));
+    assert!(content.contains("rust record %d"));
+    assert!(content.contains("debug detail"));
+    assert!(!content.contains('\u{1b}'));
+}
+
+#[test]
+fn global_log_level_roundtrip() {
+    sparcli::log::set_level(sparcli::LogLevel::Error);
+    assert_eq!(sparcli::log::level(), sparcli::LogLevel::Error);
+    sparcli::log::reset();
+    assert_eq!(sparcli::log::level(), sparcli::LogLevel::Info);
+}
+
+#[test]
 fn error_report_builder() {
     // Builder chains, stores the exit code, and printing does not exit
     let report = sparcli::ErrorReport::new("boom")

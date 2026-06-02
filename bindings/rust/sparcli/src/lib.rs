@@ -32,12 +32,14 @@ mod style;
 mod app;
 mod error;
 mod input;
+mod logging;
 mod output;
 mod text;
 
 pub use app::{paths, ErrorReport, Pager, PagerOpts};
 pub use error::{Error, Result};
 pub use input::*;
+pub use logging::{log, LogLevel, Logger, LoggerOpts};
 pub use output::*;
 pub use style::{
     Align, AnsiMode, Attr, BorderStyle, BorderType, Color, Edges, HintLayout,

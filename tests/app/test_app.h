@@ -5,7 +5,7 @@
 /**
  * @file test_app.h
  * @brief Shared harness for the application-framework test suite
- *        (`tests/app/`): XDG paths, pager, pretty errors.
+ *        (`tests/app/`): XDG paths, pager, pretty errors, logging.
  *
  * Pure logic tests - no TTY required, safe in CI.
  */
@@ -26,3 +26,4 @@ extern int g_app_failures;
 void test_paths(void);
 void test_pager(void);
 void test_errors(void);
+void test_log(void);

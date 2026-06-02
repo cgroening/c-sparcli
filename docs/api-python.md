@@ -124,6 +124,17 @@ sc.ErrorReport("Config could not be loaded") \
     .hint("Run 'app init' to create a default config") \
     .code(2) \
     .die()
+
+# Logging: global logger (colored stderr at INFO + optional file sinks) ...
+sc.log_set_level(sc.LogLevel.DEBUG)
+sc.log_add_file("app.log", sc.LogLevel.DEBUG)
+sc.log_info("server started")              # message is data, never a format
+
+# ... or an independent handle-based logger
+logger = sc.Logger(hide_timestamps=True)
+logger.add_terminal(sys.stderr, sc.LogLevel.INFO)
+logger.add_file("debug.log")
+logger.warning("low disk space")
 ```
 
 ## Input

@@ -159,6 +159,30 @@ def test_error_report():
     assert exc_info.value.code == 7
 
 
+def test_logger_file_sink(tmp_path):
+    log_file = tmp_path / "test.log"
+
+    logger = sc.Logger(hide_timestamps=True)
+    assert logger.add_file(log_file, sc.LogLevel.DEBUG)
+    logger.info("python record with 100% data semantics")
+    logger.debug("debug detail")
+    logger.close()  # flushes + closes the file sink
+
+    content = log_file.read_text()
+    assert "INFO" in content
+    # The "%" must arrive literally (message is data, not a format string)
+    assert "python record with 100% data semantics" in content
+    assert "debug detail" in content
+    assert "\x1b" not in content  # file sinks are plain text
+
+
+def test_global_log_level_roundtrip():
+    sc.log_set_level(sc.LogLevel.ERROR)
+    assert sc.log_level() == sc.LogLevel.ERROR
+    sc.log_reset()
+    assert sc.log_level() == sc.LogLevel.INFO
+
+
 def test_columns_capture_runs():
     kv = sc.Kv()
     kv.add("k", "v")
