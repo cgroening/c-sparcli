@@ -363,6 +363,21 @@ static int child_case(int c) {
                 .calculator = true, .start_empty = true });
             return (s == SC_INPUT_OK && v == 69.0) ? 0 : 1;
         }
+        case 25: {
+            /* Discard warning path: "=10/3" -> accept shows "3.33" with the
+               exact value pending; backspace ("3.3") raises the warning and
+               discards it, Enter submits the edited display value - never
+               the exact 3.333... result. */
+            double v = 0;
+            char *text = NULL;
+            ScInputStatus s = sc_number_input("Amount", &v, (ScNumberOpts){
+                .calculator = true, .decimals = 2, .start_empty = true,
+                .out_text = &text });
+            int ok = (s == SC_INPUT_OK && v == 3.3 && text
+                      && strcmp(text, "3.30") == 0);
+            free(text);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -401,6 +416,7 @@ static const Case CASES[] = {
     { "calc-full-precision", "=10/3\r\r" },        /* rounded display, exact out */
     { "calc-store-rounded", "=10/3\r\r" },         /* rounded display == out */
     { "calc-edit-after-accept", "=2*3\r9\r" },     /* accept "6", edit to "69" */
+    { "calc-discard-warning", "=10/3\r\x7f\r" },   /* edit discards exact value */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

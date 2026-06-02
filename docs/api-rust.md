@@ -168,7 +168,9 @@ if let Some(amount) = number_input_text(
 )? { /* amount == "12.99" – parse into rust_decimal etc. */ }
 
 // Calculator mode: "=" starts an expression (=1,5+2*3); Enter accepts the
-// result, a second Enter submits it (full precision by default).
+// result, a second Enter submits it (full precision by default). A dim
+// " = <exact>" indicator marks a pending full-precision result; editing it
+// away shows a yellow "exact result discarded" warning automatically.
 if let Some(total) = number_input_text(
     "Total", NumberOpts::new().decimals(2).calculator(true).start_empty(true),
 )? { /* "=12,99*3" → total == "38.97" */ }

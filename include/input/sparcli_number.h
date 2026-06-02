@@ -118,6 +118,13 @@ typedef struct ScNumberOpts {
      * result - a deliberate exception to the "displayed text == submitted
      * value" rule (`*out` and `*out_text` still always agree). See
      * `calc_store_rounded` / `calc_show_precise` to change this.
+     *
+     * While a full-precision result is pending and differs from the rounded
+     * display, a dim ` = <value>` indicator is shown next to the field.
+     * Editing the field discards the pending result; when that loses
+     * precision, a warning line appears (see `calc_warn_text` /
+     * `calc_warn_style`) - from then on the displayed text is what gets
+     * submitted, exactly like a typed number.
      */
     bool calculator;
 
@@ -136,6 +143,17 @@ typedef struct ScNumberOpts {
 
     /** Style of the invalid-expression error line; zero-init = red. */
     ScTextStyle error_style;
+
+    /**
+     * Text of the warning shown when an edit discards a pending full-
+     * precision calculator result that differs from the displayed value
+     * (precision is actually lost): from then on the displayed text is
+     * what gets submitted. `NULL` = built-in English default.
+     */
+    const char *calc_warn_text;
+
+    /** Style of the discarded-result warning line; zero-init = yellow. */
+    ScTextStyle calc_warn_style;
 } ScNumberOpts;
 
 /**

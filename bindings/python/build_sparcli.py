@@ -779,6 +779,8 @@ typedef struct {
     bool calc_store_rounded;
     bool calc_show_precise;
     ScTextStyle error_style;
+    const char *calc_warn_text;
+    ScTextStyle calc_warn_style;
     ...;
 } ScNumberOpts;
 ScInputStatus sc_number_input(const char *prompt, double *out, ScNumberOpts opts);

@@ -223,7 +223,9 @@ def test_number_opts_calculator_accepted():
     opts = sc.NumberOpts(decimals=2, decimal_sep=",", start_empty=True,
                          calculator=True, calc_store_rounded=True,
                          calc_show_precise=True,
-                         error_style=sc.Style(fg=sc.Color.RED))
+                         error_style=sc.Style(fg=sc.Color.RED),
+                         calc_warn_text="Anzeigewert wird gespeichert",
+                         calc_warn_style=sc.Style(fg=sc.Color.YELLOW))
     with pytest.raises(sc.SparcliInputUnavailable):
         sc.decimal_input("amount", opts)
 

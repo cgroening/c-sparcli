@@ -63,4 +63,32 @@ void style_number(void) {
     style_show("calculator: hint advertises '= calc' when enabled",
         sc_number_frame("Amount", 5,
             (ScNumberOpts){ .calculator = true, .decimals = 2 }));
+
+    /* ── Pending exact value + discard warning ── */
+
+    style_show("calculator: accepted result, exact value pending (indicator)",
+        sc_number_frame_calc("Amount",
+            (ScNumberCalcFrame){
+                .expr = "3,33", .accepted = true, .value = 10.0 / 3.0 },
+            (ScNumberOpts){ .decimals = 2, .decimal_sep = ',' }));
+
+    style_show("calculator: warning after editing discarded the exact result",
+        sc_number_frame_calc("Amount",
+            (ScNumberCalcFrame){ .expr = "3,34", .discarded = true },
+            (ScNumberOpts){ .decimals = 2, .decimal_sep = ',' }));
+
+    style_show("calculator: custom warning text and style",
+        sc_number_frame_calc("Amount",
+            (ScNumberCalcFrame){ .expr = "3,34", .discarded = true },
+            (ScNumberOpts){ .decimals = 2, .decimal_sep = ',',
+                .calc_warn_text = "edited: display value will be stored",
+                .calc_warn_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA,
+                                     SC_ANSI_COLOR_NONE } }));
+
+    style_show("calculator: boxed, pending indicator inside the panel",
+        sc_number_frame_calc("Amount",
+            (ScNumberCalcFrame){
+                .expr = "3,33", .accepted = true, .value = 10.0 / 3.0 },
+            (ScNumberOpts){ .decimals = 2, .decimal_sep = ',',
+                            .boxed = true, .width = 40 }));
 }

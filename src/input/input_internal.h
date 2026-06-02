@@ -572,8 +572,15 @@ typedef struct ScNumberCalcFrame {
     /** Render the post-accept state (full-precision value pending). */
     bool accepted;
 
+    /** The pending full-precision value (accepted state); drives the
+        ` = <value>` indicator when it differs from the displayed `expr`. */
+    double value;
+
     /** Render the invalid-expression error line. */
     bool error;
+
+    /** Render the discarded-result warning line. */
+    bool discarded;
 } ScNumberCalcFrame;
 
 /**

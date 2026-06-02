@@ -262,7 +262,12 @@ rust-test:
 PY      ?= python3
 PY_DIR   = bindings/python
 
+# The previously installed extension is unlinked first: cffi copies the fresh
+# build over the old file in place (same inode), which leaves macOS with a
+# stale code-signature cache for that inode and gets any process loading it
+# SIGKILLed ("Killed: 9"). Unlinking forces a new inode + fresh signature.
 python:
+	rm -f $(PY_DIR)/src/sparcli/_sparcli_cffi*.so
 	cd $(PY_DIR) && $(PY) build_sparcli.py
 
 python-test: python

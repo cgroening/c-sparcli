@@ -21,6 +21,10 @@ typedef struct NumberState {
 
     /** Calculator: the last Enter found an invalid expression. */
     bool calc_error;
+
+    /** Calculator: an edit discarded a pending result that differed from
+        the display - the warning line is shown until submit/new accept. */
+    bool calc_discarded;
 } NumberState;
 
 static const char *const DEFAULT_HINT =
@@ -32,9 +36,16 @@ static const char *const CALC_AVAILABLE_HINT =
 static const char *const CALC_MODE_HINT =
     "enter accept result \xc2\xb7 esc cancel";
 static const char *const CALC_ERROR_TEXT = "invalid expression";
+static const char *const CALC_DISCARDED_TEXT =
+    "exact result discarded - the displayed value will be submitted";
 
 /** Format string for full-precision values (round-trip exact for doubles). */
 #define CALC_PRECISE_FORMAT "%.17g"
+
+/** Format for the pending-result indicator: enough digits to show that the
+    pending value is more precise than the rounded display, without the noise
+    of the full 17-digit round-trip form. */
+#define CALC_PENDING_FORMAT "%.10g"
 
 
 static bool init_state(NumberState *self, const char *prompt,
@@ -46,11 +57,13 @@ static ScRendered *number_render(void *state);
     static ScRendered *number_body_boxed(NumberState *self);
         static void range_str(const NumberState *self, char *buf, size_t cap);
     static ScRendered *stack_calc_error(NumberState *self, ScRendered *body);
+    static ScRendered *stack_calc_warning(NumberState *self, ScRendered *body);
     static const char *number_hint(const NumberState *self);
 static void number_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static bool number_filter_char(NumberState *self, ScKey *key);
         static bool is_calc_char(uint32_t codepoint);
     static void calc_on_enter(NumberState *self);
+    static void note_pending_discard(NumberState *self);
     static double parse_value(const NumberState *self);
         static void normalized_value(const NumberState *self, char *buf,
                                      size_t cap);
@@ -59,14 +72,18 @@ static void number_on_key(void *state, ScKey key, bool *done, bool *cancel);
         static void format_value(const NumberState *self, double value,
                                  char *buf, size_t cap);
             static char number_sep(const NumberState *self);
+            static void apply_decimal_sep(const NumberState *self, char *buf);
 
 /* Calculator helpers */
 static bool in_calc_mode(const NumberState *self);
 static bool calc_eval_current(const NumberState *self, double *result);
+static bool calc_pending_differs(const NumberState *self);
 static void calc_display_value(const NumberState *self, double value,
                                char *buf, size_t cap);
+static void calc_pending_str(const NumberState *self, char *buf, size_t cap);
 static void calc_preview_str(const NumberState *self, char *buf, size_t cap);
 static ScTextStyle resolve_error_style(const NumberState *self);
+static ScTextStyle resolve_warn_style(const NumberState *self);
 
 
 ScInputStatus sc_number_input(const char *prompt, double *out,
@@ -124,7 +141,9 @@ ScRendered *sc_number_frame_calc(const char *prompt, ScNumberCalcFrame frame,
         return NULL;
     }
     state.calc_accepted = frame.accepted;
+    state.calc_value = frame.value;
     state.calc_error = frame.error;
+    state.calc_discarded = frame.discarded;
 
     ScRendered *rendered = number_render(&state);
     sc_le_free(&state.ed);
@@ -141,6 +160,7 @@ static bool init_state(NumberState *self, const char *prompt,
     self->calc_accepted = false;
     self->calc_value = 0;
     self->calc_error = false;
+    self->calc_discarded = false;
     char buf[64] = "";
     if (!opts.start_empty) {
         format_value(self, clamp(self, value), buf, sizeof buf);
@@ -198,6 +218,7 @@ static ScRendered *number_render(void *state) {
     ScRendered *body = self->opts.boxed ? number_body_boxed(self)
                                         : number_body_inline(self);
     body = stack_calc_error(self, body);
+    body = stack_calc_warning(self, body);
     return sc_compose_hint(body, number_hint(self), self->opts.hint_layout,
                            self->opts.hint_pos, self->opts.hint_style);
 }
@@ -235,6 +256,14 @@ static ScRendered *number_body_inline(NumberState *self) {
         sc_text_append(text, preview, dim_style);
     }
 
+    // Pending-result indicator: " = 0,3333333333" while the accepted
+    // full-precision result (not the rounded display) would be submitted.
+    if (calc_pending_differs(self)) {
+        char pending[96];
+        calc_pending_str(self, pending, sizeof pending);
+        sc_text_append(text, pending, dim_style);
+    }
+
     char range[80];
     range_str(self, range, sizeof range);
     if (range[0]) {
@@ -269,6 +298,13 @@ static ScRendered *number_body_boxed(NumberState *self) {
         char preview[96];
         calc_preview_str(self, preview, sizeof preview);
         sc_text_append(inner, preview, placeholder_style);
+    }
+
+    // Pending-result indicator inside the panel (see number_body_inline).
+    if (calc_pending_differs(self)) {
+        char pending[96];
+        calc_pending_str(self, pending, sizeof pending);
+        sc_text_append(inner, pending, placeholder_style);
     }
 
     char range[80];
@@ -345,6 +381,29 @@ static ScRendered *stack_calc_error(NumberState *self, ScRendered *body) {
     return sc_stack_below(body, error_rendered);
 }
 
+/**
+ * Stacks the warning line beneath the body after an edit discarded a pending
+ * full-precision result that differed from the display: from then on the
+ * displayed value is what gets submitted. Hidden while a new expression is
+ * being typed; cleared on the next accepted result.
+ */
+static ScRendered *stack_calc_warning(NumberState *self, ScRendered *body) {
+    if (!self->calc_discarded || in_calc_mode(self)) {
+        return body;
+    }
+    ScText *warn_text = sc_text_new();
+    if (!warn_text) {
+        return body;
+    }
+    const char *message = self->opts.calc_warn_text
+        ? self->opts.calc_warn_text : CALC_DISCARDED_TEXT;
+    sc_text_append(warn_text, "  ", (ScTextStyle){ 0 });
+    sc_text_append(warn_text, message, resolve_warn_style(self));
+    ScRendered *warn_rendered = sc_capture_text(warn_text);
+    sc_text_free(warn_text);
+    return sc_stack_below(body, warn_rendered);
+}
+
 /** Resolves the footer hint for the current mode. */
 static const char *number_hint(const NumberState *self) {
     if (self->opts.hint) {
@@ -369,6 +428,7 @@ static void number_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             if (in_calc_mode(self)) {
                 return;   // no stepping inside an expression
             }
+            note_pending_discard(self);
             set_value(self, clamp(self, parse_value(self) + step));
             self->calc_accepted = false;   // stepping replaces a calc result
             return;
@@ -376,6 +436,7 @@ static void number_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             if (in_calc_mode(self)) {
                 return;
             }
+            note_pending_discard(self);
             set_value(self, clamp(self, parse_value(self) - step));
             self->calc_accepted = false;
             return;
@@ -402,9 +463,14 @@ static void number_on_key(void *state, ScKey key, bool *done, bool *cancel) {
 
     // Editing keys reshape the buffer: any length change discards a pending
     // calculator result and clears the error (the text is the value again).
+    // Precision loss is checked before the edit, against the accepted display.
+    bool pending_differed = calc_pending_differs(self);
     size_t len_before = self->ed.len;
     sc_le_handle(&self->ed, key);
     if (self->ed.len != len_before) {
+        if (pending_differed) {
+            self->calc_discarded = true;
+        }
         self->calc_accepted = false;
         self->calc_error = false;
     }
@@ -459,6 +525,7 @@ static void calc_on_enter(NumberState *self) {
     double clamped = clamp(self, result);
     self->calc_value = clamped;
     self->calc_error = false;
+    self->calc_discarded = false;   // a fresh exact value is pending again
 
     char buf[64];
     calc_display_value(self, clamped, buf, sizeof buf);
@@ -467,6 +534,14 @@ static void calc_on_enter(NumberState *self) {
     // The buffer no longer starts with '=', so the next Enter takes the
     // normal submit path while `calc_accepted` marks the pending value.
     self->calc_accepted = self->ed.buf != NULL;
+}
+
+/** Raises the discard warning when the pending full-precision result differs
+    from the displayed value (call before the buffer is rewritten). */
+static void note_pending_discard(NumberState *self) {
+    if (calc_pending_differs(self)) {
+        self->calc_discarded = true;
+    }
 }
 
 /** Parses the editor content into a double, separator-normalized. */
@@ -512,17 +587,23 @@ static void set_value(NumberState *self, double value) {
 static void format_value(const NumberState *self, double value, char *buf,
                          size_t cap) {
     snprintf(buf, cap, "%.*f", self->opts.decimals, value);
-    if (number_sep(self) != '.') {
-        char *dot = strchr(buf, '.');
-        if (dot) {
-            *dot = number_sep(self);
-        }
-    }
+    apply_decimal_sep(self, buf);
 }
 
 /** Returns the configured decimal separator, resolving `0` to '.'. */
 static char number_sep(const NumberState *self) {
     return self->opts.decimal_sep == ',' ? ',' : '.';
+}
+
+/** Rewrites the first '.' in `buf` to the configured decimal separator. */
+static void apply_decimal_sep(const NumberState *self, char *buf) {
+    if (number_sep(self) == '.') {
+        return;
+    }
+    char *dot = strchr(buf, '.');
+    if (dot) {
+        *dot = number_sep(self);
+    }
 }
 
 
@@ -541,6 +622,18 @@ static bool calc_eval_current(const NumberState *self, double *result) {
 }
 
 /**
+ * True when the pending full-precision result would submit a different value
+ * than the displayed text - i.e. discarding it loses precision. Always false
+ * with `calc_store_rounded` (the display is the value there).
+ */
+static bool calc_pending_differs(const NumberState *self) {
+    if (!self->calc_accepted || self->opts.calc_store_rounded) {
+        return false;
+    }
+    return clamp(self, parse_value(self)) != self->calc_value;
+}
+
+/**
  * Formats a calculator result for display: rounded to `decimals` (default)
  * or full precision (`calc_show_precise`), with the configured separator.
  */
@@ -551,12 +644,17 @@ static void calc_display_value(const NumberState *self, double value,
         return;
     }
     snprintf(buf, cap, CALC_PRECISE_FORMAT, value);
-    if (number_sep(self) != '.') {
-        char *dot = strchr(buf, '.');
-        if (dot) {
-            *dot = number_sep(self);
-        }
-    }
+    apply_decimal_sep(self, buf);
+}
+
+/** Writes the pending-result indicator: " = <value>" with the pending value
+    at indicator precision and the configured separator. */
+static void calc_pending_str(const NumberState *self, char *buf, size_t cap) {
+    char value_str[64];
+    snprintf(value_str, sizeof value_str, CALC_PENDING_FORMAT,
+             self->calc_value);
+    apply_decimal_sep(self, value_str);
+    snprintf(buf, cap, " = %s", value_str);
 }
 
 /** Writes the live preview: " = <result>" or " = ?" when invalid. The raw
@@ -578,5 +676,14 @@ static ScTextStyle resolve_error_style(const NumberState *self) {
         return self->opts.error_style;
     }
     return (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,
+                          SC_ANSI_COLOR_NONE };
+}
+
+/** Discard-warning style; zero-init = yellow. */
+static ScTextStyle resolve_warn_style(const NumberState *self) {
+    if (sc_style_set(self->opts.calc_warn_style)) {
+        return self->opts.calc_warn_style;
+    }
+    return (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_YELLOW,
                           SC_ANSI_COLOR_NONE };
 }

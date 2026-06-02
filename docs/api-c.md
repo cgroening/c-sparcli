@@ -1205,6 +1205,7 @@ Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to 
 | `calculator` | Enable calculator mode: `=` starts an arithmetic expression (see below) |
 | `calc_store_rounded` / `calc_show_precise` | Calculator precision flags (see below) |
 | `error_style` | Style of the invalid-expression error line; zero-init = red |
+| `calc_warn_text` / `calc_warn_style` | Text and style of the discarded-result warning (see below); `NULL` text = built-in English default, zero-init style = yellow |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ```c
@@ -1226,6 +1227,8 @@ With `calculator = true`, typing `=` as the **first character** switches the fie
 - **Enter** again: submits. By default `*out` / `*out_text` carry the **full-precision** result (a deliberate exception to "displayed text == submitted value"; `*out` and `*out_text` still agree, formatted as round-trip-exact `%.17g`).
 - Editing the accepted value (typing, Backspace, ↑/↓) discards the pending exact result – the edited text becomes the value, as usual.
 - Backspacing the leading `=` away exits calculator mode.
+
+**Pending indicator and discard warning:** while the accepted full-precision result differs from the rounded display (e.g. `=1/3` → field shows `0,33`, exact value `0.333…` pending), a dim ` = 0,3333333333` indicator is shown next to the field – as long as it is visible, the exact result is what gets submitted. Editing the field then discards that pending result; when this actually loses precision, a warning line (yellow by default) appears below the field: *"exact result discarded - the displayed value will be submitted"*. The warning stays until submit or until a new expression is accepted; it never appears when nothing is lost (e.g. `=1/2` → `0,50` is exact) or with `calc_store_rounded` (the display is the value there anyway). Override the text with `calc_warn_text` (e.g. for localized UIs) and the style with `calc_warn_style`.
 
 Expression syntax (see `sc_calc_eval`): `+ - * /`, parentheses, a single unary minus per operand (`2*-3` works, `1++2` and `--3` are typos and rejected), numbers with `.` or `,` as decimal separator, whitespace ignored. Division by zero and overflow are invalid.
 

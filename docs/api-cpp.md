@@ -309,7 +309,9 @@ if (auto qty  = number_input("Qty", { .min = 0, .max = 100, .step = 5 })) { }
 if (auto date = datepicker({}, { .prompt = "Pick a date" })) { /* std::tm */ }
 
 // Calculator mode: "=" starts an expression (=1,5+2*3); Enter accepts the
-// result, a second Enter submits it (full precision by default).
+// result, a second Enter submits it (full precision by default). A dim
+// " = <exact>" indicator marks a pending full-precision result; editing it
+// away raises a yellow warning (text/style: .calc_warn_text/.calc_warn_style).
 if (auto total = number_input_text("Total", { .start_empty = true,
         .decimals = 2, .calculator = true })) { /* "38.97" */ }
 if (auto v = calc_eval("1,5+2*3")) { /* *v == 7.5 – pure, no TTY */ }

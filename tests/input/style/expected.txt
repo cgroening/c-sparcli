@@ -257,6 +257,26 @@
   Amount[0m [0m5[0m.[0m0[0m0[0m[30m[47m [0m
   [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
 
+[2mcalculator: accepted result, exact value pending (indicator)[0m
+  Amount[0m [0m3[0m,[0m3[0m3[0m[30m[47m [0m[2m = 3,333333333[0m
+  [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
+
+[2mcalculator: warning after editing discarded the exact result[0m
+  Amount[0m [0m3[0m,[0m3[0m4[0m[30m[47m [0m
+    [0m[33mexact result discarded - the displayed value will be submitted[0m
+  [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
+
+[2mcalculator: custom warning text and style[0m
+  Amount[0m [0m3[0m,[0m3[0m4[0m[30m[47m [0m
+    [0m[1m[35medited: display value will be stored[0m
+  [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
+
+[2mcalculator: boxed, pending indicator inside the panel[0m
+  ╭[0m─[0m [0mAmount[0m [0m─────────────────────────────[0m╮[0m
+  │[0m 3[0m,[0m3[0m3[0m[30m[47m [0m[2m = 3,333333333[0m                  │[0m
+  ╰[0m──────────────────────────────────────[0m╯[0m
+  [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════════ [1mTextarea[0m ═══════════════════════════════════

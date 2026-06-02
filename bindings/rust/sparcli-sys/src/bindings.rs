@@ -2555,7 +2555,7 @@ pub struct ScNumberOpts {
     pub decimal_sep: ::std::os::raw::c_char,
     #[doc = " Optional: on `SC_INPUT_OK` receives a heap copy of the submitted value\n as text - exact, never round-tripped through `double`. Always uses\n `'.'` as decimal separator (machine-readable, e.g. for arbitrary-\n precision decimal types) and reflects clamping to `[min, max]`.\n Caller frees with `free()`. `NULL` = not requested."]
     pub out_text: *mut *mut ::std::os::raw::c_char,
-    #[doc = " Enable calculator mode: typing `=` as the first character starts an\n arithmetic expression (e.g. `=1,5+2*3`; see `sc_calc_eval` for the\n syntax). A dim live preview shows the result while typing; Enter\n replaces the expression with the result (still editable), a second\n Enter submits it. An invalid expression shows an error line and\n keeps the prompt open.\n\n Precision: the field displays the result rounded to `decimals`, but\n the submitted value (`*out` / `out_text`) keeps the full-precision\n result - a deliberate exception to the \"displayed text == submitted\n value\" rule (`*out` and `*out_text` still always agree). See\n `calc_store_rounded` / `calc_show_precise` to change this."]
+    #[doc = " Enable calculator mode: typing `=` as the first character starts an\n arithmetic expression (e.g. `=1,5+2*3`; see `sc_calc_eval` for the\n syntax). A dim live preview shows the result while typing; Enter\n replaces the expression with the result (still editable), a second\n Enter submits it. An invalid expression shows an error line and\n keeps the prompt open.\n\n Precision: the field displays the result rounded to `decimals`, but\n the submitted value (`*out` / `out_text`) keeps the full-precision\n result - a deliberate exception to the \"displayed text == submitted\n value\" rule (`*out` and `*out_text` still always agree). See\n `calc_store_rounded` / `calc_show_precise` to change this.\n\n While a full-precision result is pending and differs from the rounded\n display, a dim ` = <value>` indicator is shown next to the field.\n Editing the field discards the pending result; when that loses\n precision, a warning line appears (see `calc_warn_text` /\n `calc_warn_style`) - from then on the displayed text is what gets\n submitted, exactly like a typed number."]
     pub calculator: bool,
     #[doc = " Submit the displayed value instead of the full-precision result.\n With the default rounded display this stores the value rounded to\n `decimals`, restoring \"displayed == submitted\"."]
     pub calc_store_rounded: bool,
@@ -2563,10 +2563,14 @@ pub struct ScNumberOpts {
     pub calc_show_precise: bool,
     #[doc = " Style of the invalid-expression error line; zero-init = red."]
     pub error_style: ScTextStyle,
+    #[doc = " Text of the warning shown when an edit discards a pending full-\n precision calculator result that differs from the displayed value\n (precision is actually lost): from then on the displayed text is\n what gets submitted. `NULL` = built-in English default."]
+    pub calc_warn_text: *const ::std::os::raw::c_char,
+    #[doc = " Style of the discarded-result warning line; zero-init = yellow."]
+    pub calc_warn_style: ScTextStyle,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 264usize];
+    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 296usize];
     ["Alignment of ScNumberOpts"][::std::mem::align_of::<ScNumberOpts>() - 8usize];
     ["Offset of field: ScNumberOpts::initial"]
         [::std::mem::offset_of!(ScNumberOpts, initial) - 0usize];
@@ -2622,6 +2626,10 @@ const _: () = {
         [::std::mem::offset_of!(ScNumberOpts, calc_show_precise) - 242usize];
     ["Offset of field: ScNumberOpts::error_style"]
         [::std::mem::offset_of!(ScNumberOpts, error_style) - 244usize];
+    ["Offset of field: ScNumberOpts::calc_warn_text"]
+        [::std::mem::offset_of!(ScNumberOpts, calc_warn_text) - 264usize];
+    ["Offset of field: ScNumberOpts::calc_warn_style"]
+        [::std::mem::offset_of!(ScNumberOpts, calc_warn_style) - 272usize];
 };
 extern "C" {
     #[doc = " Prompts for a number.\n\n Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;\n Enter submits; Esc or Ctrl-C cancels. Enter on an empty field is ignored\n (clear the field with Ctrl-U, then Enter does nothing until a value is\n typed). On `SC_INPUT_OK`, `*out` receives the parsed value, clamped to\n `[min, max]` when bounded; when `opts.out_text` is set it additionally\n receives the exact value as a heap string (see `ScNumberOpts.out_text`).\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]

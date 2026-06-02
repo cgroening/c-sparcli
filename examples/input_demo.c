@@ -146,11 +146,13 @@ static void demo_number(void) {
 
     /* Calculator mode: type "=" then an expression like =1,5+2*3; Enter
      * shows the result in the field, a second Enter submits it. The field
-     * displays the rounded value, the submitted value keeps full precision. */
+     * displays the rounded value, the submitted value keeps full precision.
+     * Try "=1/3": a dim " = 0,3333333333" indicator marks the pending exact
+     * result; editing the field discards it and raises a yellow warning. */
     double amount = 0;
     char *exact = NULL;
     st = sc_number_input(
-        "Amount (try =1,5+2*3)", &amount,
+        "Amount (try =1/3)", &amount,
         (ScNumberOpts){ .decimals = 2, .decimal_sep = ',', .start_empty = true,
                         .calculator = true, .out_text = &exact }
     );

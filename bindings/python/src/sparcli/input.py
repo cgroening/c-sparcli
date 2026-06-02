@@ -291,6 +291,13 @@ class NumberOpts:
     calc_show_precise: bool = False
     #: Style of the invalid-expression error line; default red.
     error_style: Style = field(default_factory=Style)
+    #: Warning text shown when an edit discards a pending full-precision
+    #: calculator result that differs from the display (from then on the
+    #: displayed value is what gets submitted); ``None`` = built-in English
+    #: default.
+    calc_warn_text: str | None = None
+    #: Style of the discarded-result warning line; default yellow.
+    calc_warn_style: Style = field(default_factory=Style)
 
     def _fill(self, c, arena: list) -> None:
         c.initial = self.initial
@@ -316,6 +323,8 @@ class NumberOpts:
         c.calc_store_rounded = self.calc_store_rounded
         c.calc_show_precise = self.calc_show_precise
         apply_style(c.error_style, self.error_style)
+        c.calc_warn_text = cstr(arena, self.calc_warn_text)
+        apply_style(c.calc_warn_style, self.calc_warn_style)
 
 
 def calc_eval(expr: str) -> float | None:

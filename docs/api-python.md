@@ -188,9 +188,12 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 `NumberOpts(calculator=True)` lets the user type `=` followed by an arithmetic expression (`=1,5+2*3`): a live preview shows the result, Enter accepts it into the field, a second Enter submits. By default the field displays the result rounded to `decimals` while the submitted value (and `decimal_input`'s `Decimal`) keeps full precision; `calc_store_rounded=True` submits the displayed value instead, `calc_show_precise=True` also displays full precision.
 
+While the pending full-precision result differs from the rounded display (e.g. `=1/3` → field shows `0,33`), a dim ` = 0,3333333333` indicator marks it. Editing the field discards the pending result; when that loses precision, a yellow warning line appears – from then on the displayed value is what gets submitted. Localize it with `calc_warn_text=...` and restyle it with `calc_warn_style=...`.
+
 ```python
 amount = sc.decimal_input("Amount", sc.NumberOpts(
-    decimals=2, decimal_sep=",", start_empty=True, calculator=True))
+    decimals=2, decimal_sep=",", start_empty=True, calculator=True,
+    calc_warn_text="Exaktes Ergebnis verworfen - Anzeigewert wird gespeichert"))
 # user types "=12,99*3" → Enter → Enter → Decimal("38.97")
 
 sc.calc_eval("1,5+2*3")   # 7.5 – the pure evaluator, no TTY needed

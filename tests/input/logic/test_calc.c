@@ -39,17 +39,20 @@ static void check_eval_basics(void);
 static void check_eval_separators(void);
 static void check_eval_errors(void);
 static void check_preview_frames(void);
+static void check_pending_frames(void);
 
 
 /**
  * Non-interactive: the pure expression evaluator (`sc_calc_eval`) and the
- * calculator-mode rendering (live preview, error line) via snapshot frames.
+ * calculator-mode rendering (live preview, error line, pending indicator,
+ * discard warning) via snapshot frames.
  */
 void test_calc(void) {
     check_eval_basics();
     check_eval_separators();
     check_eval_errors();
     check_preview_frames();
+    check_pending_frames();
 }
 
 /** Operator precedence, parentheses, unary signs, whitespace. */
@@ -170,4 +173,86 @@ static void check_preview_frames(void) {
     CHECK(frame_contains(normal, "= calc"),
           "frame: enabled calculator advertises '= calc' in the hint");
     sc_rendered_free(normal);
+}
+
+/** Pending-result indicator and discard warning frames. */
+static void check_pending_frames(void) {
+    ScNumberOpts opts = { .decimals = 2, .decimal_sep = ',' };
+
+    // Accepted result whose exact value differs from the rounded display:
+    // the dim " = <exact>" indicator is shown next to the field.
+    ScRendered *pending = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){
+            .expr = "3,33", .accepted = true, .value = 10.0 / 3.0 }, opts);
+    CHECK(frame_contains(pending, "3,33"),
+          "frame: the rounded display stays visible");
+    CHECK(frame_contains(pending, "= 3,333333333"),
+          "frame: pending exact value is indicated next to the display");
+    sc_rendered_free(pending);
+
+    // Accepted result that the display represents exactly: no indicator.
+    ScRendered *exact = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){
+            .expr = "0,50", .accepted = true, .value = 0.5 }, opts);
+    CHECK(!frame_contains(exact, "= 0,5"),
+          "frame: no indicator when display and exact value agree");
+    sc_rendered_free(exact);
+
+    // calc_store_rounded submits the display, so nothing is pending.
+    ScNumberOpts rounded_opts = {
+        .decimals = 2, .decimal_sep = ',', .calc_store_rounded = true,
+    };
+    ScRendered *rounded = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){
+            .expr = "3,33", .accepted = true, .value = 10.0 / 3.0 },
+        rounded_opts);
+    CHECK(!frame_contains(rounded, "= 3,333333333"),
+          "frame: calc_store_rounded never shows the pending indicator");
+    sc_rendered_free(rounded);
+
+    // Editing discarded the exact result: the warning line is shown.
+    ScRendered *discarded = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){ .expr = "3,34", .discarded = true }, opts);
+    CHECK(frame_contains(discarded, "exact result discarded"),
+          "frame: discard warning shows the default text");
+    sc_rendered_free(discarded);
+
+    // The warning text is replaceable (e.g. for localized UIs).
+    ScNumberOpts warn_opts = {
+        .decimals = 2, .decimal_sep = ',',
+        .calc_warn_text = "Anzeigewert wird gespeichert",
+    };
+    ScRendered *custom = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){ .expr = "3,34", .discarded = true }, warn_opts);
+    CHECK(frame_contains(custom, "Anzeigewert wird gespeichert"),
+          "frame: calc_warn_text replaces the warning text");
+    CHECK(!frame_contains(custom, "exact result discarded"),
+          "frame: the default warning text is gone with calc_warn_text");
+    sc_rendered_free(custom);
+
+    // Typing a new expression hides the (stale) warning.
+    ScRendered *retyping = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){ .expr = "=1/3", .discarded = true }, opts);
+    CHECK(!frame_contains(retyping, "exact result discarded"),
+          "frame: warning is hidden while a new expression is typed");
+    sc_rendered_free(retyping);
+
+    // Boxed mode: the indicator renders inside the panel.
+    ScNumberOpts boxed_opts = {
+        .decimals = 2, .decimal_sep = ',', .boxed = true, .width = 40,
+    };
+    ScRendered *boxed_pending = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){
+            .expr = "3,33", .accepted = true, .value = 10.0 / 3.0 },
+        boxed_opts);
+    CHECK(frame_contains(boxed_pending, "= 3,333333333"),
+          "frame: boxed mode shows the pending indicator inside the panel");
+    sc_rendered_free(boxed_pending);
+
+    // Boxed mode: the warning stacks below the panel.
+    ScRendered *boxed_discarded = sc_number_frame_calc("Amount",
+        (ScNumberCalcFrame){ .expr = "3,34", .discarded = true }, boxed_opts);
+    CHECK(frame_contains(boxed_discarded, "exact result discarded"),
+          "frame: boxed mode stacks the warning below the panel");
+    sc_rendered_free(boxed_discarded);
 }
