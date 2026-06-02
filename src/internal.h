@@ -279,6 +279,12 @@ static inline void *sc_dynarray_grow(
 ) {
     size_t new_capacity = *capacity_in_out == 0
         ? initial_capacity : *capacity_in_out * 2;
+    // Guard the size multiplication: realloc cannot check it the way
+    // calloc does, and an overflowed (tiny) allocation would corrupt
+    // memory on the next element write.
+    if (element_size != 0 && new_capacity > SIZE_MAX / element_size) {
+        return NULL;
+    }
     void *tmp = realloc(array, new_capacity * element_size);
     if (!tmp) { return NULL; }
     *capacity_in_out = new_capacity;

@@ -11,9 +11,12 @@
  *
  * `NULL` or `"-"` reads from stdin instead of a file.
  *
+ * Input larger than 64 MiB is rejected (returns `NULL`), so untrusted
+ * data cannot exhaust memory.
+ *
  * @param path  File path, `"-"`, or `NULL` for stdin.
  * @return      Heap buffer (caller frees), or `NULL` on open/read/alloc
- *              failure.
+ *              failure or oversized input.
  */
 char *sc_cli_read_source(const char *path);
 

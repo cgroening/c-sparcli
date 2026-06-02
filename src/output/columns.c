@@ -488,7 +488,7 @@ void sc_columns_add_rendered(
     copy->line_count = rendered->line_count;
     copy->max_column_width = rendered->max_column_width;
     copy->lines = calloc(rendered->line_count, sizeof(char *));
-    copy->column_widths = malloc(rendered->line_count * sizeof(int));
+    copy->column_widths = calloc(rendered->line_count, sizeof(int));
     if ((rendered->line_count && !copy->lines) || !copy->column_widths) {
         sc_rendered_free(copy);   // calloc'd lines are NULL → safe to free
         return;

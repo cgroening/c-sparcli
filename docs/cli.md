@@ -99,6 +99,8 @@ Output commands take their content from (in order of precedence):
 2. a `FILE` argument (`table`, `tree`, `kv`) – `-` means stdin,
 3. stdin, when neither is given.
 
+File and stdin input is capped at **64 MiB**; larger input is rejected with an error so untrusted data cannot exhaust memory.
+
 ### Edge values (padding/margin)
 
 `EDGES` values accept three forms: `N` (all four sides), `V,H` (top/bottom, left/right) or `T,R,B,L` (CSS order).

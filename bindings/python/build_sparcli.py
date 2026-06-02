@@ -820,7 +820,8 @@ ffibuilder.set_source(
     """,
     sources=[f"{_SRC}/{s}" for s in _SOURCES],
     include_dirs=[_INCLUDE, _SRC],
-    extra_compile_args=["-std=c11"],
+    # Stack canaries for the embedded C code (matches the Makefile hardening).
+    extra_compile_args=['-std=c11', '-fstack-protector-strong'],
 )
 
 

@@ -58,6 +58,9 @@ fn main() {
 
     let mut build = cc::Build::new();
     build.std("c11").include(&include).include(&src).warnings(false);
+    // Stack canaries for the embedded C code (matches the Makefile
+    // hardening; skipped silently where unsupported).
+    build.flag_if_supported("-fstack-protector-strong");
     for s in SOURCES {
         let p = root.join(s);
         println!("cargo:rerun-if-changed={}", p.display());

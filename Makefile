@@ -4,9 +4,15 @@ AR      = ar
 # EXTRA_CFLAGS is an overridable hook for extra flags (e.g. CI uses
 # `make EXTRA_CFLAGS=-Werror` to treat warnings as errors). It is applied to
 # both the C and the C++ (wrapper) builds.
-CFLAGS  = -std=c11 -Wall -Wextra -fPIC -Iinclude -Isrc $(EXTRA_CFLAGS)
-CXXFLAGS = -std=c++20 -Wall -Wextra -Iinclude $(EXTRA_CFLAGS)
-LDFLAGS =
+# Binary hardening (stack canaries + fortified libc calls). _FORTIFY_SOURCE
+# needs optimization; the sanitizer builds undefine it again because fortified
+# functions bypass the ASan/TSan interceptors.
+HARDEN_CFLAGS = -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2
+
+CFLAGS  = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 -Wnull-dereference \
+          -Wcast-align -fPIC $(HARDEN_CFLAGS) -Iinclude -Isrc $(EXTRA_CFLAGS)
+CXXFLAGS = -std=c++20 -Wall -Wextra $(HARDEN_CFLAGS) -Iinclude $(EXTRA_CFLAGS)
+LDFLAGS = $(HARDEN_LDFLAGS)
 
 # Version. Keep in sync with SPARCLI_VERSION_* in include/sparcli_export.h.
 VERSION_MAJOR := 0
@@ -35,6 +41,7 @@ ifeq ($(UNAME_S),Darwin)
                      -current_version $(VERSION)
     PTY_LDLIBS    :=             # forkpty lives in libSystem on macOS
     PTHREAD_LDLIBS :=            # pthreads in libSystem on macOS
+    HARDEN_LDFLAGS :=            # PIE is the default on macOS; RELRO is ELF-only
 else
     SHLIB         := libsparcli.so.$(VERSION)
     SHLIB_SONAME  := libsparcli.so.$(VERSION_MAJOR)
@@ -42,6 +49,7 @@ else
     SHLIB_LDFLAGS := -shared -Wl,-soname,$(SHLIB_SONAME)
     PTY_LDLIBS    := -lutil      # forkpty
     PTHREAD_LDLIBS := -lpthread
+    HARDEN_LDFLAGS := -Wl,-z,relro,-z,now -Wl,-z,noexecstack
 endif
 
 # ── Core (foundation: color, text, print, output stream, render) ──────────
@@ -86,7 +94,8 @@ CLI_SRC          = cli/main.c cli/cli_common.c cli/cli_parse.c \
 CLI_OBJ          = $(patsubst cli/%.c,$(BUILDDIR)/cli/%.o,$(CLI_SRC))
 CLI_DEP          = $(CLI_OBJ:.o=.d)
 CLI_BIN          = sparcli
-CLI_CFLAGS       = -std=c11 -Wall -Wextra -Iinclude $(EXTRA_CFLAGS)
+CLI_CFLAGS       = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 \
+                   -Wnull-dereference -Wcast-align -Iinclude $(EXTRA_CFLAGS)
 CLI_SANITIZE_OBJ = $(patsubst cli/%.c,$(SANITIZE_BUILDDIR)/cli/%.o,$(CLI_SRC))
 CLI_SANITIZE_DEP = $(CLI_SANITIZE_OBJ:.o=.d)
 CLI_SANITIZE_BIN = sparcli-sanitize
@@ -99,7 +108,8 @@ SANITIZE_OBJ      = $(patsubst src/%.c,$(SANITIZE_BUILDDIR)/%.o,$(SRC))
 SANITIZE_DEP      = $(SANITIZE_OBJ:.o=.d)
 SANITIZE_LIB      = libsparcli-sanitize.a
 SANITIZE_TEST_BIN = tests/output/test_main_sanitize
-SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
+SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer \
+                    -g -O1 -U_FORTIFY_SOURCE
 
 # ThreadSanitizer build artefacts (TSan cannot be combined with ASan, so it
 # gets its own tree, .a and flags).
@@ -108,12 +118,13 @@ TSAN_OBJ      = $(patsubst src/%.c,$(TSAN_BUILDDIR)/%.o,$(SRC))
 TSAN_DEP      = $(TSAN_OBJ:.o=.d)
 TSAN_LIB      = libsparcli-tsan.a
 TSAN_TEST_BIN = tests/input/logic/test_input_main_tsan
-TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1
+TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1 \
+                -U_FORTIFY_SOURCE
 
 # Fuzz harnesses: portable random-input fuzzers built under ASan/UBSan (no
 # libFuzzer dependency; the harness entry points are libFuzzer-compatible).
 FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c \
-             tests/fuzz/fuzz_sanitize.c
+             tests/fuzz/fuzz_sanitize.c tests/fuzz/fuzz_csv.c
 FUZZ_BIN   = $(patsubst tests/fuzz/%.c,$(BUILDDIR)/fuzz/%,$(FUZZ_SRC))
 FUZZ_ITERS ?= 200000
 FUZZ_SEED  ?= 1
@@ -445,7 +456,7 @@ $(TSAN_BUILDDIR):
 	mkdir -p $(TSAN_BUILDDIR)
 
 # Random-input fuzzing of the external parsers (markup, key decoder, ANSI
-# sanitizer) under ASan/UBSan. Deterministic by default (FUZZ_SEED=1); override
+# sanitizer, CLI CSV parser) under ASan/UBSan. Deterministic by default (FUZZ_SEED=1); override
 # iterations/seed with `make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42`. The
 # harnesses also expose a libFuzzer-compatible LLVMFuzzerTestOneInput for
 # toolchains that ship libFuzzer (build with -DSPARCLI_LIBFUZZER
@@ -458,9 +469,12 @@ fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_key
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_sanitize.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_sanitize
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) -Icli tests/fuzz/fuzz_csv.c \
+	    cli/cli_csv.c $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_csv
 	./$(BUILDDIR)/fuzz/fuzz_markup $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_key $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_sanitize $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_csv $(FUZZ_ITERS) $(FUZZ_SEED)
 
 # Static analysis. Each tool is optional: the target degrades to an install
 # hint when a tool is missing, so it can run on any machine.

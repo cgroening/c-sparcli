@@ -121,7 +121,8 @@ void sc_fuzzy_add_row(ScFuzzy *self, const char *const *fields, size_t n) {
     if (self->count == self->cap) {
         return;   // grow failed (OOM): no slot, so don't write out of bounds
     }
-    char **row = malloc(n * sizeof *row);
+    // calloc: checks the count * size multiplication for overflow
+    char **row = calloc(n, sizeof *row);
     if (!row) {
         return;
     }
@@ -159,7 +160,7 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
     if (!self->query.buf) {
         return SC_INPUT_ERROR;
     }
-    self->matches = malloc(self->count * sizeof *self->matches);
+    self->matches = calloc(self->count, sizeof *self->matches);
     if (!self->matches) {
         sc_le_free(&self->query);
         return SC_INPUT_ERROR;
@@ -235,7 +236,7 @@ ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
         return NULL;
     }
     sc_le_init(&self->query, query);
-    self->matches = malloc(self->count * sizeof *self->matches);
+    self->matches = calloc(self->count, sizeof *self->matches);
     if (!self->query.buf || !self->matches) {
         sc_le_free(&self->query);
         free(self->matches);

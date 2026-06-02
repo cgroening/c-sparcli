@@ -214,7 +214,7 @@ make lint
 
 ### `make fuzz` – random-input fuzzing of the parsers (ASan/UBSan)
 
-Feeds the three external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`) and the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer).
+Feeds the four external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`), the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`) and the CLI's CSV parser (`sc_cli_csv_parse`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer).
 
 ```sh
 make fuzz                              # 200k inputs per parser, seed 1

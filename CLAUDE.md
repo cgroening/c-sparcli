@@ -33,9 +33,9 @@ make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
                   # thread-safety invariant; own build tree)
 make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
                   # tools optional, prints install hints when missing)
-make fuzz         # random-input fuzzing of the markup parser, key decoder
-                  # + ANSI sanitizer under ASan/UBSan (FUZZ_ITERS / FUZZ_SEED
-                  # overridable)
+make fuzz         # random-input fuzzing of the markup parser, key decoder,
+                  # ANSI sanitizer + CLI CSV parser under ASan/UBSan
+                  # (FUZZ_ITERS / FUZZ_SEED overridable)
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples / run-example EX=<name>   # build all / build+run one examples/*.c
 make rust / rust-test     # build / test the safe Rust crate (bindings/rust/)
@@ -47,7 +47,7 @@ make rebuild-all          # C lib + install + Rust + Python in one command
 make clean        # removes build trees, .a, shared libs, test binaries
 ```
 
-Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`. The build tracks header dependencies (`-MMD -MP`), so editing a header rebuilds dependents without `make clean`. Golden-file tests (`*-check`) diff rendered output against committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
+Compiler: `cc -std=c11 -Wall -Wextra -Wshadow -Wformat=2 -Wnull-dereference -Wcast-align` plus hardening flags (`-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2`; RELRO/noexecstack linker flags on Linux). Sanitizer builds undefine `_FORTIFY_SOURCE` (it bypasses their interceptors). The build tracks header dependencies (`-MMD -MP`), so editing a header rebuilds dependents without `make clean`. Golden-file tests (`*-check`) diff rendered output against committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
 
 Besides the C library, sparcli ships a header-only **C++ wrapper** (`include/sparcli.hpp`), a safe **Rust** crate (`bindings/rust/`), a Pythonic **Python** package (`bindings/python/`, cffi API-mode) and a **command-line tool** (`cli/`, see below). The Rust and Python wrappers compile the C sources themselves, so they need no prior `make`/install. After changing the C API, rebuild each consumer you use (and update the Python `cdef` / regenerate the Rust bindgen output for new/changed symbols) – see the "Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the per-language references `docs/api-{cpp,rust,python}.md`.
 

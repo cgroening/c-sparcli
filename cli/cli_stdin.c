@@ -11,6 +11,13 @@
 
 enum { SC_CLI_READ_CHUNK = 4096 };
 
+/**
+ * Upper bound for file/stdin input (64 MiB). Rendering terminal output from
+ * larger inputs is never useful, and the cap keeps untrusted input from
+ * exhausting memory (the whole source is held in one buffer).
+ */
+enum { SC_CLI_MAX_INPUT_BYTES = 64 * 1024 * 1024 };
+
 static char *read_all(FILE *stream);
 
 char *sc_cli_read_source(const char *path) {
@@ -83,6 +90,10 @@ static char *read_all(FILE *stream) {
     }
 
     while (true) {
+        if (size + SC_CLI_READ_CHUNK > SC_CLI_MAX_INPUT_BYTES) {
+            free(buffer);   // oversized input: treat like a read failure
+            return NULL;
+        }
         if (size + SC_CLI_READ_CHUNK + 1 > capacity) {
             size_t new_capacity = capacity * 2;
             char  *grown        = realloc(buffer, new_capacity);

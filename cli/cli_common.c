@@ -125,13 +125,16 @@ static char *join_words(int argc, char **argv) {
         return NULL;
     }
 
-    joined[0] = '\0';
+    size_t position = 0;
     for (int i = 0; i < argc; i++) {
         if (i > 0) {
-            strcat(joined, " ");
+            joined[position++] = ' ';
         }
-        strcat(joined, argv[i]);
+        size_t length = strlen(argv[i]);
+        memcpy(joined + position, argv[i], length);
+        position += length;
     }
+    joined[position] = '\0';
     return joined;
 }
 

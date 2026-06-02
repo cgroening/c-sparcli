@@ -84,9 +84,10 @@ static char *make_temp(const char *initial, size_t *out_len) {
  */
 static int build_editor_argv(char *cmd, char **argv, const char *file) {
     int argc = 0;
-    for (char *tok = strtok(cmd, " \t");
+    char *save = NULL;
+    for (char *tok = strtok_r(cmd, " \t", &save);
          tok && argc < EDITOR_MAX_ARGS;
-         tok = strtok(NULL, " \t")) {
+         tok = strtok_r(NULL, " \t", &save)) {
         argv[argc++] = tok;
     }
     if (argc == 0) {

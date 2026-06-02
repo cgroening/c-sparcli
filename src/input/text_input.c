@@ -439,12 +439,20 @@ static const char *text_default_hint(const TextState *self) {
 static void counter_str(char *buf, size_t cap, const TextState *self,
                         bool parens) {
     size_t count = cp_count(self->ed.buf);
-    const char *fmt_count = parens ? "(%zu)" : "%zu";
-    const char *fmt_max = parens ? "(%zu/%d)" : "%zu/%d";
+    // Literal format strings per branch so the compiler can verify them
+    // (-Wformat-nonliteral).
     if (self->max_chars > 0) {
-        snprintf(buf, cap, fmt_max, count, self->max_chars);
+        if (parens) {
+            snprintf(buf, cap, "(%zu/%d)", count, self->max_chars);
+        } else {
+            snprintf(buf, cap, "%zu/%d", count, self->max_chars);
+        }
+        return;
+    }
+    if (parens) {
+        snprintf(buf, cap, "(%zu)", count);
     } else {
-        snprintf(buf, cap, fmt_count, count);
+        snprintf(buf, cap, "%zu", count);
     }
 }
 
