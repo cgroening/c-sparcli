@@ -161,6 +161,27 @@ static void check_widths(void) {
     size_t kept_bytes = sc_utf8_trim_to_cols(long_colored, 3);
     CHECK(kept_bytes == strlen("\033[31m") + 3,
           "width: trim keeps the full leading escape sequence + 3 columns");
+
+    // Truncated UTF-8 at the end of the string must never be walked past
+    // (regression: fuzz_args found an out-of-bounds read here)
+    const char *truncated_lead = "ab\xe2";          /* 3-byte lead, no tail */
+    CHECK(sc_utf8_trim_to_cols(truncated_lead, 10) == 3,
+          "width: trim stops at the NUL after a truncated UTF-8 lead byte");
+    CHECK(sc_utf8_string_length(truncated_lead, 3) == 3,
+          "width: length never counts past a truncated UTF-8 lead byte");
+
+    const char *truncated_four = "x\xf0\x9f";       /* 4-byte lead, 1 tail */
+    CHECK(sc_utf8_trim_to_cols(truncated_four, 10) == 3,
+          "width: trim is bounded for truncated 4-byte sequences");
+
+    // A panel rendering a wrapped truncated-UTF-8 string must not crash
+    ScRendered *rendered = sc_capture_panel_str(
+        "word \xe2\x82 another-very-long-word-that-wraps \xf0",
+        (ScPanelOpts){ .border.type = SC_BORDER_SINGLE, .width = 16 }
+    );
+    CHECK(rendered != NULL,
+          "width: word-wrap survives truncated UTF-8 in the content");
+    sc_rendered_free(rendered);
 }
 
 /**

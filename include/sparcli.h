@@ -31,3 +31,4 @@
 
 #include "app/sparcli_app.h"            // IWYU pragma: export
 #include "log/sparcli_log.h"            // IWYU pragma: export
+#include "args/sparcli_args.h"          // IWYU pragma: export

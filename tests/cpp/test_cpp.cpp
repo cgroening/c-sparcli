@@ -272,6 +272,49 @@ static void test_logger() {
     CHECK(logging::level() == SC_LOG_INFO, "log: reset restores INFO");
 }
 
+// Args must build a tree from C++ temporaries (copies), parse argv with
+// typed getters, and report help/error outcomes through status().
+static void test_args_parser() {
+    Args args(ArgsOpts{
+        .prog = "cpptool", .version = "2.0", .about = "C++ wrapper demo" });
+    ArgsCmd root = args.root();
+    root.flag("verbose", 'v', std::string("Verbose ") + "output");
+
+    ArgsCmd build = root.subcommand("build", "Build the project");
+    build.group("Work")
+        .opt("jobs", 'j', SC_ARG_INT, "N", "Parallel jobs")
+        .opt_default("jobs", "4")
+        .opt("mode", 'm', SC_ARG_STR, "MODE", "Build mode")
+        .opt_choices("mode", { "debug", "release" })
+        .positional("TARGET", SC_ARG_STR, "Build target", true, false);
+
+    const char* argv[] = { "cpptool", "-v", "build", "--mode", "release",
+                           "app" };
+    auto matched = args.parse(6, const_cast<char**>(argv));
+    CHECK(matched.has_value() && matched->name() == "build",
+          "args: parse returns the matched subcommand");
+    CHECK(args.status() == SC_ARGS_MATCHED && args.exit_code() == 0,
+          "args: successful parse reports MATCHED / exit 0");
+    CHECK(args.get_flag("verbose") && args.get_int("jobs") == 4
+              && args.get_enum("mode") == 1
+              && args.get_str("TARGET").value_or("") == "app",
+          "args: typed getters return the parsed values");
+
+    // --help is handled (status HANDLED, no match); capture the output
+    Args help_args(ArgsOpts{ .prog = "cpptool", .about = "demo" });
+    help_args.root().flag("flag", 'f', "A flag");
+    std::string help_text = render([&help_args] {
+        const char* help_argv[] = { "cpptool", "--help" };
+        auto result = help_args.parse(2, const_cast<char**>(help_argv));
+        CHECK(!result.has_value()
+                  && help_args.status() == SC_ARGS_HANDLED,
+              "args: --help reports HANDLED without a match");
+    });
+    CHECK(contains(help_text, "Usage: cpptool")
+              && contains(help_text, "--flag"),
+          "args: --help renders the usage screen");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -285,6 +328,7 @@ int main() {
     test_paths_and_pager();
     test_error_report();
     test_logger();
+    test_args_parser();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

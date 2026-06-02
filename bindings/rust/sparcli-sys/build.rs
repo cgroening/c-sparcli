@@ -51,6 +51,12 @@ const SOURCES: &[&str] = &[
     "src/app/paths.c",
     "src/app/error.c",
     "src/log/log.c",
+    "src/args/args.c",
+    "src/args/args_value.c",
+    "src/args/args_suggest.c",
+    "src/args/args_parse.c",
+    "src/args/args_help.c",
+    "src/args/args_complete.c",
 ];
 
 fn main() {

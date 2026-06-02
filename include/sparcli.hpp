@@ -1126,6 +1126,184 @@ inline void error(std::string_view msg) { log(SC_LOG_ERROR, msg); }
 
 }  // namespace logging
 
+// ── Argument parser ──────────────────────────────────────────────────────────
+// Declarative subcommands, typed options, auto --help, did-you-mean and zsh
+// completion. @see sparcli_args.h
+
+using ArgsOpts = ScArgsOpts;
+using ArgsStatus = ScArgsStatus;
+using ArgType = ScArgType;
+
+/**
+ * A borrowed command node of an `Args` tree. Builder methods chain; the node
+ * is owned by the `Args` parser, never by this wrapper.
+ */
+class ArgsCmd {
+public:
+    explicit ArgsCmd(ScArgsCmd* cmd) : c_(cmd) {}
+
+    /** Adds (and returns) a nested subcommand. @see sc_args_subcommand */
+    ArgsCmd subcommand(std::string_view name, std::string_view about) {
+        return ArgsCmd(sc_args_subcommand(c_, detail::z(name).c_str(),
+                                          detail::z(about).c_str()));
+    }
+    /** Help section heading for this command. @see sc_args_cmd_group */
+    ArgsCmd& group(std::string_view heading) {
+        sc_args_cmd_group(c_, detail::z(heading).c_str());
+        return *this;
+    }
+    /** Adds a boolean flag. @see sc_args_flag */
+    ArgsCmd& flag(std::string_view long_name, char short_name,
+                  std::string_view help) {
+        sc_args_flag(c_, detail::z(long_name).c_str(), short_name,
+                     detail::z(help).c_str());
+        return *this;
+    }
+    /** Adds a typed value option. @see sc_args_opt */
+    ArgsCmd& opt(std::string_view long_name, char short_name, ArgType type,
+                 std::string_view metavar, std::string_view help) {
+        sc_args_opt(c_, detail::z(long_name).c_str(), short_name, type,
+                    detail::z(metavar).c_str(), detail::z(help).c_str());
+        return *this;
+    }
+    /** Sets an option default. @see sc_args_opt_default */
+    ArgsCmd& opt_default(std::string_view long_name, std::string_view value) {
+        sc_args_opt_default(c_, detail::z(long_name).c_str(),
+                            detail::z(value).c_str());
+        return *this;
+    }
+    /** Restricts an option to fixed choices. @see sc_args_opt_choices */
+    ArgsCmd& opt_choices(std::string_view long_name,
+                         const std::vector<std::string>& choices) {
+        std::vector<const char*> pointers;
+        pointers.reserve(choices.size() + 1);
+        for (const auto& choice : choices) { pointers.push_back(choice.c_str()); }
+        pointers.push_back(nullptr);
+        sc_args_opt_choices(c_, detail::z(long_name).c_str(), pointers.data());
+        return *this;
+    }
+    /** Marks an option as required. @see sc_args_opt_required */
+    ArgsCmd& opt_required(std::string_view long_name) {
+        sc_args_opt_required(c_, detail::z(long_name).c_str());
+        return *this;
+    }
+    /** Adds a positional argument slot. @see sc_args_positional */
+    ArgsCmd& positional(std::string_view name, ArgType type,
+                        std::string_view help, bool required = false,
+                        bool variadic = false) {
+        sc_args_positional(c_, detail::z(name).c_str(), type,
+                           detail::z(help).c_str(), required, variadic);
+        return *this;
+    }
+
+    /** Command name. @see sc_args_cmd_name */
+    std::string name() const {
+        const char* n = sc_args_cmd_name(c_);
+        return n ? n : "";
+    }
+    /** Borrowed underlying node (escape hatch). */
+    ScArgsCmd* get() { return c_; }
+    bool operator==(const ArgsCmd& other) const { return c_ == other.c_; }
+
+private:
+    ScArgsCmd* c_;
+};
+
+/**
+ * Owning, move-only argument parser (wraps `ScArgs`).
+ *
+ * Build the tree via `root()`, then `parse(argc, argv)`. On success the
+ * matched command is returned; on `--help`/`--version` or errors the
+ * optional is empty and `status()` tells which (exit 0 vs 2).
+ */
+class Args {
+public:
+    explicit Args(ArgsOpts opts = {}) : p_(sc_args_new(opts)) {
+        if (!p_) { throw std::bad_alloc(); }
+    }
+    ~Args() { sc_args_free(p_); }
+    Args(Args&& o) noexcept : p_(o.p_), status_(o.status_) { o.p_ = nullptr; }
+    Args& operator=(Args&& o) noexcept {
+        if (this != &o) {
+            sc_args_free(p_);
+            p_ = o.p_;
+            status_ = o.status_;
+            o.p_ = nullptr;
+        }
+        return *this;
+    }
+    Args(const Args&) = delete;
+    Args& operator=(const Args&) = delete;
+
+    /** The root command node (attach options/subcommands here). */
+    ArgsCmd root() { return ArgsCmd(sc_args_root(p_)); }
+
+    /** Parses argv; empty optional = help/version handled or parse error. */
+    std::optional<ArgsCmd> parse(int argc, char** argv) {
+        const ScArgsCmd* matched = sc_args_parse(p_, argc, argv, &status_);
+        if (!matched) { return std::nullopt; }
+        return ArgsCmd(const_cast<ScArgsCmd*>(matched));
+    }
+    /** Outcome of the last parse. */
+    ArgsStatus status() const { return status_; }
+    /** Suggested process exit code for the last parse outcome. */
+    int exit_code() const { return status_ == SC_ARGS_ERROR ? 2 : 0; }
+
+    /** String value (empty optional = never supplied, no default). */
+    std::optional<std::string> get_str(std::string_view name) const {
+        const char* value = sc_args_get_str(p_, detail::z(name).c_str());
+        if (!value) { return std::nullopt; }
+        return std::string(value);
+    }
+    long get_int(std::string_view name) const {
+        return sc_args_get_int(p_, detail::z(name).c_str());
+    }
+    double get_double(std::string_view name) const {
+        return sc_args_get_double(p_, detail::z(name).c_str());
+    }
+    bool get_flag(std::string_view name) const {
+        return sc_args_get_flag(p_, detail::z(name).c_str());
+    }
+    int get_enum(std::string_view name) const {
+        return sc_args_get_enum(p_, detail::z(name).c_str());
+    }
+    Color get_color(std::string_view name) const {
+        return sc_args_get_color(p_, detail::z(name).c_str());
+    }
+    std::vector<std::string> get_many(std::string_view name) const {
+        std::size_t count = 0;
+        const char* const* values =
+            sc_args_get_many(p_, detail::z(name).c_str(), &count);
+        std::vector<std::string> result;
+        result.reserve(count);
+        for (std::size_t i = 0; i < count; i++) { result.emplace_back(values[i]); }
+        return result;
+    }
+    bool present(std::string_view name) const {
+        return sc_args_present(p_, detail::z(name).c_str());
+    }
+    /** Name of the matched command (empty optional before parsing). */
+    std::optional<std::string> selected_command() const {
+        const char* name = sc_args_selected_command(p_);
+        if (!name) { return std::nullopt; }
+        return std::string(name);
+    }
+
+    /** Renders the help screen for `cmd` (root by default). */
+    void print_help(ScArgsCmd* cmd = nullptr) const {
+        sc_args_print_help(p_, cmd);
+    }
+    /** Emits the zsh completion script. */
+    void print_zsh_completion() const { sc_args_print_zsh_completion(p_); }
+
+    /** Borrowed underlying `ScArgs*` (escape hatch to the C API). */
+    ScArgs* get() { return p_; }
+
+private:
+    ScArgs* p_;
+    ArgsStatus status_ = SC_ARGS_MATCHED;
+};
+
 // ── Custom shortcuts ─────────────────────────────────────────────────────────
 // Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
 // @see sparcli_shortcut.h

@@ -264,6 +264,18 @@ logging::info("server started");          // message is data, never a format
 Logger logger(LoggerOpts{ .hide_timestamps = true });
 logger.add_terminal(stderr, SC_LOG_INFO).add_file("debug.log");
 logger.warn("low disk space");
+
+// Argument parser: declarative tree + typed getters (see api-framework.md)
+Args args({ .prog = "mytool", .version = "1.0", .about = "Demo" });
+args.root().flag("verbose", 'v', "Verbose output")
+    .subcommand("build", "Build the project")
+    .opt("jobs", 'j', SC_ARG_INT, "N", "Parallel jobs")
+    .positional("TARGET", SC_ARG_STR, "Build target", true);
+if (auto matched = args.parse(argc, argv)) {
+    long jobs = args.get_int("jobs");
+} else {
+    return args.exit_code();   // 0 for --help/--version, 2 for errors
+}
 ```
 
 ## Input widgets

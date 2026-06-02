@@ -12,8 +12,8 @@ make qa           # EVERY QA gate in one command: test -Werror, sanitize, tsan,
                   # pre-commit validation - run this after any change.
 make test         # FULL non-interactive suite: chains the headless gates below
                   # (test-output-check, test-input ARGS=--logic,
-                  # test-input-style-check, test-input-pty, test-app, test-cpp,
-                  # test-cli-check, test-cli-pty). The canonical check.
+                  # test-input-style-check, test-input-pty, test-app, test-args,
+                  # test-cpp, test-cli-check, test-cli-pty). The canonical check.
 make test-output  # OUTPUT gallery (tests/output/test_main), printed for eyeballing.
                   # ARGS=--focus / --no-animated (and the combo).
 make test-output-check / -golden   # OUTPUT golden-file diff / regenerate snapshot
@@ -28,6 +28,8 @@ make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks eac
                   # interactive coverage with no human. Runs headless (CI).
 make test-app     # APP framework suite (tests/app/): XDG paths, pager, pretty
                   # errors + logging logic tests; headless (CI).
+make test-args    # ARGS parser suite (tests/args/): parse loop, typed values,
+                  # error reporting, help + completion rendering; headless (CI).
 make test-cli-check / -golden  # CLI output golden-file diff / regenerate
                   # (tests/cli/run_output.sh drives every output subcommand)
 make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitized
@@ -39,8 +41,8 @@ make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
 make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
                   # tools optional, prints install hints when missing)
 make fuzz         # random-input fuzzing of the markup parser, key decoder,
-                  # ANSI sanitizer + CLI CSV parser under ASan/UBSan
-                  # (FUZZ_ITERS / FUZZ_SEED overridable)
+                  # ANSI sanitizer, CLI CSV parser + argument parser under
+                  # ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable)
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples / run-example EX=<name>   # build all / build+run one examples/*.c
 make rust / rust-test     # build / test the safe Rust crate (bindings/rust/)
@@ -70,16 +72,19 @@ src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               textarea, select, fuzzy, datepicker
 src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
 src/log/      logging: leveled terminal + plain-text file sinks
+src/args/     argument parser: builder, parse loop, typed values, help,
+              did-you-mean, zsh completion generation
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/    include/app/
                  (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
 tests/app/       framework suite (paths, pager, errors, logging)
+tests/args/      argument-parser suite (parse, errors, help, completion)
 tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 
-Public headers live in `include/{core,output,input,app}/`; cross-includes use **root-relative paths** (`#include "core/sparcli_core.h"`), resolved via `-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` (input widgets) and `app/sparcli_app.h` (framework helpers) are sub-umbrellas. `#include <sparcli.h>` is unchanged for users; only direct single-header includes moved.
+Public headers live in `include/{core,output,input,app,log,args}/`; cross-includes use **root-relative paths** (`#include "core/sparcli_core.h"`), resolved via `-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` (input widgets) and `app/sparcli_app.h` (framework helpers) are sub-umbrellas. `#include <sparcli.h>` is unchanged for users; only direct single-header includes moved.
 
 When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in the Makefile. The build tree mirrors `src/` automatically. CLI sources go into `CLI_SRC` instead (they compile with `-Iinclude` only – the CLI never includes `src/` internals).
 

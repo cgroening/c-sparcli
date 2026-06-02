@@ -82,6 +82,12 @@ _SOURCES = [
     "app/paths.c",
     "app/error.c",
     "log/log.c",
+    "args/args.c",
+    "args/args_value.c",
+    "args/args_suggest.c",
+    "args/args_parse.c",
+    "args/args_help.c",
+    "args/args_complete.c",
 ]
 
 ffibuilder = FFI()

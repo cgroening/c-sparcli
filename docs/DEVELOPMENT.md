@@ -43,7 +43,7 @@ The suites split along the output/input boundary. Everything except `make test-i
 
 ### `make test` – full non-interactive suite
 
-The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-app`, `test-cpp`, `test-cli-check`, `test-cli-pty` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
+The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-app`, `test-args`, `test-cpp`, `test-cli-check`, `test-cli-pty` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
 
 ```sh
 make test                     # run every headless gate
@@ -58,7 +58,7 @@ The complete pre-commit validation. Runs, in order and stopping at the first fai
 2. `make sanitize` – output suite under ASan/UBSan
 3. `make tsan` – logic suite under ThreadSanitizer
 4. `make lint` – cppcheck + clang-tidy
-5. `make fuzz` – random-input fuzzing of all external parsers
+5. `make fuzz` – random-input fuzzing of all external parsers (markup, key decoder, sanitizer, CSV, argv)
 6. `make rust-test` – Rust binding (rebuilds the C sources via `cc`)
 7. `make python-test` – Python binding (rebuilds the cffi extension)
 8. `make python-test-debug` – Python suite with poisoned freed memory (FFI lifetime gate)
@@ -127,6 +127,14 @@ The framework helpers in `tests/app/`: XDG path resolution (environment override
 
 ```sh
 make test-app
+```
+
+### `make test-args` – argument-parser suite
+
+The args module in `tests/args/`: the parse loop (long/short/combined options, `--opt=value`, `--` terminator, subcommands, positionals, variadic collection), typed value conversion, error reporting with did-you-mean suggestions, argv ANSI-sanitization, and the help/completion renderers (checked by capturing their output and asserting on the plain-text content). No TTY required.
+
+```sh
+make test-args
 ```
 
 ### `make test-cpp` – C++ wrapper gate
@@ -445,6 +453,7 @@ src/input/    prompt engine, line editor, shortcut, external editor, confirm,
               text/password/number, textarea, select, fuzzy, datepicker, theme
 src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
 src/log/      logging: leveled terminal + plain-text file sinks
+src/args/     argument parser (builder, parse, values, help, suggest, completion)
 include/{core,output,input,app}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 cli/                           the sparcli command-line tool (subcommand per widget)
@@ -453,7 +462,8 @@ bindings/rust/                 cargo workspace: sparcli-sys (FFI) + sparcli (saf
 bindings/python/               cffi (API-mode) wrapper: src/sparcli/ + build_sparcli.py
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
-tests/app/                     application-framework suite (paths, pager)
+tests/app/                     application-framework suite (paths, pager, errors, log)
+tests/args/                    argument-parser suite
 tests/cpp/                     C++ wrapper assertion suite + golden
 tests/cli/                     CLI golden-file suite + CLI PTY suite
 ```

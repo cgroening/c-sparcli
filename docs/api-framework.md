@@ -2,13 +2,14 @@
 
 The application-framework side of the C library: everything that supports the *application around the widgets* – where its files live, how it logs, how it reports errors, and how it parses its command line. The terminal/widget API (panels, tables, prompts, markup, …) is documented in [`api-c.md`](api-c.md).
 
-All functions follow the library conventions: `sc_` prefix, zero-init-friendly opts structs, heap results paired with `free()`, and `SPARCLI_EXPORT` visibility. Headers live under `include/app/` and are included by the `sparcli.h` umbrella (sub-umbrella: `app/sparcli_app.h`).
+All functions follow the library conventions: `sc_` prefix, zero-init-friendly opts structs, heap results paired with `free()`, and `SPARCLI_EXPORT` visibility. Headers live under `include/{app,log,args}/` and are included by the `sparcli.h` umbrella.
 
 ## Table of contents
 
 - [XDG Paths](#xdg-paths)
 - [Pretty Errors](#pretty-errors)
 - [Logging](#logging)
+- [Argument Parser](#argument-parser)
 
 ---
 
@@ -233,3 +234,157 @@ The bindings pass messages as **data** (internally `"%s"` + string), so `%` char
 | C++ | `sparcli::Logger` (RAII; `add_terminal`/`add_file`/`level` + `debug/info/warn/error`) and `sparcli::logging::set_level/add_file/info/...` for the global logger |
 | Rust | `sparcli::Logger` (file sinks) + `sparcli::log::{set_level, add_file, info, warn, ...}` for the global logger |
 | Python | `sc.Logger` (`add_terminal(sys.stderr)`/`add_file` + `debug/info/warning/error`) and `sc.log_set_level/log_add_file/log_info/...` for the global logger |
+
+---
+
+## Argument Parser
+
+A declarative, builder-style argument parser ("clap for C"): describe the command tree once, and `sc_args_parse` handles `--help`/`--version`, validation, pretty error reporting with did-you-mean suggestions, typed value conversion and zsh completion generation. Header: `args/sparcli_args.h`.
+
+### Tutorial: a complete tool in 40 lines
+
+```c
+#include <sparcli.h>
+#include <string.h>
+
+int main(int argc, char **argv) {
+    /* 1. Describe the interface */
+    ScArgs *args = sc_args_new((ScArgsOpts){
+        .prog = "mytool", .version = "1.0.0",
+        .about = "Builds and cleans projects",
+    });
+    ScArgsCmd *root = sc_args_root(args);
+    sc_args_flag(root, "verbose", 'v', "Explain what is being done");
+
+    ScArgsCmd *build = sc_args_subcommand(root, "build", "Build a target");
+    sc_args_opt(build, "jobs", 'j', SC_ARG_INT, "N", "Parallel jobs");
+    sc_args_opt_default(build, "jobs", "4");
+    sc_args_opt(build, "mode", 'm', SC_ARG_STR, "MODE", "Build mode");
+    sc_args_opt_choices(build, "mode", (const char *[]){ "debug", "release", NULL });
+    sc_args_positional(build, "TARGET", SC_ARG_STR, "What to build", true, false);
+
+    ScArgsCmd *clean = sc_args_subcommand(root, "clean", "Remove artifacts");
+    sc_args_flag(clean, "force", 'f', "Skip confirmation");
+
+    /* 2. Parse (handles --help/--version/errors internally) */
+    ScArgsStatus status;
+    const ScArgsCmd *matched = sc_args_parse(args, argc, argv, &status);
+    if (status != SC_ARGS_MATCHED) {
+        sc_args_free(args);
+        return status == SC_ARGS_HANDLED ? 0 : 2;
+    }
+
+    /* 3. Dispatch on the matched command and read typed values */
+    if (strcmp(sc_args_cmd_name(matched), "build") == 0) {
+        long jobs = sc_args_get_int(args, "jobs");          /* 4 if absent */
+        const char *target = sc_args_get_str(args, "TARGET");
+        bool verbose = sc_args_get_flag(args, "verbose");   /* parent flag */
+        /* ... build it ... */
+    }
+    sc_args_free(args);
+    return 0;
+}
+```
+
+What the user gets for free:
+
+- `mytool --help` / `mytool build --help` – help screens rendered with sparcli widgets (bold header, cyan section headings, aligned tables, grouped commands)
+- `mytool -V` / `mytool --version`
+- `mytool buidl` → red error panel: *Unknown command 'buidl'. Hint: Did you mean 'build'?*
+- `mytool build --jobs many` → *Invalid value 'many' for option '--jobs'. Hint: expected an integer*
+- `mytool build --mode turbo` → *Hint: valid choices: debug, release*
+- `sc_args_print_zsh_completion(args)` → a complete `#compdef` script
+
+### Building the tree
+
+| Function | Purpose |
+|----------|---------|
+| `sc_args_new(opts)` / `sc_args_free(a)` | Create/destroy the parser (strings copied) |
+| `sc_args_root(a)` | The root command node |
+| `sc_args_subcommand(parent, name, about)` | Add a subcommand (arbitrary nesting) |
+| `sc_args_cmd_group(cmd, "Heading")` | Help section heading for a command |
+| `sc_args_flag(cmd, "name", 'n', help)` | Boolean flag (`--name` / `-n`) |
+| `sc_args_opt(cmd, "name", 'n', type, "METAVAR", help)` | Typed value option |
+| `sc_args_opt_default(cmd, "name", "value")` | Default value (shown in help) |
+| `sc_args_opt_choices(cmd, "name", choices)` | Restrict to fixed values (NULL-terminated array) |
+| `sc_args_opt_required(cmd, "name")` | Parse fails when absent |
+| `sc_args_positional(cmd, "NAME", type, help, required, variadic)` | Positional slot |
+
+Value types: `SC_ARG_STR` (default), `SC_ARG_INT`, `SC_ARG_DOUBLE`, `SC_ARG_COLOR` (color name, `#RRGGBB` or `R,G,B`). "Enums" are `SC_ARG_STR` + `sc_args_opt_choices`.
+
+### Parsing & reading results
+
+```c
+ScArgsStatus status;   /* SC_ARGS_MATCHED / SC_ARGS_HANDLED / SC_ARGS_ERROR */
+const ScArgsCmd *matched = sc_args_parse(args, argc, argv, &status);
+
+const char *s   = sc_args_get_str(args, "name");     /* value or default; NULL = none */
+long n          = sc_args_get_int(args, "jobs");
+double x        = sc_args_get_double(args, "scale");
+bool flag       = sc_args_get_flag(args, "verbose");
+int choice      = sc_args_get_enum(args, "mode");     /* index into choices; -1 = none */
+ScColor color   = sc_args_get_color(args, "accent");
+bool given      = sc_args_present(args, "jobs");      /* defaults do not count */
+
+size_t count;
+const char *const *extra = sc_args_get_many(args, "EXTRA", &count);  /* variadic positional */
+
+const char *leaf = sc_args_selected_command(args);
+```
+
+Getters search the matched command **and its ancestors**, so global flags (`--verbose` on the root) are visible after a subcommand matched. Returned strings are borrowed and stay valid until `sc_args_free`.
+
+### Supported syntax
+
+| Form | Example |
+|------|---------|
+| Long option with separate value | `--jobs 8` |
+| Long option with inline value | `--jobs=8` |
+| Short option | `-j 8`, `-j8` |
+| Combined short flags | `-vq` (multiple boolean flags) |
+| Subcommands (nested) | `prog remote add` |
+| Positionals + variadic tail | `prog build TARGET extra1 extra2` |
+| End of options | `--` (everything after is positional, even `-x`) |
+| Negative numbers as values | `--offset -5` |
+
+### Behavior & safety
+
+- **argv is untrusted input:** every token is ANSI-sanitized before it is stored or echoed back in error messages, so a malicious argument cannot inject escape sequences into the terminal.
+- **Reserved options:** `--help`/`-h` on every command, `--version`/`-V` on the root (when a version was set). User options with the same short letters take precedence over the reserved short forms.
+- **Errors are pretty errors** (the [Pretty Errors](#pretty-errors) module): red panel to stderr, message + hint, suggested exit code 2.
+- **Did-you-mean:** unknown options/commands within Levenshtein distance ≤ 2 produce a suggestion hint.
+- **Builder strings are copied**; getter results are borrowed from the parser.
+- **Fuzzed:** `make fuzz` runs random argv vectors against a fixed tree under ASan/UBSan (`tests/fuzz/fuzz_args.c`).
+
+### Help & completion output
+
+```c
+sc_args_print_help(args, NULL);            /* root help to the output stream */
+sc_args_print_help(args, build_cmd);       /* per-command help */
+sc_args_print_zsh_completion(args);        /* #compdef script */
+```
+
+A typical pattern is a hidden `completion` subcommand whose handler calls `sc_args_print_zsh_completion` – users install it with `mytool completion > ~/.zsh/completions/_mytool`.
+
+### Bindings
+
+C and C++ only (Rust has clap, Python has argparse/click - the parser would be unidiomatic there).
+
+```cpp
+// C++: sparcli::Args (RAII) + sparcli::ArgsCmd (borrowed builder nodes)
+sparcli::Args args({ .prog = "mytool", .version = "1.0", .about = "Demo" });
+auto root = args.root();
+root.flag("verbose", 'v', "Verbose output");
+auto build = root.subcommand("build", "Build the project");
+build.opt("jobs", 'j', SC_ARG_INT, "N", "Parallel jobs").opt_default("jobs", "4")
+     .opt_choices("mode", { "debug", "release" })
+     .positional("TARGET", SC_ARG_STR, "Build target", true);
+
+if (auto matched = args.parse(argc, argv)) {
+    long jobs = args.get_int("jobs");
+    auto target = args.get_str("TARGET");          // std::optional<std::string>
+    auto extra = args.get_many("EXTRA");           // std::vector<std::string>
+} else {
+    return args.exit_code();                       // 0 for --help, 2 for errors
+}
+```

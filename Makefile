@@ -84,7 +84,10 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           \
           src/app/paths.c src/app/error.c \
           \
-          src/log/log.c
+          src/log/log.c \
+          \
+          src/args/args.c src/args/args_value.c src/args/args_suggest.c \
+          src/args/args_parse.c src/args/args_help.c src/args/args_complete.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 DEP               = $(OBJ:.o=.d)
@@ -134,7 +137,8 @@ TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1 \
 # Fuzz harnesses: portable random-input fuzzers built under ASan/UBSan (no
 # libFuzzer dependency; the harness entry points are libFuzzer-compatible).
 FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c \
-             tests/fuzz/fuzz_sanitize.c tests/fuzz/fuzz_csv.c
+             tests/fuzz/fuzz_sanitize.c tests/fuzz/fuzz_csv.c \
+             tests/fuzz/fuzz_args.c
 FUZZ_BIN   = $(patsubst tests/fuzz/%.c,$(BUILDDIR)/fuzz/%,$(FUZZ_SRC))
 FUZZ_ITERS ?= 200000
 FUZZ_SEED  ?= 1
@@ -211,6 +215,14 @@ APP_TEST_SRC = tests/app/test_app_main.c \
                tests/app/test_log.c
 APP_TEST_BIN = tests/app/test_app_main
 
+# ── Argument-parser suite (tests/args/) - non-interactive ─────────────────
+# Parse logic, error reporting, help/completion rendering; safe in CI.
+ARGS_TEST_SRC = tests/args/test_args_main.c \
+                tests/args/test_args_parse.c \
+                tests/args/test_args_errors.c \
+                tests/args/test_args_help.c
+ARGS_TEST_BIN = tests/args/test_args_main
+
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
 EXAMPLES_BUILDDIR = build.examples.nosync
 EXAMPLES_SRC      = $(wildcard examples/*.c)
@@ -219,7 +231,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -324,6 +336,7 @@ test:
 	$(MAKE) test-input-style-check
 	$(MAKE) test-input-pty
 	$(MAKE) test-app
+	$(MAKE) test-args
 	$(MAKE) test-cpp
 	$(MAKE) test-cli-check
 	$(MAKE) test-cli-pty
@@ -385,6 +398,12 @@ test-input-style: $(LIB)
 test-app: $(LIB)
 	$(CC) $(CFLAGS) $(APP_TEST_SRC) $(LIB) $(LDFLAGS) -o $(APP_TEST_BIN)
 	./$(APP_TEST_BIN)
+
+# Argument-parser logic suite: parse loop, typed values, error reporting,
+# did-you-mean, help + completion rendering. No TTY required, safe in CI.
+test-args: $(LIB)
+	$(CC) $(CFLAGS) $(ARGS_TEST_SRC) $(LIB) $(LDFLAGS) -o $(ARGS_TEST_BIN)
+	./$(ARGS_TEST_BIN)
 
 # Golden-file regression test for the input style snapshots. Non-interactive
 # (the frame builders render without a TTY), so the bytes are deterministic.
@@ -515,10 +534,13 @@ fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_sanitize
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) -Icli tests/fuzz/fuzz_csv.c \
 	    cli/cli_csv.c $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_csv
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_args.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_args
 	./$(BUILDDIR)/fuzz/fuzz_markup $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_key $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_sanitize $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_csv $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_args $(FUZZ_ITERS) $(FUZZ_SEED)
 
 # Static analysis. Each tool is optional: the target degrades to an install
 # hint when a tool is missing, so it can run on any machine.
@@ -591,7 +613,8 @@ clean:
 	       $(LIB) $(SANITIZE_LIB) $(TSAN_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
 	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) \
-	       $(PTY_TEST_BIN) $(APP_TEST_BIN) $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN) \
+	       $(PTY_TEST_BIN) $(APP_TEST_BIN) $(ARGS_TEST_BIN) \
+	       $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN) \
 	       $(CLI_BIN) $(CLI_SANITIZE_BIN) $(CLI_PTY_TEST_BIN)
 
 # Auto-generated header dependencies (-MMD -MP). The leading '-' silences the

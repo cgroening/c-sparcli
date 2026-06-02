@@ -3232,6 +3232,201 @@ extern "C" {
         ...
     );
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScArgs {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScArgsCmd {
+    _unused: [u8; 0],
+}
+#[doc = "< Any string (the default)."]
+pub const ScArgType_SC_ARG_STR: ScArgType = 0;
+#[doc = "< Integer (`strtol`, full-string match)."]
+pub const ScArgType_SC_ARG_INT: ScArgType = 1;
+#[doc = "< Floating point number."]
+pub const ScArgType_SC_ARG_DOUBLE: ScArgType = 2;
+#[doc = "< Color name, `#RRGGBB` or `R,G,B`."]
+pub const ScArgType_SC_ARG_COLOR: ScArgType = 3;
+#[doc = " Value type of an option or positional argument."]
+pub type ScArgType = ::std::os::raw::c_uint;
+#[doc = "< A command matched; read values and proceed."]
+pub const ScArgsStatus_SC_ARGS_MATCHED: ScArgsStatus = 0;
+#[doc = "< `--help`/`--version` was printed; exit 0."]
+pub const ScArgsStatus_SC_ARGS_HANDLED: ScArgsStatus = 1;
+#[doc = "< Parse error printed to stderr; exit 2."]
+pub const ScArgsStatus_SC_ARGS_ERROR: ScArgsStatus = 2;
+#[doc = " Outcome of `sc_args_parse`."]
+pub type ScArgsStatus = ::std::os::raw::c_uint;
+#[doc = " Parser-wide options for `sc_args_new`. All strings are copied."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScArgsOpts {
+    #[doc = "< Program name (shown in usage/errors)."]
+    pub prog: *const ::std::os::raw::c_char,
+    #[doc = "< Version string; `NULL` = no auto `--version`."]
+    pub version: *const ::std::os::raw::c_char,
+    #[doc = "< One-line description for the help header."]
+    pub about: *const ::std::os::raw::c_char,
+    #[doc = "< ANSI passthrough for help/error rendering."]
+    pub ansi: ScAnsiMode,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScArgsOpts"][::std::mem::size_of::<ScArgsOpts>() - 32usize];
+    ["Alignment of ScArgsOpts"][::std::mem::align_of::<ScArgsOpts>() - 8usize];
+    ["Offset of field: ScArgsOpts::prog"][::std::mem::offset_of!(ScArgsOpts, prog) - 0usize];
+    ["Offset of field: ScArgsOpts::version"][::std::mem::offset_of!(ScArgsOpts, version) - 8usize];
+    ["Offset of field: ScArgsOpts::about"][::std::mem::offset_of!(ScArgsOpts, about) - 16usize];
+    ["Offset of field: ScArgsOpts::ansi"][::std::mem::offset_of!(ScArgsOpts, ansi) - 24usize];
+};
+extern "C" {
+    #[doc = " Allocates a parser with an empty root command.\n\n @param opts  Program metadata; strings are copied.\n @return      Heap-allocated parser; `NULL` on allocation failure.\n              Free with `sc_args_free`."]
+    pub fn sc_args_new(opts: ScArgsOpts) -> *mut ScArgs;
+}
+extern "C" {
+    #[doc = " Frees the parser, every command node, and all parse results (including\n the strings returned by the getters).\n\n @param args  Parser to free; safe to pass `NULL`."]
+    pub fn sc_args_free(args: *mut ScArgs);
+}
+extern "C" {
+    #[doc = " Returns the root command node (to attach global options/subcommands).\n\n @param args  Parser; returns `NULL` when `NULL`."]
+    pub fn sc_args_root(args: *mut ScArgs) -> *mut ScArgsCmd;
+}
+extern "C" {
+    #[doc = " Adds a subcommand under `parent` (arbitrary nesting depth).\n\n @param parent  Parent command node.\n @param name    Subcommand name as typed on the command line; copied.\n @param about   One-line description for help listings; copied.\n @return        The new (borrowed) command node; `NULL` on failure."]
+    pub fn sc_args_subcommand(
+        parent: *mut ScArgsCmd,
+        name: *const ::std::os::raw::c_char,
+        about: *const ::std::os::raw::c_char,
+    ) -> *mut ScArgsCmd;
+}
+extern "C" {
+    #[doc = " Sets the help section heading this command is listed under (e.g.\n `\"Output commands\"`). Commands without a group appear under\n `\"Commands\"`.\n\n @param cmd    Command node; no-op when `NULL`.\n @param group  Section heading; copied."]
+    pub fn sc_args_cmd_group(cmd: *mut ScArgsCmd, group: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Adds a boolean flag (an option that takes no value).\n\n `--help`/`-h` (every command) and `--version`/`-V` (root, when a\n version was set) are reserved and added automatically.\n\n @param cmd         Command the flag belongs to.\n @param long_name   Long name without dashes (`\"verbose\"` → `--verbose`);\n                    copied.\n @param short_name  Single-character alias (`'v'` → `-v`); `0` = none.\n @param help        Help text; copied."]
+    pub fn sc_args_flag(
+        cmd: *mut ScArgsCmd,
+        long_name: *const ::std::os::raw::c_char,
+        short_name: ::std::os::raw::c_char,
+        help: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " Adds an option that takes a typed value (`--name VALUE` or\n `--name=VALUE`).\n\n @param cmd         Command the option belongs to.\n @param long_name   Long name without dashes; copied.\n @param short_name  Single-character alias; `0` = none.\n @param type        Value type (validated at parse time).\n @param metavar     Value placeholder for help (`\"FILE\"`, `\"N\"`); copied;\n                    `NULL` = `\"VALUE\"`.\n @param help        Help text; copied."]
+    pub fn sc_args_opt(
+        cmd: *mut ScArgsCmd,
+        long_name: *const ::std::os::raw::c_char,
+        short_name: ::std::os::raw::c_char,
+        type_: ScArgType,
+        metavar: *const ::std::os::raw::c_char,
+        help: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " Sets the default value of an option (used when absent; shown in help).\n\n @param cmd            Command the option was added to.\n @param long_name      Option to modify.\n @param default_value  Default as text (parsed like a command-line\n                       value); copied."]
+    pub fn sc_args_opt_default(
+        cmd: *mut ScArgsCmd,
+        long_name: *const ::std::os::raw::c_char,
+        default_value: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " Restricts an option to a fixed set of values (rendered in help; invalid\n values produce an error listing the choices).\n\n @param cmd        Command the option was added to.\n @param long_name  Option to modify.\n @param choices    `NULL`-terminated array of allowed values; copied."]
+    pub fn sc_args_opt_choices(
+        cmd: *mut ScArgsCmd,
+        long_name: *const ::std::os::raw::c_char,
+        choices: *const *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " Marks an option as required (parse fails when absent).\n\n @param cmd        Command the option was added to.\n @param long_name  Option to modify."]
+    pub fn sc_args_opt_required(cmd: *mut ScArgsCmd, long_name: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Adds a positional argument slot. Positionals are filled in declaration\n order; a variadic positional collects every remaining token and must be\n the last one.\n\n @param cmd       Command the positional belongs to.\n @param name      Display name (`\"FILE\"`); also the lookup key; copied.\n @param type      Value type.\n @param help      Help text; copied.\n @param required  Parse fails when no value is supplied.\n @param variadic  Collects all remaining arguments."]
+    pub fn sc_args_positional(
+        cmd: *mut ScArgsCmd,
+        name: *const ::std::os::raw::c_char,
+        type_: ScArgType,
+        help: *const ::std::os::raw::c_char,
+        required: bool,
+        variadic: bool,
+    );
+}
+extern "C" {
+    #[doc = " Parses `argv` against the command tree.\n\n Handles `--opt value`, `--opt=value`, combined short flags (`-abc`),\n the `--` terminator, subcommand descent, positionals, `--help` (every\n level) and `--version` (root). Parse errors are rendered to stderr as\n pretty errors with did-you-mean suggestions.\n\n @param args    Parser.\n @param argc    Argument count (from `main`).\n @param argv    Argument vector (from `main`); tokens are sanitized.\n @param status  Receives the outcome; may be `NULL`.\n @return        The matched (deepest) command node on success, `NULL`\n                when help/version was handled or an error occurred."]
+    pub fn sc_args_parse(
+        args: *mut ScArgs,
+        argc: ::std::os::raw::c_int,
+        argv: *mut *mut ::std::os::raw::c_char,
+        status: *mut ScArgsStatus,
+    ) -> *const ScArgsCmd;
+}
+extern "C" {
+    #[doc = " Returns the string value of an option or positional, searching the\n matched command and its ancestors.\n\n @param args  Parser (after parse).\n @param name  Option long name or positional name.\n @return      Borrowed string (valid until `sc_args_free`); the default\n              value when absent; `NULL` when never supplied and no\n              default exists."]
+    pub fn sc_args_get_str(
+        args: *const ScArgs,
+        name: *const ::std::os::raw::c_char,
+    ) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Integer value of `name` (`0` when absent/unparseable)."]
+    pub fn sc_args_get_int(
+        args: *const ScArgs,
+        name: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_long;
+}
+extern "C" {
+    #[doc = " Double value of `name` (`0.0` when absent/unparseable)."]
+    pub fn sc_args_get_double(args: *const ScArgs, name: *const ::std::os::raw::c_char) -> f64;
+}
+extern "C" {
+    #[doc = " `true` when the flag `name` was given."]
+    pub fn sc_args_get_flag(args: *const ScArgs, name: *const ::std::os::raw::c_char) -> bool;
+}
+extern "C" {
+    #[doc = " Index of the value of `name` within its `choices` array\n (`-1` = absent or no choices configured)."]
+    pub fn sc_args_get_enum(
+        args: *const ScArgs,
+        name: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Color value of `name` (zero-init \"no color\" when absent/invalid)."]
+    pub fn sc_args_get_color(args: *const ScArgs, name: *const ::std::os::raw::c_char) -> ScColor;
+}
+extern "C" {
+    #[doc = " Values collected by a (variadic) positional.\n\n @param args   Parser (after parse).\n @param name   Positional name.\n @param count  Receives the number of values; required.\n @return       Borrowed array of borrowed strings; `NULL` when empty."]
+    pub fn sc_args_get_many(
+        args: *const ScArgs,
+        name: *const ::std::os::raw::c_char,
+        count: *mut usize,
+    ) -> *const *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " `true` when the option/positional `name` was supplied on the command line."]
+    pub fn sc_args_present(args: *const ScArgs, name: *const ::std::os::raw::c_char) -> bool;
+}
+extern "C" {
+    #[doc = " Name of the matched (deepest) command; the program name when no\n subcommand was selected. `NULL` before parsing."]
+    pub fn sc_args_selected_command(args: *const ScArgs) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Name of a command node (borrowed)."]
+    pub fn sc_args_cmd_name(cmd: *const ScArgsCmd) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Renders the help screen for `cmd` (or the root when `NULL`) to the\n current output stream, using sparcli widgets.\n\n @param args  Parser.\n @param cmd   Command to document; `NULL` = root."]
+    pub fn sc_args_print_help(args: *const ScArgs, cmd: *const ScArgsCmd);
+}
+extern "C" {
+    #[doc = " Emits a zsh completion script (`#compdef`) for the whole command tree\n to the current output stream. Install it as `_<prog>` in `$fpath`.\n\n @param args  Parser."]
+    pub fn sc_args_print_zsh_completion(args: *const ScArgs);
+}
 #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

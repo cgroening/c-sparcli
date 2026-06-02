@@ -155,10 +155,17 @@ static inline size_t sc_utf8_string_length(
             cursor++;   /* sanitizer-dropped control bytes: no columns */
             continue;
         }
-        if      ((current_byte & 0x80) == 0x00) { cursor += 1; }
-        else if ((current_byte & 0xE0) == 0xC0) { cursor += 2; }
-        else if ((current_byte & 0xF0) == 0xE0) { cursor += 3; }
-        else                                    { cursor += 4; }
+        /* Advance one codepoint, but never past `end`: a truncated UTF-8
+           sequence at the end of the buffer must not cause an
+           out-of-bounds read. */
+        size_t sequence_length;
+        if      ((current_byte & 0x80) == 0x00) { sequence_length = 1; }
+        else if ((current_byte & 0xE0) == 0xC0) { sequence_length = 2; }
+        else if ((current_byte & 0xF0) == 0xE0) { sequence_length = 3; }
+        else                                    { sequence_length = 4; }
+        for (size_t i = 0; i < sequence_length && cursor < end; i++) {
+            cursor++;
+        }
         columns++;
     }
     return columns;
@@ -191,10 +198,18 @@ static inline size_t sc_utf8_trim_to_cols(
             cursor++;   /* sanitizer-dropped control bytes: no columns */
             continue;
         }
-        if      ((current_byte & 0x80) == 0x00) { cursor += 1; }
-        else if ((current_byte & 0xE0) == 0xC0) { cursor += 2; }
-        else if ((current_byte & 0xF0) == 0xE0) { cursor += 3; }
-        else                                    { cursor += 4; }
+        /* Advance one codepoint, but never past the NUL terminator: a
+           truncated UTF-8 sequence at the end of the string must not
+           cause an out-of-bounds read (and the returned byte count must
+           never exceed the string length). */
+        size_t sequence_length;
+        if      ((current_byte & 0x80) == 0x00) { sequence_length = 1; }
+        else if ((current_byte & 0xE0) == 0xC0) { sequence_length = 2; }
+        else if ((current_byte & 0xF0) == 0xE0) { sequence_length = 3; }
+        else                                    { sequence_length = 4; }
+        for (size_t i = 0; i < sequence_length && *cursor; i++) {
+            cursor++;
+        }
         columns++;
     }
     return (size_t)(cursor - (const unsigned char *)string);
