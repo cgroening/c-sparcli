@@ -7,7 +7,10 @@ AR      = ar
 # Binary hardening (stack canaries + fortified libc calls). _FORTIFY_SOURCE
 # needs optimization; the sanitizer builds undefine it again because fortified
 # functions bypass the ASan/TSan interceptors.
-HARDEN_CFLAGS = -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2
+# -U before -D: ASan/UBSan builds pre-define _FORTIFY_SOURCE=0 as a compiler
+# built-in, so a bare -D would trigger -Wmacro-redefined (-Werror fails).
+HARDEN_CFLAGS = -O2 -fstack-protector-strong -U_FORTIFY_SOURCE \
+                -D_FORTIFY_SOURCE=2
 
 CFLAGS  = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 -Wnull-dereference \
           -Wcast-align -Wconversion -Wsign-conversion -fPIC $(HARDEN_CFLAGS) \
@@ -200,7 +203,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -307,6 +310,22 @@ test:
 	$(MAKE) test-cpp
 	$(MAKE) test-cli-check
 	$(MAKE) test-cli-pty
+
+# Full QA run: every gate in order, stops at the first failure. This is the
+# complete pre-commit validation in one command - the headless test suite
+# (warnings as errors), the memory/thread sanitizers, static analysis, parser
+# fuzzing, and both language bindings including the poisoned-memory FFI gate.
+# See docs/DEVELOPMENT.md "After a change - run these".
+qa:
+	$(MAKE) test EXTRA_CFLAGS=-Werror
+	$(MAKE) sanitize
+	$(MAKE) tsan
+	$(MAKE) lint
+	$(MAKE) fuzz
+	$(MAKE) rust-test
+	$(MAKE) python-test
+	$(MAKE) python-test-debug
+	@echo "\033[32m✔ All QA gates passed.\033[0m"
 
 # Visual output gallery: builds and runs the output suite for eyeballing.
 # ARGS: --no-animated (skip animations), --focus (focused subset), or both.

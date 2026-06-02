@@ -50,6 +50,25 @@ make test                     # run every headless gate
 make test EXTRA_CFLAGS=-Werror
 ```
 
+### `make qa` – every QA gate in one command
+
+The complete pre-commit validation. Runs, in order and stopping at the first failure:
+
+1. `make test EXTRA_CFLAGS=-Werror` – build + every headless test gate, warnings as errors
+2. `make sanitize` – output suite under ASan/UBSan
+3. `make tsan` – logic suite under ThreadSanitizer
+4. `make lint` – cppcheck + clang-tidy
+5. `make fuzz` – random-input fuzzing of all external parsers
+6. `make rust-test` – Rust binding (rebuilds the C sources via `cc`)
+7. `make python-test` – Python binding (rebuilds the cffi extension)
+8. `make python-test-debug` – Python suite with poisoned freed memory (FFI lifetime gate)
+
+```sh
+make qa                       # the one command to run after any change
+```
+
+Run this before every commit; the individual targets are documented below for running a single gate during development.
+
 ### `make test-output` – output gallery
 
 The output renderer suite in `tests/output/`, printed to stdout for visual inspection (the golden-file gate below is the automated check). Covers: text attributes, colors, panels, alerts, tables, rules, trees, lists, progress bar, spinner, key-value pairs, badges, utilities, padding, alignment, markup, and columns (basic + advanced).
@@ -234,8 +253,11 @@ make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42
 Copy-paste block to validate a change.
 
 ```sh
-# 1. Build + every headless gate, warnings as errors (the main check).
-make test EXTRA_CFLAGS=-Werror
+# 1. The full QA run: every gate in order (= the pre-commit validation).
+#    Equivalent to running, in order: make test EXTRA_CFLAGS=-Werror,
+#    make sanitize, make tsan, make lint, make fuzz, make rust-test,
+#    make python-test, make python-test-debug.
+make qa
 
 # 2. If you changed rendering on purpose, regenerate + review + commit the golden:
 make test-output-golden
@@ -476,9 +498,7 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
 ## Pre-commit checklist
 
-1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all seven headless gates pass.
-2. If you changed rendering on purpose, regenerate the affected golden file (`make test-output-golden` / `make test-input-style-golden` / `make test-cli-golden` / `make test-cpp-golden`) and commit it.
-3. `make sanitize` and `make tsan` – ASan/UBSan and TSan stay clean.
-4. `make lint` and `make fuzz` – no new static-analysis findings, parsers survive random input.
-5. If the bindings or any string-lifetime handling changed: `make rust-test`, `make python-test` and `make python-test-debug`.
-6. If you added public API: walk the **ownership checklist** above (copy vs. documented borrow + lifetime test).
+1. `make qa` – the full QA run passes: build with `-Werror`, all headless test gates, ASan/UBSan, TSan, lint, fuzzing, and both bindings (Rust + Python incl. the poisoned-memory gate). See "`make qa`" above for what it chains.
+2. If you changed rendering on purpose, regenerate the affected golden file (`make test-output-golden` / `make test-input-style-golden` / `make test-cli-golden` / `make test-cpp-golden`), review the diff and commit it.
+3. If you added public API: walk the **ownership checklist** above (copy vs. documented borrow + lifetime test) and update the bindings (cdef / bindgen / hpp) + docs.
+4. If you changed the C API surface: regenerate the Rust bindgen output (`cargo build --manifest-path bindings/rust/Cargo.toml --features regen`) and commit `bindings.rs`.

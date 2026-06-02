@@ -7,6 +7,9 @@ A C11 library for styled terminal output: colored text, bordered panels, feature
 ```sh
 make            # builds libsparcli.a + shared lib + pkg-config + the sparcli CLI
 make cli          # only the sparcli CLI binary (./sparcli)
+make qa           # EVERY QA gate in one command: test -Werror, sanitize, tsan,
+                  # lint, fuzz, rust-test, python-test(+debug). The complete
+                  # pre-commit validation - run this after any change.
 make test         # FULL non-interactive suite: chains the headless gates below
                   # (test-output-check, test-input ARGS=--logic,
                   # test-input-style-check, test-input-pty, test-cpp,
