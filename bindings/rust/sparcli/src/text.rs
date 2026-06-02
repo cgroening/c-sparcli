@@ -39,6 +39,23 @@ impl Text {
         self
     }
 
+    /// Appends a styled span wrapped in an OSC-8 terminal hyperlink to `url`.
+    ///
+    /// Supporting terminals make the text clickable; others show only the
+    /// text. The URL is reduced to printable ASCII so it cannot inject
+    /// escape sequences, and the link bytes occupy zero visible columns.
+    pub fn append_link(&mut self, s: &str, url: &str, style: Style) -> &mut Self {
+        unsafe {
+            ffi::sc_text_append_link(
+                self.ptr,
+                cstring(s).as_ptr(),
+                cstring(url).as_ptr(),
+                style.raw(),
+            )
+        };
+        self
+    }
+
     /// Appends parsed markup.
     pub fn append_markup(&mut self, m: &str) -> &mut Self {
         unsafe { ffi::sc_markup_append(self.ptr, cstring(m).as_ptr()) };

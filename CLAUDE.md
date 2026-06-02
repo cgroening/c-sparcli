@@ -142,6 +142,8 @@ sc_text_free(t);
 
 `sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware, UTF-8-aware, counts codepoints not bytes).
 
+`sc_text_append_link(t, text, url, style)` – appends a span wrapped in an **OSC-8 terminal hyperlink** (clickable in supporting terminals, plain text elsewhere). The URL is scrubbed to printable ASCII (no ESC/control bytes), the visible text is sanitized normally, and the escape bytes occupy zero visible columns. Markup equivalent: `[link=URL]text[/link]`.
+
 ### ScBorderType
 
 ```c
@@ -672,7 +674,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 - Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no space fits in the column width, the line is truncated.
 - **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`, `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting. Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
 - **Opts-string lifetime:** every handle-based `*_new()` (table columns, list, kv, tree, spinner, progressbar, select, fuzzy, theme) **copies** the string fields of its opts/arguments, so caller buffers (e.g. FFI temporaries) only need to live until the call returns. Documented exceptions stay **borrowed**: table cell strings / `ScText` content (until print), `shortcuts` and `prompt_text` (until the run). Run-once widgets (`sc_confirm`, `sc_text_input`, …) only read their opts during the call. Tests: `tests/input/logic/test_opts_copy.c`, output tests "Opts strings are copied", PTY cases `fuzzy-heap-prompt`/`theme-heap-strings`.
-- **ANSI sanitization / trust boundary:** every user string is sanitized **exactly once, where it crosses into the library** (`sc_text_append`, `sc_print`, widget add/set/render entry points, markup chunks): control bytes (< 0x20 except `\n`/`\t`, plus DEL) and ANSI escape sequences are removed. The opt-out is `sc_set_allow_ansi(bool)` (process-wide, atomic, default `false`) plus a per-widget `ScAnsiMode ansi` opts field (`SC_ANSI_MODE_DEFAULT`=inherit global / `_ALLOW` / `_SANITIZE`); when allowed, well-formed escape sequences pass through, stray control bytes are still dropped, and **all width functions skip escape sequences** (`sc_utf8_string_length`, `sc_utf8_trim_to_cols`, `sc_text_visible_width`), so frames stay aligned. Library-rendered content (`ScRendered`, captured columns output, CLI capture path) is inside the boundary and is never re-sanitized – internal code uses `sc_text_append_raw`/`sc_print_raw`. External-editor read-back and keyboard input are always filtered (never allow ANSI). Sanitizer: `src/core/sanitize.c` (+ `sanitize_internal.h`). Tests: `tests/input/logic/test_sanitize.c`, `tests/fuzz/fuzz_sanitize.c`, CLI golden "sanitize:" sections.
+- **ANSI sanitization / trust boundary:** every user string is sanitized **exactly once, where it crosses into the library** (`sc_text_append`, `sc_print`, widget add/set/render entry points, markup chunks): control bytes (< 0x20 except `\n`/`\t`, plus DEL) and ANSI escape sequences are removed. The opt-out is `sc_set_allow_ansi(bool)` (process-wide, atomic, default `false`) plus a per-widget `ScAnsiMode ansi` opts field (`SC_ANSI_MODE_DEFAULT`=inherit global / `_ALLOW` / `_SANITIZE`); when allowed, well-formed escape sequences pass through, stray control bytes are still dropped, and **all width functions skip escape sequences** (`sc_utf8_string_length`, `sc_utf8_trim_to_cols`, `sc_text_visible_width`), so frames stay aligned. Library-rendered content (`ScRendered`, captured columns output, CLI capture path) is inside the boundary and is never re-sanitized – internal code uses `sc_text_append_raw`/`sc_print_raw`. External-editor read-back and keyboard input are always filtered (never allow ANSI). **OSC-8 hyperlinks** (`sc_text_append_link`, markup `[link=…]`) are generated on the trusted side: the URL is scrubbed to printable ASCII (`sc_osc8_scrub_url`) so it cannot inject sequences, then the wrapper is built internally (`sc_osc8_wrap`) and appended raw; injected OSC-8 in ordinary user strings is still stripped. Sanitizer: `src/core/sanitize.c` (+ `sanitize_internal.h`). Tests: `tests/input/logic/test_sanitize.c`, `tests/fuzz/fuzz_sanitize.c`, CLI golden "sanitize:" sections.
 
 ---
 
@@ -892,6 +894,7 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[bold red on white]` | combined (all in one tag) |
 | `[/]` | close most-recent style frame |
 | `[/bold]`, `[/red]`, … | named close (same effect as `[/]`) |
+| `[link=URL]text[/link]` | OSC-8 hyperlink; body is literal (nested tags not parsed), also closable with `[/]`; empty URL = unknown tag |
 | `[[` | literal `[` character |
 | `[blink]` (any unrecognized) | emitted verbatim including brackets |
 

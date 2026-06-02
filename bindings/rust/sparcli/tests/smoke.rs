@@ -92,6 +92,15 @@ fn styled_text_builds() {
 }
 
 #[test]
+fn text_link_has_zero_width_escapes() {
+    let mut t = Text::new();
+    t.append_link("click", "https://example.com", Style::default());
+    assert_eq!(t.span_count(), 1);
+    // OSC-8 escape bytes occupy no visible columns
+    assert_eq!(t.visible_width(), 5);
+}
+
+#[test]
 fn input_without_tty_errors() {
     // No controlling terminal under `cargo test`, so prompts return an error
     // (callers fall back to a default), never a panic.

@@ -57,11 +57,15 @@ Cells accept a plain `str`, a `sc.Text`, or a `sc.Cell` (for alignment, colspan/
 ```python
 t = sc.Text()
 t.append("status: ").append("OK", sc.Style.bold(sc.Color.GREEN))
+t.append_link("docs", "https://example.com/docs")           # OSC-8 hyperlink
 t.print()
 
 sc.markup.println("[bold red]Error:[/] file not found")
+sc.markup.println("Open [link=https://example.com]the docs[/link]")
 parsed = sc.Text.from_markup("[italic]hi[/]")               # use with any *_text widget
 ```
+
+`append_link` and the `[link=URL]text[/link]` markup tag emit OSC-8 terminal hyperlinks (clickable in supporting terminals, plain text elsewhere); the escape bytes have zero visible width.
 
 ### Capture / compose
 

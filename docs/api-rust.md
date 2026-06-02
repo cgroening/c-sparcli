@@ -52,12 +52,16 @@ kv.print();
 ```rust
 let mut t = Text::new();
 t.append("status: ", Style::default())
- .append("OK", Style::bold().fg(Color::GREEN));
+ .append("OK", Style::bold().fg(Color::GREEN))
+ .append_link("docs", "https://example.com/docs", Style::default());
 t.print();
 
 markup::println("[bold red]Error:[/] file not found");
+markup::println("Open [link=https://example.com]the docs[/link]");
 let parsed: Text = Text::markup("[italic]hi[/]");
 ```
+
+`append_link` and the `[link=URL]text[/link]` markup tag emit OSC-8 terminal hyperlinks (clickable in supporting terminals, plain text elsewhere); the escape bytes have zero visible width.
 
 ### Capture / compose
 

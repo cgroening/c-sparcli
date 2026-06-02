@@ -152,6 +152,8 @@ typedef struct { char *raw_str; ScTextStyle style; } ScSpan;
 ScText *sc_text_new(void);
 ScText *sc_text_from_str(const char *str);
 void sc_text_append(ScText *text, const char *raw_str, ScTextStyle style);
+void sc_text_append_link(ScText *text, const char *raw_str, const char *url,
+                         ScTextStyle style);
 void sc_text_free(ScText *text);
 void sc_print_text(const ScText *text);
 size_t sc_text_visible_width(const ScText *text);

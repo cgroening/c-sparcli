@@ -48,6 +48,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 - **Interactive prompts**: confirm, text/password, number, textarea, single & multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
 - **Custom key shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a partly-italic label) – see [Input widgets](#input-widgets).
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`, `[rgb(120,200,255)]…[/]` – same syntax as [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
+- **Clickable hyperlinks (OSC-8)**: `[link=https://…]text[/link]` markup or `sc_text_append_link()` – Cmd/Ctrl+click opens the URL in supporting terminals, plain text everywhere else.
 - **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
 - **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
 - **ANSI-injection safe by default**: control bytes and escape sequences in user strings are stripped at the API boundary; opt back in globally (`sc_set_allow_ansi`) or per widget (`.ansi = SC_ANSI_MODE_ALLOW`) with widths staying correct.
@@ -342,6 +343,8 @@ sc_markup_println("[rgb(120,200,255)]custom[/] color");
 | `[[`                     | `[[`                     |
 
 By default, unknown tags such as `[blink]` are emitted verbatim. Pass `ScMarkupOpts{ .strip_unknown = 1 }` to silently drop them and keep only the inner content.
+
+Clickable **OSC-8 hyperlinks** use the same syntax as Rich: `[link=https://example.com]text[/link]` (or `sc_text_append_link()` from code). Supporting terminals open the URL on Cmd/Ctrl+click; others show just the text.
 
 Any widget that takes an `ScText *` accepts markup via `sc_markup_parse()`. For tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.
 

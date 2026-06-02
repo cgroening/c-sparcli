@@ -14,6 +14,7 @@ static void check_mode_resolution(void);
 static void check_widths(void);
     static int test_visible_width(const char *line);
 static void check_text_and_markup(void);
+static void check_links(void);
 static void check_strip_ansi(void);
 static void check_print_sanitizes(void);
 static void check_panel_alignment(void);
@@ -35,6 +36,7 @@ void test_sanitize(void) {
     check_mode_resolution();
     check_widths();
     check_text_and_markup();
+    check_links();
     check_strip_ansi();
     check_print_sanitizes();
     check_panel_alignment();
@@ -232,6 +234,106 @@ static void check_text_and_markup(void) {
     span = sc_text_span(parsed, 0);
     CHECK(str_eq(span.raw_str, "x\033[31my"),
           "markup: opts.ansi = ALLOW keeps raw escape sequences");
+    sc_text_free(parsed);
+}
+
+
+/* ── OSC-8 hyperlinks ────────────────────────────────────────────────────── */
+
+static void check_links(void) {
+    sc_set_allow_ansi(false);
+
+    // URL scrubbing: control bytes, ESC sequences and non-ASCII removed
+    char *scrubbed = sc_osc8_scrub_url("https://x.test/\033[31m\a\n\tpath");
+    CHECK(str_eq(scrubbed, "https://x.test/[31mpath"),
+          "links: URL scrubbing drops ESC, BEL, newline and tab bytes");
+    free(scrubbed);
+
+    scrubbed = sc_osc8_scrub_url("\033\a\x01");
+    CHECK(str_eq(scrubbed, ""),
+          "links: URL of only control bytes scrubs to empty");
+    free(scrubbed);
+
+    // sc_osc8_wrap builds the full OSC-8 sequence
+    char *wrapped = sc_osc8_wrap("text", "https://x.test");
+    CHECK(str_eq(wrapped,
+                 "\033]8;;https://x.test\033\\text\033]8;;\033\\"),
+          "links: sc_osc8_wrap builds opener + text + closer");
+    free(wrapped);
+
+    // sc_text_append_link: visible width counts only the link text
+    ScText *text = sc_text_new();
+    sc_text_append_link(
+        text, "click", "https://example.com", (ScTextStyle){ 0 }
+    );
+    CHECK(sc_text_visible_width(text) == 5,
+          "links: OSC-8 escape bytes occupy zero visible columns");
+    CHECK(sc_text_span_count(text) == 1,
+          "links: link is stored as a single span");
+    sc_text_free(text);
+
+    // NULL / empty URL degrades to a plain span without escape bytes
+    text = sc_text_new();
+    sc_text_append_link(text, "plain", NULL, (ScTextStyle){ 0 });
+    sc_text_append_link(text, " more", "", (ScTextStyle){ 0 });
+    ScSpan span = sc_text_span(text, 0);
+    CHECK(span.raw_str && strchr(span.raw_str, '\033') == NULL,
+          "links: NULL URL appends a plain span");
+    span = sc_text_span(text, 1);
+    CHECK(span.raw_str && strchr(span.raw_str, '\033') == NULL,
+          "links: empty URL appends a plain span");
+    sc_text_free(text);
+
+    // The visible link text crosses the trust boundary (sanitized)
+    text = sc_text_new();
+    sc_text_append_link(
+        text, "evil\033[31mtext", "https://x.test", (ScTextStyle){ 0 }
+    );
+    span = sc_text_span(text, 0);
+    CHECK(span.raw_str && strstr(span.raw_str, "\033[31m") == NULL,
+          "links: injected CSI in the link text is stripped");
+    CHECK(span.raw_str && strstr(span.raw_str, "eviltext") != NULL,
+          "links: visible link text is kept after sanitizing");
+    sc_text_free(text);
+
+    // Plain sc_text_append can never produce OSC-8 bytes
+    text = sc_text_new();
+    sc_text_append(
+        text, "\033]8;;https://evil\033\\x\033]8;;\033\\", (ScTextStyle){ 0 }
+    );
+    span = sc_text_span(text, 0);
+    CHECK(span.raw_str && strchr(span.raw_str, '\033') == NULL,
+          "links: sc_text_append strips injected OSC-8 sequences");
+    sc_text_free(text);
+
+    // Markup [link=URL] produces one OSC-8 wrapped span
+    ScText *parsed = sc_markup_parse(
+        "[link=https://example.com]docs[/link]"
+    );
+    CHECK(sc_text_span_count(parsed) == 1,
+          "links: markup link parses to a single span");
+    span = sc_text_span(parsed, 0);
+    CHECK(span.raw_str
+              && strstr(span.raw_str, "\033]8;;https://example.com\033\\")
+                     != NULL
+              && strstr(span.raw_str, "docs") != NULL,
+          "links: markup link span contains opener, text and closer");
+    CHECK(sc_text_visible_width(parsed) == 4,
+          "links: markup link width counts only the visible text");
+    sc_text_free(parsed);
+
+    // Markup link body is literal: nested tags stay verbatim
+    parsed = sc_markup_parse("[link=https://x.test]a [bold]b[/bold][/link]");
+    span = sc_text_span(parsed, 0);
+    CHECK(span.raw_str && strstr(span.raw_str, "[bold]") != NULL,
+          "links: markup link body keeps nested tags verbatim");
+    sc_text_free(parsed);
+
+    // Markup link URL is scrubbed
+    parsed = sc_markup_parse("[link=https://x.test/\033[31mevil]e[/link]");
+    span = sc_text_span(parsed, 0);
+    CHECK(span.raw_str && strstr(span.raw_str, "\033[31m") == NULL,
+          "links: markup link URL is scrubbed of escape sequences");
     sc_text_free(parsed);
 }
 

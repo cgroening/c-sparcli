@@ -3,6 +3,7 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -33,6 +34,19 @@
 /** Final byte range of a non-CSI escape sequence (`ESC c`, `ESC 7`). */
 #define ESC_FINAL_MIN 0x30
 #define ESC_FINAL_MAX 0x7e
+
+/** Printable ASCII range allowed inside an OSC-8 hyperlink URL. */
+#define OSC8_URL_BYTE_MIN 0x20
+#define OSC8_URL_BYTE_MAX 0x7e
+
+/** OSC-8 hyperlink opener up to (excluding) the URL. */
+#define OSC8_OPEN_PREFIX "\033]8;;"
+
+/** String terminator (ST) that ends the opener after the URL. */
+#define OSC8_ST "\033\\"
+
+/** OSC-8 hyperlink closer (empty URL = end of link). */
+#define OSC8_CLOSE "\033]8;;\033\\"
 
 
 static const char *skip_csi(const char *p);
@@ -106,6 +120,44 @@ char *sc_sanitize_copy(const char *str, bool allow_ansi) {
 
 char *sc_sanitize_copy_mode(const char *str, ScAnsiMode mode) {
     return sc_sanitize_copy(str, sc_ansi_mode_resolve(mode));
+}
+
+char *sc_osc8_scrub_url(const char *url) {
+    if (!url) { return NULL; }
+
+    /* Output is never longer than the input. */
+    size_t input_length = strlen(url);
+    char *output = malloc(input_length + 1);
+    if (!output) { return NULL; }
+
+    size_t write_position = 0;
+    for (size_t i = 0; i < input_length; i++) {
+        unsigned char byte = (unsigned char)url[i];
+        if (byte >= OSC8_URL_BYTE_MIN && byte <= OSC8_URL_BYTE_MAX) {
+            output[write_position++] = url[i];
+        }
+    }
+    output[write_position] = '\0';
+    return output;
+}
+
+char *sc_osc8_wrap(const char *text, const char *url) {
+    if (!text || !url) { return NULL; }
+
+    size_t total = strlen(OSC8_OPEN_PREFIX) + strlen(url) + strlen(OSC8_ST)
+                 + strlen(text) + strlen(OSC8_CLOSE) + 1;
+    char *output = malloc(total);
+    if (!output) { return NULL; }
+
+    int written = snprintf(
+        output, total, "%s%s%s%s%s",
+        OSC8_OPEN_PREFIX, url, OSC8_ST, text, OSC8_CLOSE
+    );
+    if (written < 0 || (size_t)written >= total) {
+        free(output);
+        return NULL;
+    }
+    return output;
 }
 
 const char *sc_ansi_skip_seq(const char *p) {

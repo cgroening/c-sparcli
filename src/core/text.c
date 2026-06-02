@@ -52,6 +52,32 @@ void sc_text_append_raw(
     sc_text->count++;
 }
 
+void sc_text_append_link(
+    ScText *sc_text, const char *raw_str, const char *url, ScTextStyle style
+) {
+    if (!sc_text || !raw_str) { return; }
+
+    // Public entry: the visible text crosses the trust boundary here
+    char *clean_text = sc_sanitize_copy(raw_str, sc_allow_ansi());
+    if (!clean_text) { return; }
+
+    // The URL is reduced to printable ASCII so it cannot break out of the
+    // OSC-8 sequence; an empty result degrades to a plain span.
+    char *safe_url = url ? sc_osc8_scrub_url(url) : NULL;
+    if (safe_url && safe_url[0] != '\0') {
+        char *wrapped = sc_osc8_wrap(clean_text, safe_url);
+        if (wrapped) {
+            sc_text_append_raw(sc_text, wrapped, style);
+            free(wrapped);
+        }
+    } else {
+        sc_text_append_raw(sc_text, clean_text, style);
+    }
+
+    free(safe_url);
+    free(clean_text);
+}
+
 void sc_text_free(ScText *sc_text) {
     if (!sc_text) { return; }
     for (size_t i = 0; i < sc_text->count; i++) {

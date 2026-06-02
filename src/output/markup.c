@@ -22,6 +22,12 @@
 /** Length of `RGB_PREFIX`. */
 #define RGB_PREFIX_LENGTH 4
 
+/** Prefix that introduces an OSC-8 hyperlink tag `[link=URL]`. */
+#define LINK_PREFIX "link="
+
+/** Length of `LINK_PREFIX`. */
+#define LINK_PREFIX_LENGTH 5
+
 
 /** Named ANSI color lookup table; terminated by a `NULL` name. */
 static const struct {
@@ -73,6 +79,14 @@ typedef struct Parser {
      * (`[/]` always closes the most-recent open).
      */
     int dropped_opens;
+
+    /**
+     * Scrubbed URL of the active `[link=…]` tag; `NULL` = no link active.
+     * While a link is active the body is treated as literal text: only
+     * `[/link]` and `[/]` are recognized, everything else (including
+     * nested tags) is part of the link text.
+     */
+    char *link_url;
 } Parser;
 
 
@@ -103,6 +117,11 @@ static ScText *parse_internal(const char *markup, ScMarkupOpts opts);
             Parser *self,
             const char *tag_content, size_t tag_length, const char *tag_end
         );
+            static bool try_open_link_tag(
+                Parser *self,
+                const char *tag_content, size_t tag_length,
+                const char *tag_end
+            );
             static bool parse_open_tag(
                 const char *content, size_t length,
                 ScTextStyle base, ScTextStyle *out
@@ -119,6 +138,11 @@ static ScText *parse_internal(const char *markup, ScMarkupOpts opts);
                         const char *token, size_t length, ScTextStyle *out
                     );
         static void drop_unknown_tag(Parser *self, const char *tag_end);
+    static bool consume_link_close(Parser *self);
+        static void flush_link_segment(Parser *self);
+            static void append_link_chunk(
+                Parser *self, const char *start, size_t length
+            );
     static void flush_segment(Parser *self);
 
 static void append_parsed_spans(ScText *target, const ScText *source);
@@ -182,6 +206,12 @@ static ScText *parse_internal(const char *markup, ScMarkupOpts opts) {
     init_parser(&self, markup, opts);
 
     while (*self.cursor) {
+        // Inside a [link=…] body only the closing tags are recognized
+        if (self.link_url) {
+            if (consume_link_close(&self)) { continue; }
+            self.cursor++;
+            continue;
+        }
         if (consume_literal_bracket(&self)) { continue; }
         if (consume_tag(&self)) { continue; }
         self.cursor++;
@@ -203,6 +233,7 @@ static void init_parser(
     self->text = sc_text_new();
     self->depth = 0;
     self->dropped_opens = 0;
+    self->link_url = NULL;
     self->stack[0] = (ScTextStyle){
         SC_TEXT_ATTR_NONE,
         SC_ANSI_COLOR_NONE,
@@ -352,6 +383,10 @@ static void handle_opening_tag(
     Parser *self,
     const char *tag_content, size_t tag_length, const char *tag_end
 ) {
+    if (try_open_link_tag(self, tag_content, tag_length, tag_end)) {
+        return;
+    }
+
     ScTextStyle new_style;
     bool recognized = parse_open_tag(
         tag_content, tag_length, current_style(self), &new_style
@@ -374,6 +409,46 @@ static void handle_opening_tag(
     }
     self->cursor = tag_end + 1;
     self->segment_start = self->cursor;
+}
+
+/**
+ * Detects `[link=URL]`: flushes the pending segment, scrubs and stores
+ * the URL, and switches the parser into link-body mode. Returns `true`
+ * when the tag was consumed (also when the URL is empty after scrubbing,
+ * which falls back to unknown-tag handling).
+ */
+static bool try_open_link_tag(
+    Parser *self,
+    const char *tag_content, size_t tag_length, const char *tag_end
+) {
+    if (tag_length <= LINK_PREFIX_LENGTH
+        || memcmp(tag_content, LINK_PREFIX, LINK_PREFIX_LENGTH) != 0) {
+        return false;
+    }
+
+    char *url = strndup(
+        tag_content + LINK_PREFIX_LENGTH, tag_length - LINK_PREFIX_LENGTH
+    );
+    if (!url) { return false; }
+    char *scrubbed = sc_osc8_scrub_url(url);
+    free(url);
+
+    // A URL with no printable bytes cannot form a link: treat as unknown
+    if (!scrubbed || scrubbed[0] == '\0') {
+        free(scrubbed);
+        drop_unknown_tag(self, tag_end);
+        return true;
+    }
+
+    append_chunk(
+        self, self->segment_start,
+        (size_t)(self->cursor - self->segment_start),
+        current_style(self)
+    );
+    self->link_url = scrubbed;
+    self->cursor = tag_end + 1;
+    self->segment_start = self->cursor;
+    return true;
 }
 
 /**
@@ -556,8 +631,74 @@ static void drop_unknown_tag(Parser *self, const char *tag_end) {
     self->cursor = tag_end + 1;
 }
 
-/** Flushes the remaining verbatim segment at end of parsing. */
+/**
+ * Detects `[/link]` or `[/]` while a link is active: flushes the link
+ * body wrapped in OSC-8 escape sequences and leaves link-body mode.
+ * Returns `true` when a closing tag was consumed.
+ */
+static bool consume_link_close(Parser *self) {
+    static const char *const close_tags[] = { "[/link]", "[/]", NULL };
+
+    for (int i = 0; close_tags[i]; i++) {
+        size_t tag_length = strlen(close_tags[i]);
+        if (strncmp(self->cursor, close_tags[i], tag_length) != 0) {
+            continue;
+        }
+        flush_link_segment(self);
+        self->cursor += tag_length;
+        self->segment_start = self->cursor;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Flushes the pending link body as one OSC-8 wrapped span and clears the
+ * link state.
+ */
+static void flush_link_segment(Parser *self) {
+    append_link_chunk(
+        self, self->segment_start,
+        (size_t)(self->cursor - self->segment_start)
+    );
+    free(self->link_url);
+    self->link_url = NULL;
+}
+
+/**
+ * Sanitizes `[start, start+length)`, wraps it in OSC-8 hyperlink escape
+ * sequences pointing at the parser's active link URL, and appends it as
+ * one span with the current style; does nothing when `length == 0`.
+ */
+static void append_link_chunk(
+    Parser *self, const char *start, size_t length
+) {
+    if (length == 0) { return; }
+    char *chunk = strndup(start, length);
+    if (!chunk) { return; }
+
+    // The link body is literal text: raw escape bytes are always stripped
+    char *clean = sc_sanitize_copy(chunk, false);
+    free(chunk);
+    if (!clean) { return; }
+
+    char *wrapped = sc_osc8_wrap(clean, self->link_url);
+    if (wrapped) {
+        sc_text_append_raw(self->text, wrapped, current_style(self));
+        free(wrapped);
+    }
+    free(clean);
+}
+
+/**
+ * Flushes the remaining verbatim segment at end of parsing. An
+ * unterminated `[link=…]` body is still emitted as a link.
+ */
 static void flush_segment(Parser *self) {
+    if (self->link_url) {
+        flush_link_segment(self);
+        return;
+    }
     append_chunk(
         self, self->segment_start,
         (size_t)(self->cursor - self->segment_start),

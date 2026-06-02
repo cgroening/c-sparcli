@@ -396,6 +396,15 @@ extern "C" {
     );
 }
 extern "C" {
+    #[doc = " Appends a new span wrapped in an OSC-8 terminal hyperlink.\n\n The visible text is `raw_str` (sanitized like `sc_text_append`); the\n span is wrapped in OSC-8 escape sequences so supporting terminals make\n it clickable and open `url`. The URL is reduced to printable ASCII\n (control bytes and ESC are removed) so it cannot inject escape\n sequences. Terminals without OSC-8 support show only the text.\n\n The link escape bytes occupy zero visible columns; width calculations\n and frame alignment are unaffected.\n\n @param text     Target text; no-op when `NULL`.\n @param raw_str  Visible UTF-8 link text; no-op when `NULL`.\n @param url      Link target (e.g. `https://...`, `file:///...`);\n                 `NULL` or empty appends a plain span without a link.\n @param style    Style applied to this span."]
+    pub fn sc_text_append_link(
+        text: *mut ScText,
+        raw_str: *const ::std::os::raw::c_char,
+        url: *const ::std::os::raw::c_char,
+        style: ScTextStyle,
+    );
+}
+extern "C" {
     #[doc = " Frees `text` and all owned spans.\n\n @param text  Object to free; safe to pass `NULL`."]
     pub fn sc_text_free(text: *mut ScText);
 }

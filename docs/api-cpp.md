@@ -100,12 +100,13 @@ Text t2("plain");                    // one unstyled span
 Text t3 = Text::markup("[bold]hi[/]");
 t.append("x", style(SC_TEXT_ATTR_DIM))
  .append_markup("[red]y[/]")
+ .append_link("docs", "https://example.com/docs")   // OSC-8 hyperlink
  .append_badge("v1");
 t.print();                           // → current output stream
 t.visible_width(); t.span_count();
 ```
 
-All `append*` calls copy their input.
+All `append*` calls copy their input. `append_link` wraps the text in an OSC-8 terminal hyperlink (clickable in supporting terminals, plain text elsewhere); markup `[link=URL]text[/link]` does the same.
 
 ### Table – `ScTableData` (owns its cell strings)
 

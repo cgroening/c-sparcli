@@ -153,7 +153,8 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_util.c \
            tests/output/test_pad.c \
            tests/output/test_align.c \
-           tests/output/test_markup.c
+           tests/output/test_markup.c \
+           tests/output/test_links.c
 TEST_BIN = tests/output/test_main
 
 # ── Input logic + widget suite (tests/input/logic/) - interactive ─────────

@@ -53,6 +53,21 @@ class Text:
         lib.sc_text_append(self._p, cstr(arena, s), cstyle[0])
         return self
 
+    def append_link(
+        self, s: str, url: str | None, style: Style = Style()
+    ) -> "Text":
+        """Append a span wrapped in an OSC-8 terminal hyperlink.
+
+        Supporting terminals make ``s`` clickable and open ``url``; others
+        show only the text. ``None`` or an empty ``url`` appends a plain
+        span. Returns ``self`` for chaining.
+        """
+        arena: list = []
+        cstyle = ffi.new("ScTextStyle *")
+        apply_style(cstyle, style)
+        lib.sc_text_append_link(self._p, cstr(arena, s), cstr(arena, url), cstyle[0])
+        return self
+
     def append_markup(
         self, markup: str, *, strip_unknown: bool = False
     ) -> "Text":

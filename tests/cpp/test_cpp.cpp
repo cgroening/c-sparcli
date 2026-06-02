@@ -167,6 +167,24 @@ static void test_wrapper_matches_c() {
     CHECK(contains(wt, "a") && contains(wt, "b"), "Text builder renders spans");
 }
 
+// Text::append_link must emit an OSC-8 hyperlink wrapping the visible text;
+// the escape bytes must not contribute to the visible width.
+static void test_text_link() {
+    Text t;
+    t.append_link("click", "https://example.com");
+    CHECK(t.visible_width() == 5, "link escape bytes have zero visible width");
+    CHECK(t.span_count() == 1, "link is stored as one span");
+
+    std::string out = render([] {
+        Text link;
+        link.append_link("click", "https://example.com");
+        link.print();
+    });
+    CHECK(out.find("\033]8;;https://example.com") != std::string::npos
+              && contains(out, "click"),
+          "Text::append_link emits the OSC-8 hyperlink sequence");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -176,6 +194,7 @@ int main() {
     test_tree_text_arena();
     test_table_column_style();
     test_wrapper_matches_c();
+    test_text_link();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

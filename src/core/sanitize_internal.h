@@ -42,6 +42,31 @@ char *sc_sanitize_copy(const char *str, bool allow_ansi);
 char *sc_sanitize_copy_mode(const char *str, ScAnsiMode mode);
 
 /**
+ * Returns a heap-allocated copy of `url` reduced to printable ASCII
+ * (0x20-0x7E).
+ *
+ * Control bytes (including ESC and BEL) and bytes >= 0x7F are removed so
+ * the result can be embedded in an OSC-8 hyperlink sequence without
+ * terminating it early or injecting a nested escape sequence.
+ *
+ * Returns `NULL` when `url` is `NULL` or allocation fails. Caller owns
+ * the result.
+ */
+char *sc_osc8_scrub_url(const char *url);
+
+/**
+ * Builds the OSC-8 hyperlink byte sequence for `text` linking to `url`.
+ *
+ * Produces `ESC ] 8 ; ; url ST text ESC ] 8 ; ; ST` as one heap string.
+ * Both inputs must already be sanitized/scrubbed (trusted side); the
+ * result is meant for `sc_text_append_raw`.
+ *
+ * Returns `NULL` when either input is `NULL` or allocation fails. Caller
+ * owns the result.
+ */
+char *sc_osc8_wrap(const char *text, const char *url);
+
+/**
  * Returns the pointer just past the well-formed ANSI escape sequence
  * starting at `p` (where `*p` must be ESC), or `p` itself when the bytes
  * do not form a valid, complete sequence.

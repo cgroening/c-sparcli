@@ -751,6 +751,43 @@ Plain prefix - [0m[1m[31mappended markup[0m - [0m[3m[36msecond append[0m
 [36m╰[0m[36m────────────────────────────────────────────[0m[36m╯[0m
 ════════════════════════════════════════════════════════════════════════════════
 
+══════════════════════════════════ [1mHyperlinks[0m ══════════════════════════════════
+
+--- Links 1. sc_text_append_link ---
+See the [0m[4m[36m]8;;https://example.com/sparcli\sparcli repository]8;;\[0m for details.[0m
+
+--- Links 2. NULL / empty URL ---
+no url at all[0m | [0mempty url[0m
+
+--- Links 3. URL scrubbing ---
+]8;;https://example.com/[31mpath\scrubbed]8;;\[0m
+
+--- Links 4. markup [link=URL] ---
+Open [0m]8;;https://example.com/docs\the documentation]8;;\[0m now[0m
+Closed with the generic tag: [0m]8;;https://example.com\click here]8;;\[0m
+[1mStyled outside: [0m[1m]8;;https://example.com\bold link]8;;\[0m
+
+--- Links 5. markup edge cases ---
+Empty URL stays verbatim: [link=]text[/link][0m
+Unterminated link: [0m]8;;https://example.com\tail]8;;\[0m
+Body is literal: [0m]8;;https://example.com\a [bold]b[/bold]]8;;\[0m
+
+--- Links 6. link in panel ---
+┌[0m─[0m [0m[1m Links [0m [0m──────────────────────────────────[0m┐[0m
+│[0m Read the [0m]8;;https://example.com/manual\manual]8;;\[0m                            │[0m
+│[0m or the plain line below it for comparison.[0m │[0m
+└[0m────────────────────────────────────────────[0m┘[0m
+
+--- Links 7. link in table ---
+┌[0m───────────[0m┬[0m─────────────[0m┐[0m
+│[0m [1mProject[0m   │[0m [1mHomepage[0m    │[0m
+├[0m───────────[0m┼[0m─────────────[0m┤[0m
+│[0m sparcli[0m   │[0m ]8;;https://example.com/sparcli\example.com]8;;\[0m │[0m
+├[0m───────────[0m┼[0m─────────────[0m┤[0m
+│[0m plain row[0m │[0m no link[0m     │[0m
+└[0m───────────[0m┴[0m─────────────[0m┘[0m
+════════════════════════════════════════════════════════════════════════════════
+
 ═══════════════════════════════ [1mColumns (Basic)[0m ════════════════════════════════
 Column 1, Line 1[0m  [35m│[0m  [32mColumn 2 [0m  [35m│[0m            [35m│[0m          
 Column 1, Line 2[0m  [35m│[0m             [35m│[0m  [31mColumn 3[0m  [35m│[0m          

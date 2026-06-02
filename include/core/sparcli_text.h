@@ -64,6 +64,28 @@ SPARCLI_EXPORT void sc_text_append(
 );
 
 /**
+ * Appends a new span wrapped in an OSC-8 terminal hyperlink.
+ *
+ * The visible text is `raw_str` (sanitized like `sc_text_append`); the
+ * span is wrapped in OSC-8 escape sequences so supporting terminals make
+ * it clickable and open `url`. The URL is reduced to printable ASCII
+ * (control bytes and ESC are removed) so it cannot inject escape
+ * sequences. Terminals without OSC-8 support show only the text.
+ *
+ * The link escape bytes occupy zero visible columns; width calculations
+ * and frame alignment are unaffected.
+ *
+ * @param text     Target text; no-op when `NULL`.
+ * @param raw_str  Visible UTF-8 link text; no-op when `NULL`.
+ * @param url      Link target (e.g. `https://...`, `file:///...`);
+ *                 `NULL` or empty appends a plain span without a link.
+ * @param style    Style applied to this span.
+ */
+SPARCLI_EXPORT void sc_text_append_link(
+    ScText *text, const char *raw_str, const char *url, ScTextStyle style
+);
+
+/**
  * Frees `text` and all owned spans.
  *
  * @param text  Object to free; safe to pass `NULL`.

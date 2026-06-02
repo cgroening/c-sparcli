@@ -171,6 +171,14 @@ public:
         sc_text_append(detail::live(p_), detail::z(s).c_str(), st);
         return *this;
     }
+    /** Appends a span wrapped in an OSC-8 terminal hyperlink (clickable in
+     *  supporting terminals; plain text elsewhere). @see sc_text_append_link */
+    Text& append_link(std::string_view s, std::string_view url,
+                      TextStyle st = {}) {
+        sc_text_append_link(detail::live(p_), detail::z(s).c_str(),
+                            detail::z(url).c_str(), st);
+        return *this;
+    }
     /** Appends parsed markup. @see sc_markup_append */
     Text& append_markup(std::string_view m) {
         sc_markup_append(detail::live(p_), detail::z(m).c_str());

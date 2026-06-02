@@ -110,6 +110,16 @@ def test_text_append_chaining():
     assert t.visible_width == 2
 
 
+def test_text_append_link():
+    t = sc.Text()
+    assert t.append_link("click", "https://example.com") is t
+    # OSC-8 escape bytes occupy no visible columns
+    assert t.visible_width == 5
+    # None / empty URL degrades to a plain span
+    plain = sc.Text().append_link("plain", None).append_link("x", "")
+    assert plain.visible_width == 6
+
+
 def test_columns_capture_runs():
     kv = sc.Kv()
     kv.add("k", "v")

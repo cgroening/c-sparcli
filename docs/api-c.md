@@ -57,6 +57,8 @@ sc_text_free(t);
 
 `sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware, UTF-8-aware, counts codepoints not bytes).
 
+`sc_text_append_link(t, "text", "https://…", style)` – appends a span wrapped in an OSC-8 terminal hyperlink; see [Hyperlinks (OSC-8)](#hyperlinks-osc-8).
+
 ### ScBorderType
 
 ```c
@@ -783,6 +785,7 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[bold red on white]` | combined (all in one tag) |
 | `[/]` | close most-recent style frame |
 | `[/bold]`, `[/red]`, … | named close (same effect as `[/]`) |
+| `[link=URL]text[/link]` | OSC-8 terminal hyperlink (see [Hyperlinks](#hyperlinks-osc-8)) |
 | `[[` | literal `[` character |
 | `[blink]` (any unrecognized) | emitted verbatim including brackets |
 
@@ -830,7 +833,7 @@ typedef struct {
 } ScMarkupOpts;
 ```
 
-Controls what happens with unrecognized tags like `[blink]`, `[link=...]`, `[strike]`:
+Controls what happens with unrecognized tags like `[blink]`, `[strike]`:
 
 | `strip_unknown` | `[blink]hello[/blink]` becomes |
 |-----------------|-------------------------------|
@@ -867,6 +870,40 @@ sc_table_free(t);  /* frees markup ScText automatically */
 **Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default (including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
 
 **`[[` escape:** Two consecutive opening brackets produce a single literal `[`.
+
+---
+
+## Hyperlinks (OSC-8)
+
+Clickable terminal hyperlinks: the visible text is wrapped in OSC-8 escape sequences, so supporting terminals (iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal, GNOME Terminal, …) open the URL on Cmd/Ctrl+click. Terminals without OSC-8 support ignore the sequences and show only the text – output degrades cleanly.
+
+```c
+/* API: append a linked span to an ScText */
+ScText *t = sc_text_new();
+sc_text_append(t, "See the ", (ScTextStyle){ 0 });
+sc_text_append_link(t, "documentation", "https://example.com/docs",
+    (ScTextStyle){ SC_TEXT_ATTR_UNDER, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE });
+sc_print_text(t);
+sc_text_free(t);
+
+/* Markup: [link=URL]text[/link] (also closable with [/]) */
+sc_markup_println("Open [link=https://example.com/docs]the docs[/link] now");
+```
+
+Works inside every widget that accepts `ScText` or markup (panels, table cells, lists, …): the escape bytes occupy **zero visible columns**, so width calculations and frame alignment are unaffected.
+
+**Security / sanitization:**
+
+- The **URL** is reduced to printable ASCII (0x20–0x7E): control bytes, ESC and BEL are removed, so a URL can never terminate the sequence early or inject a nested escape sequence.
+- The **visible text** crosses the normal trust boundary (sanitized like `sc_text_append`).
+- A `NULL` or empty URL appends a plain span without any link bytes.
+- Injected OSC-8 sequences in ordinary user strings are still stripped by default – only `sc_text_append_link` and the `[link=…]` tag produce links.
+
+**Markup specifics:**
+
+- The link body is **literal text**: nested tags between `[link=…]` and `[/link]` are not parsed (they appear verbatim). Style the whole link from outside: `[bold][link=…]text[/link][/]`.
+- URLs containing `]` cannot be expressed in markup (the tag ends at the first `]`); use `sc_text_append_link` for those.
+- `[link=]` (empty URL) is treated as an unknown tag.
 
 ---
 
