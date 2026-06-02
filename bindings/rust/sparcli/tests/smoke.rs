@@ -123,6 +123,17 @@ fn pager_is_noop_off_terminal() {
 }
 
 #[test]
+fn error_report_builder() {
+    // Builder chains, stores the exit code, and printing does not exit
+    let report = sparcli::ErrorReport::new("boom")
+        .cause("a reason")
+        .hint("a hint")
+        .code(7);
+    assert_eq!(report.exit_code(), 7);
+    report.print(); // renders to the (non-TTY) output stream; must not panic
+}
+
+#[test]
 fn input_without_tty_errors() {
     // No controlling terminal under `cargo test`, so prompts return an error
     // (callers fall back to a default), never a panic.

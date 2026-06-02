@@ -53,7 +53,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 - **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
 - **ANSI-injection safe by default**: control bytes and escape sequences in user strings are stripped at the API boundary; opt back in globally (`sc_set_allow_ansi`) or per widget (`.ansi = SC_ANSI_MODE_ALLOW`) with widths staying correct.
 - **Composable**: capture any widget into a buffer, then pad, align, or place it inside a columns layout.
-- **CLI application helpers**: pipe long output through a pager (`$PAGER`/`less`, auto-skipped in scripts) and resolve XDG config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use).
+- **CLI application helpers**: pipe long output through a pager (`$PAGER`/`less`, auto-skipped in scripts), resolve XDG config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use), and report fatal errors as pretty panels (`sc_die`: message + cause chain + hint + exit code).
 - **Command-line tool included**: the `sparcli` binary brings every output and input widget to the shell – `sparcli panel`, `name=$(sparcli input "Name:")`, `sparcli confirm && …`. See [Command-line tool](#command-line-tool) and [`docs/cli.md`](docs/cli.md).
 - **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`, namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
 - **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds the C via `cc` – no install needed) with RAII handles, builder options and `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).

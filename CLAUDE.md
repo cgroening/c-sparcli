@@ -26,8 +26,8 @@ make test-input-style-check / -golden  # style golden-file diff / regenerate
 make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
                   # widget onto a pseudo-terminal and feeds canned keys – gives
                   # interactive coverage with no human. Runs headless (CI).
-make test-app     # APP framework suite (tests/app/): XDG paths + pager logic
-                  # tests with real child processes; headless (CI).
+make test-app     # APP framework suite (tests/app/): XDG paths, pager + pretty
+                  # errors logic tests with real child processes; headless (CI).
 make test-cli-check / -golden  # CLI output golden-file diff / regenerate
                   # (tests/cli/run_output.sh drives every output subcommand)
 make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitized
@@ -68,13 +68,13 @@ src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
               textarea, select, fuzzy, datepicker
-src/app/      application-framework helpers: paths (XDG dirs)
+src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/    include/app/
                  (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
-tests/app/       framework suite (paths, pager)
+tests/app/       framework suite (paths, pager, errors)
 tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 
@@ -1025,3 +1025,30 @@ char *log = sc_path_file(SC_PATH_STATE, "myapp", "logs/run.log");
 All results are heap strings (caller frees); `NULL` on failure. **Validation:** `appname` must be a single safe path component; `relative` may contain subdirectories but no `..`/absolute/control bytes (path-traversal guard). Relative `$XDG_*` values are ignored per spec. Tests: `tests/app/test_paths.c` (sandboxed `$HOME`, never touches real user dirs).
 
 Bindings: C++ `sparcli::paths::*` (`std::optional<std::string>`) + `sparcli::Pager` (RAII); Rust `sparcli::paths::*` (`Option<PathBuf>`) + `Pager` (Drop); Python `sc.config_dir(...)` etc. (`pathlib.Path`, raises `SparcliError`) + `sc.Pager` (context manager).
+
+---
+
+## Pretty Errors (`src/app/error.c`)
+
+Structured error reporting: message + cause chain + hint + exit code, rendered as a red alert panel (reuses `sc_alert_text(SC_ALERT_ERROR, …)` - zero new rendering code). Header: `app/sparcli_error.h`. **No signal handling / crash trapping.**
+
+```c
+ScError *e = sc_error_new("Config could not be loaded");   /* strings copied + sanitized */
+sc_error_add_cause(e, "file not found: ~/.config/app.toml");
+sc_error_set_hint(e, "Run 'app init' to create one");
+sc_error_set_code(e, 2);                                    /* default 1 */
+sc_die(e);                       /* render to stderr + free + exit(2) */
+
+sc_die_msg(2, "message", "hint");        /* one-shot convenience */
+sc_error_print(e);                       /* render to sc_output_stream(); no exit */
+sc_error_print_stderr(e);                /* render to stderr; stream restored; no exit */
+```
+
+| Invariant | Detail |
+|-----------|--------|
+| Trust boundary | Message/causes/hint are sanitized at the builder entry points; rendering uses raw appends |
+| Output target | `sc_error_print` → thread-local stream (capture-able); `sc_die`/`_print_stderr` → always stderr |
+| Ownership | Builder copies all strings; `sc_die` consumes (frees) the error; `sc_error_code(NULL)` = 1 |
+| Rendering | Bold message, dim indented `caused by:` lines, blank line + bold `Hint:` block |
+
+Tests: `tests/app/test_errors.c` (logic: copies, NULL safety, stderr routing) + `tests/output/test_errors.c` (golden rendering). Bindings: C++ `sparcli::ErrorReport` (+ `sparcli::die()`), Rust `sparcli::ErrorReport` (`die() -> !`), Python `sc.ErrorReport` (`die()` raises `SystemExit`, never calls C `exit()`).

@@ -123,7 +123,7 @@ make test-input-pty
 
 ### `make test-app` – application-framework suite
 
-The framework helpers in `tests/app/`: XDG path resolution (environment overrides, `$HOME` fallbacks, directory creation, path-traversal rejection – inside a sandboxed `$HOME`, never touching real user directories) and the pager (no-op off terminal, piping through `cat`, exit-code propagation, `SIGPIPE` robustness, fallback for missing commands). Pure logic with real child processes; no TTY required.
+The framework helpers in `tests/app/`: XDG path resolution (environment overrides, `$HOME` fallbacks, directory creation, path-traversal rejection – inside a sandboxed `$HOME`, never touching real user directories), the pager (no-op off terminal, piping through `cat`, exit-code propagation, `SIGPIPE` robustness, fallback for missing commands), and pretty errors (builder copies, NULL safety, stderr routing). Pure logic with real child processes; no TTY required.
 
 ```sh
 make test-app
@@ -443,7 +443,7 @@ src/output/   panel, rule, list, tree, columns, kv, alert, badge,
 src/tty/      raw mode + signal restore, key decoder, in-place redraw
 src/input/    prompt engine, line editor, shortcut, external editor, confirm,
               text/password/number, textarea, select, fuzzy, datepicker, theme
-src/app/      application-framework helpers: paths (XDG dirs)
+src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
 include/{core,output,input,app}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
 cli/                           the sparcli command-line tool (subcommand per widget)

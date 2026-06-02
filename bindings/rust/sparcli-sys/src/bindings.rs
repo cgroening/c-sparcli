@@ -3073,6 +3073,55 @@ extern "C" {
         relative: *const ::std::os::raw::c_char,
     ) -> *mut ::std::os::raw::c_char;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScError {
+    _unused: [u8; 0],
+}
+extern "C" {
+    #[doc = " Allocates a new error with the given message.\n\n @param message  Human-readable error message (one line works best);\n                 copied. `NULL` is treated as an empty message.\n @return         Heap-allocated error; `NULL` on allocation failure.\n                 Free with `sc_error_free` (or consume with `sc_die`).\n\n @code\n ScError *error = sc_error_new(\"Config could not be loaded\");\n sc_error_add_cause(error, \"file not found: ~/.config/app/config.toml\");\n sc_error_set_hint(error, \"Run 'app init' to create a default config\");\n sc_error_set_code(error, 2);\n sc_die(error);   // renders to stderr, exits with code 2\n @endcode"]
+    pub fn sc_error_new(message: *const ::std::os::raw::c_char) -> *mut ScError;
+}
+extern "C" {
+    #[doc = " Appends one entry to the error's cause chain (rendered as a dim\n `caused by:` line, in the order added).\n\n @param error  Target error; no-op when `NULL`.\n @param cause  Cause description; copied. No-op when `NULL`."]
+    pub fn sc_error_add_cause(error: *mut ScError, cause: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Sets the hint line (rendered as a `Hint:` block under the causes).\n\n @param error  Target error; no-op when `NULL`.\n @param hint   Suggestion for the user; copied. `NULL` removes the hint."]
+    pub fn sc_error_set_hint(error: *mut ScError, hint: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Sets the process exit code used by `sc_die` (default `1`).\n\n @param error      Target error; no-op when `NULL`.\n @param exit_code  Exit code, typically `1`-`125`."]
+    pub fn sc_error_set_code(error: *mut ScError, exit_code: ::std::os::raw::c_int);
+}
+extern "C" {
+    #[doc = " Returns the error's exit code (default `1`; `1` for `NULL`).\n\n @param error  Error to inspect."]
+    pub fn sc_error_code(error: *const ScError) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Renders the error as a red alert panel to the current output stream.\n\n Does not exit and does not free the error; reusable (e.g. render the\n same error to a log capture and to the terminal).\n\n @param error  Error to render; no-op when `NULL`."]
+    pub fn sc_error_print(error: *const ScError);
+}
+extern "C" {
+    #[doc = " Renders the error as a red alert panel to **stderr**, regardless of the\n current output stream (which is restored afterwards).\n\n @param error  Error to render; no-op when `NULL`."]
+    pub fn sc_error_print_stderr(error: *const ScError);
+}
+extern "C" {
+    #[doc = " Frees an error and all owned strings.\n\n @param error  Error to free; safe to pass `NULL`."]
+    pub fn sc_error_free(error: *mut ScError);
+}
+extern "C" {
+    #[doc = " Renders the error to stderr, frees it, and exits the process with the\n error's exit code.\n\n @param error  Error to report; consumed. `NULL` exits with code `1`\n               without printing."]
+    pub fn sc_die(error: *mut ScError);
+}
+extern "C" {
+    #[doc = " One-shot convenience: builds an error from `message` and `hint`,\n renders it to stderr, and exits with `code`.\n\n @param code     Process exit code.\n @param message  Error message; `NULL` = empty.\n @param hint     Hint line; `NULL` = none.\n\n @code\n if (!config_file) {\n     sc_die_msg(2, \"No config file found\",\n                \"Run 'app init' to create one\");\n }\n @endcode"]
+    pub fn sc_die_msg(
+        code: ::std::os::raw::c_int,
+        message: *const ::std::os::raw::c_char,
+        hint: *const ::std::os::raw::c_char,
+    );
+}
 #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

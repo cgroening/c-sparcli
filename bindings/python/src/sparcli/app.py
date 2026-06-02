@@ -1,8 +1,10 @@
-"""Application-framework helpers: XDG base directories and pager."""
+"""Application-framework helpers: XDG base directories, pager, pretty errors."""
 
 from __future__ import annotations
 
+import weakref
 from pathlib import Path
+from typing import NoReturn
 
 from ._ffi import cstr, ffi, lib
 from .enums import PathKind
@@ -130,3 +132,67 @@ class Pager:
 
     def __exit__(self, *exc) -> None:
         self.end()
+
+
+class ErrorReport:
+    """A structured error report rendered as a red alert panel.
+
+    Carries a message, an optional cause chain, an optional hint and an
+    exit code - the pretty replacement for ``print(..., file=sys.stderr)``
+    + ``sys.exit(1)``. Builder methods are chainable.
+
+        sc.ErrorReport("Config could not be loaded") \\
+            .cause("file not found: ~/.config/app/config.toml") \\
+            .hint("Run 'app init' to create a default config") \\
+            .code(2) \\
+            .die()                  # renders to stderr, raises SystemExit(2)
+    """
+
+    __slots__ = ("_p", "_finalizer", "__weakref__")
+
+    def __init__(self, message: str) -> None:
+        arena: list = []
+        p = lib.sc_error_new(cstr(arena, message))
+        if p == ffi.NULL:
+            raise MemoryError("sc_error_new failed")
+        self._p = p
+        self._finalizer = weakref.finalize(self, lib.sc_error_free, p)
+
+    def cause(self, cause: str) -> "ErrorReport":
+        """Append one ``caused by:`` line. Returns ``self`` for chaining."""
+        arena: list = []
+        lib.sc_error_add_cause(self._p, cstr(arena, cause))
+        return self
+
+    def hint(self, hint: str) -> "ErrorReport":
+        """Set the ``Hint:`` line. Returns ``self`` for chaining."""
+        arena: list = []
+        lib.sc_error_set_hint(self._p, cstr(arena, hint))
+        return self
+
+    def code(self, exit_code: int) -> "ErrorReport":
+        """Set the exit code used by :meth:`die` (default 1)."""
+        lib.sc_error_set_code(self._p, exit_code)
+        return self
+
+    @property
+    def exit_code(self) -> int:
+        """The configured exit code."""
+        return int(lib.sc_error_code(self._p))
+
+    def print(self) -> None:
+        """Render to the current output stream (does not exit)."""
+        lib.sc_error_print(self._p)
+
+    def print_stderr(self) -> None:
+        """Render to stderr (does not exit)."""
+        lib.sc_error_print_stderr(self._p)
+
+    def die(self) -> NoReturn:
+        """Render to stderr and raise ``SystemExit`` with the exit code.
+
+        Raises ``SystemExit`` (instead of calling the C ``exit()``) so
+        Python cleanup, ``finally`` blocks and ``atexit`` handlers run.
+        """
+        self.print_stderr()
+        raise SystemExit(self.exit_code)

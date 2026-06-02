@@ -80,6 +80,7 @@ _SOURCES = [
     "input/datepicker.c",
     "output/pager.c",
     "app/paths.c",
+    "app/error.c",
 ]
 
 ffibuilder = FFI()
@@ -514,6 +515,16 @@ typedef struct {
 } ScPagerOpts;
 ScPager *sc_pager_begin(ScPagerOpts opts);
 int sc_pager_end(ScPager *pager);
+
+typedef struct ScError ScError;
+ScError *sc_error_new(const char *message);
+void sc_error_add_cause(ScError *error, const char *cause);
+void sc_error_set_hint(ScError *error, const char *hint);
+void sc_error_set_code(ScError *error, int exit_code);
+int sc_error_code(const ScError *error);
+void sc_error_print(const ScError *error);
+void sc_error_print_stderr(const ScError *error);
+void sc_error_free(ScError *error);
 
 /* ── Input: shared key/shortcut machinery ──────────────────────────────── */
 typedef struct {

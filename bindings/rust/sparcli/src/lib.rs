@@ -35,7 +35,7 @@ mod input;
 mod output;
 mod text;
 
-pub use app::{paths, Pager, PagerOpts};
+pub use app::{paths, ErrorReport, Pager, PagerOpts};
 pub use error::{Error, Result};
 pub use input::*;
 pub use output::*;

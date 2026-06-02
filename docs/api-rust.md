@@ -112,6 +112,13 @@ let log = sparcli::paths::file(sparcli::paths::Kind::State, "myapp", "run.log");
 let pager = sparcli::Pager::begin(sparcli::PagerOpts::new());
 markup::println("[bold]long report…[/]");
 let status = pager.end();
+
+// Pretty errors: message + causes + hint + exit code as a red panel
+sparcli::ErrorReport::new("Config could not be loaded")
+    .cause("file not found: ~/.config/app/config.toml")
+    .hint("Run 'app init' to create a default config")
+    .code(2)
+    .die(); // renders to stderr, exits(2); print()/print_stderr() don't exit
 ```
 
 ## Input

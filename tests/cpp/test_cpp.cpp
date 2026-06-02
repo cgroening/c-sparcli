@@ -216,6 +216,27 @@ static void test_paths_and_pager() {
           "pager: no-op session writes to the original stream");
 }
 
+// ErrorReport must render message/cause/hint through the alert panel and
+// keep its exit code; die() is not testable in-process (it exits).
+static void test_error_report() {
+    ErrorReport report("something broke");
+    report.cause("first reason").hint("try --force").code(3);
+    CHECK(report.exit_code() == 3, "errors: builder stores the exit code");
+
+    std::string out = render([&report] { report.print(); });
+    CHECK(contains(out, "something broke")
+              && contains(out, "caused by: first reason")
+              && contains(out, "Hint: try --force"),
+          "errors: report renders message, cause and hint");
+
+    // Builder temporaries are copied (the wrapper passes through to C)
+    std::string rendered = render([] {
+        ErrorReport(std::string("temp ") + "message").print();
+    });
+    CHECK(contains(rendered, "temp message"),
+          "errors: temporary message strings are copied");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -227,6 +248,7 @@ int main() {
     test_wrapper_matches_c();
     test_text_link();
     test_paths_and_pager();
+    test_error_report();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

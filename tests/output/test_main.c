@@ -33,6 +33,7 @@ void test_pad(void);
 void test_align(void);
 void test_markup(void);
 void test_links(void);
+void test_errors(void);
 
 
 /**
@@ -83,6 +84,7 @@ static Test *get_all_tests(size_t *count) {
         { "Alignment",                 &test_align,                0 },
         { "Markup",                    &test_markup,               0 },
         { "Hyperlinks",                &test_links,                0 },
+        { "Pretty Errors",             &test_errors,               0 },
         { "Columns (Basic)",           &test_columns_basic,        0 },
         { "Columns (Advanced)",        &test_columns,              0 },
     };
@@ -112,6 +114,7 @@ static Test *get_focused_tests(size_t *count) {
         // { "Alignment",                 &test_align,                0 },
         // { "Markup",                    &test_markup,               0 },
         // { "Hyperlinks",                &test_links,                0 },
+        // { "Pretty Errors",             &test_errors,               0 },
         // { "Columns (Basic)",           &test_columns_basic,        0 },
         // { "Columns (Advanced)",        &test_columns,              0 },
     };

@@ -49,6 +49,7 @@ const SOURCES: &[&str] = &[
     "src/input/fuzzy.c",
     "src/input/datepicker.c",
     "src/app/paths.c",
+    "src/app/error.c",
 ];
 
 fn main() {

@@ -82,7 +82,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/textarea.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c \
           \
-          src/app/paths.c
+          src/app/paths.c src/app/error.c
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 DEP               = $(OBJ:.o=.d)
@@ -157,7 +157,8 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_pad.c \
            tests/output/test_align.c \
            tests/output/test_markup.c \
-           tests/output/test_links.c
+           tests/output/test_links.c \
+           tests/output/test_errors.c
 TEST_BIN = tests/output/test_main
 
 # ── Input logic + widget suite (tests/input/logic/) - interactive ─────────
@@ -203,7 +204,8 @@ PTY_TEST_BIN = tests/input/pty/test_pty
 # Pure logic tests for the app helpers (XDG paths, pager); safe in CI.
 APP_TEST_SRC = tests/app/test_app_main.c \
                tests/app/test_paths.c \
-               tests/app/test_pager.c
+               tests/app/test_pager.c \
+               tests/app/test_errors.c
 APP_TEST_BIN = tests/app/test_app_main
 
 # Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.

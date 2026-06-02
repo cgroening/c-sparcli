@@ -30,8 +30,9 @@ static void print_rule(const char *title) {
 
 int main(void) {
     static const Test tests[] = {
-        { "XDG Paths", test_paths },
-        { "Pager",     test_pager },
+        { "XDG Paths",     test_paths  },
+        { "Pager",         test_pager  },
+        { "Pretty Errors", test_errors },
     };
     size_t count = sizeof tests / sizeof tests[0];
 

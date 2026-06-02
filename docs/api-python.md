@@ -116,6 +116,14 @@ log = sc.app_file(sc.PathKind.STATE, "myapp", "logs/run.log")
 with sc.Pager() as pager:
     table.print(sc.TableOpts(header_row=True))
 print(pager.exit_status)
+
+# Pretty errors: message + causes + hint + exit code as a red panel.
+# die() raises SystemExit (never calls the C exit()), so cleanup runs.
+sc.ErrorReport("Config could not be loaded") \
+    .cause("file not found: ~/.config/app/config.toml") \
+    .hint("Run 'app init' to create a default config") \
+    .code(2) \
+    .die()
 ```
 
 ## Input

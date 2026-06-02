@@ -1,4 +1,5 @@
-//! Application-framework helpers: XDG base directories and pager.
+//! Application-framework helpers: XDG base directories, pager, and
+//! pretty errors.
 
 use crate::style::cstring;
 use sparcli_sys as ffi;
@@ -154,5 +155,80 @@ impl Pager {
 impl Drop for Pager {
     fn drop(&mut self) {
         self.finish();
+    }
+}
+
+/// A structured error report rendered as a red alert panel: message,
+/// cause chain, hint, and exit code.
+///
+/// The pretty replacement for `eprintln!` + `std::process::exit` in CLI
+/// binaries.
+///
+/// ```no_run
+/// sparcli::ErrorReport::new("Config could not be loaded")
+///     .cause("file not found: ~/.config/app/config.toml")
+///     .hint("Run 'app init' to create a default config")
+///     .code(2)
+///     .die();
+/// ```
+pub struct ErrorReport {
+    ptr: *mut ffi::ScError,
+}
+
+impl ErrorReport {
+    /// A new report with the given message. Panics on allocation failure.
+    pub fn new(message: &str) -> ErrorReport {
+        let ptr = unsafe { ffi::sc_error_new(cstring(message).as_ptr()) };
+        assert!(!ptr.is_null(), "sc_error_new: out of memory");
+        ErrorReport { ptr }
+    }
+
+    /// Appends one entry to the cause chain (rendered as `caused by:`).
+    pub fn cause(self, cause: &str) -> Self {
+        unsafe { ffi::sc_error_add_cause(self.ptr, cstring(cause).as_ptr()) };
+        self
+    }
+
+    /// Sets the hint line (rendered as `Hint:`).
+    pub fn hint(self, hint: &str) -> Self {
+        unsafe { ffi::sc_error_set_hint(self.ptr, cstring(hint).as_ptr()) };
+        self
+    }
+
+    /// Sets the process exit code used by [`die`](ErrorReport::die)
+    /// (default 1).
+    pub fn code(self, exit_code: i32) -> Self {
+        unsafe { ffi::sc_error_set_code(self.ptr, exit_code) };
+        self
+    }
+
+    /// The configured exit code.
+    pub fn exit_code(&self) -> i32 {
+        unsafe { ffi::sc_error_code(self.ptr) }
+    }
+
+    /// Renders the report to the current output stream (does not exit).
+    pub fn print(&self) {
+        unsafe { ffi::sc_error_print(self.ptr) };
+    }
+
+    /// Renders the report to stderr (does not exit).
+    pub fn print_stderr(&self) {
+        unsafe { ffi::sc_error_print_stderr(self.ptr) };
+    }
+
+    /// Renders the report to stderr and exits the process with the
+    /// configured exit code.
+    pub fn die(self) -> ! {
+        let ptr = self.ptr;
+        std::mem::forget(self); // sc_die consumes (frees) the error
+        unsafe { ffi::sc_die(ptr) };
+        unreachable!("sc_die never returns");
+    }
+}
+
+impl Drop for ErrorReport {
+    fn drop(&mut self) {
+        unsafe { ffi::sc_error_free(self.ptr) };
     }
 }

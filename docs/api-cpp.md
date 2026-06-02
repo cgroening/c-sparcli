@@ -246,6 +246,14 @@ auto log = paths::file(SC_PATH_STATE, "myapp", "logs/run.log");
     table.print(opts);                 // paged through $PAGER / less -R
     int status = pager.end();          // or implicit on scope exit
 }
+
+// Pretty errors: message + causes + hint + exit code as a red panel
+ErrorReport("Config could not be loaded")
+    .cause("file not found: ~/.config/app/config.toml")
+    .hint("Run 'app init' to create a default config")
+    .code(2)
+    .die();                            // renders to stderr, exits(2)
+die(2, "No config found", "Run 'app init'");   // one-shot
 ```
 
 ## Input widgets

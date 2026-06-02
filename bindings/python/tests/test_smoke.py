@@ -147,6 +147,18 @@ def test_pager_noop_off_terminal():
     assert pager.exit_status == 0
 
 
+def test_error_report():
+    import pytest
+
+    report = sc.ErrorReport("boom").cause("a reason").hint("a hint").code(7)
+    assert report.exit_code == 7
+
+    # die() raises SystemExit with the configured code (never calls C exit)
+    with pytest.raises(SystemExit) as exc_info:
+        report.die()
+    assert exc_info.value.code == 7
+
+
 def test_columns_capture_runs():
     kv = sc.Kv()
     kv.add("k", "v")

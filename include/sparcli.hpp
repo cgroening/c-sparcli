@@ -988,6 +988,63 @@ private:
     ScPager* p_;
 };
 
+/**
+ * Structured error report rendered as a red alert panel: message, cause
+ * chain, hint and exit code. The pretty replacement for
+ * `std::cerr << …; std::exit(1);` in CLI applications. @see sparcli_error.h
+ */
+class ErrorReport {
+public:
+    explicit ErrorReport(std::string_view message)
+        : p_(sc_error_new(detail::z(message).c_str())) {}
+    ~ErrorReport() { sc_error_free(p_); }
+    ErrorReport(ErrorReport&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    ErrorReport& operator=(ErrorReport&& o) noexcept {
+        if (this != &o) { sc_error_free(p_); p_ = o.p_; o.p_ = nullptr; }
+        return *this;
+    }
+    ErrorReport(const ErrorReport&) = delete;
+    ErrorReport& operator=(const ErrorReport&) = delete;
+
+    /** Appends one `caused by:` line. @see sc_error_add_cause */
+    ErrorReport& cause(std::string_view c) {
+        sc_error_add_cause(p_, detail::z(c).c_str());
+        return *this;
+    }
+    /** Sets the `Hint:` line. @see sc_error_set_hint */
+    ErrorReport& hint(std::string_view h) {
+        sc_error_set_hint(p_, detail::z(h).c_str());
+        return *this;
+    }
+    /** Sets the exit code used by die() (default 1). @see sc_error_set_code */
+    ErrorReport& code(int exit_code) {
+        sc_error_set_code(p_, exit_code);
+        return *this;
+    }
+    /** The configured exit code. @see sc_error_code */
+    int exit_code() const { return sc_error_code(p_); }
+
+    /** Renders to the current output stream (no exit). @see sc_error_print */
+    void print() const { sc_error_print(p_); }
+    /** Renders to stderr (no exit). @see sc_error_print_stderr */
+    void print_stderr() const { sc_error_print_stderr(p_); }
+    /** Renders to stderr and exits with the configured code. @see sc_die */
+    [[noreturn]] void die() {
+        ScError* consumed = p_;
+        p_ = nullptr;
+        sc_die(consumed);
+    }
+private:
+    ScError* p_;
+};
+
+/** One-shot error exit: render `message` (+ `hint`) and exit. @see sc_die_msg */
+[[noreturn]] inline void die(int exit_code, std::string_view message,
+                             std::string_view hint = {}) {
+    sc_die_msg(exit_code, detail::z(message).c_str(),
+               hint.empty() ? nullptr : detail::z(hint).c_str());
+}
+
 // ── Custom shortcuts ─────────────────────────────────────────────────────────
 // Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget.
 // @see sparcli_shortcut.h
