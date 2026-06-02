@@ -98,6 +98,7 @@ The `sparcli` binary exposes every widget as a shell subcommand (rich-cli + gum 
 - **`spin`** forks the wrapped command and routes the spinner to `/dev/tty` (the spinner is a stream widget – it must not pollute the child's stdout); the child's exit code is propagated.
 - **Tests:** `make test-cli-check` (golden, `tests/cli/run_output.sh` + `expected.txt`) and `make test-cli-pty` (`tests/cli/test_cli_pty.c`: forkpty + stdout-pipe redirect, runs the ASan/UBSan `sparcli-sanitize` binary). Both are part of `make test`. New output cases go into `run_output.sh` (+ `make test-cli-golden`), new input cases into the `CASES[]` array.
 - **Install:** `make install` puts the binary in `$(BINDIR)` and `completions/_sparcli` in `$(ZSHFUNCDIR)`.
+- **Future migration (deliberately deferred):** the CLI still uses `getopt_long` + hand-written usage strings/completion - NOT the `src/args/` parser. Migrating it is a roadmap item (see README), postponed until the args API has stabilized through real-world use, so that args API changes do not force follow-up changes in the stable, golden-tested CLI. Do not propose this migration as new work.
 
 ---
 

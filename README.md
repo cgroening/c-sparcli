@@ -395,6 +395,8 @@ See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/ in
 - **Rust bindings** – ✅ ship in [`bindings/rust/`](bindings/rust/) (the safe `sparcli` crate over `sparcli-sys`; see [`docs/api-rust.md`](docs/api-rust.md)).
 - **Python bindings** – ✅ ship in [`bindings/python/`](bindings/python/) (the cffi API-mode `sparcli` package; see [`docs/api-python.md`](docs/api-python.md)).
 - **Command-line tool** – ✅ ships as the `sparcli` binary ([`cli/`](cli/); every widget as a shell subcommand with zsh completion; see [`docs/cli.md`](docs/cli.md)).
+- **CLI application framework** – ✅ argument parser (`sc_args_*`, [docs](docs/api-framework.md)), logging (`sc_log_*`), pretty errors (`sc_die`), XDG paths, pager and OSC-8 hyperlinks.
+- **CLI on the args module** – migrate [`cli/`](cli/) from `getopt_long` + hand-written usage strings to the argument parser (`sc_args_*`) once its API has stabilized through real-world use. This would remove the duplicated option/usage/completion definitions and give `sparcli --help` widget-rendered output. Deferred on purpose: the CLI is stable and golden-tested; coupling it to a brand-new API would force follow-up changes on every API adjustment.
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
 - **`examples/` directory** with self-contained copy-pasteable snippets.
 - **More widgets** – open an issue with ideas.
