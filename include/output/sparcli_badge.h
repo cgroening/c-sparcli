@@ -26,6 +26,12 @@ typedef struct ScBadgeOpts {
 
     /** Spaces inserted inside each cap; default `0`. */
     int pad;
+
+    /**
+     * ANSI passthrough for the badge text; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScBadgeOpts;
 
 

@@ -149,22 +149,12 @@ static void cleanup_render(ColumnsRender *self);
 /* ── ANSI / color helpers ────────────────────────────────────────────────── */
 
 /**
- * Returns the visible column width of `str`, skipping CSI escape sequences
- * and counting one column per UTF-8 codepoint.
+ * Returns the visible column width of `str`, skipping ANSI escape
+ * sequences and counting one column per UTF-8 codepoint. Thin wrapper
+ * over the shared ANSI-aware `sc_utf8_string_length`.
  */
 static int ansi_visible_width(const char *str) {
-    int width = 0;
-    while (*str) {
-        if ((unsigned char)*str == 0x1B && str[1] == '[') {
-            str += 2;
-            while (*str && *str != 'm') { str++; }
-            if (*str) { str++; }
-            continue;
-        }
-        if (((unsigned char)*str & 0xC0) != 0x80) { width++; }
-        str++;
-    }
-    return width;
+    return (int)sc_utf8_string_length(str, strlen(str));
 }
 
 /**

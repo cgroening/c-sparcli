@@ -15,9 +15,10 @@
 ScCliCtx sc_cli_ctx_init(const char *prog) {
     const char *no_color = getenv("NO_COLOR");
     return (ScCliCtx){
-        .markup = true,
-        .color  = (no_color == NULL || no_color[0] == '\0'),
-        .prog   = prog,
+        .markup     = true,
+        .color      = (no_color == NULL || no_color[0] == '\0'),
+        .allow_ansi = false,
+        .prog       = prog,
     };
 }
 
@@ -40,6 +41,11 @@ bool sc_cli_common_opt(ScCliCtx *ctx, int opt) {
     }
     if (opt == SC_CLI_OPT_NO_COLOR) {
         ctx->color = false;
+        return true;
+    }
+    if (opt == SC_CLI_OPT_ALLOW_ANSI) {
+        ctx->allow_ansi = true;
+        sc_set_allow_ansi(true);
         return true;
     }
     return false;

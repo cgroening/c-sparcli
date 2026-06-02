@@ -2,8 +2,8 @@
 //! blocks, alerts, badges, progress bars, spinners, capture/compose.
 
 use crate::style::{
-    cstring, Align, Arena, BorderStyle, BorderType, Color, Edges, Position,
-    Style, VAlign,
+    cstring, Align, AnsiMode, Arena, BorderStyle, BorderType, Color, Edges,
+    Position, Style, VAlign,
 };
 use crate::text::Text;
 use sparcli_sys as ffi;
@@ -110,6 +110,9 @@ pub struct PanelOpts {
     pub content_align: Align,
     pub padding: Edges,
     pub margin: Edges,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl PanelOpts {
@@ -160,6 +163,11 @@ impl PanelOpts {
         self.margin = e;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScPanelOpts {
         ffi::ScPanelOpts {
             border: self.border.raw(),
@@ -171,6 +179,7 @@ impl PanelOpts {
             content_align: self.content_align.raw(),
             padding: self.padding.raw(),
             margin: self.margin.raw(),
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -201,6 +210,9 @@ pub struct RuleOpts {
     pub width: i32,
     pub align: Align,
     pub margin: Edges,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl RuleOpts {
@@ -231,6 +243,11 @@ impl RuleOpts {
         self.margin = e;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScRuleOpts {
         ffi::ScRuleOpts {
             type_: self.kind.raw(),
@@ -239,6 +256,7 @@ impl RuleOpts {
             width: self.width,
             halign: self.align.raw(),
             margin: self.margin.raw(),
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -259,6 +277,9 @@ pub struct BadgeOpts {
     pub right_cap: Option<String>,
     pub text_style: Style,
     pub pad: i32,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl BadgeOpts {
@@ -282,12 +303,18 @@ impl BadgeOpts {
         self.pad = p;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScBadgeOpts {
         ffi::ScBadgeOpts {
             left_cap: a.opt(self.left_cap.as_deref()),
             right_cap: a.opt(self.right_cap.as_deref()),
             text_style: self.text_style.raw(),
             pad: self.pad,
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -508,6 +535,9 @@ pub struct TableOpts {
     pub total_width: i32,
     pub max_rows: i32,
     pub right_to_left: bool,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl TableOpts {
@@ -550,6 +580,11 @@ impl TableOpts {
         self.margin = e;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScTableOpts {
         ffi::ScTableOpts {
             border: ffi::ScTableBorder {
@@ -582,6 +617,7 @@ impl TableOpts {
             total_width: self.total_width,
             max_rows: self.max_rows,
             right_to_left: self.right_to_left,
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -735,6 +771,9 @@ pub struct ListOpts {
     pub item_gap: i32,
     pub width: i32,
     pub margin: Edges,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl ListOpts {
@@ -761,6 +800,11 @@ impl ListOpts {
         self.item_gap = g;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScListOpts {
         ffi::ScListOpts {
             marker: self.marker.raw(),
@@ -772,6 +816,7 @@ impl ListOpts {
             item_gap: self.item_gap,
             width: self.width,
             margin: self.margin.raw(),
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -851,11 +896,19 @@ pub struct TreeOpts {
     pub connector_color: Color,
     pub indent: i32,
     pub no_guide: bool,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl TreeOpts {
     pub fn new() -> Self {
         TreeOpts::default()
+    }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
     }
     pub(crate) fn raw(&self) -> ffi::ScTreeOpts {
         ffi::ScTreeOpts {
@@ -863,6 +916,7 @@ impl TreeOpts {
             connector_color: self.connector_color.raw(),
             indent: self.indent,
             no_guide: self.no_guide,
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -937,6 +991,9 @@ pub struct KvOpts {
     pub wrap_val: bool,
     pub key_style: Style,
     pub val_style: Style,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl KvOpts {
@@ -955,6 +1012,11 @@ impl KvOpts {
         self.wrap_val = on;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScKVOpts {
         ffi::ScKVOpts {
             sep: a.opt(self.sep.as_deref()),
@@ -965,6 +1027,7 @@ impl KvOpts {
             wrap_val: self.wrap_val,
             key_style: self.key_style.raw(),
             val_style: self.val_style.raw(),
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -1171,6 +1234,9 @@ pub struct ProgressBarOpts {
     pub width: i32,
     pub label_width: i32,
     pub label_style: Style,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl ProgressBarOpts {
@@ -1202,6 +1268,11 @@ impl ProgressBarOpts {
         self.width = w;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScProgressBarOpts {
         ffi::ScProgressBarOpts {
             type_: self.kind.raw(),
@@ -1223,6 +1294,7 @@ impl ProgressBarOpts {
             width: self.width,
             label_width: self.label_width,
             label_style: self.label_style.raw(),
+            ansi: self.ansi.raw(),
         }
     }
 }
@@ -1268,6 +1340,9 @@ pub struct SpinnerOpts {
     pub kind: SpinnerType,
     pub color: Color,
     pub label_style: Style,
+    /// ANSI passthrough for user strings; zero-init inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    pub ansi: AnsiMode,
 }
 
 impl SpinnerOpts {
@@ -1282,11 +1357,17 @@ impl SpinnerOpts {
         self.color = c;
         self
     }
+    /// Sets the ANSI passthrough mode for this widget's strings.
+    pub fn ansi(mut self, mode: AnsiMode) -> Self {
+        self.ansi = mode;
+        self
+    }
     fn raw(&self) -> ffi::ScSpinnerOpts {
         ffi::ScSpinnerOpts {
             type_: self.kind.raw(),
             color: self.color.raw(),
             label_style: self.label_style.raw(),
+            ansi: self.ansi.raw(),
         }
     }
 }

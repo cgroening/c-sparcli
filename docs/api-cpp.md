@@ -218,6 +218,11 @@ pad("text", { .top = 1 });  align("text", SC_ALIGN_RIGHT, 40);
 std::string plain = strip_ansi(colored);
 std::string cut   = truncate("long…", 12);
 clear_line();
+
+// ANSI-injection protection: user strings are sanitized by default.
+// Opt out globally or per widget (AnsiMode = ScAnsiMode):
+set_allow_ansi(true);                                  // bool allow_ansi();
+panel("…", { .ansi = SC_ANSI_MODE_ALLOW });            // per-widget override
 ```
 
 `ScopedOutput` redirects the (thread-local) output stream for a scope and restores it on exit:

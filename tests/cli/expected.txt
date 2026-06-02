@@ -339,6 +339,23 @@ left column[0m   middle column[0m   right column[0m
 ===== columns: separator, gap, stdin =====
 alpha[0m  │  beta[0m  │  gamma[0m
 
+===== sanitize: injected escape codes and control bytes are stripped =====
+safeinjectedtext[0m
+┌[0m─────────────[0m┐[0m
+│[0m evilredbell[0m │[0m
+└[0m─────────────[0m┘[0m
+┌[0m──────[0m┬[0m────────[0m┐[0m
+│[0m [1mName[0m │[0m [1mStatus[0m │[0m
+├[0m──────[0m┼[0m────────[0m┤[0m
+│[0m job1[0m │[0m okdone[0m │[0m
+└[0m──────[0m┴[0m────────[0m┘[0m
+
+===== sanitize: --allow-ansi passes well-formed escape codes through =====
+ok[31mred[0m[0m
+┌[0m────────────[0m┐[0m
+│[0m [32mgreen[0m text[0m │[0m
+└[0m────────────[0m┘[0m
+
 ===== help: command list =====
 Usage: sparcli [global options] <command> [options] [arguments]
 
@@ -346,10 +363,11 @@ Styled terminal output and interactive prompts for the shell,
 powered by the sparcli library.
 
 Global options:
-  -h, --help       Show this help and exit
-  -V, --version    Show the version and exit
-      --no-color   Strip ANSI colors from the output
-      --no-markup  Treat [tag] markup as literal text
+  -h, --help        Show this help and exit
+  -V, --version     Show the version and exit
+      --no-color    Strip ANSI colors from the output
+      --no-markup   Treat [tag] markup as literal text
+      --allow-ansi  Pass ANSI escapes in input text through
 
 Output commands:
   print      Print markup-styled text
@@ -412,6 +430,7 @@ Options:
   --max-rows N               Show at most N rows
   --no-markup                Treat [tag] markup as literal
   --no-color                 Strip ANSI colors from output
+  --allow-ansi               Pass ANSI escapes in input through
   --help                     Show this help
 
 ===== errors =====

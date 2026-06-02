@@ -22,6 +22,12 @@ typedef struct ScTreeOpts {
     /** When `true`, suppress vertical continuation guides under finished
         branches. */
     bool no_guide;
+
+    /**
+     * ANSI passthrough for node strings; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScTreeOpts;
 
 /** Opaque tree container; build with `sc_tree_new`. */

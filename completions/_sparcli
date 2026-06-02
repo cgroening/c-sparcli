@@ -22,6 +22,7 @@ _sparcli() {
     local -a common_opts=(
         '--no-markup[Treat \[tag\] markup as literal text]'
         '--no-color[Strip ANSI colors from the output]'
+        '--allow-ansi[Pass ANSI escapes in input text through]'
         '--help[Show command help]'
     )
     # Additional options every interactive input command accepts.
@@ -63,6 +64,7 @@ _sparcli() {
         '(-V --version)'{-V,--version}'[Show the version and exit]' \
         '--no-color[Strip ANSI colors from the output]' \
         '--no-markup[Treat \[tag\] markup as literal text]' \
+        '--allow-ansi[Pass ANSI escapes in input text through]' \
         '1: :->cmd' \
         '*::arg:->args'
 

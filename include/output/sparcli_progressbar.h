@@ -81,6 +81,12 @@ typedef struct ScProgressBarOpts {
 
     /** Style applied to the label text; zero-init = no formatting. */
     ScTextStyle label_style;
+
+    /**
+     * ANSI passthrough for the label; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScProgressBarOpts;
 
 /** Opaque progress bar; build with `sc_progressbar_new`. */

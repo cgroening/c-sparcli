@@ -38,8 +38,8 @@ pub use error::{Error, Result};
 pub use input::*;
 pub use output::*;
 pub use style::{
-    Align, Attr, BorderStyle, BorderType, Color, Edges, HintLayout, HintPos,
-    Position, Style, VAlign,
+    Align, AnsiMode, Attr, BorderStyle, BorderType, Color, Edges, HintLayout,
+    HintPos, Position, Style, VAlign,
 };
 pub use text::{markup, MarkupOpts, Text};
 
@@ -71,7 +71,23 @@ pub fn version_string() -> &'static str {
     }
 }
 
-/// Returns a copy of `s` with all ANSI CSI escape sequences removed.
+/// Sets the process-wide ANSI passthrough for user strings.
+///
+/// Default is `false`: escape sequences and control bytes are stripped from
+/// every string entering the library, so untrusted data cannot inject
+/// terminal escape codes. Per-widget opts override this via their `ansi`
+/// field ([`AnsiMode`]).
+pub fn set_allow_ansi(allow: bool) {
+    unsafe { ffi::sc_set_allow_ansi(allow) };
+}
+
+/// The current process-wide ANSI passthrough setting.
+pub fn allow_ansi() -> bool {
+    unsafe { ffi::sc_allow_ansi() }
+}
+
+/// Returns a copy of `s` with all ANSI escape sequences removed (CSI, OSC,
+/// DCS, two-character ESC and lone ESC bytes).
 pub fn strip_ansi(s: &str) -> String {
     unsafe { take_c_string(ffi::sc_strip_ansi(cstring(s).as_ptr())) }
 }

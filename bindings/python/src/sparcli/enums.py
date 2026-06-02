@@ -37,6 +37,14 @@ class Position(IntEnum):
     BOTTOM = 1
 
 
+class AnsiMode(IntEnum):
+    """Per-widget ANSI passthrough; DEFAULT inherits ``set_allow_ansi``."""
+
+    DEFAULT = 0
+    ALLOW = 1
+    SANITIZE = 2
+
+
 class Align(IntEnum):
     """Horizontal alignment."""
 

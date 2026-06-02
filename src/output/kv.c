@@ -148,8 +148,11 @@ static void append_entry(ScKV *kv, const char *key, const char *value) {
         if (!grown) { return; }
         kv->entries = grown;
     }
-    kv->entries[kv->entry_count].key = strdup(key ? key : "");
-    kv->entries[kv->entry_count].value = strdup(value ? value : "");
+    // Key/value strings cross the trust boundary here, honoring opts.ansi
+    kv->entries[kv->entry_count].key =
+        sc_sanitize_copy_mode(key ? key : "", kv->opts.ansi);
+    kv->entries[kv->entry_count].value =
+        sc_sanitize_copy_mode(value ? value : "", kv->opts.ansi);
     kv->entry_count++;
 }
 
@@ -269,7 +272,7 @@ static void print_text_slice(
     char buffer[PRINT_SLICE_BUFFER];
     memcpy(buffer, text, (size_t)byte_count);
     buffer[byte_count] = '\0';
-    sc_print(buffer, style);
+    sc_print_raw(buffer, style);
 }
 
 /** Dispatches to the wrapped or truncated value renderer. */
@@ -339,7 +342,7 @@ static void render_wrapped_value(const KV *self, const char *value) {
         is_first_line = false;
 
         if (self->val_has_format) {
-            sc_print(line_buffer, self->kv->opts.val_style);
+            sc_print_raw(line_buffer, self->kv->opts.val_style);
         } else {
             fputs(line_buffer, sc_output_stream());
         }

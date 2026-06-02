@@ -31,7 +31,9 @@ static void resolve_cell_span(
  * @param out_count  Receives the number of returned lines.
  * @return           Heap-allocated `ScRenderLine` array (length `*out_count`).
  */
-ScRenderLine *make_cell_lines(const ScCell *cell, size_t *out_count) {
+ScRenderLine *make_cell_lines(
+    const ScCell *cell, ScAnsiMode ansi, size_t *out_count
+) {
     LineBuilder builder;
     lb_init(&builder);
 
@@ -43,7 +45,11 @@ ScRenderLine *make_cell_lines(const ScCell *cell, size_t *out_count) {
         const char *text;
         ScTextStyle style;
         resolve_cell_span(cell, span_index, &text, &style);
-        scan_text_into_builder(text, style, &builder);
+        // Borrowed SC_CELL_STR strings cross the trust boundary here;
+        // rich-text spans were already sanitized at append time.
+        char *clean = is_rich ? NULL : sc_sanitize_copy_mode(text, ansi);
+        scan_text_into_builder(clean ? clean : text, style, &builder);
+        free(clean);
     }
     lb_finalize_line(&builder);
     lb_release_span_buffer(&builder);
@@ -57,7 +63,10 @@ ScRenderLine *make_cell_lines(const ScCell *cell, size_t *out_count) {
  */
 size_t cell_visible_width(const ScCell *cell) {
     size_t line_count;
-    ScRenderLine *lines = make_cell_lines(cell, &line_count);
+    // Measurement is ANSI-mode independent (widths skip escape sequences
+    // and dropped control bytes), so no stripping is needed here.
+    ScRenderLine *lines =
+        make_cell_lines(cell, SC_ANSI_MODE_ALLOW, &line_count);
     size_t max_width = 0;
     for (size_t i = 0; i < line_count; i++) {
         if (lines[i].visible_width > max_width) {
@@ -77,8 +86,9 @@ size_t count_cell_lines(
 ) {
     size_t line_count;
     ScRenderLine *lines = (col_opts->word_wrap && available_width > 0)
-        ? wrap_cell_lines(cell, available_width, &line_count)
-        : make_cell_lines(cell, &line_count);
+        ? wrap_cell_lines(cell, SC_ANSI_MODE_ALLOW, available_width,
+                          &line_count)
+        : make_cell_lines(cell, SC_ANSI_MODE_ALLOW, &line_count);
     free_tlines(lines, line_count);
     return line_count;
 }
@@ -96,10 +106,10 @@ void free_tlines(ScRenderLine *lines, size_t line_count) {
  * `max_width`; lines that already fit are deep-copied unchanged.
  */
 ScRenderLine *wrap_cell_lines(
-    const ScCell *cell, int max_width, size_t *out_count
+    const ScCell *cell, ScAnsiMode ansi, int max_width, size_t *out_count
 ) {
     size_t raw_count;
-    ScRenderLine *raw_lines = make_cell_lines(cell, &raw_count);
+    ScRenderLine *raw_lines = make_cell_lines(cell, ansi, &raw_count);
     if (max_width <= 0) {
         *out_count = raw_count;
         return raw_lines;

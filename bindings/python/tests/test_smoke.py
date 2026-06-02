@@ -197,3 +197,39 @@ def test_scoped_output_redirect(tmp_path):
 def test_interior_nul_rejected():
     with pytest.raises(ValueError):
         sc.println("a\x00b")
+
+
+# ── ANSI-injection protection ─────────────────────────────────────
+def test_ansi_injection_stripped_by_default():
+    """Escape codes and control bytes in user strings are removed."""
+    assert not sc.allow_ansi()
+    r = sc.capture.panel("\x1b[31mevil\x1b]0;title\x07\x1b[0m content")
+    joined = "\n".join(r.lines)
+    assert "\x1b[31m" not in joined
+    assert "\x1b]0;" not in joined
+    assert "evil content" in sc.strip_ansi(joined)
+
+
+def test_ansi_global_allow_roundtrip():
+    """set_allow_ansi(True) passes well-formed escape codes through."""
+    sc.set_allow_ansi(True)
+    try:
+        assert sc.allow_ansi()
+        r = sc.capture.panel("\x1b[31mred\x1b[0m")
+        assert any("\x1b[31m" in line for line in r.lines)
+    finally:
+        sc.set_allow_ansi(False)
+    assert not sc.allow_ansi()
+
+
+def test_ansi_per_widget_override():
+    """PanelOpts(ansi=AnsiMode.ALLOW) overrides the global default."""
+    r = sc.capture.panel(
+        "\x1b[32mgreen\x1b[0m",
+        sc.PanelOpts(ansi=sc.AnsiMode.ALLOW),
+    )
+    lines = r.lines
+    assert any("\x1b[32m" in line for line in lines)
+    # Borders stay aligned: every line strips to the same visible width
+    widths = {len(sc.strip_ansi(line)) for line in lines}
+    assert len(widths) == 1

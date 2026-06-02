@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "core/text_internal.h"
 #include "internal.h"
 
 #include <stdio.h>
@@ -55,15 +56,19 @@ void sc_print_badge(const char *text, ScBadgeOpts opts) {
 
     compose_badge_string(&self, buffer);
 
+    // The badge text/caps cross the trust boundary here, honoring opts.ansi
+    char *clean = sc_sanitize_copy_mode(buffer, opts.ansi);
+    if (buffer != stack_buffer) { free(buffer); }
+    if (!clean) { return; }
+
     if (sc_style_has_format(self.style)) {
         sc_apply_colors(self.style.fg, self.style.bg);
-        fputs(buffer, sc_output_stream());
+        fputs(clean, sc_output_stream());
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());
     } else {
-        fputs(buffer, sc_output_stream());
+        fputs(clean, sc_output_stream());
     }
-
-    if (buffer != stack_buffer) { free(buffer); }
+    free(clean);
 }
 
 void sc_text_append_badge(
@@ -78,9 +83,14 @@ void sc_text_append_badge(
     if (!buffer) { return; }
 
     compose_badge_string(&self, buffer);
-    sc_text_append(text_obj, buffer, self.style);
 
+    // The badge text/caps cross the trust boundary here, honoring opts.ansi
+    char *clean = sc_sanitize_copy_mode(buffer, opts.ansi);
     if (buffer != stack_buffer) { free(buffer); }
+    if (!clean) { return; }
+
+    sc_text_append_raw(text_obj, clean, self.style);
+    free(clean);
 }
 
 

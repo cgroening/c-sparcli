@@ -214,6 +214,19 @@ section "columns: basic"
 section "columns: separator, gap, stdin"
 printf 'alpha\nbeta\ngamma\n' | "$BIN" columns --sep single --gap 2
 
+# ── ANSI-injection protection ────────────────────────────────────────────────
+
+section "sanitize: injected escape codes and control bytes are stripped"
+"$BIN" print "$(printf 'safe\033[31minjected\033]0;evil-title\007text')"
+"$BIN" panel --border single "$(printf 'evil\033[31mred\007bell')"
+printf 'Name,Status\njob\033[31m1,ok\033]0;x\007done\n' \
+    | "$BIN" table --header-row
+
+section "sanitize: --allow-ansi passes well-formed escape codes through"
+"$BIN" print --allow-ansi "$(printf 'ok\033[31mred\033[0m')"
+"$BIN" panel --border single --allow-ansi \
+    "$(printf '\033[32mgreen\033[0m text')"
+
 # ── global flags / errors ────────────────────────────────────────────────────
 
 section "help: command list"

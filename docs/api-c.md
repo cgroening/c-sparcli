@@ -588,6 +588,46 @@ Badge string: `left_cap + pad×' ' + text + pad×' ' + right_cap`
 
 ---
 
+## ANSI Sanitization (escape-injection protection)
+
+Every user-supplied string that enters the library (panel/rule content, table cells, list items, key/value entries, tree nodes, spinner/progress-bar labels, badge text, markup text, titles, `sc_print`, `sc_text_append`) is **sanitized at the API boundary**: control bytes (everything below `0x20` except `\n`/`\t`, plus DEL) and ANSI escape sequences are removed. Untrusted data can therefore never inject terminal escape codes.
+
+```c
+void sc_set_allow_ansi(bool allow);  /* process-wide default; false = strip */
+bool sc_allow_ansi(void);            /* current setting */
+```
+
+### ScAnsiMode – per-widget override
+
+```c
+typedef enum ScAnsiMode {
+    SC_ANSI_MODE_DEFAULT  = 0,  /* inherit sc_set_allow_ansi() (the default) */
+    SC_ANSI_MODE_ALLOW    = 1,  /* pass well-formed escape sequences through */
+    SC_ANSI_MODE_SANITIZE = 2,  /* always strip escape sequences */
+} ScAnsiMode;
+```
+
+Every output widget opts struct (`ScPanelOpts`, `ScRuleOpts`, `ScTableOpts`, `ScListOpts`, `ScKVOpts`, `ScTreeOpts`, `ScSpinnerOpts`, `ScProgressBarOpts`, `ScBadgeOpts`, `ScMarkupOpts`) carries an `ScAnsiMode ansi` field. Zero-init inherits the global setting; the explicit values override it for that widget only.
+
+**When ANSI is allowed** (globally or per widget):
+
+- Well-formed escape sequences (CSI `ESC[…m`, OSC `ESC]…BEL`, DCS, two-char `ESC c`, …) pass through verbatim.
+- Stray control bytes (`\a`, `\b`, lone ESC, …) are **still** removed.
+- All width calculations skip escape sequences, so borders, tables and frames stay aligned.
+
+```c
+/* Strings with raw ANSI render correctly inside frames: */
+sc_set_allow_ansi(true);
+sc_panel_str("\033[31mred\033[0m text", opts);          /* borders aligned */
+
+/* Or per widget, with the global default staying strict: */
+sc_panel_str(user_data, (ScPanelOpts){ .ansi = SC_ANSI_MODE_ALLOW });
+```
+
+**Always filtered regardless of any setting:** content read back from the external editor (`sc_text_input`/`sc_textarea` with `external_editor`), and keyboard input (escape sequences are decoded as keys, never inserted as text).
+
+---
+
 ## Utilities
 
 ```c
@@ -596,7 +636,7 @@ char *sc_truncate  (const char *str, int max_cols, const char *ellipsis);
 void  sc_clear_line(void);
 ```
 
-- `sc_strip_ansi`: returns a heap-allocated copy of `str` with all ANSI CSI escape sequences removed. Caller must `free()` the result.
+- `sc_strip_ansi`: returns a heap-allocated copy of `str` with **all** ANSI escape sequences removed – CSI (`ESC[`…), OSC (`ESC]`…`BEL`/`ESC\`), DCS/SOS/PM/APC string sequences, two-character ESC sequences and lone ESC bytes. Other bytes (including `\t`) are copied verbatim. Caller must `free()` the result.
 - `sc_truncate`: if the visible width of `str` exceeds `max_cols`, returns a heap-allocated truncated copy with `ellipsis` appended (may be `NULL`). If it fits, returns `strdup(str)`. Caller must `free()` the result.
 - `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to overwrite the current terminal line in place.
 

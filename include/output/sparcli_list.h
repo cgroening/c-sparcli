@@ -51,6 +51,12 @@ typedef struct ScListOpts {
      * in columns.
      */
     ScEdges margin;
+
+    /**
+     * ANSI passthrough for item strings; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScListOpts;
 
 /** Opaque list container; build with `sc_list_new`. */

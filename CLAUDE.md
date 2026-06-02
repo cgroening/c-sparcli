@@ -33,8 +33,9 @@ make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
                   # thread-safety invariant; own build tree)
 make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
                   # tools optional, prints install hints when missing)
-make fuzz         # random-input fuzzing of the markup parser + key decoder
-                  # under ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable)
+make fuzz         # random-input fuzzing of the markup parser, key decoder
+                  # + ANSI sanitizer under ASan/UBSan (FUZZ_ITERS / FUZZ_SEED
+                  # overridable)
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples / run-example EX=<name>   # build all / build+run one examples/*.c
 make rust / rust-test     # build / test the safe Rust crate (bindings/rust/)
@@ -55,7 +56,7 @@ Besides the C library, sparcli ships a header-only **C++ wrapper** (`include/spa
 Sources are grouped by concern. The **output/input boundary is physical**: `src/output` (and `core`) is stream-oriented and writes through the redirectable `sc_output_stream()`; `src/tty` + `src/input` are tty-oriented and drive a real terminal in raw mode (never `sc_output_stream`).
 
 ```
-src/core/     color, text, print, output(stream), render_wrap, version
+src/core/     color, text, print, output(stream), render_wrap, sanitize, version
 src/output/   panel, rule, list, tree, columns, kv, alert, badge,
               progressbar, spinner, markup, pad, util, + table/
 src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
@@ -78,7 +79,7 @@ When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in
 The `sparcli` binary exposes every widget as a shell subcommand (rich-cli + gum in one tool); full reference in `docs/cli.md`. Key facts:
 
 - **Structure:** `cli/main.c` (dispatch table + global flags) → `cli/cmd_*.c` (one file per command group: output, layout, table, tree, progress, input, select) over shared helpers `cli/cli_common.c` (ctx, errors, capture), `cli_parse.c` (string→enum/color lookup tables), `cli_stdin.c` (file-or-stdin), `cli_csv.c` (RFC-4180-ish parser). Linked against the static `libsparcli.a`, public headers only.
-- **Conventions:** markup parsed by default in all text (`--no-markup` opt-out); `--no-color`/`NO_COLOR` strips ANSI by rendering through a capture stream + `sc_strip_ansi`; exit codes 0 = OK / 1 = cancelled or "no" / 2 = error or no TTY.
+- **Conventions:** markup parsed by default in all text (`--no-markup` opt-out); `--no-color`/`NO_COLOR` strips ANSI by rendering through a capture stream + `sc_strip_ansi`; input text is sanitized by default (`--allow-ansi` opt-out → `sc_set_allow_ansi`); exit codes 0 = OK / 1 = cancelled or "no" / 2 = error or no TTY.
 - **Input commands** set `hide_summary`, print only the raw value to stdout (the widget UI goes to `/dev/tty`), so `$(sparcli input …)` command substitution works; `--accent` is applied via `sc_input_set_theme`.
 - **`spin`** forks the wrapped command and routes the spinner to `/dev/tty` (the spinner is a stream widget – it must not pollute the child's stdout); the child's exit code is propagated.
 - **Tests:** `make test-cli-check` (golden, `tests/cli/run_output.sh` + `expected.txt`) and `make test-cli-pty` (`tests/cli/test_cli_pty.c`: forkpty + stdout-pipe redirect, runs the ASan/UBSan `sparcli-sanitize` binary). Both are part of `make test`. New output cases go into `run_output.sh` (+ `make test-cli-golden`), new input cases into the `CASES[]` array.
@@ -642,6 +643,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 - Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no space fits in the column width, the line is truncated.
 - **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`, `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting. Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
 - **Opts-string lifetime:** every handle-based `*_new()` (table columns, list, kv, tree, spinner, progressbar, select, fuzzy, theme) **copies** the string fields of its opts/arguments, so caller buffers (e.g. FFI temporaries) only need to live until the call returns. Documented exceptions stay **borrowed**: table cell strings / `ScText` content (until print), `shortcuts` and `prompt_text` (until the run). Run-once widgets (`sc_confirm`, `sc_text_input`, …) only read their opts during the call. Tests: `tests/input/logic/test_opts_copy.c`, output tests "Opts strings are copied", PTY cases `fuzzy-heap-prompt`/`theme-heap-strings`.
+- **ANSI sanitization / trust boundary:** every user string is sanitized **exactly once, where it crosses into the library** (`sc_text_append`, `sc_print`, widget add/set/render entry points, markup chunks): control bytes (< 0x20 except `\n`/`\t`, plus DEL) and ANSI escape sequences are removed. The opt-out is `sc_set_allow_ansi(bool)` (process-wide, atomic, default `false`) plus a per-widget `ScAnsiMode ansi` opts field (`SC_ANSI_MODE_DEFAULT`=inherit global / `_ALLOW` / `_SANITIZE`); when allowed, well-formed escape sequences pass through, stray control bytes are still dropped, and **all width functions skip escape sequences** (`sc_utf8_string_length`, `sc_utf8_trim_to_cols`, `sc_text_visible_width`), so frames stay aligned. Library-rendered content (`ScRendered`, captured columns output, CLI capture path) is inside the boundary and is never re-sanitized – internal code uses `sc_text_append_raw`/`sc_print_raw`. External-editor read-back and keyboard input are always filtered (never allow ANSI). Sanitizer: `src/core/sanitize.c` (+ `sanitize_internal.h`). Tests: `tests/input/logic/test_sanitize.c`, `tests/fuzz/fuzz_sanitize.c`, CLI golden "sanitize:" sections.
 
 ---
 
@@ -729,7 +731,7 @@ char *sc_truncate  (const char *str, int max_cols, const char *ellipsis);
 void  sc_clear_line(void);
 ```
 
-- `sc_strip_ansi`: returns a heap-allocated copy of `str` with all ANSI CSI escape sequences removed. Caller must `free()` the result.
+- `sc_strip_ansi`: returns a heap-allocated copy of `str` with **all** ANSI escape sequences removed (CSI, OSC, DCS/SOS/PM/APC, two-char ESC, lone ESC). Other bytes are copied verbatim. Caller must `free()` the result.
 - `sc_truncate`: if the visible width of `str` exceeds `max_cols`, returns a heap-allocated truncated copy with `ellipsis` appended (may be `NULL`). If it fits, returns `strdup(str)`. Caller must `free()` the result.
 - `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to overwrite the current terminal line in place.
 
@@ -901,6 +903,7 @@ sc_text_free(t);
 ```c
 typedef struct {
     int strip_unknown; /* 1 = silently remove unrecognized tags; 0 = verbatim (default) */
+    ScAnsiMode ansi;   /* raw-ESC passthrough; zero-init = inherit sc_set_allow_ansi */
 } ScMarkupOpts;
 ```
 

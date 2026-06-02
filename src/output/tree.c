@@ -143,9 +143,16 @@ ScTreeNode *sc_tree_add_str(
     const char *prefix, ScTextStyle prefix_style
 ) {
     if (!tree) { return NULL; }
+    // Node strings cross the trust boundary here, honoring opts.ansi
+    char *clean_str = str
+        ? sc_sanitize_copy_mode(str, tree->opts.ansi) : NULL;
+    char *clean_prefix = prefix
+        ? sc_sanitize_copy_mode(prefix, tree->opts.ansi) : NULL;
     ScTreeNode *node = new_node(
-        false, str, style, NULL, prefix, prefix_style
+        false, clean_str, style, NULL, clean_prefix, prefix_style
     );
+    free(clean_str);
+    free(clean_prefix);
     return attach_node(tree, parent, node);
 }
 
@@ -158,9 +165,13 @@ ScTreeNode *sc_tree_add_text(
     ScTextStyle no_style = {
         SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
     };
+    // The prefix crosses the trust boundary here, honoring opts.ansi
+    char *clean_prefix = prefix
+        ? sc_sanitize_copy_mode(prefix, tree->opts.ansi) : NULL;
     ScTreeNode *node = new_node(
-        true, NULL, no_style, text, prefix, prefix_style
+        true, NULL, no_style, text, clean_prefix, prefix_style
     );
+    free(clean_prefix);
     return attach_node(tree, parent, node);
 }
 
@@ -343,12 +354,12 @@ static void print_colored(const char *str, ScColor color) {
  */
 static void print_node_content(const ScTreeNode *node) {
     if (node->prefix) {
-        sc_print(node->prefix, node->prefix_style);
+        sc_print_raw(node->prefix, node->prefix_style);
     }
     if (node->is_text) {
         if (node->text) { sc_print_text(node->text); }
     } else if (node->str) {
-        sc_print(node->str, node->style);
+        sc_print_raw(node->str, node->style);
     }
 }
 

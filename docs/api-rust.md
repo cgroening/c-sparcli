@@ -86,6 +86,16 @@ sp.tick();
 sp.finish(true, "Done");
 ```
 
+### ANSI-injection protection
+
+User strings are sanitized by default (control bytes and escape sequences removed). Opt out globally or per widget:
+
+```rust
+sparcli::set_allow_ansi(true);              // sparcli::allow_ansi() reads it
+panel("\x1b[31mred\x1b[0m", PanelOpts::new().single().ansi(AnsiMode::Allow));
+// AnsiMode::Default (inherit global) / Allow / Sanitize
+```
+
 ## Input
 
 ```rust

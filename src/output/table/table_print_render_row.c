@@ -188,11 +188,15 @@ static void build_continuation_column(Row *self, size_t col) {
     if (content_width < 0) { content_width = 0; }
 
     bool wrap = data->columns[col].opts.word_wrap && content_width > 0;
+    ScAnsiMode ansi = self->table->opts.ansi;
     self->column_lines[col] = wrap
         ? wrap_cell_lines(
-              span->cell, content_width, &self->column_line_counts[col]
+              span->cell, ansi, content_width,
+              &self->column_line_counts[col]
           )
-        : make_cell_lines(span->cell, &self->column_line_counts[col]);
+        : make_cell_lines(
+              span->cell, ansi, &self->column_line_counts[col]
+          );
 }
 
 /**
@@ -216,11 +220,12 @@ static size_t build_normal_column(
     if (content_width < 0) { content_width = 0; }
 
     bool wrap = data->columns[col].opts.word_wrap && content_width > 0;
+    ScAnsiMode ansi = self->table->opts.ansi;
     self->column_lines[col] = wrap
         ? wrap_cell_lines(
-              cell, content_width, &self->column_line_counts[col]
+              cell, ansi, content_width, &self->column_line_counts[col]
           )
-        : make_cell_lines(cell, &self->column_line_counts[col]);
+        : make_cell_lines(cell, ansi, &self->column_line_counts[col]);
     return self->column_line_counts[col];
 }
 

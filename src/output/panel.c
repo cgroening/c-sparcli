@@ -186,15 +186,37 @@ static const struct {
 
 void sc_panel_text(const ScText *text, ScPanelOpts opts) {
     if (!text) { return; }
+
+    // Title strings are borrowed user strings; sanitize per the panel's
+    // ANSI mode (rich_text titles were sanitized at append time already).
+    char *clean_title    = sc_sanitize_copy_mode(opts.title.text, opts.ansi);
+    char *clean_subtitle =
+        sc_sanitize_copy_mode(opts.subtitle.text, opts.ansi);
+    opts.title.text    = clean_title;
+    opts.subtitle.text = clean_subtitle;
+
     Panel panel;
     panel_init(&panel, text, opts);
     panel_render(&panel);
     panel_cleanup(&panel);
+
+    free(clean_title);
+    free(clean_subtitle);
 }
 
 void sc_panel_str(const char *raw_str, ScPanelOpts opts) {
     if (!raw_str) { return; }
-    ScText *t = sc_text_from_str(raw_str);
+    static const ScTextStyle plain = {
+        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
+
+    // Content crosses the trust boundary here, honoring opts.ansi
+    char *clean = sc_sanitize_copy_mode(raw_str, opts.ansi);
+    if (!clean) { return; }
+    ScText *t = sc_text_new();
+    sc_text_append_raw(t, clean, plain);
+    free(clean);
+
     sc_panel_text(t, opts);
     sc_text_free(t);
 }
@@ -568,7 +590,7 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
         if (title.rich_text) {
             sc_print_text(title.rich_text);
         } else {
-            sc_print(title.text, title.style);
+            sc_print_raw(title.text, title.style);
         }
         for (int i = 0; i < title.pad; i++) {
             print_colored(" ", title_pad_style);
@@ -701,7 +723,7 @@ static void render_content_line(Panel *panel, ScRenderLine *line) {
 /** Prints each span of `line`, re-applying `bg` after each reset if active. */
 static void print_line_spans(ScRenderLine *line, ScColor bg) {
     for (size_t i = 0; i < line->count; i++) {
-        sc_print(line->spans[i].text, line->spans[i].style);
+        sc_print_raw(line->spans[i].text, line->spans[i].style);
         if (sc_color_is_active(bg)) { sc_apply_colors(SC_ANSI_COLOR_NONE, bg); }
     }
 }

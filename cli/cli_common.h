@@ -29,28 +29,31 @@ enum {
  * so they never collide with these.
  */
 enum {
-    SC_CLI_OPT_NO_MARKUP = 900,  /**< `--no-markup` */
-    SC_CLI_OPT_NO_COLOR  = 901,  /**< `--no-color` */
-    SC_CLI_OPT_HELP      = 902,  /**< `--help` */
-    SC_CLI_OPT_ACCENT    = 910,  /**< `--accent` (input commands) */
-    SC_CLI_OPT_HINT      = 911,  /**< `--hint` (input commands) */
-    SC_CLI_OPT_NO_HINT   = 912,  /**< `--no-hint` (input commands) */
-    SC_CLI_OPT_CMD_BASE  = 1000, /**< First command-specific option value. */
+    SC_CLI_OPT_NO_MARKUP  = 900,  /**< `--no-markup` */
+    SC_CLI_OPT_NO_COLOR   = 901,  /**< `--no-color` */
+    SC_CLI_OPT_HELP       = 902,  /**< `--help` */
+    SC_CLI_OPT_ALLOW_ANSI = 903,  /**< `--allow-ansi` */
+    SC_CLI_OPT_ACCENT     = 910,  /**< `--accent` (input commands) */
+    SC_CLI_OPT_HINT       = 911,  /**< `--hint` (input commands) */
+    SC_CLI_OPT_NO_HINT    = 912,  /**< `--no-hint` (input commands) */
+    SC_CLI_OPT_CMD_BASE   = 1000, /**< First command-specific option value. */
 };
 
 /**
  * Long-option table entries every subcommand appends to its own table.
  * Must appear before the terminating `{ 0 }` entry.
  */
-#define SC_CLI_COMMON_LONGOPTS                                     \
-    { "no-markup", no_argument, NULL, SC_CLI_OPT_NO_MARKUP },      \
-    { "no-color",  no_argument, NULL, SC_CLI_OPT_NO_COLOR },       \
-    { "help",      no_argument, NULL, SC_CLI_OPT_HELP }
+#define SC_CLI_COMMON_LONGOPTS                                       \
+    { "no-markup",  no_argument, NULL, SC_CLI_OPT_NO_MARKUP },       \
+    { "no-color",   no_argument, NULL, SC_CLI_OPT_NO_COLOR },        \
+    { "allow-ansi", no_argument, NULL, SC_CLI_OPT_ALLOW_ANSI },      \
+    { "help",       no_argument, NULL, SC_CLI_OPT_HELP }
 
 /** Usage-text lines for the common options (appended to every usage). */
-#define SC_CLI_COMMON_USAGE                                          \
-    "  --no-markup                Treat [tag] markup as literal\n"   \
-    "  --no-color                 Strip ANSI colors from output\n"   \
+#define SC_CLI_COMMON_USAGE                                            \
+    "  --no-markup                Treat [tag] markup as literal\n"     \
+    "  --no-color                 Strip ANSI colors from output\n"     \
+    "  --allow-ansi               Pass ANSI escapes in input through\n" \
     "  --help                     Show this help\n"
 
 /**
@@ -78,9 +81,10 @@ typedef struct ScCliInputArgs {
 
 /** Global options shared by every subcommand. */
 typedef struct ScCliCtx {
-    bool        markup; /**< Parse `[tag]` markup in text arguments. */
-    bool        color;  /**< Emit ANSI colors (false = strip them). */
-    const char *prog;   /**< Program name for error messages. */
+    bool        markup;     /**< Parse `[tag]` markup in text arguments. */
+    bool        color;      /**< Emit ANSI colors (false = strip them). */
+    bool        allow_ansi; /**< Pass ANSI escapes in input text through. */
+    const char *prog;       /**< Program name for error messages. */
 } ScCliCtx;
 
 /** Signature of a subcommand implementation. */

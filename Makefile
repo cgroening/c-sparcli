@@ -47,6 +47,7 @@ endif
 # ── Core (foundation: color, text, print, output stream, render) ──────────
 SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/core/print.c src/core/color.c src/core/text.c src/core/render_wrap.c \
+          src/core/sanitize.c \
           \
           src/output/panel.c \
           src/output/table/table.c \
@@ -111,7 +112,8 @@ TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1
 
 # Fuzz harnesses: portable random-input fuzzers built under ASan/UBSan (no
 # libFuzzer dependency; the harness entry points are libFuzzer-compatible).
-FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c
+FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c \
+             tests/fuzz/fuzz_sanitize.c
 FUZZ_BIN   = $(patsubst tests/fuzz/%.c,$(BUILDDIR)/fuzz/%,$(FUZZ_SRC))
 FUZZ_ITERS ?= 200000
 FUZZ_SEED  ?= 1
@@ -156,6 +158,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_select_edit.c \
                  tests/input/logic/test_opts_copy.c \
                  tests/input/logic/test_filters.c \
+                 tests/input/logic/test_sanitize.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
 
@@ -441,19 +444,23 @@ $(TSAN_BUILDDIR)/%.o: src/%.c | $(TSAN_BUILDDIR)
 $(TSAN_BUILDDIR):
 	mkdir -p $(TSAN_BUILDDIR)
 
-# Random-input fuzzing of the two external parsers (markup, key decoder) under
-# ASan/UBSan. Deterministic by default (FUZZ_SEED=1); override iterations/seed
-# with `make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42`. The harnesses also expose a
-# libFuzzer-compatible LLVMFuzzerTestOneInput for toolchains that ship libFuzzer
-# (build with -DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address there).
+# Random-input fuzzing of the external parsers (markup, key decoder, ANSI
+# sanitizer) under ASan/UBSan. Deterministic by default (FUZZ_SEED=1); override
+# iterations/seed with `make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42`. The
+# harnesses also expose a libFuzzer-compatible LLVMFuzzerTestOneInput for
+# toolchains that ship libFuzzer (build with -DSPARCLI_LIBFUZZER
+# -fsanitize=fuzzer,address there).
 fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	@mkdir -p $(BUILDDIR)/fuzz
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_markup.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_markup
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_key.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_key
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_sanitize.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_sanitize
 	./$(BUILDDIR)/fuzz/fuzz_markup $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_key $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_sanitize $(FUZZ_ITERS) $(FUZZ_SEED)
 
 # Static analysis. Each tool is optional: the target degrades to an install
 # hint when a tool is missing, so it can run on any machine.

@@ -1,5 +1,6 @@
 #include "sparcli.h"
 #include "core/text_internal.h"
+#include "internal.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,17 @@ ScText *sc_text_from_str(const char *s) {
 }
 
 void sc_text_append(ScText *sc_text, const char *raw_str, ScTextStyle style) {
+    if (!sc_text || !raw_str) { return; }
+    // Public entry: user strings cross the trust boundary here
+    char *clean = sc_sanitize_copy(raw_str, sc_allow_ansi());
+    if (!clean) { return; }
+    sc_text_append_raw(sc_text, clean, style);
+    free(clean);
+}
+
+void sc_text_append_raw(
+    ScText *sc_text, const char *raw_str, ScTextStyle style
+) {
     if (!sc_text || !raw_str) { return; }
     if (sc_text->count == sc_text->capacity) {
         size_t new_capacity = sc_text->capacity ? sc_text->capacity * 2 : 4;
@@ -60,7 +72,7 @@ void sc_print_text(const ScText *sc_text) {
             if (*raw_str == '\n') {
                 if (raw_str > start) {
                     char *seg = strndup(start, (size_t)(raw_str - start));
-                    sc_print(seg, style);
+                    sc_print_raw(seg, style);
                     free(seg);
                 }
                 fputc('\n', sc_output_stream());
@@ -69,7 +81,7 @@ void sc_print_text(const ScText *sc_text) {
             raw_str++;
         }
         if (*start) {
-            sc_print(start, style);
+            sc_print_raw(start, style);
         }
     }
 }
@@ -91,7 +103,15 @@ size_t sc_text_visible_width(const ScText *sc_text) {
     for (size_t i = 0; i < sc_text->count; i++) {
         const unsigned char *current_byte =
             (const unsigned char *)sc_text->spans[i].raw_str;
-        for (; *current_byte; current_byte++) {
+        while (*current_byte) {
+            if (*current_byte == 0x1B) {
+                // ANSI escape sequences occupy no columns
+                const char *seq_end =
+                    sc_ansi_skip_seq((const char *)current_byte);
+                current_byte = seq_end != (const char *)current_byte
+                    ? (const unsigned char *)seq_end : current_byte + 1;
+                continue;
+            }
             if (*current_byte == '\n') {
                 if (current_width > max_width) { max_width = current_width; }
                 current_width = 0;
@@ -99,6 +119,7 @@ size_t sc_text_visible_width(const ScText *sc_text) {
                 // Skip UTF-8 continuation bytes
                 current_width++;
             }
+            current_byte++;
         }
     }
     return current_width > max_width ? current_width : max_width;

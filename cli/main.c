@@ -136,6 +136,8 @@ static int parse_global_flags(ScCliCtx *ctx, int argc, char **argv,
             ctx->color = false;
         } else if (strcmp(flag, "--no-markup") == 0) {
             ctx->markup = false;
+        } else if (strcmp(flag, "--allow-ansi") == 0) {
+            ctx->allow_ansi = true;
         } else {
             fprintf(stderr, "%s: unknown option '%s' (see %s --help)\n",
                     PROG_NAME, flag, PROG_NAME);
@@ -167,6 +169,8 @@ static void scan_trailing_flags(ScCliCtx *ctx, int argc, char **argv) {
             ctx->color = false;
         } else if (strcmp(argv[i], "--no-markup") == 0) {
             ctx->markup = false;
+        } else if (strcmp(argv[i], "--allow-ansi") == 0) {
+            ctx->allow_ansi = true;
         }
     }
 }
@@ -175,6 +179,9 @@ static void scan_trailing_flags(ScCliCtx *ctx, int argc, char **argv) {
    are disabled. */
 static int dispatch(ScCliCtx *ctx, const ScCliCmd *cmd, int argc,
                     char **argv) {
+    /* Apply the ANSI passthrough setting before the command renders. */
+    sc_set_allow_ansi(ctx->allow_ansi);
+
     FILE *capture = sc_cli_capture_begin(ctx);
 
     int status         = cmd->fn(ctx, argc, argv);
@@ -200,10 +207,11 @@ static void print_usage(FILE *out) {
             "powered by the sparcli library.\n"
             "\n"
             "Global options:\n"
-            "  -h, --help       Show this help and exit\n"
-            "  -V, --version    Show the version and exit\n"
-            "      --no-color   Strip ANSI colors from the output\n"
-            "      --no-markup  Treat [tag] markup as literal text\n",
+            "  -h, --help        Show this help and exit\n"
+            "  -V, --version     Show the version and exit\n"
+            "      --no-color    Strip ANSI colors from the output\n"
+            "      --no-markup   Treat [tag] markup as literal text\n"
+            "      --allow-ansi  Pass ANSI escapes in input text through\n",
             PROG_NAME);
 
     print_command_group(out, SC_CLI_GROUP_OUTPUT, "Output commands");

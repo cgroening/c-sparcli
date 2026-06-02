@@ -214,7 +214,7 @@ make lint
 
 ### `make fuzz` – random-input fuzzing of the parsers (ASan/UBSan)
 
-Feeds the two external parsers – the inline-markup parser (`sc_markup_parse`) and the key decoder (`sc_key_decode`) – with pseudo-random byte sequences under ASan/UBSan. Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer).
+Feeds the three external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`) and the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer).
 
 ```sh
 make fuzz                              # 200k inputs per parser, seed 1
@@ -445,7 +445,8 @@ Every pointer a public API receives needs an explicit answer to *"who owns this,
    - PTY suite: `strdup` + `free` before the run, so ASan sees a real dangling read (pattern: cases `fuzzy-heap-prompt`, `theme-heap-strings`).
    - Output suite: clobbered buffer + golden comparison (pattern: "Opts strings are copied" cases in `test_lists.c` / `test_progressbar.c`).
    - Python: construct from a temporary, `gc.collect()`, then use the object (pattern: `test_*_survive_gc` in `bindings/python/tests/test_smoke.py`) – and run it under `make python-test-debug`.
-3. **Update the bindings and docs** (cdef/bindgen/hpp, `api-*.md`, `CLAUDE.md`) – see the rebuild section above.
+3. **Sanitize at the trust boundary.** Every new public entry point that accepts user text must route it through the ANSI sanitizer exactly once (`sc_sanitize_copy_mode` honoring the widget's `ScAnsiMode ansi` opts field, or `sc_sanitize_copy(str, sc_allow_ansi())` when there are no opts) and use the internal raw paths (`sc_text_append_raw`, `sc_print_raw`) afterwards – never re-sanitize library-rendered content. See "ANSI sanitization / trust boundary" in [`../CLAUDE.md`](../CLAUDE.md).
+4. **Update the bindings and docs** (cdef/bindgen/hpp, `api-*.md`, `CLAUDE.md`) – see the rebuild section above.
 
 ### Adding a test
 

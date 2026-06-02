@@ -6,23 +6,8 @@
 #include <string.h>
 
 
-/** ANSI Control Sequence Introducer (CSI) leading character. */
-#define CSI_ESCAPE 0x1B
-
-/** Start of the CSI parameter section: `[`. */
-#define CSI_INTRODUCER '['
-
-/** Lowest byte value treated as a CSI final byte. */
-#define CSI_FINAL_MIN 0x40
-
-/** Highest byte value treated as a CSI final byte. */
-#define CSI_FINAL_MAX 0x7E
-
-
-// Forward declarations indented to reflect call hierarchy
-static size_t skip_csi_sequence(const char *str, size_t start);
-    static bool is_csi_final_byte(unsigned char byte);
-
+/** ANSI escape character introducing every escape sequence. */
+#define ANSI_ESCAPE 0x1B
 
 
 char *sc_strip_ansi(const char *str) {
@@ -35,13 +20,16 @@ char *sc_strip_ansi(const char *str) {
     size_t write_position = 0;
     for (size_t read_position = 0; read_position < input_length; ) {
         unsigned char current_byte = (unsigned char)str[read_position];
-        bool is_csi_start = current_byte == CSI_ESCAPE
-            && str[read_position + 1] == CSI_INTRODUCER;
-        if (is_csi_start) {
-            read_position = skip_csi_sequence(str, read_position);
-        } else {
-            output[write_position++] = str[read_position++];
+        if (current_byte == ANSI_ESCAPE) {
+            // Drop the whole sequence (CSI/OSC/DCS/two-char ESC); a lone
+            // or malformed ESC is dropped byte by byte.
+            const char *sequence_end = sc_ansi_skip_seq(str + read_position);
+            size_t sequence_length =
+                (size_t)(sequence_end - (str + read_position));
+            read_position += sequence_length > 0 ? sequence_length : 1;
+            continue;
         }
+        output[write_position++] = str[read_position++];
     }
     output[write_position] = '\0';
     return output;
@@ -79,24 +67,3 @@ void sc_clear_line(void) {
     fputc('\r', sc_output_stream());
     fflush(sc_output_stream());
 }
-
-
-/**
- * Returns the index of the byte just past the CSI sequence that starts at
- * `start` in `str`. `str[start]` is expected to be `ESC` and
- * `str[start + 1]` is expected to be `[`.
- */
-static size_t skip_csi_sequence(const char *str, size_t start) {
-    size_t position = start + 2;
-    while (str[position] && !is_csi_final_byte((unsigned char)str[position])) {
-        position++;
-    }
-    if (str[position]) { position++; }
-    return position;
-}
-
-/** Returns `true` when `byte` is a valid CSI final byte (0x40-0x7E). */
-static bool is_csi_final_byte(unsigned char byte) {
-    return byte >= CSI_FINAL_MIN && byte <= CSI_FINAL_MAX;
-}
-

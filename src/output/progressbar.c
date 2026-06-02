@@ -145,7 +145,9 @@ ScProgressBar *sc_progressbar_new(ScProgressBarOpts opts) {
 void sc_progressbar_set_label(ScProgressBar *bar, const char *label) {
     if (!bar) { return; }
     free(bar->label);
-    bar->label = label ? strdup(label) : NULL;
+    // The label crosses the trust boundary here, honoring opts.ansi
+    bar->label =
+        label ? sc_sanitize_copy_mode(label, bar->opts.ansi) : NULL;
 }
 
 void sc_progressbar_draw(ScProgressBar *bar, double value, double max) {
@@ -371,7 +373,7 @@ static void print_label_text(const ScProgressBar *bar, int byte_count) {
     char buffer[LABEL_PRINT_BUFFER];
     memcpy(buffer, bar->label, (size_t)byte_count);
     buffer[byte_count] = '\0';
-    sc_print(buffer, style);
+    sc_print_raw(buffer, style);
 }
 
 

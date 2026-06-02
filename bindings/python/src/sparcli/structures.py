@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from ._ffi import (apply_color, apply_edges, apply_style, cstr, ffi, lib)
 from .color import Color
-from .enums import BorderType, ListMarker
+from .enums import AnsiMode, BorderType, ListMarker
 from .style import Edges, Style
 from .text import Text
 
@@ -26,6 +26,7 @@ class ListOpts:
     item_gap: int = 0
     width: int = 0
     margin: Edges = field(default_factory=Edges)
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         c.marker = int(self.marker)
@@ -37,6 +38,7 @@ class ListOpts:
         c.item_gap = self.item_gap
         c.width = self.width
         apply_edges(c.margin, self.margin)
+        c.ansi = int(self.ansi)
 
 
 class ListItem:
@@ -125,12 +127,14 @@ class TreeOpts:
     connector_color: Color = Color.NONE
     indent: int = 1
     no_guide: bool = False
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c) -> None:
         c.type = int(self.type)
         apply_color(c.connector_color, self.connector_color)
         c.indent = self.indent
         c.no_guide = self.no_guide
+        c.ansi = int(self.ansi)
 
 
 class TreeNode:
@@ -207,6 +211,7 @@ class KvOpts:
     wrap_val: bool = False
     key_style: Style = field(default_factory=Style)
     val_style: Style = field(default_factory=Style)
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         c.sep = cstr(arena, self.sep)
@@ -217,6 +222,7 @@ class KvOpts:
         c.wrap_val = self.wrap_val
         apply_style(c.key_style, self.key_style)
         apply_style(c.val_style, self.val_style)
+        c.ansi = int(self.ansi)
 
 
 class Kv:

@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "core/sanitize_internal.h"
 #include "core/text_internal.h"
 
 #include <stdio.h>
@@ -53,6 +54,9 @@ typedef struct Parser {
     /** When `true`, unrecognized tags are silently dropped. */
     bool strip_unknown;
 
+    /** Resolved ANSI passthrough for raw escape bytes in text chunks. */
+    bool allow_ansi;
+
     /** Output `ScText`; owned by caller after `parse_internal` returns. */
     ScText *text;
 
@@ -73,13 +77,14 @@ typedef struct Parser {
 
 
 // Forward declarations indented to reflect call hierarchy
-static ScText *parse_internal(const char *markup, bool strip_unknown);
+static ScText *parse_internal(const char *markup, ScMarkupOpts opts);
     static void init_parser(
-        Parser *self, const char *markup, bool strip_unknown
+        Parser *self, const char *markup, ScMarkupOpts opts
     );
     static bool consume_literal_bracket(Parser *self);
         static void append_chunk(
-            ScText *text, const char *start, size_t length, ScTextStyle style
+            const Parser *self,
+            const char *start, size_t length, ScTextStyle style
         );
         static ScTextStyle current_style(const Parser *self);
     static bool consume_tag(Parser *self);
@@ -120,16 +125,16 @@ static void append_parsed_spans(ScText *target, const ScText *source);
 
 
 ScText *sc_markup_parse(const char *markup) {
-    return parse_internal(markup, false);
+    return parse_internal(markup, (ScMarkupOpts){ 0 });
 }
 
 ScText *sc_markup_parse_opts(const char *markup, ScMarkupOpts opts) {
-    return parse_internal(markup, opts.strip_unknown);
+    return parse_internal(markup, opts);
 }
 
 void sc_markup_append(ScText *text, const char *markup) {
     if (!text) { return; }
-    ScText *parsed = parse_internal(markup, false);
+    ScText *parsed = parse_internal(markup, (ScMarkupOpts){ 0 });
     append_parsed_spans(text, parsed);
     sc_text_free(parsed);
 }
@@ -138,19 +143,19 @@ void sc_markup_append_opts(
     ScText *text, const char *markup, ScMarkupOpts opts
 ) {
     if (!text) { return; }
-    ScText *parsed = parse_internal(markup, opts.strip_unknown);
+    ScText *parsed = parse_internal(markup, opts);
     append_parsed_spans(text, parsed);
     sc_text_free(parsed);
 }
 
 void sc_markup_print(const char *markup) {
-    ScText *parsed = parse_internal(markup, false);
+    ScText *parsed = parse_internal(markup, (ScMarkupOpts){ 0 });
     sc_print_text(parsed);
     sc_text_free(parsed);
 }
 
 void sc_markup_print_opts(const char *markup, ScMarkupOpts opts) {
-    ScText *parsed = parse_internal(markup, opts.strip_unknown);
+    ScText *parsed = parse_internal(markup, opts);
     sc_print_text(parsed);
     sc_text_free(parsed);
 }
@@ -170,11 +175,11 @@ void sc_markup_println_opts(const char *markup, ScMarkupOpts opts) {
  * Core parser entry point. Returns a heap-allocated `ScText`; the caller
  * owns it and must free with `sc_text_free`.
  */
-static ScText *parse_internal(const char *markup, bool strip_unknown) {
+static ScText *parse_internal(const char *markup, ScMarkupOpts opts) {
     if (!markup) { return sc_text_new(); }
 
     Parser self;
-    init_parser(&self, markup, strip_unknown);
+    init_parser(&self, markup, opts);
 
     while (*self.cursor) {
         if (consume_literal_bracket(&self)) { continue; }
@@ -188,12 +193,13 @@ static ScText *parse_internal(const char *markup, bool strip_unknown) {
 
 /** Initializes the parser state with an empty stack frame on top. */
 static void init_parser(
-    Parser *self, const char *markup, bool strip_unknown
+    Parser *self, const char *markup, ScMarkupOpts opts
 ) {
     self->source = markup;
     self->cursor = markup;
     self->segment_start = markup;
-    self->strip_unknown = strip_unknown;
+    self->strip_unknown = opts.strip_unknown;
+    self->allow_ansi = sc_ansi_mode_resolve(opts.ansi);
     self->text = sc_text_new();
     self->depth = 0;
     self->dropped_opens = 0;
@@ -215,11 +221,11 @@ static bool consume_literal_bracket(Parser *self) {
     }
 
     append_chunk(
-        self->text, self->segment_start,
+        self, self->segment_start,
         (size_t)(self->cursor - self->segment_start),
         current_style(self)
     );
-    sc_text_append(self->text, "[", current_style(self));
+    sc_text_append_raw(self->text, "[", current_style(self));
     self->cursor += 2;
     self->segment_start = self->cursor;
     return true;
@@ -276,7 +282,7 @@ static void handle_closing_tag(
 
     if (is_known) {
         append_chunk(
-            self->text, self->segment_start,
+            self, self->segment_start,
             (size_t)(self->cursor - self->segment_start),
             current_style(self)
         );
@@ -357,7 +363,7 @@ static void handle_opening_tag(
     }
 
     append_chunk(
-        self->text, self->segment_start,
+        self, self->segment_start,
         (size_t)(self->cursor - self->segment_start),
         current_style(self)
     );
@@ -541,7 +547,7 @@ static bool apply_attribute_token(
 static void drop_unknown_tag(Parser *self, const char *tag_end) {
     if (self->strip_unknown) {
         append_chunk(
-            self->text, self->segment_start,
+            self, self->segment_start,
             (size_t)(self->cursor - self->segment_start),
             current_style(self)
         );
@@ -553,7 +559,7 @@ static void drop_unknown_tag(Parser *self, const char *tag_end) {
 /** Flushes the remaining verbatim segment at end of parsing. */
 static void flush_segment(Parser *self) {
     append_chunk(
-        self->text, self->segment_start,
+        self, self->segment_start,
         (size_t)(self->cursor - self->segment_start),
         current_style(self)
     );
@@ -565,22 +571,28 @@ static ScTextStyle current_style(const Parser *self) {
 }
 
 /**
- * Appends `[start, start+length)` to `text` with `style`; does nothing
- * when `length == 0`.
+ * Appends `[start, start+length)` to the parser's output with `style`,
+ * sanitizing it per the parser's resolved ANSI mode; does nothing when
+ * `length == 0`.
  */
 static void append_chunk(
-    ScText *text, const char *start, size_t length, ScTextStyle style
+    const Parser *self, const char *start, size_t length, ScTextStyle style
 ) {
     if (length == 0) { return; }
     char *chunk = strndup(start, length);
-    sc_text_append(text, chunk, style);
+    if (!chunk) { return; }
+    char *clean = sc_sanitize_copy(chunk, self->allow_ansi);
+    if (clean) {
+        sc_text_append_raw(self->text, clean, style);
+        free(clean);
+    }
     free(chunk);
 }
 
-/** Copies every span from `source` into `target`. */
+/** Copies every span from `source` into `target` (already sanitized). */
 static void append_parsed_spans(ScText *target, const ScText *source) {
     for (size_t i = 0; i < source->count; i++) {
-        sc_text_append(
+        sc_text_append_raw(
             target, source->spans[i].raw_str, source->spans[i].style
         );
     }

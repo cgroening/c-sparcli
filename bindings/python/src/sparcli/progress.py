@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from ._ffi import apply_color, apply_style, cstr, ffi, lib
 from .color import Color
-from .enums import ProgressType, SpinnerType
+from .enums import AnsiMode, ProgressType, SpinnerType
 from .style import Style
 
 
@@ -39,6 +39,7 @@ class ProgressBarOpts:
     width: int = 0
     label_width: int = 0
     label_style: Style = field(default_factory=Style)
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         c.type = int(self.type)
@@ -59,6 +60,7 @@ class ProgressBarOpts:
         c.width = self.width
         c.label_width = self.label_width
         apply_style(c.label_style, self.label_style)
+        c.ansi = int(self.ansi)
 
 
 class ProgressBar:
@@ -107,11 +109,13 @@ class SpinnerOpts:
     type: SpinnerType = SpinnerType.BRAILLE
     color: Color = Color.NONE
     label_style: Style = field(default_factory=Style)
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c) -> None:
         c.type = int(self.type)
         apply_color(c.color, self.color)
         apply_style(c.label_style, self.label_style)
+        c.ansi = int(self.ansi)
 
 
 class Spinner:

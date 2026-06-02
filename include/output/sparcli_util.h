@@ -8,11 +8,14 @@ SPARCLI_BEGIN_DECLS
 
 
 /**
- * Returns a heap-allocated copy of `str` with all ANSI CSI escape sequences
+ * Returns a heap-allocated copy of `str` with all ANSI escape sequences
  * removed.
  *
- * Strips sequences starting with `ESC [` up to and including the final byte
- * (`0x40`-`0x7E`). Non-CSI bytes are copied verbatim.
+ * Strips CSI sequences (`ESC [` … final byte `0x40`-`0x7E`), OSC sequences
+ * (`ESC ]` … `BEL` or `ESC \`), DCS/SOS/PM/APC string sequences
+ * (`ESC P/X/^/_` … `ESC \`), two-character escape sequences (e.g.
+ * `ESC c`), and lone/malformed `ESC` bytes. All other bytes (including
+ * control bytes like `\t`) are copied verbatim.
  *
  * @param str  Source string; `NULL` returns an empty heap string.
  * @return     Heap-allocated stripped string; caller must `free()` the result.

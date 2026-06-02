@@ -208,9 +208,11 @@ void table_init(Table *table, const ScTableData *data, ScTableOpts opts);
 void table_render(Table *table);
 
 /* table_print_render_cell.c */
-ScRenderLine *make_cell_lines(const ScCell *cell, size_t *out_count);
+ScRenderLine *make_cell_lines(
+    const ScCell *cell, ScAnsiMode ansi, size_t *out_count
+);
 ScRenderLine *wrap_cell_lines(
-    const ScCell *cell, int max_width, size_t *out_count
+    const ScCell *cell, ScAnsiMode ansi, int max_width, size_t *out_count
 );
 size_t cell_visible_width(const ScCell *cell);
 size_t count_cell_lines(

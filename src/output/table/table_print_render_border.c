@@ -290,9 +290,12 @@ static void render_inner_sep_span_content(
     ScRenderLine *cell_lines =
         (data->columns[col].opts.word_wrap && content_width > 0)
             ? wrap_cell_lines(
-                  table->row_span[col].cell, content_width, &line_count
+                  table->row_span[col].cell, table->opts.ansi,
+                  content_width, &line_count
               )
-            : make_cell_lines(table->row_span[col].cell, &line_count);
+            : make_cell_lines(
+                  table->row_span[col].cell, table->opts.ansi, &line_count
+              );
 
     int line_index = rowspan_separator_line_index(
         &table->row_span[col], (int)line_count
@@ -417,7 +420,15 @@ static void render_title_with_fill(
     const Table *table, const char *fill_char,
     ScColor outer_color, int title_pad
 ) {
-    int title_length = (int)strlen(table->opts.title.text);
+    // The title is a borrowed user string; it crosses the trust boundary
+    // here. Fill is computed from the visible width of the sanitized text.
+    char *clean_title = sc_sanitize_copy_mode(
+        table->opts.title.text, table->opts.ansi
+    );
+    if (!clean_title) { return; }
+    int title_length = (int)sc_utf8_string_length(
+        clean_title, strlen(clean_title)
+    );
     int left_fill, right_fill;
     split_title_fill(
         table->inner_width, title_length, title_pad,
@@ -433,7 +444,8 @@ static void render_title_with_fill(
     for (int i = 0; i < title_pad; i++) {
         print_colored_string(" ", outer_color);
     }
-    sc_print(table->opts.title.text, table->opts.title.style);
+    sc_print_raw(clean_title, table->opts.title.style);
+    free(clean_title);
     for (int i = 0; i < title_pad; i++) {
         print_colored_string(" ", outer_color);
     }
@@ -540,7 +552,7 @@ void print_span_with_bg(
     if (!sc_color_is_active(style.bg) && sc_color_is_active(cell_bg)) {
         style.bg = cell_bg;
     }
-    sc_print(text, style);
+    sc_print_raw(text, style);
 }
 
 /**

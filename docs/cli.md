@@ -50,8 +50,9 @@ sparcli [global options] <command> [options] [arguments]
 | `-V`, `--version` | Show the version and exit |
 | `--no-color` | Strip all ANSI colors/attributes from the output |
 | `--no-markup` | Treat `[tag]` markup as literal text |
+| `--allow-ansi` | Pass raw ANSI escape codes in input text through (default: stripped) |
 
-`--no-color` and `--no-markup` are also accepted after the command name (e.g. `sparcli panel --no-color "x"`).
+`--no-color`, `--no-markup` and `--allow-ansi` are also accepted after the command name (e.g. `sparcli panel --no-color "x"`).
 
 ### Markup
 
@@ -75,6 +76,20 @@ Wherever a command takes a `COLOR` value, three forms are accepted:
 | Decimal RGB | `255,136,0` |
 
 `--no-color` (or a non-empty [`NO_COLOR`](https://no-color.org) environment variable) strips every ANSI escape sequence from the output – including colors that come from markup tags.
+
+### ANSI-injection protection
+
+All input text (arguments, stdin, CSV cells) is **sanitized by default**: raw ANSI escape sequences and control bytes are removed before rendering, so untrusted data (log lines, file contents, API responses) cannot inject terminal escape codes or shift widget frames:
+
+```sh
+printf 'job\033[31m1,ok\033]0;evil\007done\n' | sparcli table   # renders clean
+```
+
+`--allow-ansi` opts out for one invocation: well-formed escape sequences pass through (stray control bytes are still removed) and all width math accounts for them, so panels and tables stay aligned:
+
+```sh
+ls --color=always | sparcli panel --allow-ansi --title "Files"
+```
 
 ### Reading input
 

@@ -30,6 +30,12 @@ typedef struct ScRuleOpts {
 
     /** Outer margin; top/bottom = blank lines, left/right = indent spaces. */
     ScEdges margin;
+
+    /**
+     * ANSI passthrough for the title string; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScRuleOpts;
 
 

@@ -178,6 +178,16 @@ sc.set_theme(sc.Theme(accent=sc.Color.CYAN, hint_layout=sc.HintLayout.STACKED))
 # per-call opts > theme > built-in default; sc.set_theme(None) clears it
 ```
 
+### ANSI-injection protection
+
+User strings are sanitized by default (control bytes and escape sequences removed). Opt out globally or per widget:
+
+```python
+sc.set_allow_ansi(True)        # process-wide; sc.allow_ansi() reads it back
+sc.panel('\x1b[31mred\x1b[0m', sc.PanelOpts(ansi=sc.AnsiMode.ALLOW))
+# AnsiMode.DEFAULT (inherit global) / ALLOW / SANITIZE
+```
+
 ## Build & test
 
 ```sh

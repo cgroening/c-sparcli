@@ -314,6 +314,12 @@ typedef struct ScTableOpts {
 
     /** When `true`, reverse the display order of columns. */
     bool right_to_left;
+
+    /**
+     * ANSI passthrough for cell and title strings; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScTableOpts;
 
 typedef struct ScTableData ScTableData;

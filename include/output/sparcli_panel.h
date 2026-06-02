@@ -67,6 +67,12 @@ typedef struct ScPanelOpts {
 
     /** Outer spacing (top/right/bottom/left). */
     ScEdges margin;
+
+    /**
+     * ANSI passthrough for content and title strings; zero-init inherits
+     * the `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScPanelOpts;
 
 

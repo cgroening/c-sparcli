@@ -258,8 +258,12 @@ void sc_rule_str(const char *title, ScRuleOpts opts) {
         sc_rule_text(NULL, opts);
         return;
     }
+    // Title crosses the trust boundary here, honoring opts.ansi
+    char *clean = sc_sanitize_copy_mode(title, opts.ansi);
+    if (!clean) { return; }
     ScText *t = sc_text_new();
-    sc_text_append(t, title, opts.title.style);
+    sc_text_append_raw(t, clean, opts.title.style);
+    free(clean);
     sc_rule_text(t, opts);
     sc_text_free(t);
 }

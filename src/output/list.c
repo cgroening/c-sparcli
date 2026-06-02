@@ -164,7 +164,10 @@ ScListItem *sc_list_add_str(
     ScList *list, const char *str, ScTextStyle style
 ) {
     if (!list) { return NULL; }
-    ScListItem *item = new_item(false, str, style, NULL);
+    // Item string crosses the trust boundary here, honoring opts.ansi
+    char *clean = str ? sc_sanitize_copy_mode(str, list->opts.ansi) : NULL;
+    ScListItem *item = new_item(false, clean, style, NULL);
+    free(clean);
     append_item(list, item);
     return item;
 }
@@ -461,7 +464,7 @@ static void render_marker(const List *self, size_t item_index) {
     );
 
     if (sc_style_has_format(self->list->opts.marker_style)) {
-        sc_print(marker_buffer, self->list->opts.marker_style);
+        sc_print_raw(marker_buffer, self->list->opts.marker_style);
     } else {
         fputs(marker_buffer, sc_output_stream());
     }
@@ -527,7 +530,7 @@ static void render_wrapped_string(
                 self->list->opts.margin.left + self->text_start_column
             );
         }
-        sc_print(lines[i], item->style);
+        sc_print_raw(lines[i], item->style);
         fputc('\n', sc_output_stream());
         free(lines[i]);
     }

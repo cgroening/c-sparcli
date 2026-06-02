@@ -21,3 +21,16 @@ struct ScText {
     size_t  count;
     size_t  capacity;
 };
+
+
+/**
+ * Appends a span WITHOUT sanitizing `raw_str`.
+ *
+ * Internal trusted path for strings that are already sanitized (widgets
+ * that resolved their own `ScAnsiMode`) or that are library-generated.
+ * The public `sc_text_append` sanitizes per the global setting and then
+ * delegates here.
+ */
+void sc_text_append_raw(
+    ScText *sc_text, const char *raw_str, ScTextStyle style
+);

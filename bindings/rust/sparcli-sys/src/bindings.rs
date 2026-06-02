@@ -303,6 +303,22 @@ const _: () = {
     ["Offset of field: ScTitle::pad"][::std::mem::offset_of!(ScTitle, pad) - 40usize];
     ["Offset of field: ScTitle::pos"][::std::mem::offset_of!(ScTitle, pos) - 44usize];
 };
+#[doc = " Inherit the global `sc_set_allow_ansi` setting (the default)."]
+pub const ScAnsiMode_SC_ANSI_MODE_DEFAULT: ScAnsiMode = 0;
+#[doc = " Pass well-formed ANSI escape sequences (CSI/OSC/DCS/…) through.\n Stray control bytes are still removed; widths are computed\n ANSI-aware so frames stay aligned."]
+pub const ScAnsiMode_SC_ANSI_MODE_ALLOW: ScAnsiMode = 1;
+#[doc = " Always strip escape sequences, regardless of the global setting."]
+pub const ScAnsiMode_SC_ANSI_MODE_SANITIZE: ScAnsiMode = 2;
+#[doc = " Per-widget ANSI passthrough mode for user-supplied strings.\n\n By default every string entering the library is sanitized: control\n bytes (except `\\n` and `\\t`) and ANSI escape sequences are removed so\n untrusted data cannot inject terminal escape codes. The zero-init\n value inherits the process-wide setting (`sc_set_allow_ansi`); the\n other values override it for one widget."]
+pub type ScAnsiMode = ::std::os::raw::c_uint;
+extern "C" {
+    #[doc = " Sets the process-wide default for ANSI passthrough in user strings.\n\n When `false` (the default), every string handed to the library has\n ANSI escape sequences and control bytes (except `\\n`, `\\t`) stripped\n at the API boundary - untrusted data cannot inject escape codes.\n When `true`, well-formed escape sequences are preserved (stray\n control bytes are still removed) and all width calculations skip\n them, so borders and frames stay aligned.\n\n Per-widget opts can override this via their `ScAnsiMode ansi` field.\n Thread-safe; intended as set-once configuration at startup.\n\n @param allow  `true` = pass ANSI sequences through; `false` = strip."]
+    pub fn sc_set_allow_ansi(allow: bool);
+}
+extern "C" {
+    #[doc = " Returns the current process-wide ANSI passthrough setting.\n\n @return  `true` when ANSI escape sequences are passed through."]
+    pub fn sc_allow_ansi() -> bool;
+}
 extern "C" {
     #[doc = " Creates an `ScColor` from 24-bit RGB values.\n\n The returned color has `index = -1`, which selects RGB mode when passed to\n any function that accepts @ref ScColor.\n\n @param r  Red channel (0-255).\n @param g  Green channel (0-255).\n @param b  Blue channel (0-255).\n @return   An `ScColor` with `index = -1` and the given RGB values."]
     pub fn sc_color_from_rgb(r: u8, g: u8, b: u8) -> ScColor;
@@ -405,13 +421,16 @@ extern "C" {
 pub struct ScMarkupOpts {
     #[doc = " When `true`, unrecognized tags (e.g. `[blink]`) are silently dropped\n and only their inner content is kept; when `false` (default), the\n tag brackets are emitted as literal text."]
     pub strip_unknown: bool,
+    #[doc = " ANSI passthrough for raw escape bytes in the markup text; zero-init\n inherits the `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScMarkupOpts"][::std::mem::size_of::<ScMarkupOpts>() - 1usize];
-    ["Alignment of ScMarkupOpts"][::std::mem::align_of::<ScMarkupOpts>() - 1usize];
+    ["Size of ScMarkupOpts"][::std::mem::size_of::<ScMarkupOpts>() - 8usize];
+    ["Alignment of ScMarkupOpts"][::std::mem::align_of::<ScMarkupOpts>() - 4usize];
     ["Offset of field: ScMarkupOpts::strip_unknown"]
         [::std::mem::offset_of!(ScMarkupOpts, strip_unknown) - 0usize];
+    ["Offset of field: ScMarkupOpts::ansi"][::std::mem::offset_of!(ScMarkupOpts, ansi) - 4usize];
 };
 extern "C" {
     #[doc = " Parses `markup` into a new `ScText` using default options.\n\n @param markup  Source string with Rich-style tags (e.g. `[bold red]…[/]`).\n                Pass `NULL` to get an empty `ScText`.\n @return        Heap-allocated `ScText`; free with `sc_text_free`."]
@@ -502,6 +521,8 @@ pub struct ScPanelOpts {
     pub padding: ScEdges,
     #[doc = " Outer spacing (top/right/bottom/left)."]
     pub margin: ScEdges,
+    #[doc = " ANSI passthrough for content and title strings; zero-init inherits\n the `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -521,6 +542,7 @@ const _: () = {
         [::std::mem::offset_of!(ScPanelOpts, padding) - 140usize];
     ["Offset of field: ScPanelOpts::margin"]
         [::std::mem::offset_of!(ScPanelOpts, margin) - 156usize];
+    ["Offset of field: ScPanelOpts::ansi"][::std::mem::offset_of!(ScPanelOpts, ansi) - 172usize];
 };
 extern "C" {
     #[doc = " Renders a null-terminated string inside a styled, bordered panel.\n\n The string may contain `\\n` to produce multi-line content. Each line is\n aligned according to `opts.content_align` and padded by `opts.padding`.\n\n @param content  Null-terminated string to display inside the panel.\n                 Must not be `NULL`.\n @param opts     Layout and visual options; see `ScPanelOpts`."]
@@ -766,6 +788,8 @@ pub struct ScTableOpts {
     pub max_rows: ::std::os::raw::c_int,
     #[doc = " When `true`, reverse the display order of columns."]
     pub right_to_left: bool,
+    #[doc = " ANSI passthrough for cell and title strings; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -789,6 +813,7 @@ const _: () = {
         [::std::mem::offset_of!(ScTableOpts, max_rows) - 212usize];
     ["Offset of field: ScTableOpts::right_to_left"]
         [::std::mem::offset_of!(ScTableOpts, right_to_left) - 216usize];
+    ["Offset of field: ScTableOpts::ansi"][::std::mem::offset_of!(ScTableOpts, ansi) - 220usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -848,10 +873,12 @@ pub struct ScRuleOpts {
     pub halign: ScHAlign,
     #[doc = " Outer margin; top/bottom = blank lines, left/right = indent spaces."]
     pub margin: ScEdges,
+    #[doc = " ANSI passthrough for the title string; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScRuleOpts"][::std::mem::size_of::<ScRuleOpts>() - 88usize];
+    ["Size of ScRuleOpts"][::std::mem::size_of::<ScRuleOpts>() - 96usize];
     ["Alignment of ScRuleOpts"][::std::mem::align_of::<ScRuleOpts>() - 8usize];
     ["Offset of field: ScRuleOpts::type_"][::std::mem::offset_of!(ScRuleOpts, type_) - 0usize];
     ["Offset of field: ScRuleOpts::color"][::std::mem::offset_of!(ScRuleOpts, color) - 4usize];
@@ -859,6 +886,7 @@ const _: () = {
     ["Offset of field: ScRuleOpts::width"][::std::mem::offset_of!(ScRuleOpts, width) - 64usize];
     ["Offset of field: ScRuleOpts::halign"][::std::mem::offset_of!(ScRuleOpts, halign) - 68usize];
     ["Offset of field: ScRuleOpts::margin"][::std::mem::offset_of!(ScRuleOpts, margin) - 72usize];
+    ["Offset of field: ScRuleOpts::ansi"][::std::mem::offset_of!(ScRuleOpts, ansi) - 88usize];
 };
 extern "C" {
     #[doc = " Renders a horizontal rule with an optional plain-string title.\n\n @param title  Title text embedded in the line; `NULL` = no title.\n @param opts   Rendering options (style, color, width, alignment, margin)."]
@@ -904,10 +932,12 @@ pub struct ScListOpts {
     pub width: ::std::os::raw::c_int,
     #[doc = " Outer margin; top/bottom = blank lines, left/right = outer indent\n in columns."]
     pub margin: ScEdges,
+    #[doc = " ANSI passthrough for item strings; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScListOpts"][::std::mem::size_of::<ScListOpts>() - 80usize];
+    ["Size of ScListOpts"][::std::mem::size_of::<ScListOpts>() - 88usize];
     ["Alignment of ScListOpts"][::std::mem::align_of::<ScListOpts>() - 8usize];
     ["Offset of field: ScListOpts::marker"][::std::mem::offset_of!(ScListOpts, marker) - 0usize];
     ["Offset of field: ScListOpts::bullet"][::std::mem::offset_of!(ScListOpts, bullet) - 8usize];
@@ -922,6 +952,7 @@ const _: () = {
         [::std::mem::offset_of!(ScListOpts, item_gap) - 56usize];
     ["Offset of field: ScListOpts::width"][::std::mem::offset_of!(ScListOpts, width) - 60usize];
     ["Offset of field: ScListOpts::margin"][::std::mem::offset_of!(ScListOpts, margin) - 64usize];
+    ["Offset of field: ScListOpts::ansi"][::std::mem::offset_of!(ScListOpts, ansi) - 80usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -973,10 +1004,12 @@ pub struct ScTreeOpts {
     pub indent: ::std::os::raw::c_int,
     #[doc = " When `true`, suppress vertical continuation guides under finished\nbranches."]
     pub no_guide: bool,
+    #[doc = " ANSI passthrough for node strings; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScTreeOpts"][::std::mem::size_of::<ScTreeOpts>() - 20usize];
+    ["Size of ScTreeOpts"][::std::mem::size_of::<ScTreeOpts>() - 24usize];
     ["Alignment of ScTreeOpts"][::std::mem::align_of::<ScTreeOpts>() - 4usize];
     ["Offset of field: ScTreeOpts::type_"][::std::mem::offset_of!(ScTreeOpts, type_) - 0usize];
     ["Offset of field: ScTreeOpts::connector_color"]
@@ -984,6 +1017,7 @@ const _: () = {
     ["Offset of field: ScTreeOpts::indent"][::std::mem::offset_of!(ScTreeOpts, indent) - 12usize];
     ["Offset of field: ScTreeOpts::no_guide"]
         [::std::mem::offset_of!(ScTreeOpts, no_guide) - 16usize];
+    ["Offset of field: ScTreeOpts::ansi"][::std::mem::offset_of!(ScTreeOpts, ansi) - 20usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1243,6 +1277,8 @@ pub struct ScProgressBarOpts {
     pub label_width: ::std::os::raw::c_int,
     #[doc = " Style applied to the label text; zero-init = no formatting."]
     pub label_style: ScTextStyle,
+    #[doc = " ANSI passthrough for the label; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -1272,6 +1308,8 @@ const _: () = {
         [::std::mem::offset_of!(ScProgressBarOpts, label_width) - 100usize];
     ["Offset of field: ScProgressBarOpts::label_style"]
         [::std::mem::offset_of!(ScProgressBarOpts, label_style) - 104usize];
+    ["Offset of field: ScProgressBarOpts::ansi"]
+        [::std::mem::offset_of!(ScProgressBarOpts, ansi) - 124usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1318,10 +1356,12 @@ pub struct ScSpinnerOpts {
     pub color: ScColor,
     #[doc = " Style applied to the label text; zero-init = no formatting."]
     pub label_style: ScTextStyle,
+    #[doc = " ANSI passthrough for the label; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScSpinnerOpts"][::std::mem::size_of::<ScSpinnerOpts>() - 32usize];
+    ["Size of ScSpinnerOpts"][::std::mem::size_of::<ScSpinnerOpts>() - 36usize];
     ["Alignment of ScSpinnerOpts"][::std::mem::align_of::<ScSpinnerOpts>() - 4usize];
     ["Offset of field: ScSpinnerOpts::type_"]
         [::std::mem::offset_of!(ScSpinnerOpts, type_) - 0usize];
@@ -1329,6 +1369,7 @@ const _: () = {
         [::std::mem::offset_of!(ScSpinnerOpts, color) - 4usize];
     ["Offset of field: ScSpinnerOpts::label_style"]
         [::std::mem::offset_of!(ScSpinnerOpts, label_style) - 12usize];
+    ["Offset of field: ScSpinnerOpts::ansi"][::std::mem::offset_of!(ScSpinnerOpts, ansi) - 32usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1382,10 +1423,12 @@ pub struct ScKVOpts {
     pub key_style: ScTextStyle,
     #[doc = " Style applied to values; zero-init = no formatting."]
     pub val_style: ScTextStyle,
+    #[doc = " ANSI passthrough for key/value strings; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScKVOpts"][::std::mem::size_of::<ScKVOpts>() - 80usize];
+    ["Size of ScKVOpts"][::std::mem::size_of::<ScKVOpts>() - 88usize];
     ["Alignment of ScKVOpts"][::std::mem::align_of::<ScKVOpts>() - 8usize];
     ["Offset of field: ScKVOpts::sep"][::std::mem::offset_of!(ScKVOpts, sep) - 0usize];
     ["Offset of field: ScKVOpts::key_width"][::std::mem::offset_of!(ScKVOpts, key_width) - 8usize];
@@ -1395,6 +1438,7 @@ const _: () = {
     ["Offset of field: ScKVOpts::wrap_val"][::std::mem::offset_of!(ScKVOpts, wrap_val) - 36usize];
     ["Offset of field: ScKVOpts::key_style"][::std::mem::offset_of!(ScKVOpts, key_style) - 40usize];
     ["Offset of field: ScKVOpts::val_style"][::std::mem::offset_of!(ScKVOpts, val_style) - 60usize];
+    ["Offset of field: ScKVOpts::ansi"][::std::mem::offset_of!(ScKVOpts, ansi) - 80usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1473,10 +1517,12 @@ pub struct ScBadgeOpts {
     pub text_style: ScTextStyle,
     #[doc = " Spaces inserted inside each cap; default `0`."]
     pub pad: ::std::os::raw::c_int,
+    #[doc = " ANSI passthrough for the badge text; zero-init inherits the\n `sc_set_allow_ansi` global."]
+    pub ansi: ScAnsiMode,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScBadgeOpts"][::std::mem::size_of::<ScBadgeOpts>() - 40usize];
+    ["Size of ScBadgeOpts"][::std::mem::size_of::<ScBadgeOpts>() - 48usize];
     ["Alignment of ScBadgeOpts"][::std::mem::align_of::<ScBadgeOpts>() - 8usize];
     ["Offset of field: ScBadgeOpts::left_cap"]
         [::std::mem::offset_of!(ScBadgeOpts, left_cap) - 0usize];
@@ -1485,6 +1531,7 @@ const _: () = {
     ["Offset of field: ScBadgeOpts::text_style"]
         [::std::mem::offset_of!(ScBadgeOpts, text_style) - 16usize];
     ["Offset of field: ScBadgeOpts::pad"][::std::mem::offset_of!(ScBadgeOpts, pad) - 36usize];
+    ["Offset of field: ScBadgeOpts::ansi"][::std::mem::offset_of!(ScBadgeOpts, ansi) - 40usize];
 };
 extern "C" {
     #[doc = " Prints a styled badge token to stdout (no trailing newline).\n\n @param text  Badge text; may be `NULL` to print just the caps and padding.\n @param opts  Rendering options."]
@@ -1499,7 +1546,7 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = " Returns a heap-allocated copy of `str` with all ANSI CSI escape sequences\n removed.\n\n Strips sequences starting with `ESC [` up to and including the final byte\n (`0x40`-`0x7E`). Non-CSI bytes are copied verbatim.\n\n @param str  Source string; `NULL` returns an empty heap string.\n @return     Heap-allocated stripped string; caller must `free()` the result.\n             Returns `NULL` only on allocation failure."]
+    #[doc = " Returns a heap-allocated copy of `str` with all ANSI escape sequences\n removed.\n\n Strips CSI sequences (`ESC [` … final byte `0x40`-`0x7E`), OSC sequences\n (`ESC ]` … `BEL` or `ESC \\`), DCS/SOS/PM/APC string sequences\n (`ESC P/X/^/_` … `ESC \\`), two-character escape sequences (e.g.\n `ESC c`), and lone/malformed `ESC` bytes. All other bytes (including\n control bytes like `\\t`) are copied verbatim.\n\n @param str  Source string; `NULL` returns an empty heap string.\n @return     Heap-allocated stripped string; caller must `free()` the result.\n             Returns `NULL` only on allocation failure."]
     pub fn sc_strip_ansi(str_: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {

@@ -222,6 +222,55 @@ typedef struct ScTitle {
     ScPosition pos;
 } ScTitle;
 
+/**
+ * Per-widget ANSI passthrough mode for user-supplied strings.
+ *
+ * By default every string entering the library is sanitized: control
+ * bytes (except `\n` and `\t`) and ANSI escape sequences are removed so
+ * untrusted data cannot inject terminal escape codes. The zero-init
+ * value inherits the process-wide setting (`sc_set_allow_ansi`); the
+ * other values override it for one widget.
+ */
+typedef enum ScAnsiMode {
+    /** Inherit the global `sc_set_allow_ansi` setting (the default). */
+    SC_ANSI_MODE_DEFAULT = 0,
+
+    /**
+     * Pass well-formed ANSI escape sequences (CSI/OSC/DCS/…) through.
+     * Stray control bytes are still removed; widths are computed
+     * ANSI-aware so frames stay aligned.
+     */
+    SC_ANSI_MODE_ALLOW = 1,
+
+    /** Always strip escape sequences, regardless of the global setting. */
+    SC_ANSI_MODE_SANITIZE = 2,
+} ScAnsiMode;
+
+
+/**
+ * Sets the process-wide default for ANSI passthrough in user strings.
+ *
+ * When `false` (the default), every string handed to the library has
+ * ANSI escape sequences and control bytes (except `\n`, `\t`) stripped
+ * at the API boundary - untrusted data cannot inject escape codes.
+ * When `true`, well-formed escape sequences are preserved (stray
+ * control bytes are still removed) and all width calculations skip
+ * them, so borders and frames stay aligned.
+ *
+ * Per-widget opts can override this via their `ScAnsiMode ansi` field.
+ * Thread-safe; intended as set-once configuration at startup.
+ *
+ * @param allow  `true` = pass ANSI sequences through; `false` = strip.
+ */
+SPARCLI_EXPORT void sc_set_allow_ansi(bool allow);
+
+/**
+ * Returns the current process-wide ANSI passthrough setting.
+ *
+ * @return  `true` when ANSI escape sequences are passed through.
+ */
+SPARCLI_EXPORT bool sc_allow_ansi(void);
+
 
 /**
  * Creates an `ScColor` from 24-bit RGB values.

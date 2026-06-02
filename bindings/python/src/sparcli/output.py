@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from ._ffi import (apply_border, apply_color, apply_edges, apply_style,
                    apply_title, cstr, ffi, lib)
 from .color import Color
-from .enums import Align, AlertType, BorderType
+from .enums import Align, AlertType, AnsiMode, BorderType
 from .style import BorderStyle, Edges, Style, Title
 from .text import Text
 
@@ -51,6 +51,7 @@ class PanelOpts:
     content_align: Align = Align.LEFT
     padding: Edges = field(default_factory=Edges)
     margin: Edges = field(default_factory=Edges)
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         apply_border(c.border, self.border)
@@ -65,6 +66,7 @@ class PanelOpts:
         c.content_align = int(self.content_align)
         apply_edges(c.padding, self.padding)
         apply_edges(c.margin, self.margin)
+        c.ansi = int(self.ansi)
 
 
 def panel(content: "str | Text", opts: PanelOpts = PanelOpts()) -> None:
@@ -92,6 +94,7 @@ class RuleOpts:
     title_style: Style = field(default_factory=Style)
     title_align: Align = Align.CENTER
     title_pad: int = 1
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         c.type = int(self.type)
@@ -102,6 +105,7 @@ class RuleOpts:
         apply_style(c.title.style, self.title_style)
         c.title.halign = int(self.title_align)
         c.title.pad = self.title_pad
+        c.ansi = int(self.ansi)
 
 
 def rule(title: "str | Text | None" = None,
@@ -125,12 +129,14 @@ class BadgeOpts:
     right_cap: str | None = None
     text_style: Style = field(default_factory=Style)
     pad: int = 0
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         c.left_cap = cstr(arena, self.left_cap)
         c.right_cap = cstr(arena, self.right_cap)
         apply_style(c.text_style, self.text_style)
         c.pad = self.pad
+        c.ansi = int(self.ansi)
 
 
 def badge(text: str, opts: BadgeOpts = BadgeOpts()) -> None:
@@ -187,8 +193,25 @@ def version_string() -> str:
     return ffi.string(lib.sc_version_string()).decode()
 
 
+def set_allow_ansi(allow: bool) -> None:
+    """Set the process-wide ANSI passthrough for user strings.
+
+    Default is ``False``: escape sequences and control bytes are stripped
+    from every string entering the library, so untrusted data cannot
+    inject terminal escape codes. Per-widget opts override this via their
+    ``ansi`` field (:class:`~sparcli.enums.AnsiMode`).
+    """
+    lib.sc_set_allow_ansi(allow)
+
+
+def allow_ansi() -> bool:
+    """Return the current process-wide ANSI passthrough setting."""
+    return bool(lib.sc_allow_ansi())
+
+
 def strip_ansi(s: str) -> str:
-    """Return ``s`` with all ANSI CSI escape sequences removed."""
+    """Return ``s`` with all ANSI escape sequences removed
+    (CSI, OSC, DCS, two-char ESC and lone ESC bytes)."""
     arena: list = []
     out = lib.sc_strip_ansi(cstr(arena, s))
     if out == ffi.NULL:

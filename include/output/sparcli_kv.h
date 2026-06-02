@@ -37,6 +37,12 @@ typedef struct ScKVOpts {
 
     /** Style applied to values; zero-init = no formatting. */
     ScTextStyle val_style;
+
+    /**
+     * ANSI passthrough for key/value strings; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScKVOpts;
 
 /** Opaque key-value list; build with `sc_kv_new`. */

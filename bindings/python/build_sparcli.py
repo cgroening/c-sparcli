@@ -41,6 +41,7 @@ _SOURCES = [
     "core/color.c",
     "core/text.c",
     "core/render_wrap.c",
+    "core/sanitize.c",
     "output/panel.c",
     "output/table/table.c",
     "output/table/table_print.c",
@@ -97,6 +98,8 @@ typedef enum { SC_BORDER_NONE, SC_BORDER_ASCII, SC_BORDER_SINGLE,
 typedef enum { SC_POSITION_TOP, SC_POSITION_BOTTOM } ScPosition;
 typedef enum { SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT } ScHAlign;
 typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
+typedef enum { SC_ANSI_MODE_DEFAULT = 0, SC_ANSI_MODE_ALLOW = 1,
+               SC_ANSI_MODE_SANITIZE = 2 } ScAnsiMode;
 typedef enum { SC_CELL_STR, SC_CELL_TEXT, SC_CELL_MARKUP } ScCellKind;
 typedef enum { SC_LIST_BULLET, SC_LIST_NUMBER, SC_LIST_ALPHA_LC, SC_LIST_ALPHA_UC,
                SC_LIST_ROMAN_LC, SC_LIST_ROMAN_UC } ScListMarker;
@@ -166,7 +169,7 @@ FILE *sc_output_stream(void);
 void sc_output_set_stream(FILE *out);
 
 /* ── Markup ────────────────────────────────────────────────────────────── */
-typedef struct { bool strip_unknown; } ScMarkupOpts;
+typedef struct { bool strip_unknown; ScAnsiMode ansi; ...; } ScMarkupOpts;
 ScText *sc_markup_parse(const char *markup);
 ScText *sc_markup_parse_opts(const char *markup, ScMarkupOpts opts);
 void sc_markup_append(ScText *text, const char *markup);
@@ -187,6 +190,7 @@ typedef struct {
     ScHAlign content_align;
     ScEdges padding;
     ScEdges margin;
+    ScAnsiMode ansi;
     ...;
 } ScPanelOpts;
 void sc_panel_str(const char *content, ScPanelOpts opts);
@@ -200,6 +204,7 @@ typedef struct {
     int width;
     ScHAlign halign;
     ScEdges margin;
+    ScAnsiMode ansi;
     ...;
 } ScRuleOpts;
 void sc_rule_str(const char *title, ScRuleOpts opts);
@@ -211,6 +216,7 @@ typedef struct {
     const char *right_cap;
     ScTextStyle text_style;
     int pad;
+    ScAnsiMode ansi;
     ...;
 } ScBadgeOpts;
 void sc_print_badge(const char *text, ScBadgeOpts opts);
@@ -296,6 +302,7 @@ typedef struct {
     int total_width;
     int max_rows;
     bool right_to_left;
+    ScAnsiMode ansi;
     ...;
 } ScTableOpts;
 typedef struct ScTableData ScTableData;
@@ -318,6 +325,7 @@ typedef struct {
     int item_gap;
     int width;
     ScEdges margin;
+    ScAnsiMode ansi;
     ...;
 } ScListOpts;
 typedef struct ScList ScList;
@@ -335,6 +343,7 @@ typedef struct {
     ScColor connector_color;
     int indent;
     bool no_guide;
+    ScAnsiMode ansi;
     ...;
 } ScTreeOpts;
 typedef struct ScTree ScTree;
@@ -358,6 +367,7 @@ typedef struct {
     bool wrap_val;
     ScTextStyle key_style;
     ScTextStyle val_style;
+    ScAnsiMode ansi;
     ...;
 } ScKVOpts;
 typedef struct ScKV ScKV;
@@ -449,6 +459,7 @@ typedef struct {
     int width;
     int label_width;
     ScTextStyle label_style;
+    ScAnsiMode ansi;
     ...;
 } ScProgressBarOpts;
 typedef struct ScProgressBar ScProgressBar;
@@ -462,6 +473,7 @@ typedef struct {
     ScSpinnerType type;
     ScColor color;
     ScTextStyle label_style;
+    ScAnsiMode ansi;
     ...;
 } ScSpinnerOpts;
 typedef struct ScSpinner ScSpinner;
@@ -472,6 +484,8 @@ void sc_spinner_finish(ScSpinner *spinner, bool success, const char *label);
 void sc_spinner_free(ScSpinner *spinner);
 
 /* ── Utilities ─────────────────────────────────────────────────────────── */
+void sc_set_allow_ansi(bool allow);
+bool sc_allow_ansi(void);
 char *sc_strip_ansi(const char *str);
 char *sc_truncate(const char *str, int max_cols, const char *ellipsis);
 void sc_clear_line(void);

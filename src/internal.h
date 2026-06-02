@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sparcli.h"
+#include "core/sanitize_internal.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -12,6 +13,16 @@
 
 void sc_apply_colors(ScColor fg, ScColor bg);
 void sc_apply_style (ScTextAttribute style);
+
+/**
+ * Prints `text` with `style` WITHOUT sanitizing.
+ *
+ * Internal trusted variant of `sc_print` for rendering strings that
+ * already crossed the trust boundary (stored widget strings, `ScText`
+ * spans, library-generated buffers). The public `sc_print` sanitizes
+ * per the global `sc_allow_ansi` setting and then delegates here.
+ */
+void sc_print_raw(const char *text, ScTextStyle style);
 
 
 /* ── Shared capacity constants ──────────────────────────────────────────── */
@@ -117,6 +128,12 @@ static inline int sc_terminal_width(void) {
  * 1 terminal column). Walks the byte sequence, skips continuation bytes
  * and counts one column per codepoint. Assumes all code points occupy
  * 1 column (correct for non-CJK).
+ *
+ * ANSI-aware: well-formed escape sequences (CSI/OSC/…) and the control
+ * bytes removed by the sanitizer (everything below 0x20 except `\n`/`\t`,
+ * plus DEL) count as zero columns. A string therefore measures the same
+ * before and after sanitization, and strings carrying ANSI codes
+ * (allow_ansi mode) measure their visible width correctly.
  */
 static inline size_t sc_utf8_string_length(
     const char *string, size_t byte_length
@@ -126,6 +143,18 @@ static inline size_t sc_utf8_string_length(
     const unsigned char *end = cursor + byte_length;
     while (cursor < end) {
         unsigned char current_byte = *cursor;
+        if (current_byte == 0x1B) {
+            /* Escape sequences occupy no columns; a lone ESC is skipped. */
+            const char *seq_end = sc_ansi_skip_seq((const char *)cursor);
+            cursor = seq_end != (const char *)cursor
+                ? (const unsigned char *)seq_end : cursor + 1;
+            continue;
+        }
+        if ((current_byte < 0x20 && current_byte != '\t'
+             && current_byte != '\n') || current_byte == 0x7F) {
+            cursor++;   /* sanitizer-dropped control bytes: no columns */
+            continue;
+        }
         if      ((current_byte & 0x80) == 0x00) { cursor += 1; }
         else if ((current_byte & 0xE0) == 0xC0) { cursor += 2; }
         else if ((current_byte & 0xF0) == 0xE0) { cursor += 3; }
@@ -140,7 +169,9 @@ static inline size_t sc_utf8_string_length(
  * visible terminal columns.
  *
  * Stops only at codepoint boundaries, so the returned byte count is
- * always safe to pass to `fwrite()` or `memcpy()`.
+ * always safe to pass to `fwrite()` or `memcpy()`. ANSI escape sequences
+ * are included in the byte count but occupy no columns, so a trim never
+ * cuts inside an escape sequence.
  */
 static inline size_t sc_utf8_trim_to_cols(
     const char *string, int max_columns
@@ -149,6 +180,17 @@ static inline size_t sc_utf8_trim_to_cols(
     int columns = 0;
     while (*cursor && columns < max_columns) {
         unsigned char current_byte = *cursor;
+        if (current_byte == 0x1B) {
+            const char *seq_end = sc_ansi_skip_seq((const char *)cursor);
+            cursor = seq_end != (const char *)cursor
+                ? (const unsigned char *)seq_end : cursor + 1;
+            continue;
+        }
+        if ((current_byte < 0x20 && current_byte != '\t'
+             && current_byte != '\n') || current_byte == 0x7F) {
+            cursor++;   /* sanitizer-dropped control bytes: no columns */
+            continue;
+        }
         if      ((current_byte & 0x80) == 0x00) { cursor += 1; }
         else if ((current_byte & 0xE0) == 0xC0) { cursor += 2; }
         else if ((current_byte & 0xF0) == 0xE0) { cursor += 3; }

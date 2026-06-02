@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from ._ffi import (apply_color, apply_edges, apply_style, apply_title, cstr,
                    ffi, lib)
 from .color import Color
-from .enums import Align, BorderType, VAlign
+from .enums import Align, AnsiMode, BorderType, VAlign
 from .style import Edges, Style, Title
 from .text import Text
 
@@ -130,6 +130,7 @@ class TableOpts:
     total_width: int = 0
     max_rows: int = 0
     rtl: bool = False
+    ansi: AnsiMode = AnsiMode.DEFAULT
 
     def _fill(self, c, arena: list) -> None:
         b = (self.border if isinstance(self.border, TableBorder)
@@ -166,6 +167,7 @@ class TableOpts:
         c.total_width = self.total_width
         c.max_rows = self.max_rows
         c.right_to_left = self.rtl
+        c.ansi = int(self.ansi)
 
 
 def _opts_to_c(opts: TableOpts, arena: list):

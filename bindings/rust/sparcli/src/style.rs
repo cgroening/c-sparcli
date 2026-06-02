@@ -165,6 +165,16 @@ repr_enum!(
 );
 
 repr_enum!(
+    /// Per-widget ANSI passthrough for user strings; `Default` inherits the
+    /// process-wide [`set_allow_ansi`](crate::set_allow_ansi) setting.
+    AnsiMode {
+        Default = ffi::ScAnsiMode_SC_ANSI_MODE_DEFAULT,
+        Allow = ffi::ScAnsiMode_SC_ANSI_MODE_ALLOW,
+        Sanitize = ffi::ScAnsiMode_SC_ANSI_MODE_SANITIZE,
+    } default Default
+);
+
+repr_enum!(
     /// Key-hint footer layout.
     HintLayout {
         Default = ffi::ScHintLayout_SC_HINT_LAYOUT_DEFAULT,

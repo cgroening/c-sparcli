@@ -78,14 +78,17 @@ ScSpinner *sc_spinner_new(const char *label, ScSpinnerOpts opts) {
         return NULL;
     }
     spinner->opts = opts;
-    spinner->label = label ? strdup(label) : NULL;
+    // The label crosses the trust boundary here, honoring opts.ansi
+    spinner->label =
+        label ? sc_sanitize_copy_mode(label, opts.ansi) : NULL;
     return spinner;
 }
 
 void sc_spinner_set_label(ScSpinner *spinner, const char *label) {
     if (!spinner) { return; }
     free(spinner->label);
-    spinner->label = label ? strdup(label) : NULL;
+    spinner->label =
+        label ? sc_sanitize_copy_mode(label, spinner->opts.ansi) : NULL;
 }
 
 void sc_spinner_tick(ScSpinner *spinner) {
@@ -111,8 +114,13 @@ void sc_spinner_finish(
     render_status_symbol(success);
 
     if (label) {
-        fputc(' ', sc_output_stream());
-        fputs(label, sc_output_stream());
+        // The finish label crosses the trust boundary here
+        char *clean = sc_sanitize_copy_mode(label, spinner->opts.ansi);
+        if (clean) {
+            fputc(' ', sc_output_stream());
+            fputs(clean, sc_output_stream());
+            free(clean);
+        }
     }
     fputc('\n', sc_output_stream());
 }
@@ -164,7 +172,7 @@ static int render_label(const ScSpinner *spinner) {
     bool style_has_format = style.attr != 0
         || sc_color_is_active(style.fg) || sc_color_is_active(style.bg);
     if (style_has_format) {
-        sc_print(spinner->label, style);
+        sc_print_raw(spinner->label, style);
     } else {
         fputs(spinner->label, sc_output_stream());
     }

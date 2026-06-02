@@ -16,6 +16,12 @@ typedef struct ScMarkupOpts {
      * tag brackets are emitted as literal text.
      */
     bool strip_unknown;
+
+    /**
+     * ANSI passthrough for raw escape bytes in the markup text; zero-init
+     * inherits the `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScMarkupOpts;
 
 

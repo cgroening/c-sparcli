@@ -27,6 +27,12 @@ typedef struct ScSpinnerOpts {
 
     /** Style applied to the label text; zero-init = no formatting. */
     ScTextStyle label_style;
+
+    /**
+     * ANSI passthrough for the label; zero-init inherits the
+     * `sc_set_allow_ansi` global.
+     */
+    ScAnsiMode ansi;
 } ScSpinnerOpts;
 
 /** Opaque spinner instance; build with `sc_spinner_new`. */

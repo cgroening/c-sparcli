@@ -1,4 +1,5 @@
 #include "input_internal.h"
+#include "core/sanitize_internal.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -236,8 +237,12 @@ bool sc_run_editor(const char *cmd, const char *initial, char **out) {
     if (status == 0) {
         char *content = read_all(path);
         if (content) {
-            *out = content;
-            ok = true;
+            // Editor output is keyboard-equivalent input: always remove
+            // control bytes and escape sequences (never allow ANSI), so
+            // a malicious file cannot inject terminal escape codes.
+            *out = sc_sanitize_copy(content, false);
+            free(content);
+            ok = *out != NULL;
         }
     }
 

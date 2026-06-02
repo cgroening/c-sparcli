@@ -2,8 +2,8 @@
 //! No TTY needed, so they run anywhere (CI included).
 
 use sparcli::{
-    capture, fuzzy_match, key_ctrl, key_fn, ColOpts, Color, PanelOpts, Style,
-    Table, TableOpts, Text,
+    capture, fuzzy_match, key_ctrl, key_fn, AnsiMode, ColOpts, Color,
+    PanelOpts, Style, Table, TableOpts, Text,
 };
 
 #[test]
@@ -108,4 +108,42 @@ fn number_input_text_without_tty_errors() {
         sparcli::NumberOpts::new().decimals(2).decimal_sep(','),
     );
     assert!(r.is_err());
+}
+
+
+#[test]
+fn ansi_injection_protection() {
+    // All assertions in one test: the global toggle must not race with
+    // other tests capturing output in parallel.
+
+    // 1. Default: injected escape codes and control bytes are stripped.
+    assert!(!sparcli::allow_ansi());
+    let r = capture::panel(
+        "\x1b[31mevil\x1b]0;title\x07\x1b[0m content",
+        PanelOpts::new().single(),
+    );
+    let lines = r.lines();
+    assert!(!lines.iter().any(|l| l.contains("\x1b[31m")));
+    assert!(lines
+        .iter()
+        .any(|l| sparcli::strip_ansi(l).contains("evil content")));
+
+    // 2. Per-widget override: codes pass through, borders stay aligned.
+    let r = capture::panel(
+        "\x1b[32mgreen\x1b[0m",
+        PanelOpts::new().single().ansi(AnsiMode::Allow),
+    );
+    let lines = r.lines();
+    assert!(lines.iter().any(|l| l.contains("\x1b[32m")));
+    let widths: Vec<usize> = lines
+        .iter()
+        .map(|l| sparcli::strip_ansi(l).chars().count())
+        .collect();
+    assert!(widths.windows(2).all(|w| w[0] == w[1]));
+
+    // 3. Global setter round-trip (reset to the default afterwards).
+    sparcli::set_allow_ansi(true);
+    assert!(sparcli::allow_ansi());
+    sparcli::set_allow_ansi(false);
+    assert!(!sparcli::allow_ansi());
 }

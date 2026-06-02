@@ -26,9 +26,9 @@ from .capture import (PadOpts, Rendered, align_str, align_text, capture,
                       pad_str, pad_text, vstack)
 from .color import Color
 from .columns import ColItem, Columns, ColumnsOpts
-from .enums import (Align, Attr, AlertType, BorderType, HintLayout, HintPos,
-                    ListMarker, Position, ProgressType, SpinnerType, VAlign,
-                    WeekStart)
+from .enums import (Align, AnsiMode, Attr, AlertType, BorderType, HintLayout,
+                    HintPos, ListMarker, Position, ProgressType, SpinnerType,
+                    VAlign, WeekStart)
 from .errors import SparcliError, SparcliInputUnavailable
 from .input import (ConfirmOpts, DatePickerOpts, NumberOpts, PasswordOpts,
                     TextInputOpts, TextareaOpts, confirm, datepicker,
@@ -37,8 +37,9 @@ from .input import (ConfirmOpts, DatePickerOpts, NumberOpts, PasswordOpts,
                     number_input, password_input, text_input, textarea)
 from .keys import KeyChord, Shortcuts, key_alt, key_ctrl, key_fn
 from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
-                     badge, clear_line, panel, print_, println, rule,
-                     strip_ansi, truncate, version, version_string)
+                     allow_ansi, badge, clear_line, panel, print_, println,
+                     rule, set_allow_ansi, strip_ansi, truncate, version,
+                     version_string)
 from .progress import (ProgressBar, ProgressBarOpts, Spinner, SpinnerOpts,
                        Thresholds)
 from .select import (Fuzzy, FuzzyOpts, Select, SelectOpts, fuzzy_match)
@@ -59,12 +60,13 @@ __all__ = [
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",
+    "AnsiMode",
     # errors
     "SparcliError", "SparcliInputUnavailable",
     # simple output
     "print_", "println", "panel", "PanelOpts", "rule", "RuleOpts", "badge",
     "BadgeOpts", "alert", "version", "version_string", "strip_ansi", "truncate",
-    "clear_line", "ScopedOutput",
+    "clear_line", "ScopedOutput", "set_allow_ansi", "allow_ansi",
     # markup
     "markup",
     # tables

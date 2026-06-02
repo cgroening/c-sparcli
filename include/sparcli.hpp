@@ -68,6 +68,7 @@ using BorderType      = ScBorderType;
 using HAlign          = ScHAlign;
 using VAlign          = ScVAlign;
 using Position        = ScPosition;
+using AnsiMode        = ScAnsiMode;
 
 using PanelOpts       = ScPanelOpts;
 using TableOpts       = ScTableOpts;
@@ -852,6 +853,14 @@ inline void align(std::string_view s, HAlign a, int w = 0) {
 }
 
 // ── Utilities ────────────────────────────────────────────────────────────────
+/**
+ * Sets the process-wide ANSI passthrough for user strings (default: off,
+ * i.e. escape sequences are stripped at the API boundary).
+ * @see sc_set_allow_ansi
+ */
+inline void set_allow_ansi(bool allow) { sc_set_allow_ansi(allow); }
+/** Returns the current process-wide ANSI passthrough. @see sc_allow_ansi */
+inline bool allow_ansi()               { return sc_allow_ansi(); }
 /** Returns `s` with all ANSI escapes removed. @see sc_strip_ansi */
 inline std::string strip_ansi(std::string_view s) {
     char* c = sc_strip_ansi(detail::z(s).c_str());

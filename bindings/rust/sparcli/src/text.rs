@@ -1,6 +1,6 @@
 //! Owning multi-span rich text (`Text`) and inline markup.
 
-use crate::style::{cstring, Style};
+use crate::style::{cstring, AnsiMode, Style};
 use sparcli_sys as ffi;
 
 /// An owning, multi-span rich-text object. Every `append` copies its input, so
@@ -90,12 +90,18 @@ pub struct MarkupOpts {
     /// Silently drop unrecognized tags (keep their inner text) instead of
     /// emitting the brackets verbatim.
     pub strip_unknown: bool,
+
+    /// ANSI passthrough for raw escape bytes in the markup text; the default
+    /// inherits the process-wide [`set_allow_ansi`](crate::set_allow_ansi)
+    /// setting.
+    pub ansi: AnsiMode,
 }
 
 impl MarkupOpts {
     pub(crate) fn raw(self) -> ffi::ScMarkupOpts {
         ffi::ScMarkupOpts {
             strip_unknown: self.strip_unknown,
+            ansi: self.ansi.raw(),
         }
     }
 }
