@@ -1089,3 +1089,37 @@ sc_logger_free(lg);
 | Global stderr sink | Colors only when stderr `isatty`; level via `sc_log_set_level` (default INFO); `sc_log_reset()` restores defaults (tests) |
 
 Tests: `tests/app/test_log.c` (logic; `make test-app`) + concurrent-logging case in `tests/input/logic/test_threads.c` (runs under `make tsan` - the critical gate). Bindings pass messages as **data** (`"%s"` + string, never a format string): C++ `sparcli::Logger` + `sparcli::logging::*`, Rust `sparcli::Logger` + `sparcli::log::*`, Python `sc.Logger` + `sc.log_info(...)` etc.
+
+---
+
+## Argument Parser (`src/args/`)
+
+Declarative, builder-style parser ("clap for C"): describe the command tree once, `sc_args_parse` handles `--help`/`--version`, validation, pretty-error reporting with did-you-mean and typed value conversion. Header: `args/sparcli_args.h`. Full tutorial + reference: `docs/api-framework.md`. **C + C++ bindings only** (Rust has clap, Python has argparse; the C sources still compile into those libs).
+
+```c
+ScArgs *args = sc_args_new((ScArgsOpts){ .prog = "tool", .version = "1.0", .about = "..." });
+ScArgsCmd *root = sc_args_root(args);
+sc_args_flag(root, "verbose", 'v', "Verbose output");
+ScArgsCmd *build = sc_args_subcommand(root, "build", "Build the project");
+sc_args_opt(build, "jobs", 'j', SC_ARG_INT, "N", "Parallel jobs");      /* + _default/_choices/_required */
+sc_args_positional(build, "TARGET", SC_ARG_STR, "Build target", true, false);
+
+ScArgsStatus status;                       /* MATCHED / HANDLED (help/version) / ERROR */
+const ScArgsCmd *matched = sc_args_parse(args, argc, argv, &status);
+long jobs = sc_args_get_int(args, "jobs"); /* getters search matched cmd + ancestors */
+sc_args_free(args);
+```
+
+| Aspect | Detail |
+|--------|--------|
+| Source layout | `args.c` (builder/getters/free), `args_parse.c` (parse loop), `args_value.c` (int/double/color/choices), `args_suggest.c` (Levenshtein), `args_help.c` (widget-rendered help), `args_complete.c` (zsh completion); internals in `args_internal.h` |
+| Syntax | `--opt value`, `--opt=value`, `-j8`, `-vq` (combined flags), `--` terminator, negative numbers as values, nested subcommands, variadic positionals |
+| Types | `SC_ARG_STR/INT/DOUBLE/COLOR`; "enums" = STR + `sc_args_opt_choices` (`sc_args_get_enum` returns the index) |
+| Reserved | `--help`/`-h` (every command), `--version`/`-V` (root, when version set); user options with the same short letter win |
+| Trust boundary | Every argv token is ANSI-sanitized before storage/echoing; errors render as Pretty Errors (stderr, exit code 2) |
+| Help rendering | Borderless 2-col tables + bold/cyan headings via the normal widget stack; cell strings are kept in a `StringArena` until print (table cells borrow) |
+| Ownership | Builder strings copied; getter results borrowed until `sc_args_free`; `ScArgsCmd*` nodes are borrowed from the tree |
+| Tests | `tests/args/` (`make test-args`: parse/errors/help/completion) + `tests/fuzz/fuzz_args.c` (random argv under ASan/UBSan, part of `make fuzz`) |
+| Example | `examples/args_demo.c` (`make run-example EX=args_demo`) |
+
+The fuzzer found (and led to the fix of) a pre-existing out-of-bounds read in `sc_utf8_trim_to_cols`/`sc_utf8_string_length` (`src/internal.h`): truncated UTF-8 sequences at the end of a string are now advanced bounds-safely.
