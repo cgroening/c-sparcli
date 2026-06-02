@@ -62,6 +62,13 @@ void test_key_decode(void) {
     /* A large CSI parameter must not overflow / must not match a real key. */
     expect("\x1b[99999999999~", SC_KEY_NONE, 14, "huge CSI param → none");
 
+    /* Pasted ANSI sequences decode to NONE with all bytes consumed, so the
+     * buffered reader can skip them instead of cancelling the prompt. */
+    expect("\x1b[31m", SC_KEY_NONE, 5,
+           "pasted SGR color code → none (whole sequence consumed)");
+    expect("\x1bOZ", SC_KEY_NONE, 3,
+           "unknown SS3 final → none (whole sequence consumed)");
+
     /* Multi-byte UTF-8: 'é' = 0xC3 0xA9, one codepoint, two bytes. */
     ScKey k;
     size_t used = sc_key_decode("\xc3\xa9", 2, &k);

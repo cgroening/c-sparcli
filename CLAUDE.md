@@ -554,7 +554,7 @@ All widgets are thin state machines over one engine, `sc_prompt_run` (`src/input
 
 ### Key decoding
 
-`sc_key_decode(buf, len, &key)` is a **pure, unit-tested** decoder (`ScKey { type, codepoint, bytes }`) handling control bytes, CSI/SS3 sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the `;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to `SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` – `poll()` on `/dev/tty` is broken on macOS and would swallow a lone Esc until the next key).
+`sc_key_decode(buf, len, &key)` is a **pure, unit-tested** decoder (`ScKey { type, codepoint, bytes }`) handling control bytes, CSI/SS3 sequences (arrows, Home/End, Delete, PageUp/Down, Shift+PageUp/Down via the `;2` modifier, Shift-Tab) and multi-byte UTF-8. It returns 0 bytes consumed for incomplete prefixes (lone ESC, partial UTF-8/CSI); the buffered reader `sc_tty_read_key` resolves a lone ESC to `SC_KEY_ESC` via a 25 ms `select()` timeout (not `poll()` – `poll()` on `/dev/tty` is broken on macOS and would swallow a lone Esc until the next key). Unrecognized escape sequences (e.g. pasted ANSI color codes) decode to `SC_KEY_NONE` with all bytes consumed; `sc_tty_read_key` **skips them silently** – they neither cancel the prompt nor appear as text, and `SC_KEY_NONE` from the reader always means EOF/read error.
 
 ### Terminal safety / robustness
 

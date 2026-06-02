@@ -56,6 +56,11 @@ bool sc_tty_take_resize(void);
  * Blocks until a key is available on the terminal input fd and returns it
  * decoded. Returns a `SC_KEY_NONE` key on EOF/read error, or a `SC_KEY_RESIZE`
  * key when interrupted by a terminal resize.
+ *
+ * Unrecognized escape sequences and stray control bytes (e.g. pasted ANSI
+ * color codes) are skipped silently - they are never returned as keys and
+ * never inserted as text, so `SC_KEY_NONE` from this function always means
+ * EOF or a read error.
  */
 ScKey sc_tty_read_key(void);
 

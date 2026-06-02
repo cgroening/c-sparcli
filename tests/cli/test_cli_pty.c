@@ -73,10 +73,11 @@ static const Case CASES[] = {
     { .name = "input-max-chars", .args = { "input", "--max", "3", "Code:" },
       .keys = "abcdef\r", .want_stdout = "abc\n", .want_exit = 0 },
     /* Pasted ANSI sequences are decoded as keys, never inserted as text:
-       an unrecognized CSI sequence reads as SC_KEY_NONE, which cancels the
-       prompt - the returned value can never carry escape codes. */
-    { .name = "input-rejects-pasted-ansi", .args = { "input", "Name:" },
-      .keys = "\x1b[31mhi\r", .want_stdout = "", .want_exit = 1 },
+       unrecognized sequences are skipped by the key reader, so the typed
+       characters survive and the value can never carry escape codes. */
+    { .name = "input-ignores-pasted-ansi", .args = { "input", "Name:" },
+      .keys = "\x1b[31mhi\x1b[0m\r", .want_stdout = "hi\n",
+      .want_exit = 0 },
     { .name = "password-value", .args = { "password", "Secret:" },
       .keys = "hunter2\r", .want_stdout = "hunter2\n", .want_exit = 0 },
 

@@ -33,6 +33,11 @@ ScKey sc_tty_read_key(void) {
         if (used > 0) {
             memmove(g_buf, g_buf + used, g_buf_len - used);
             g_buf_len -= used;
+            // Unrecognized escape sequences and stray control bytes decode
+            // to SC_KEY_NONE with their bytes consumed (e.g. pasted ANSI
+            // color codes). Skip them silently: the returned SC_KEY_NONE is
+            // reserved for EOF/read errors, which cancel the prompt.
+            if (key.type == SC_KEY_NONE) { continue; }
             return key;
         }
         // A lone ESC is ambiguous: it may begin an escape sequence whose
@@ -216,7 +221,11 @@ static size_t decode_alt_prefix(const char *buf, size_t len, ScKey *out) {
     return used + 1;
 }
 
-/** SS3 (ESC O x): Home/End and F1-F4 on some terminals. */
+/**
+ * SS3 (ESC O x): Home/End and F1-F4 on some terminals. An unknown final
+ * byte consumes the whole sequence as SC_KEY_NONE (skipped by the reader)
+ * instead of being misread as an Esc keypress plus text.
+ */
 static size_t decode_ss3(char final, ScKey *out) {
     switch (final) {
         case 'H': out->type = SC_KEY_HOME; return 3;
@@ -225,7 +234,7 @@ static size_t decode_ss3(char final, ScKey *out) {
         case 'Q': out->type = SC_KEY_F2;   return 3;
         case 'R': out->type = SC_KEY_F3;   return 3;
         case 'S': out->type = SC_KEY_F4;   return 3;
-        default:  out->type = SC_KEY_ESC;  return 1;
+        default:  out->type = SC_KEY_NONE; return 3;
     }
 }
 
