@@ -1,6 +1,6 @@
 # sparcli – Developer Guide
 
-Build, test, and install workflow for working on sparcli itself. For the public API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and [C++](api-cpp.md) references); for architecture and house conventions see [`../CLAUDE.md`](../CLAUDE.md).
+Build, test, and install workflow for working on sparcli itself. For the public API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and [C++](api-cpp.md) references); for the command-line tool see [`cli.md`](cli.md); for architecture and house conventions see [`../CLAUDE.md`](../CLAUDE.md).
 
 **Requirements:** a C11 compiler (`cc`, clang, or gcc), `make`, and a POSIX system. The interactive PTY test suite uses `forkpty`.
 
@@ -9,9 +9,10 @@ Build, test, and install workflow for working on sparcli itself. For the public 
 ## Build
 
 ```sh
-make                 # libsparcli.a + shared lib (.dylib/.so) + sparcli.pc
+make                 # libsparcli.a + shared lib (.dylib/.so) + sparcli.pc + the sparcli CLI
 make shared          # only the shared library
 make pkgconfig       # only sparcli.pc
+make cli             # only the sparcli command-line tool (see docs/cli.md)
 make clean           # remove all build trees, libs, test binaries
 
 make rust            # build the Rust binding   (see "make rust" below)
@@ -42,7 +43,7 @@ The suites split along the output/input boundary. Everything except `make test-i
 
 ### `make test` – full non-interactive suite
 
-The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-cpp` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
+The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-cpp`, `test-cli-check`, `test-cli-pty` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
 
 ```sh
 make test                     # run every headless gate
@@ -114,6 +115,23 @@ Four checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a C
 make test-cpp                    # all three checks
 make test-cpp EXTRA_CFLAGS=-Werror
 make test-cpp-golden             # regenerate tests/cpp/expected.txt
+```
+
+### `make test-cli-check` – CLI output golden-file gate
+
+Runs `tests/cli/run_output.sh`, which invokes the `sparcli` binary for every non-interactive subcommand (print, panel, rule, table, list, tree, kv, alert, badge, columns, plus help texts and error cases) with fixed arguments and the fixtures in `tests/cli/fixtures/`, and diffs the bytes against `tests/cli/expected.txt`. Deterministic because stdout is a pipe (terminal width falls back to 80) and layout-sensitive cases pass an explicit `--width`. The animated commands (`spin`, `progress`) are excluded here and covered by the PTY gate below.
+
+```sh
+make test-cli-check     # diff against the committed snapshot
+make test-cli-golden    # regenerate the snapshot (after an intended change)
+```
+
+### `make test-cli-pty` – CLI input PTY suite (ASan/UBSan)
+
+Drives the interactive CLI subcommands (confirm, input, password, number, textarea, select, fuzzy, date) on a pseudo-terminal: `tests/cli/test_cli_pty.c` forks a sanitizer-instrumented CLI binary (`sparcli-sanitize`), redirects its stdout onto a pipe (exactly like shell command substitution), feeds canned keystrokes through the PTY, and asserts both the value on stdout and the exit code. Also covers the no-TTY error paths (exit 2) and `spin`'s exit-code propagation. Both the harness and the CLI child run under AddressSanitizer + UBSan.
+
+```sh
+make test-cli-pty
 ```
 
 ### `make rust` / `make rust-test` – Rust bindings
@@ -205,9 +223,9 @@ make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42
 
 ### Golden-file workflow
 
-`test-output-check`, `test-input-style-check` and the C++ `test-cpp` gate diff the rendered bytes against committed snapshots (deterministic because, off a TTY, the terminal width falls back to 80). When you change rendering **on purpose**:
+`test-output-check`, `test-input-style-check`, `test-cli-check` and the C++ `test-cpp` gate diff the rendered bytes against committed snapshots (deterministic because, off a TTY, the terminal width falls back to 80). When you change rendering **on purpose**:
 
-1. regenerate with `make test-output-golden`, `make test-input-style-golden` and/or `make test-cpp-golden`,
+1. regenerate with `make test-output-golden`, `make test-input-style-golden`, `make test-cli-golden` and/or `make test-cpp-golden`,
 2. review the diff to confirm the change is what you intended,
 3. commit the updated `expected.txt`.
 
@@ -222,6 +240,7 @@ make test EXTRA_CFLAGS=-Werror
 # 2. If you changed rendering on purpose, regenerate + review + commit the golden:
 make test-output-golden
 make test-input-style-golden
+make test-cli-golden                   # only if you changed the CLI's output
 make test-cpp-golden                   # only if you changed the C++ wrapper
 
 # 3. Examples still build (and try the input widgets by hand):
@@ -230,6 +249,8 @@ make run-example EX=readme_screenshots_output # output widget gallery (static)
 make run-example EX=readme_screenshots_input  # input widget gallery (static)
 make run-example EX=input_demo         # interactive walkthrough of all input widgets
 make run-example EX=shortcut_demo      # custom shortcuts: F2 rename, Ctrl-X delete
+./examples/cli_output_demo.zsh         # CLI output commands demo (zsh)
+./examples/cli_input_demo.zsh          # CLI input commands demo (zsh, interactive)
 
 # 4. Interactive widget suite (needs a real terminal):
 make test-input
@@ -291,7 +312,9 @@ make uninstall
 
 - `libsparcli.a` and the shared library (with the `soname`/link symlinks) in `$(LIBDIR)`,
 - the public headers under `$(INCLUDEDIR)/{core,output,input}/` (plus the `sparcli.h` umbrella),
-- `sparcli.pc` in `$(PKGCONFIGDIR)`.
+- `sparcli.pc` in `$(PKGCONFIGDIR)`,
+- the `sparcli` CLI binary in `$(BINDIR)` (default `$(PREFIX)/bin`),
+- the zsh completion `_sparcli` in `$(ZSHFUNCDIR)` (default `$(PREFIX)/share/zsh/site-functions`).
 
 Consumers then build against it with pkg-config:
 
@@ -372,9 +395,12 @@ make examples                                 # build every examples/*.c
 make run-example EX=readme_screenshots_output # static gallery of output widgets
 make run-example EX=readme_screenshots_input  # static gallery of input widgets
 make run-example EX=shortcut_demo             # custom shortcuts + rich prompt (interactive)
+
+./examples/cli_output_demo.zsh                # sparcli CLI: every output command (zsh)
+./examples/cli_input_demo.zsh                 # sparcli CLI: every input command (zsh, interactive)
 ```
 
-Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new `examples/foo.c` in makes `make run-example EX=foo` work – no Makefile edit.
+Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new `examples/foo.c` in makes `make run-example EX=foo` work – no Makefile edit. The two `cli_*.zsh` scripts are plain zsh scripts that run the `./sparcli` binary built by `make` (point them at another binary with `SPARCLI=/path/to/sparcli`).
 
 ---
 
@@ -389,11 +415,14 @@ src/input/    prompt engine, line editor, shortcut, external editor, confirm,
               text/password/number, textarea, select, fuzzy, datepicker, theme
 include/{core,output,input}/   public C headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper (RAII over the C API)
+cli/                           the sparcli command-line tool (subcommand per widget)
+completions/                   zsh completion (_sparcli) for the CLI
 bindings/rust/                 cargo workspace: sparcli-sys (FFI) + sparcli (safe)
 bindings/python/               cffi (API-mode) wrapper: src/sparcli/ + build_sparcli.py
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
 tests/cpp/                     C++ wrapper assertion suite + golden
+tests/cli/                     CLI golden-file suite + CLI PTY suite
 ```
 
 The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin, header-only layer: RAII handle classes, owned strings where the C API borrows (tables), `std::optional`/`std::vector` returns for input, and a `.get()` escape hatch to the C API. It is verified by `make test-cpp` and documented in [`api-cpp.md`](api-cpp.md). Keep both in sync when you add or change public C functions.
@@ -424,6 +453,8 @@ Every pointer a public API receives needs an explicit answer to *"who owns this,
 - **Input logic/widget test:** add the source to `INPUT_TEST_SRC`, declare the entry point in `tests/input/logic/test_input.h`, and add it to the runner table in `tests/input/logic/test_input_main.c` (mark it `interactive` or not).
 - **Input style snapshot:** add to `STYLE_TEST_SRC` and the `tests/input/style/` runner, then `make test-input-style-golden`.
 - **C++ wrapper check:** add a `CHECK(...)` case to `tests/cpp/test_cpp.cpp` (no Makefile change – `test-cpp` compiles that file directly); if it changes the demo output, run `make test-cpp-golden`.
+- **CLI output case:** add the invocation to `tests/cli/run_output.sh` (use the `section`/`expect_fail` helpers and, for layout-sensitive commands, an explicit `--width`), then `make test-cli-golden`.
+- **CLI input case:** add an entry to the `CASES[]` array in `tests/cli/test_cli_pty.c` (CLI argv, keystrokes, expected stdout + exit code; `no_tty = true` for non-terminal behavior). No Makefile change needed.
 
 See [`../CLAUDE.md`](../CLAUDE.md) for the full module map and type reference.
 
@@ -444,8 +475,8 @@ The full reference lives in [`../CLAUDE.md`](../CLAUDE.md); the essentials:
 
 ## Pre-commit checklist
 
-1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all five headless gates pass.
-2. If you changed rendering on purpose, regenerate the affected golden file (`make test-output-golden` / `make test-input-style-golden` / `make test-cpp-golden`) and commit it.
+1. `make test EXTRA_CFLAGS=-Werror` – builds clean (no warnings) and all seven headless gates pass.
+2. If you changed rendering on purpose, regenerate the affected golden file (`make test-output-golden` / `make test-input-style-golden` / `make test-cli-golden` / `make test-cpp-golden`) and commit it.
 3. `make sanitize` and `make tsan` – ASan/UBSan and TSan stay clean.
 4. `make lint` and `make fuzz` – no new static-analysis findings, parsers survive random input.
 5. If the bindings or any string-lifetime handling changed: `make rust-test`, `make python-test` and `make python-test-debug`.

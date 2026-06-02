@@ -1,0 +1,523 @@
+/**
+ * @file cmd_select.c
+ * Interactive selection subcommands: `select`, `fuzzy` and `date`.
+ *
+ * Items come from positional arguments or - when none are given - from
+ * stdin (one item per line). The chosen item(s) are printed to stdout,
+ * one per line; the UI itself is drawn on `/dev/tty`, so piping items in
+ * and capturing the choice out works at the same time:
+ * `branch=$(git branch --format='%(refname:short)' | sparcli select)`.
+ */
+#include "cli_commands.h"
+#include "cli_common.h"
+#include "cli_parse.h"
+#include "cli_stdin.h"
+
+#include "sparcli.h"
+
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+/** Item source: argv items or owned stdin lines. */
+typedef struct SelectSource {
+    char  **items;
+    size_t  count;
+    char   *data;  /**< Owned stdin buffer (`NULL` for argv items). */
+    char  **lines; /**< Owned line array (`NULL` for argv items). */
+} SelectSource;
+
+static bool select_source_init(SelectSource *source, int argc, char **argv);
+static void select_source_release(SelectSource *source);
+
+
+/* ── select ─────────────────────────────────────────────────────────────── */
+
+/** Parsed arguments of `sparcli select`. */
+typedef struct SelectArgs {
+    ScSelectOpts   opts;
+    ScCliInputArgs input;
+} SelectArgs;
+
+static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
+                      char **argv);
+
+static const char SELECT_USAGE[] =
+    "Usage: sparcli select [options] [ITEM...]\n"
+    "\n"
+    "Choose one item (or several with --multi) from a list. Items come\n"
+    "from the ITEM arguments or - without arguments - from stdin, one\n"
+    "item per line. The chosen item(s) are printed to stdout, one per\n"
+    "line.\n"
+    "\n"
+    "Options:\n"
+    "  --prompt TEXT              Heading shown above the list\n"
+    "  --multi                    Multi-select with checkboxes\n"
+    "  --max-visible N            Viewport height (default 10)\n"
+    SC_CLI_INPUT_USAGE;
+
+int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
+    enum {
+        OPT_PROMPT = SC_CLI_OPT_CMD_BASE,
+        OPT_MULTI,
+        OPT_MAX_VISIBLE,
+    };
+    static const struct option longopts[] = {
+        { "prompt",      required_argument, NULL, OPT_PROMPT },
+        { "multi",       no_argument,       NULL, OPT_MULTI },
+        { "max-visible", required_argument, NULL, OPT_MAX_VISIBLE },
+        SC_CLI_INPUT_LONGOPTS,
+        { 0 },
+    };
+
+    SelectArgs args = { 0 };
+    int        opt  = 0;
+    while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
+        switch (opt) {
+        case OPT_PROMPT:
+            args.opts.prompt = optarg;
+            break;
+        case OPT_MULTI:
+            args.opts.multi = true;
+            break;
+        case OPT_MAX_VISIBLE:
+            if (!sc_cli_parse_int(optarg, &args.opts.max_visible)) {
+                return sc_cli_error(ctx, "invalid count '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_HELP:
+            fputs(SELECT_USAGE, stdout);
+            return SC_CLI_EXIT_OK;
+        default:
+            if (!sc_cli_input_opt(ctx, opt, &args.input)) {
+                return sc_cli_error(ctx, "invalid option (see --help)");
+            }
+            break;
+        }
+    }
+
+    return run_select(ctx, &args, argc - optind, argv + optind);
+}
+
+static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
+                      char **argv) {
+    SelectSource source = { 0 };
+    if (!select_source_init(&source, argc, argv)) {
+        return sc_cli_error(ctx, "cannot read items");
+    }
+    if (source.count == 0) {
+        select_source_release(&source);
+        return sc_cli_error(ctx, "no items to select from");
+    }
+
+    args->opts.hide_summary  = true;
+    args->opts.prompt_markup = ctx->markup;
+    args->opts.hint          = args->input.hint;
+    if (args->input.hide_hint) {
+        args->opts.hint_layout = SC_HINT_HIDDEN;
+    }
+
+    ScSelect *select = sc_select_new(args->opts);
+    if (select == NULL) {
+        select_source_release(&source);
+        return sc_cli_error(ctx, "out of memory");
+    }
+    for (size_t i = 0; i < source.count; i++) {
+        sc_select_add(select, source.items[i]);
+    }
+
+    size_t *indices = malloc(source.count * sizeof(*indices));
+    if (indices == NULL) {
+        sc_select_free(select);
+        select_source_release(&source);
+        return sc_cli_error(ctx, "out of memory");
+    }
+
+    size_t        count  = args->opts.multi ? source.count : 1;
+    ScInputStatus status = sc_select_run(select, indices, &count);
+
+    if (status == SC_INPUT_OK) {
+        for (size_t i = 0; i < count; i++) {
+            printf("%s\n", source.items[indices[i]]);
+        }
+    }
+
+    free(indices);
+    sc_select_free(select);
+    select_source_release(&source);
+    return sc_cli_input_exit(status);
+}
+
+
+/* ── fuzzy ──────────────────────────────────────────────────────────────── */
+
+/** Parsed arguments of `sparcli fuzzy`. */
+typedef struct FuzzyArgs {
+    ScFuzzyOpts    opts;
+    ScCliInputArgs input;
+    char           delim;      /**< Field delimiter for table mode. */
+    bool           table_mode; /**< Split items into table columns. */
+    bool           header_row; /**< First line provides the headers. */
+} FuzzyArgs;
+
+static int run_fuzzy(ScCliCtx *ctx, FuzzyArgs *args, int argc, char **argv);
+    static int run_fuzzy_table(ScCliCtx *ctx, FuzzyArgs *args,
+                               const SelectSource *source);
+        static void free_row_fields(char ***rows, size_t count);
+
+static const char FUZZY_USAGE[] =
+    "Usage: sparcli fuzzy [options] [ITEM...]\n"
+    "\n"
+    "Incrementally fuzzy-search a list and pick one item. Items come\n"
+    "from the ITEM arguments or - without arguments - from stdin, one\n"
+    "item per line. The chosen item is printed to stdout.\n"
+    "\n"
+    "With --tsv (or --delim) each line is split into columns and shown\n"
+    "as a table; the first field of the chosen row is printed.\n"
+    "\n"
+    "Options:\n"
+    "  --prompt TEXT              Search field label\n"
+    "  --max-visible N            Viewport height (default 10)\n"
+    "  --tsv                      Tab-separated table view\n"
+    "  --delim CHAR               Custom delimiter for the table view\n"
+    "  --header-row               First input line provides the headers\n"
+    SC_CLI_INPUT_USAGE;
+
+int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
+    enum {
+        OPT_PROMPT = SC_CLI_OPT_CMD_BASE,
+        OPT_MAX_VISIBLE,
+        OPT_TSV,
+        OPT_DELIM,
+        OPT_HEADER_ROW,
+    };
+    static const struct option longopts[] = {
+        { "prompt",      required_argument, NULL, OPT_PROMPT },
+        { "max-visible", required_argument, NULL, OPT_MAX_VISIBLE },
+        { "tsv",         no_argument,       NULL, OPT_TSV },
+        { "delim",       required_argument, NULL, OPT_DELIM },
+        { "header-row",  no_argument,       NULL, OPT_HEADER_ROW },
+        SC_CLI_INPUT_LONGOPTS,
+        { 0 },
+    };
+
+    FuzzyArgs args = { .delim = '\t' };
+    int       opt  = 0;
+    while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
+        switch (opt) {
+        case OPT_PROMPT:
+            args.opts.prompt = optarg;
+            break;
+        case OPT_MAX_VISIBLE:
+            if (!sc_cli_parse_int(optarg, &args.opts.max_visible)) {
+                return sc_cli_error(ctx, "invalid count '%s'", optarg);
+            }
+            break;
+        case OPT_TSV:
+            args.table_mode = true;
+            break;
+        case OPT_DELIM:
+            args.table_mode = true;
+            args.delim      = optarg[0];
+            break;
+        case OPT_HEADER_ROW:
+            args.header_row = true;
+            break;
+        case SC_CLI_OPT_HELP:
+            fputs(FUZZY_USAGE, stdout);
+            return SC_CLI_EXIT_OK;
+        default:
+            if (!sc_cli_input_opt(ctx, opt, &args.input)) {
+                return sc_cli_error(ctx, "invalid option (see --help)");
+            }
+            break;
+        }
+    }
+
+    return run_fuzzy(ctx, &args, argc - optind, argv + optind);
+}
+
+static int run_fuzzy(ScCliCtx *ctx, FuzzyArgs *args, int argc, char **argv) {
+    SelectSource source = { 0 };
+    if (!select_source_init(&source, argc, argv)) {
+        return sc_cli_error(ctx, "cannot read items");
+    }
+    if (source.count == 0) {
+        select_source_release(&source);
+        return sc_cli_error(ctx, "no items to search");
+    }
+
+    args->opts.hide_summary  = true;
+    args->opts.prompt_markup = ctx->markup;
+    args->opts.hint          = args->input.hint;
+    if (args->input.hide_hint) {
+        args->opts.hint_layout = SC_HINT_HIDDEN;
+    }
+
+    if (args->table_mode) {
+        int status = run_fuzzy_table(ctx, args, &source);
+        select_source_release(&source);
+        return status;
+    }
+
+    ScFuzzy *fuzzy = sc_fuzzy_new(args->opts);
+    if (fuzzy == NULL) {
+        select_source_release(&source);
+        return sc_cli_error(ctx, "out of memory");
+    }
+    for (size_t i = 0; i < source.count; i++) {
+        sc_fuzzy_add(fuzzy, source.items[i]);
+    }
+
+    size_t        picked = 0;
+    ScInputStatus status = sc_fuzzy_run(fuzzy, &picked);
+    if (status == SC_INPUT_OK) {
+        printf("%s\n", source.items[picked]);
+    }
+
+    sc_fuzzy_free(fuzzy);
+    select_source_release(&source);
+    return sc_cli_input_exit(status);
+}
+
+/* Table mode: every input line is split at the delimiter into row fields;
+   the first line optionally provides the column headers. */
+static int run_fuzzy_table(ScCliCtx *ctx, FuzzyArgs *args,
+                           const SelectSource *source) {
+    /* Split every line into fields. Each row is a NULL-terminated heap
+       array of heap strings (the rows outlive the fuzzy run). */
+    char ***rows = calloc(source->count, sizeof(*rows));
+    if (rows == NULL) {
+        return sc_cli_error(ctx, "out of memory");
+    }
+
+    size_t n_cols = 1;
+    for (size_t i = 0; i < source->count; i++) {
+        size_t fields = 1;
+        for (const char *c = source->items[i]; *c != '\0'; c++) {
+            fields += (*c == args->delim) ? 1 : 0;
+        }
+        if (fields > n_cols) {
+            n_cols = fields;
+        }
+    }
+
+    for (size_t i = 0; i < source->count; i++) {
+        rows[i] = calloc(n_cols + 1, sizeof(**rows));
+        if (rows[i] == NULL) {
+            free_row_fields(rows, source->count);
+            return sc_cli_error(ctx, "out of memory");
+        }
+
+        char *copy   = strdup(source->items[i]);
+        char *cursor = copy;
+        for (size_t col = 0; col < n_cols && copy != NULL; col++) {
+            char *end = strchr(cursor, args->delim);
+            if (end != NULL) {
+                *end = '\0';
+            }
+            rows[i][col] = strdup(cursor);
+            cursor = (end != NULL) ? end + 1 : cursor + strlen(cursor);
+        }
+        free(copy);
+    }
+
+    size_t first_data = args->header_row ? 1 : 0;
+    if (args->header_row && source->count > 0) {
+        args->opts.headers = (const char *const *)rows[0];
+    }
+    args->opts.table  = true;
+    args->opts.n_cols = n_cols;
+
+    ScFuzzy *fuzzy = sc_fuzzy_new(args->opts);
+    if (fuzzy == NULL) {
+        free_row_fields(rows, source->count);
+        return sc_cli_error(ctx, "out of memory");
+    }
+    for (size_t i = first_data; i < source->count; i++) {
+        sc_fuzzy_add_row(fuzzy, (const char *const *)rows[i], n_cols);
+    }
+
+    size_t        picked = 0;
+    ScInputStatus status = sc_fuzzy_run(fuzzy, &picked);
+    if (status == SC_INPUT_OK) {
+        printf("%s\n", rows[first_data + picked][0]);
+    }
+
+    sc_fuzzy_free(fuzzy);
+    free_row_fields(rows, source->count);
+    return sc_cli_input_exit(status);
+}
+
+static void free_row_fields(char ***rows, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (rows[i] == NULL) {
+            continue;
+        }
+        for (size_t col = 0; rows[i][col] != NULL; col++) {
+            free(rows[i][col]);
+        }
+        free(rows[i]);
+    }
+    free(rows);
+}
+
+
+/* ── date ───────────────────────────────────────────────────────────────── */
+
+static bool parse_iso_date(const char *spec, struct tm *out);
+
+static const char DATE_USAGE[] =
+    "Usage: sparcli date [options]\n"
+    "\n"
+    "Pick a date from a calendar and print it to stdout:\n"
+    "  when=$(sparcli date --format %Y-%m-%d)\n"
+    "\n"
+    "Options:\n"
+    "  --prompt TEXT              Heading shown above the calendar\n"
+    "  --format FMT               strftime output format (default\n"
+    "                             %Y-%m-%d)\n"
+    "  --initial YYYY-MM-DD       Initially selected date (default today)\n"
+    "  --week-start monday|sunday First day of the week\n"
+    SC_CLI_INPUT_USAGE;
+
+int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
+    enum {
+        OPT_PROMPT = SC_CLI_OPT_CMD_BASE,
+        OPT_FORMAT,
+        OPT_INITIAL,
+        OPT_WEEK_START,
+    };
+    static const struct option longopts[] = {
+        { "prompt",     required_argument, NULL, OPT_PROMPT },
+        { "format",     required_argument, NULL, OPT_FORMAT },
+        { "initial",    required_argument, NULL, OPT_INITIAL },
+        { "week-start", required_argument, NULL, OPT_WEEK_START },
+        SC_CLI_INPUT_LONGOPTS,
+        { 0 },
+    };
+
+    ScDatePickerOpts opts       = { 0 };
+    ScCliInputArgs   input_args = { 0 };
+    const char      *format     = "%Y-%m-%d";
+    const char      *initial    = NULL;
+
+    int opt = 0;
+    while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
+        switch (opt) {
+        case OPT_PROMPT:
+            opts.prompt = optarg;
+            break;
+        case OPT_FORMAT:
+            format = optarg;
+            break;
+        case OPT_INITIAL:
+            initial = optarg;
+            break;
+        case OPT_WEEK_START:
+            if (!sc_cli_parse_week_start(optarg, &opts.week_start)) {
+                return sc_cli_error(ctx, "invalid week start '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_HELP:
+            fputs(DATE_USAGE, stdout);
+            return SC_CLI_EXIT_OK;
+        default:
+            if (!sc_cli_input_opt(ctx, opt, &input_args)) {
+                return sc_cli_error(ctx, "invalid option (see --help)");
+            }
+            break;
+        }
+    }
+
+    /* A zeroed struct tm seeds the picker with today; --initial overrides
+       it with an explicit date. */
+    struct tm picked = { 0 };
+    if (initial != NULL && !parse_iso_date(initial, &picked)) {
+        return sc_cli_error(ctx, "invalid date '%s' (expected YYYY-MM-DD)",
+                            initial);
+    }
+
+    opts.hide_summary  = true;
+    opts.prompt_markup = ctx->markup;
+    opts.hint          = input_args.hint;
+    if (input_args.hide_hint) {
+        opts.hint_layout = SC_HINT_HIDDEN;
+    }
+
+    ScInputStatus status = sc_datepicker(&picked, opts);
+    if (status == SC_INPUT_OK) {
+        enum { DATE_BUFFER_SIZE = 256 };
+        char buffer[DATE_BUFFER_SIZE] = { 0 };
+        if (strftime(buffer, sizeof(buffer), format, &picked) == 0) {
+            return sc_cli_error(ctx, "invalid date format '%s'", format);
+        }
+        printf("%s\n", buffer);
+    }
+    return sc_cli_input_exit(status);
+}
+
+/* Parses a `YYYY-MM-DD` date into `out` (portable strptime substitute). */
+static bool parse_iso_date(const char *spec, struct tm *out) {
+    enum { MONTHS_PER_YEAR = 12, MAX_MONTH_DAYS = 31, TM_YEAR_BASE = 1900 };
+
+    char *end  = NULL;
+    long  year = strtol(spec, &end, 10);
+    if (end == spec || *end != '-') {
+        return false;
+    }
+
+    const char *month_start = end + 1;
+    long        month       = strtol(month_start, &end, 10);
+    if (end == month_start || *end != '-') {
+        return false;
+    }
+
+    const char *day_start = end + 1;
+    long        day       = strtol(day_start, &end, 10);
+    if (end == day_start || *end != '\0') {
+        return false;
+    }
+
+    if (month < 1 || month > MONTHS_PER_YEAR || day < 1
+        || day > MAX_MONTH_DAYS) {
+        return false;
+    }
+
+    out->tm_year = (int)year - TM_YEAR_BASE;
+    out->tm_mon  = (int)month - 1;
+    out->tm_mday = (int)day;
+    return true;
+}
+
+
+/* ── shared item source ─────────────────────────────────────────────────── */
+
+static bool select_source_init(SelectSource *source, int argc, char **argv) {
+    if (argc > 0) {
+        source->items = argv;
+        source->count = (size_t)argc;
+        return true;
+    }
+
+    source->data = sc_cli_read_source(NULL);
+    if (source->data == NULL) {
+        return false;
+    }
+    source->lines = sc_cli_split_lines(source->data, &source->count);
+    if (source->lines == NULL) {
+        free(source->data);
+        source->data = NULL;
+        return false;
+    }
+    source->items = source->lines;
+    return true;
+}
+
+static void select_source_release(SelectSource *source) {
+    free(source->lines);
+    free(source->data);
+    source->lines = NULL;
+    source->data  = NULL;
+}

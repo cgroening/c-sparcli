@@ -6,5 +6,6 @@ sparcli has one reference page per language interface:
 - **[C++ wrapper](api-cpp.md)** – the header-only, RAII C++20 layer in the `sparcli::` namespace (`#include <sparcli.hpp>`), built on top of the C API.
 - **[Rust bindings](api-rust.md)** – the safe, idiomatic `sparcli` crate (`bindings/rust/`): RAII handles, builder option structs, `Result<Option<T>>` prompts, closures for callbacks.
 - **[Python bindings](api-python.md)** – the Pythonic `sparcli` package (`bindings/python/`): a cffi (API-mode) wrapper with RAII handles, `@dataclass` options, `value | None` prompts and `SparcliInputUnavailable`.
+- **[Command-line tool](cli.md)** – the `sparcli` binary for zsh/bash: every output and input widget as a shell subcommand, with markup, stdin/stdout conventions, exit codes and zsh completion.
 
 For installation, linking and quick-start examples (C, C++, Rust and Python), see the [main README](../README.md). For the build/test/contributor workflow, see [`DEVELOPMENT.md`](DEVELOPMENT.md).

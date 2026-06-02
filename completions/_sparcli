@@ -1,0 +1,297 @@
+#compdef sparcli
+# zsh completion for the sparcli CLI.
+#
+# Install: copy (or symlink) this file into a directory in $fpath, e.g.
+#   /usr/local/share/zsh/site-functions/_sparcli
+# (`make install` does this automatically), then restart the shell or run
+# `compinit` again.
+
+_sparcli() {
+    # Shared value lists (single source for every flag spec below).
+    local -a borders=(none ascii single double rounded thick)
+    local -a aligns=(left center right)
+    local -a markers=(bullet number alpha alpha-upper roman roman-upper)
+    local -a spinners=(braille pipe dots arrow)
+    local -a progress_types=(block ascii line shaded)
+    local -a alert_levels=(info debug warning error success)
+    local -a filters=(digits decimal alpha alnum no-space)
+    local -a week_starts=(monday sunday)
+    local color_msg='color name (black red green yellow blue magenta cyan white), #RRGGBB or R,G,B'
+
+    # Options every command accepts.
+    local -a common_opts=(
+        '--no-markup[Treat \[tag\] markup as literal text]'
+        '--no-color[Strip ANSI colors from the output]'
+        '--help[Show command help]'
+    )
+    # Additional options every interactive input command accepts.
+    local -a input_opts=(
+        $common_opts
+        "--accent=[Accent color]:color:_message '$color_msg'"
+        '--hint=[Custom key-hint footer text]:text:'
+        '--no-hint[Hide the key-hint footer]'
+    )
+
+    local -a commands=(
+        'print:Print markup-styled text'
+        'panel:Draw a bordered panel around text'
+        'rule:Draw a horizontal rule with optional title'
+        'table:Render CSV/TSV data as a table'
+        'list:Render a bulleted or numbered list'
+        'tree:Render indented lines as a tree'
+        'kv:Render key/value lines as an aligned list'
+        'alert:Show an info/warning/error/success panel'
+        'badge:Print an inline styled badge'
+        'columns:Lay out items side by side in columns'
+        'spin:Show a spinner while a command runs'
+        'progress:Draw a progress bar fed by stdin values'
+        'confirm:Ask a yes/no question (exit code = answer)'
+        'input:Prompt for a line of text'
+        'password:Prompt for a masked secret'
+        'number:Prompt for a number'
+        'textarea:Prompt for multi-line text'
+        'select:Choose one or more items from a list'
+        'fuzzy:Fuzzy-search and pick an item'
+        'date:Pick a date from a calendar'
+    )
+
+    local context state state_descr line
+    typeset -A opt_args
+
+    _arguments -C \
+        '(-h --help)'{-h,--help}'[Show help and exit]' \
+        '(-V --version)'{-V,--version}'[Show the version and exit]' \
+        '--no-color[Strip ANSI colors from the output]' \
+        '--no-markup[Treat \[tag\] markup as literal text]' \
+        '1: :->cmd' \
+        '*::arg:->args'
+
+    case $state in
+        cmd)
+            _describe -t commands 'sparcli command' commands
+            ;;
+        args)
+            case $words[1] in
+                print)
+                    _arguments \
+                        "--align=[Align the text block]:alignment:($aligns)" \
+                        '--width=[Alignment width]:width:' \
+                        $common_opts \
+                        '*:text:'
+                    ;;
+                panel)
+                    _arguments \
+                        '--title=[Panel title]:title:' \
+                        '--subtitle=[Second title on the bottom edge]:subtitle:' \
+                        "--title-align=[Title alignment]:alignment:($aligns)" \
+                        "--border=[Border style]:style:($borders)" \
+                        "--color=[Border color]:color:_message '$color_msg'" \
+                        "--bg=[Content background color]:color:_message '$color_msg'" \
+                        "--align=[Content alignment]:alignment:($aligns)" \
+                        '--padding=[Inner padding (N or T,R,B,L)]:edges:' \
+                        '--margin=[Outer margin (N or T,R,B,L)]:edges:' \
+                        '--width=[Panel width]:width:' \
+                        '--full-width[Stretch to the terminal width]' \
+                        $common_opts \
+                        '*:text:'
+                    ;;
+                rule)
+                    _arguments \
+                        "--border=[Line style]:style:($borders)" \
+                        "--color=[Line color]:color:_message '$color_msg'" \
+                        "--align=[Title position]:alignment:($aligns)" \
+                        '--width=[Fixed rule width]:width:' \
+                        '--margin=[Outer margin (N or T,R,B,L)]:edges:' \
+                        $common_opts \
+                        '*:title:'
+                    ;;
+                table)
+                    _arguments \
+                        '--tsv[Tab-separated input]' \
+                        '--delim=[Custom field delimiter]:char:' \
+                        '--header-row[Treat the first row as the header]' \
+                        '--header-col[Treat the first column as a header]' \
+                        "--border=[Border style]:style:($borders)" \
+                        "--color=[Outer border color]:color:_message '$color_msg'" \
+                        "--inner-color=[Inner separator color]:color:_message '$color_msg'" \
+                        '--no-outer[Hide the outer frame]' \
+                        '--no-inner-h[Hide row separators]' \
+                        '--no-inner-v[Hide column separators]' \
+                        '--striped[Alternate row backgrounds]' \
+                        "--stripe-bg=[Stripe background color]:color:_message '$color_msg'" \
+                        '--title=[Table title]:title:' \
+                        "--align=[Default column alignment]:alignment:($aligns)" \
+                        '--width=[Total table width]:width:' \
+                        '--max-rows=[Show at most N rows]:count:' \
+                        $common_opts \
+                        '1:CSV file:_files'
+                    ;;
+                list)
+                    _arguments \
+                        "--marker=[Marker style]:marker:($markers)" \
+                        '--bullet=[Bullet character]:char:' \
+                        "--marker-color=[Marker color]:color:_message '$color_msg'" \
+                        '--indent=[Left indent in columns]:count:' \
+                        '--gap=[Blank lines between items]:count:' \
+                        '--width=[List width]:width:' \
+                        $common_opts \
+                        '*:item:'
+                    ;;
+                tree)
+                    _arguments \
+                        "--border=[Connector style]:style:($borders)" \
+                        "--color=[Connector color]:color:_message '$color_msg'" \
+                        '--indent=[Spaces per indentation level]:count:' \
+                        '--no-guide[Hide vertical guide lines]' \
+                        $common_opts \
+                        '1:input file:_files'
+                    ;;
+                kv)
+                    _arguments \
+                        '--delim=[Input delimiter]:char:' \
+                        '--sep=[Output separator]:text:' \
+                        '--key-width=[Fixed key column width]:width:' \
+                        "--key-color=[Key color]:color:_message '$color_msg'" \
+                        "--val-color=[Value color]:color:_message '$color_msg'" \
+                        '--wrap[Word-wrap long values]' \
+                        '--gap=[Blank lines between items]:count:' \
+                        '--width=[Total width]:width:' \
+                        $common_opts \
+                        '1:input file:_files'
+                    ;;
+                alert)
+                    _arguments \
+                        $common_opts \
+                        "1:level:($alert_levels)" \
+                        '*:text:'
+                    ;;
+                badge)
+                    _arguments \
+                        "--color=[Badge text color]:color:_message '$color_msg'" \
+                        "--bg=[Badge background color]:color:_message '$color_msg'" \
+                        '--bold[Bold badge text]' \
+                        '--left=[Left cap]:text:' \
+                        '--right=[Right cap]:text:' \
+                        '--pad=[Spaces inside the caps]:count:' \
+                        $common_opts \
+                        '*:text:'
+                    ;;
+                columns)
+                    _arguments \
+                        '--gap=[Spaces between columns]:count:' \
+                        "--sep=[Separator style]:style:($borders)" \
+                        "--sep-color=[Separator color]:color:_message '$color_msg'" \
+                        '--width=[Total width]:width:' \
+                        $common_opts \
+                        '*:item:'
+                    ;;
+                spin)
+                    _arguments \
+                        '--title=[Label next to the spinner]:text:' \
+                        "--spinner=[Spinner style]:style:($spinners)" \
+                        "--color=[Spinner color]:color:_message '$color_msg'" \
+                        $common_opts \
+                        '*::command:_normal'
+                    ;;
+                progress)
+                    _arguments \
+                        '--total=[Value that counts as 100%]:number:' \
+                        "--type=[Bar style]:style:($progress_types)" \
+                        '--label=[Label left of the bar]:text:' \
+                        "--color=[Fill color]:color:_message '$color_msg'" \
+                        '--width=[Total line width]:width:' \
+                        '--no-percent[Hide the percentage]' \
+                        $common_opts
+                    ;;
+                confirm)
+                    _arguments \
+                        '--default-yes[Preselect Yes]' \
+                        '--default-no[Preselect No]' \
+                        '--yes=[Label of the Yes choice]:label:' \
+                        '--no=[Label of the No choice]:label:' \
+                        '--print[Print yes/no to stdout]' \
+                        $input_opts \
+                        '*:question:'
+                    ;;
+                input)
+                    _arguments \
+                        '--initial=[Pre-filled value]:text:' \
+                        '--placeholder=[Placeholder shown when empty]:text:' \
+                        '--max=[Maximum number of characters]:count:' \
+                        "--filter=[Character filter]:filter:($filters)" \
+                        '*--suggest=[Autocomplete suggestion]:text:' \
+                        '--boxed[Draw the field inside a panel]' \
+                        "--border=[Box border style]:style:($borders)" \
+                        '--width=[Field width]:width:' \
+                        $input_opts \
+                        '*:prompt:'
+                    ;;
+                password)
+                    _arguments \
+                        '--mask=[Mask character]:char:' \
+                        '--max=[Maximum number of characters]:count:' \
+                        '--boxed[Draw the field inside a panel]' \
+                        "--border=[Box border style]:style:($borders)" \
+                        '--width=[Field width]:width:' \
+                        $input_opts \
+                        '*:prompt:'
+                    ;;
+                number)
+                    _arguments \
+                        '--initial=[Initial value]:number:' \
+                        '--start-empty[Start with an empty field]' \
+                        '--min=[Minimum value]:number:' \
+                        '--max=[Maximum value]:number:' \
+                        '--step=[Arrow step size]:number:' \
+                        '--decimals=[Number of decimal places]:count:' \
+                        '--decimal-sep=[Decimal separator]:char:(. ,)' \
+                        '--boxed[Draw the field inside a panel]' \
+                        "--border=[Box border style]:style:($borders)" \
+                        '--width=[Field width]:width:' \
+                        $input_opts \
+                        '*:prompt:'
+                    ;;
+                textarea)
+                    _arguments \
+                        '--initial=[Pre-filled value]:text:' \
+                        '--placeholder=[Placeholder shown when empty]:text:' \
+                        '--external-editor[Allow editing in $VISUAL/$EDITOR]' \
+                        '--editor=[External editor command]:command:_command_names' \
+                        '--boxed[Draw the editor inside a panel]' \
+                        "--border=[Box border style]:style:($borders)" \
+                        '--width=[Editor width]:width:' \
+                        $input_opts \
+                        '*:prompt:'
+                    ;;
+                select)
+                    _arguments \
+                        '--prompt=[Heading shown above the list]:text:' \
+                        '--multi[Multi-select with checkboxes]' \
+                        '--max-visible=[Viewport height]:count:' \
+                        $input_opts \
+                        '*:item:'
+                    ;;
+                fuzzy)
+                    _arguments \
+                        '--prompt=[Search field label]:text:' \
+                        '--max-visible=[Viewport height]:count:' \
+                        '--tsv[Tab-separated table view]' \
+                        '--delim=[Custom delimiter for the table view]:char:' \
+                        '--header-row[First input line provides the headers]' \
+                        $input_opts \
+                        '*:item:'
+                    ;;
+                date)
+                    _arguments \
+                        '--prompt=[Heading shown above the calendar]:text:' \
+                        '--format=[strftime output format]:format:' \
+                        '--initial=[Initially selected date]:date (YYYY-MM-DD):' \
+                        "--week-start=[First day of the week]:day:($week_starts)" \
+                        $input_opts
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_sparcli "$@"

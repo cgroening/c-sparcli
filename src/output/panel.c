@@ -515,11 +515,15 @@ static void render_panel_border(Panel *panel, ScPosition pos) {
         ? panel->top_border : panel->bottom_border;
     sc_print_spaces(panel->spacing.margin.left);
     /* Pick whichever title belongs on this edge: primary first, else the
-     * optional subtitle, else none. */
+     * optional subtitle, else none. A title exists when either its plain
+     * text or its rich text is set. */
     ScTitle title = { 0 };
-    if (panel->opts.title.text && panel->opts.title.pos == pos) {
+    bool has_title = panel->opts.title.text || panel->opts.title.rich_text;
+    bool has_subtitle =
+        panel->opts.subtitle.text || panel->opts.subtitle.rich_text;
+    if (has_title && panel->opts.title.pos == pos) {
         title = panel->opts.title;
-    } else if (panel->opts.subtitle.text && panel->opts.subtitle.pos == pos) {
+    } else if (has_subtitle && panel->opts.subtitle.pos == pos) {
         title = panel->opts.subtitle;
     }
     render_horizontal_border(hborder, title);

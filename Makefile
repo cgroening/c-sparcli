@@ -18,8 +18,10 @@ VERSION       := $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 PREFIX        ?= /usr/local
 DESTDIR       ?=
 LIBDIR        ?= $(PREFIX)/lib
+BINDIR        ?= $(PREFIX)/bin
 INCLUDEDIR    ?= $(PREFIX)/include
 PKGCONFIGDIR  ?= $(LIBDIR)/pkgconfig
+ZSHFUNCDIR    ?= $(PREFIX)/share/zsh/site-functions
 
 # Platform-specific shared library naming.
 UNAME_S := $(shell uname -s)
@@ -70,6 +72,23 @@ OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 DEP               = $(OBJ:.o=.d)
 LIB               = libsparcli.a
 PC_FILE           = sparcli.pc
+
+# ── Command-line tool (cli/) ───────────────────────────────────────────────
+# The `sparcli` binary exposes the output and input widgets as shell
+# subcommands (see docs/cli.md). It is built from cli/*.c against the static
+# library using only the public headers (-Iinclude, deliberately no -Isrc).
+# A second, sanitizer-instrumented binary backs the CLI PTY test suite.
+CLI_SRC          = cli/main.c cli/cli_common.c cli/cli_parse.c \
+                   cli/cli_stdin.c cli/cli_csv.c cli/cmd_output.c \
+                   cli/cmd_layout.c cli/cmd_table.c cli/cmd_tree.c \
+                   cli/cmd_progress.c cli/cmd_input.c cli/cmd_select.c
+CLI_OBJ          = $(patsubst cli/%.c,$(BUILDDIR)/cli/%.o,$(CLI_SRC))
+CLI_DEP          = $(CLI_OBJ:.o=.d)
+CLI_BIN          = sparcli
+CLI_CFLAGS       = -std=c11 -Wall -Wextra -Iinclude $(EXTRA_CFLAGS)
+CLI_SANITIZE_OBJ = $(patsubst cli/%.c,$(SANITIZE_BUILDDIR)/cli/%.o,$(CLI_SRC))
+CLI_SANITIZE_DEP = $(CLI_SANITIZE_OBJ:.o=.d)
+CLI_SANITIZE_BIN = sparcli-sanitize
 
 # Sanitizer build artefacts live in a separate tree so plain `make` and
 # `make sanitize` never share .o files or a .a - mixing them produces undefined
@@ -165,7 +184,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
+.PHONY: all cli test test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
 
 # ── Rust binding (bindings/rust/) ─────────────────────────────────────────
 # A two-crate cargo workspace (sparcli-sys + sparcli). build.rs compiles the C
@@ -216,10 +235,11 @@ rebuild-all:
 	$(MAKE) rust
 	$(MAKE) python
 
-all: $(LIB) $(SHLIB) $(PC_FILE)
+all: $(LIB) $(SHLIB) $(PC_FILE) $(CLI_BIN)
 
 shared: $(SHLIB)
 pkgconfig: $(PC_FILE)
+cli: $(CLI_BIN)
 
 $(LIB): $(OBJ)
 	$(AR) rcs $@ $^
@@ -241,6 +261,24 @@ $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
+# ── CLI binary ──────────────────────────────────────────────────────────────
+$(CLI_BIN): $(CLI_OBJ) $(LIB)
+	$(CC) $(CLI_OBJ) $(LIB) $(LDFLAGS) $(PTHREAD_LDLIBS) -o $@
+
+$(BUILDDIR)/cli/%.o: cli/%.c | $(BUILDDIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CLI_CFLAGS) -MMD -MP -c $< -o $@
+
+# Sanitizer-instrumented CLI: same sources against the sanitizer .a, used by
+# the CLI PTY test suite so CLI code paths get ASan/UBSan coverage too.
+$(CLI_SANITIZE_BIN): $(CLI_SANITIZE_OBJ) $(SANITIZE_LIB)
+	$(CC) $(CLI_SANITIZE_OBJ) $(SANITIZE_LIB) $(LDFLAGS) $(SANITIZE_FLAGS) \
+	    $(PTHREAD_LDLIBS) -o $@
+
+$(SANITIZE_BUILDDIR)/cli/%.o: cli/%.c | $(SANITIZE_BUILDDIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CLI_CFLAGS) $(SANITIZE_FLAGS) -MMD -MP -c $< -o $@
+
 # Full non-interactive test suite: every headless gate. This is the canonical
 # "is everything OK?" command (also what CI would run). The interactive widget
 # suite (`make test-input`) needs a real TTY and is intentionally NOT included.
@@ -251,6 +289,8 @@ test:
 	$(MAKE) test-input-style-check
 	$(MAKE) test-input-pty
 	$(MAKE) test-cpp
+	$(MAKE) test-cli-check
+	$(MAKE) test-cli-pty
 
 # Visual output gallery: builds and runs the output suite for eyeballing.
 # ARGS: --no-animated (skip animations), --focus (focused subset), or both.
@@ -302,6 +342,30 @@ test-input-style-golden: $(LIB)
 	$(CC) $(CFLAGS) $(STYLE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(STYLE_TEST_BIN)
 	./$(STYLE_TEST_BIN) > $(STYLE_GOLDEN)
 	@echo "Regenerated $(STYLE_GOLDEN)"
+
+# CLI output golden-file gate: runs every non-interactive CLI subcommand with
+# fixed arguments/fixtures and diffs the bytes against a committed snapshot.
+# Deterministic off a TTY (width falls back to 80) plus explicit --width flags.
+CLI_GOLDEN       = tests/cli/expected.txt
+CLI_PTY_TEST_SRC = tests/cli/test_cli_pty.c
+CLI_PTY_TEST_BIN = tests/cli/test_cli_pty
+
+test-cli-check: $(CLI_BIN) | $(BUILDDIR)
+	sh tests/cli/run_output.sh ./$(CLI_BIN) > $(BUILDDIR)/cli.actual.txt
+	diff -u $(CLI_GOLDEN) $(BUILDDIR)/cli.actual.txt
+
+# Regenerate the CLI golden file after an intentional rendering change.
+test-cli-golden: $(CLI_BIN)
+	sh tests/cli/run_output.sh ./$(CLI_BIN) > $(CLI_GOLDEN)
+	@echo "Regenerated $(CLI_GOLDEN)"
+
+# CLI PTY suite: drives the interactive CLI subcommands (confirm, input,
+# select, ...) on a pseudo-terminal and asserts stdout value + exit code.
+# Both the harness and the CLI child run under ASan/UBSan.
+test-cli-pty: $(CLI_SANITIZE_BIN)
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) $(CLI_PTY_TEST_SRC) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) $(PTY_LDLIBS) -o $(CLI_PTY_TEST_BIN)
+	./$(CLI_PTY_TEST_BIN) ./$(CLI_SANITIZE_BIN) $(ARGS)
 
 # Self-driving PTY suite under the sanitizers: exercises the interactive widgets
 # end-to-end (raw mode, key decoding, redraw) with no human and reports leaks /
@@ -400,13 +464,14 @@ lint:
 	    echo "── cppcheck ──"; \
 	    cppcheck --enable=warning,performance,portability --std=c11 \
 	        --inline-suppr --quiet --error-exitcode=1 \
-	        -Iinclude -Isrc src/; \
+	        -Iinclude -Isrc src/ cli/; \
 	else \
 	    echo "cppcheck not installed: brew install cppcheck"; \
 	fi
 	@if [ -n "$(LLVM_TIDY)" ]; then \
 	    echo "── clang-tidy ──"; \
 	    $(LLVM_TIDY) --quiet $(SRC) -- $(CFLAGS); \
+	    $(LLVM_TIDY) --quiet $(CLI_SRC) -- $(CLI_CFLAGS); \
 	else \
 	    echo "clang-tidy not installed: brew install llvm"; \
 	fi
@@ -425,10 +490,12 @@ $(EXAMPLES_BUILDDIR):
 run-example: $(EXAMPLES_BUILDDIR)/$(EX)
 	./$(EXAMPLES_BUILDDIR)/$(EX)
 
-install: $(LIB) $(SHLIB) $(PC_FILE)
+install: $(LIB) $(SHLIB) $(PC_FILE) $(CLI_BIN)
 	install -d "$(DESTDIR)$(LIBDIR)"
 	install -d "$(DESTDIR)$(INCLUDEDIR)"
 	install -d "$(DESTDIR)$(PKGCONFIGDIR)"
+	install -d "$(DESTDIR)$(BINDIR)"
+	install -d "$(DESTDIR)$(ZSHFUNCDIR)"
 	install -m 644 $(LIB) "$(DESTDIR)$(LIBDIR)/"
 	install -m 755 $(SHLIB) "$(DESTDIR)$(LIBDIR)/"
 	cd "$(DESTDIR)$(LIBDIR)" && \
@@ -440,6 +507,8 @@ install: $(LIB) $(SHLIB) $(PC_FILE)
 	    install -m 644 $$h "$(DESTDIR)$(INCLUDEDIR)/$$rel"; \
 	done
 	install -m 644 $(PC_FILE) "$(DESTDIR)$(PKGCONFIGDIR)/"
+	install -m 755 $(CLI_BIN) "$(DESTDIR)$(BINDIR)/"
+	install -m 644 completions/_sparcli "$(DESTDIR)$(ZSHFUNCDIR)/"
 
 uninstall:
 	rm -f "$(DESTDIR)$(LIBDIR)/$(LIB)"
@@ -447,6 +516,8 @@ uninstall:
 	rm -f "$(DESTDIR)$(LIBDIR)/$(SHLIB_SONAME)"
 	rm -f "$(DESTDIR)$(LIBDIR)/$(SHLIB_LINK)"
 	rm -f "$(DESTDIR)$(PKGCONFIGDIR)/$(PC_FILE)"
+	rm -f "$(DESTDIR)$(BINDIR)/$(CLI_BIN)"
+	rm -f "$(DESTDIR)$(ZSHFUNCDIR)/_sparcli"
 	for h in $(HEADERS); do rm -f "$(DESTDIR)$(INCLUDEDIR)/$${h#include/}"; done
 
 clean:
@@ -455,8 +526,9 @@ clean:
 	       $(LIB) $(SANITIZE_LIB) $(TSAN_LIB) \
 	       libsparcli.*.dylib libsparcli.so* libsparcli.dylib \
 	       $(PC_FILE) $(TEST_BIN) $(INPUT_TEST_BIN) $(STYLE_TEST_BIN) \
-	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN)
+	       $(PTY_TEST_BIN) $(SANITIZE_TEST_BIN) $(TSAN_TEST_BIN) \
+	       $(CLI_BIN) $(CLI_SANITIZE_BIN) $(CLI_PTY_TEST_BIN)
 
 # Auto-generated header dependencies (-MMD -MP). The leading '-' silences the
 # "no such file" notice on the first build, before any .d exists.
--include $(DEP) $(SANITIZE_DEP) $(TSAN_DEP)
+-include $(DEP) $(SANITIZE_DEP) $(TSAN_DEP) $(CLI_DEP) $(CLI_SANITIZE_DEP)

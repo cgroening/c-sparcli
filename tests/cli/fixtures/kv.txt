@@ -1,0 +1,4 @@
+Name: sparcli
+Language: C11
+License: MIT
+Description: Styled terminal output and interactive prompts for C

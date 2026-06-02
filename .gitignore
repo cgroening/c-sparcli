@@ -73,3 +73,8 @@ build.nosync/
 build.sanitize.nosync/
 build.tsan.nosync/
 build.examples.nosync/
+
+# CLI tool binaries
+/sparcli
+/sparcli-sanitize
+tests/cli/test_cli_pty

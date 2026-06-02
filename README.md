@@ -5,7 +5,7 @@ A C11 library for **styled terminal output** and **interactive prompts**:
 - panels, tables, rules, columns, lists, trees, key/value blocks, alerts, badges, progress bars and spinners;
 - confirm, text, password, number, textarea, select, fuzzy and date-picker prompts.
 
-Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper** and safe, idiomatic **Rust** and **Python** bindings.
+Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, safe, idiomatic **Rust** and **Python** bindings, and a **`sparcli` command-line tool** that exposes everything to the shell (zsh/bash) – think [rich-cli](https://github.com/Textualize/rich-cli) and [gum](https://github.com/charmbracelet/gum) in one binary.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Language: C11](https://img.shields.io/badge/c-11-blue.svg) ![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
 
@@ -33,6 +33,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper** and 
     - [Requirements](#requirements)
   - [Output widgets](#output-widgets)
   - [Input widgets](#input-widgets)
+  - [Command-line tool](#command-line-tool)
   - [Rich-compatible markup](#rich-compatible-markup)
   - [Development](#development)
   - [Roadmap](#roadmap)
@@ -50,6 +51,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper** and 
 - **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
 - **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
 - **Composable**: capture any widget into a buffer, then pad, align, or place it inside a columns layout.
+- **Command-line tool included**: the `sparcli` binary brings every output and input widget to the shell – `sparcli panel`, `name=$(sparcli input "Name:")`, `sparcli confirm && …`. See [Command-line tool](#command-line-tool) and [`docs/cli.md`](docs/cli.md).
 - **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`, namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
 - **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds the C via `cc` – no install needed) with RAII handles, builder options and `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
 - **Python bindings included**: a safe, Pythonic package (`bindings/python/`, a cffi wrapper that compiles the C – no install needed) with RAII handles, `@dataclass` options and `value`/`None` prompts. See [`docs/api-python.md`](docs/api-python.md).
@@ -292,6 +294,34 @@ make run-example EX=shortcut_demo
 
 ---
 
+## Command-line tool
+
+Everything above is also available from the shell: `make` builds a `sparcli` binary (installed to `$(PREFIX)/bin` by `make install`, together with a zsh completion) that wraps every output and input widget as a subcommand – inspired by [rich-cli](https://github.com/Textualize/rich-cli) for output and [gum](https://github.com/charmbracelet/gum) for prompts.
+
+```sh
+# Output: markup, panels, rules, tables, trees, alerts, ...
+sparcli print "[bold red]Error:[/] file not found"
+echo "All systems operational" | sparcli panel --title "Status" --color green
+df -h | tr -s ' ' '\t' | sparcli table --tsv --header-row
+sparcli alert success "Deployment finished"
+sparcli spin --title "Building" -- make all
+
+# Input: prompts whose UI goes to the terminal, the value to stdout -
+# perfect for command substitution and exit-code logic in scripts.
+name=$(sparcli input "Your name:")
+sparcli confirm "Deploy to production?" && ./deploy.sh
+branch=$(git branch --format='%(refname:short)' | sparcli select)
+file=$(find . -name '*.c' | sparcli fuzzy)
+amount=$(sparcli number "Amount:" --decimals 2 --decimal-sep ,)
+when=$(sparcli date --format %Y-%m-%d)
+```
+
+Input commands report their outcome through the exit code (`0` = confirmed, `1` = cancelled/no, `2` = error or no TTY), so `&&` / `||` chains and `$(...)` capture work the way shell scripts expect. Markup is parsed everywhere by default (`--no-markup` for literal text); `--no-color` / `NO_COLOR` strip the colors.
+
+Two runnable zsh demos ship in [`examples/cli_output_demo.zsh`](examples/cli_output_demo.zsh) and [`examples/cli_input_demo.zsh`](examples/cli_input_demo.zsh). The full reference – every subcommand, flag, data format and scripting pattern – lives in [`docs/cli.md`](docs/cli.md).
+
+---
+
 ## Rich-compatible markup
 
 sparcli's inline markup mirrors the syntax used by [Rich](https://github.com/Textualize/rich) and [Textual](https://github.com/Textualize/textual). Existing Rich strings drop in unchanged for the supported tag set:
@@ -338,10 +368,13 @@ include/{core,output,input}/   public headers (sparcli.h is the umbrella)
 include/sparcli.hpp            header-only C++20 wrapper
 src/{core,output,tty,input}/   implementation
 src/output/table/              table sub-modules (see docs/api-c.md)
+cli/                           the sparcli command-line tool (see docs/cli.md)
+completions/                   zsh completion for the CLI
 bindings/rust/                 safe Rust crate (sparcli-sys + sparcli)
 bindings/python/               safe Python package (cffi API-mode wrapper)
 tests/output/                  output suite
 tests/input/{logic,style,pty}/ interactive / snapshot / PTY suites
+tests/cli/                     CLI golden-file + PTY suites
 docs/                          API reference and developer guide
 ```
 
@@ -354,6 +387,7 @@ See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/ in
 - **C++ wrapper** – ✅ ships as the header-only [`include/sparcli.hpp`](include/sparcli.hpp) (RAII over `ScText`/`ScTableData`/`ScColumns`/…; see below).
 - **Rust bindings** – ✅ ship in [`bindings/rust/`](bindings/rust/) (the safe `sparcli` crate over `sparcli-sys`; see [`docs/api-rust.md`](docs/api-rust.md)).
 - **Python bindings** – ✅ ship in [`bindings/python/`](bindings/python/) (the cffi API-mode `sparcli` package; see [`docs/api-python.md`](docs/api-python.md)).
+- **Command-line tool** – ✅ ships as the `sparcli` binary ([`cli/`](cli/); every widget as a shell subcommand with zsh completion; see [`docs/cli.md`](docs/cli.md)).
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
 - **`examples/` directory** with self-contained copy-pasteable snippets.
 - **More widgets** – open an issue with ideas.

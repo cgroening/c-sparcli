@@ -1,0 +1,8 @@
+project
+  src
+    main.c
+    util.c
+  include
+    util.h
+  docs
+README.md

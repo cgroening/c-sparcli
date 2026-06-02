@@ -1,0 +1,435 @@
+
+===== print: markup =====
+[1m[32mHello[0m [0m[31mWorld[0m
+
+===== print: multiple args joined =====
+[1mfirst[0m second third[0m
+
+===== print: --no-markup leaves tags verbatim =====
+[bold]not bold[/][0m
+
+===== print: --no-color strips colors but keeps markup styling tags out =====
+plain text
+
+===== print: stdin input =====
+from [0m[36mstdin[0m
+
+===== print: centered =====
+                centered[0m
+
+===== print: right-aligned =====
+                              right edge[0m
+
+===== panel: basic =====
+╭[0m──────────────────────────────────────[0m╮[0m
+│[0m Panel content[0m                        │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+
+===== panel: title + subtitle =====
+╭[0m─[0m [0mTitle[0m [0m──────────────────────────────[0m╮[0m
+│[0m Body[0m                                 │[0m
+╰[0m───────────────────────────────[0m [0mv1.0[0m [0m─[0m╯[0m
+
+===== panel: markup title and content =====
+╭[0m─[0m [0m[1m[36mStatus[0m [0m─────────────────────────────[0m╮[0m
+│[0m [32mAll good[0m                             │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+
+===== panel: border styles =====
+ [0m                            [0m [0m
+ [0m border: none[0m                [0m
+ [0m                            [0m [0m
++[0m----------------------------[0m+[0m
+|[0m border: ascii[0m              |[0m
++[0m----------------------------[0m+[0m
+┌[0m────────────────────────────[0m┐[0m
+│[0m border: single[0m             │[0m
+└[0m────────────────────────────[0m┘[0m
+╔[0m════════════════════════════[0m╗[0m
+║[0m border: double[0m             ║[0m
+╚[0m════════════════════════════[0m╝[0m
+╭[0m────────────────────────────[0m╮[0m
+│[0m border: rounded[0m            │[0m
+╰[0m────────────────────────────[0m╯[0m
+┏[0m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m┓[0m
+┃[0m border: thick[0m              ┃[0m
+┗[0m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m┛[0m
+
+===== panel: colored border and background =====
+[35m╭[0m[35m──────────────────────────────────────[0m[35m╮[0m
+[35m│[0m[48;2;34;34;51m Colored panel[0m[48;2;34;34;51m                        [0m[35m│[0m
+[35m╰[0m[35m──────────────────────────────────────[0m[35m╯[0m
+
+===== panel: padding and margin =====
+
+    ╭[0m──────────────────────────────────────[0m╮[0m
+    │[0m                                      │[0m
+    │[0m  Padded[0m                              │[0m
+    │[0m                                      │[0m
+    ╰[0m──────────────────────────────────────[0m╯[0m
+
+
+===== panel: content alignment =====
+╭[0m──────────────────────────────────────[0m╮[0m
+│[0m           Centered content[0m           │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+╭[0m──────────────────────────────────────[0m╮[0m
+│[0m                        Right content[0m │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+
+===== panel: title alignment =====
+╭[0m─[0m [0mLeft[0m [0m───────────────────────────────[0m╮[0m
+│[0m x[0m                                    │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+╭[0m───────────────[0m [0mCenter[0m [0m───────────────[0m╮[0m
+│[0m x[0m                                    │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+╭[0m──────────────────────────────[0m [0mRight[0m [0m─[0m╮[0m
+│[0m x[0m                                    │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+
+===== panel: stdin content with multiple lines =====
+╭[0m──────────────────────────────────────[0m╮[0m
+│[0m line one[0m                             │[0m
+│[0m line two[0m                             │[0m
+│[0m line three[0m                           │[0m
+╰[0m──────────────────────────────────────[0m╯[0m
+
+===== panel: no-color =====
+╭─ T ──────────────────────────────────╮
+│ body                                 │
+╰──────────────────────────────────────╯
+
+===== rule: plain =====
+────────────────────────────────────────
+
+===== rule: title centered (default) =====
+─────────────── Section[0m ────────────────
+
+===== rule: title left / right =====
+─ Left[0m ─────────────────────────────────
+──────────────────────────────── Right[0m ─
+
+===== rule: markup title, color, double border =====
+[36m═════════════════[0m[36m [0m[1mBold[0m[36m [0m[36m═════════════════[0m
+
+===== rule: margins =====
+
+     ────────── indented[0m ──────────
+
+
+===== table: CSV fixture with header row =====
+┌[0m───────────[0m┬[0m────────────[0m┬[0m────────[0m┬[0m──────────────────────────────────[0m┐[0m
+│[0m [1mName[0m      │[0m [1mLanguage[0m   │[0m [1mYear[0m   │[0m [1mDescription[0m                      │[0m
+├[0m───────────[0m┼[0m────────────[0m┼[0m────────[0m┼[0m──────────────────────────────────[0m┤[0m
+│[0m Linux[0m     │[0m C[0m          │[0m 1991[0m   │[0m Kernel, the famous one[0m           │[0m
+├[0m───────────[0m┼[0m────────────[0m┼[0m────────[0m┼[0m──────────────────────────────────[0m┤[0m
+│[0m Git[0m       │[0m C[0m          │[0m 2005[0m   │[0m Distributed VCS with "staging"[0m   │[0m
+├[0m───────────[0m┼[0m────────────[0m┼[0m────────[0m┼[0m──────────────────────────────────[0m┤[0m
+│[0m Rust[0m      │[0m Rust[0m       │[0m 2010[0m   │[0m Memory safety[0m                    │[0m
+├[0m───────────[0m┼[0m────────────[0m┼[0m────────[0m┼[0m──────────────────────────────────[0m┤[0m
+│[0m sparcli[0m   │[0m C[0m          │[0m 2025[0m   │[0m Multi-line[0m                       │[0m
+│[0m           │[0m            │[0m        │[0m cell value[0m                       │[0m
+└[0m───────────[0m┴[0m────────────[0m┴[0m────────[0m┴[0m──────────────────────────────────[0m┘[0m
+
+===== table: quoted fields, embedded delimiter/quotes/newlines =====
+┌[0m─────────[0m┬[0m──────────[0m┬[0m──────[0m┬[0m────────────────────────────────[0m┐[0m
+│[0m [1mName[0m    │[0m [1mLanguage[0m │[0m [1mYear[0m │[0m [1mDescription[0m                    │[0m
+├[0m─────────[0m┼[0m──────────[0m┼[0m──────[0m┼[0m────────────────────────────────[0m┤[0m
+│[0m Linux[0m   │[0m C[0m        │[0m 1991[0m │[0m Kernel, the famous one[0m         │[0m
+├[0m─────────[0m┼[0m──────────[0m┼[0m──────[0m┼[0m────────────────────────────────[0m┤[0m
+│[0m Git[0m     │[0m C[0m        │[0m 2005[0m │[0m Distributed VCS with "staging"[0m │[0m
+├[0m─────────[0m┼[0m──────────[0m┼[0m──────[0m┼[0m────────────────────────────────[0m┤[0m
+│[0m Rust[0m    │[0m Rust[0m     │[0m 2010[0m │[0m Memory safety[0m                  │[0m
+├[0m─────────[0m┼[0m──────────[0m┼[0m──────[0m┼[0m────────────────────────────────[0m┤[0m
+│[0m sparcli[0m │[0m C[0m        │[0m 2025[0m │[0m Multi-line[0m                     │[0m
+│[0m         │[0m          │[0m      │[0m cell value[0m                     │[0m
+└[0m─────────[0m┴[0m──────────[0m┴[0m──────[0m┴[0m────────────────────────────────[0m┘[0m
+
+===== table: stdin, no header =====
+┌[0m───[0m┬[0m───[0m┬[0m───[0m┐[0m
+│[0m a[0m │[0m b[0m │[0m c[0m │[0m
+├[0m───[0m┼[0m───[0m┼[0m───[0m┤[0m
+│[0m 1[0m │[0m 2[0m │[0m 3[0m │[0m
+└[0m───[0m┴[0m───[0m┴[0m───[0m┘[0m
+
+===== table: TSV input =====
+┌[0m──────[0m┬[0m───────────[0m┐[0m
+│[0m [1mKey[0m  │[0m [1mValue[0m     │[0m
+├[0m──────[0m┼[0m───────────[0m┤[0m
+│[0m port[0m │[0m 8080[0m      │[0m
+├[0m──────[0m┼[0m───────────[0m┤[0m
+│[0m host[0m │[0m localhost[0m │[0m
+└[0m──────[0m┴[0m───────────[0m┘[0m
+
+===== table: custom delimiter =====
+┌[0m───[0m┬[0m───[0m┐[0m
+│[0m a[0m │[0m b[0m │[0m
+├[0m───[0m┼[0m───[0m┤[0m
+│[0m 1[0m │[0m 2[0m │[0m
+└[0m───[0m┴[0m───[0m┘[0m
+
+===== table: border styles and colors =====
+[36m╔[0m[36m═══[0m[36m╦[0m[36m═══[0m[36m╗[0m
+[36m║[0m [1mA[0m ║[0m [1mB[0m [36m║[0m
+[36m╠[0m═══[0m╬[0m═══[0m[36m╣[0m
+[36m║[0m 1[0m ║[0m 2[0m [36m║[0m
+[36m╚[0m[36m═══[0m[36m╩[0m[36m═══[0m[36m╝[0m
++[0m---[0m+[0m---[0m+[0m
+|[0m [1mA[0m |[0m [1mB[0m |[0m
++[0m---[0m+[0m---[0m+[0m
+|[0m 1[0m |[0m 2[0m |[0m
++[0m---[0m+[0m---[0m+[0m
+
+===== table: striped, no inner horizontal lines =====
+┌[0m───[0m┬[0m───[0m┐[0m
+│[0m [1mN[0m │[0m [1mV[0m │[0m
+├[0m───[0m┼[0m───[0m┤[0m
+│[0m a[0m │[0m 1[0m │[0m
+│[0m[48;2;51;51;51m [0m[48;2;51;51;51mb[0m[48;2;51;51;51m [0m│[0m[48;2;51;51;51m [0m[48;2;51;51;51m2[0m[48;2;51;51;51m [0m│[0m
+│[0m c[0m │[0m 3[0m │[0m
+│[0m[48;2;51;51;51m [0m[48;2;51;51;51md[0m[48;2;51;51;51m [0m│[0m[48;2;51;51;51m [0m[48;2;51;51;51m4[0m[48;2;51;51;51m [0m│[0m
+└[0m───[0m┴[0m───[0m┘[0m
+
+===== table: title, alignment, max rows =====
+┌[0m─[0m [0mLimited[0m [0m[0m┐[0m
+│[0m [1mN[0m │[0m [1mV[0m │[0m
+├[0m───[0m┼[0m───[0m┤[0m
+│[0m a[0m │[0m 1[0m │[0m
+├[0m───[0m┼[0m───[0m┤[0m
+│[0m b[0m │[0m 2[0m │[0m
+│[0m [2m… 2 m[0m │[0m
+└[0m───[0m┴[0m───[0m┘[0m
+
+===== table: markup in cells =====
+┌[0m────────[0m┬[0m───────[0m┐[0m
+│[0m [1mStatus[0m │[0m [1mJob[0m   │[0m
+├[0m────────[0m┼[0m───────[0m┤[0m
+│[0m [32mok[0m     │[0m build[0m │[0m
+├[0m────────[0m┼[0m───────[0m┤[0m
+│[0m [31mfail[0m   │[0m test[0m  │[0m
+└[0m────────[0m┴[0m───────[0m┘[0m
+
+===== table: header column =====
+┌[0m────[0m┬[0m─────[0m┐[0m
+│[0m Q1[0m │[0m 100[0m │[0m
+├[0m────[0m┼[0m─────[0m┤[0m
+│[0m Q2[0m │[0m 150[0m │[0m
+├[0m────[0m┼[0m─────[0m┤[0m
+│[0m Q3[0m │[0m 90[0m  │[0m
+└[0m────[0m┴[0m─────[0m┘[0m
+
+===== list: bullet (default) =====
+• first[0m
+• second[0m
+• third[0m
+
+===== list: markers =====
+1. one[0m
+2. two[0m
+3. three[0m
+a. one[0m
+b. two[0m
+c. three[0m
+A. one[0m
+B. two[0m
+C. three[0m
+  i. one[0m
+ ii. two[0m
+iii. three[0m
+  I. one[0m
+ II. two[0m
+III. three[0m
+
+===== list: custom bullet, marker color, indent, gap =====
+    [36m→ [0ma[0m
+
+    [36m→ [0mb[0m
+
+
+===== list: stdin items with markup =====
+• [1mbold item[0m
+• plain item[0m
+
+===== list: word wrap within width =====
+1. a rather long list item that needs to wrap onto multiple lines[0m
+
+===== tree: fixture =====
+project[0m
+├── src[0m
+│   ├── main.c[0m
+│   └── util.c[0m
+├── include[0m
+│   └── util.h[0m
+└── docs[0m
+README.md[0m
+
+===== tree: stdin, ascii border, no guides =====
+root[0m
++-- a[0m
+\-- b[0m
+    \-- b1[0m
+root[0m
+├── a[0m
+└── b[0m
+    └── b1[0m
+
+===== tree: connector color, tabs as indentation =====
+top[0m
+[32m└──[0m mid[0m
+    [32m└──[0m deep[0m
+
+===== tree: error on skipped indentation level =====
+sparcli: line 2: indentation skips a level
+exit: 2
+
+===== kv: fixture =====
+Name         sparcli
+Language     C11
+License      MIT
+Description  Styled terminal output and interactive prompts for C
+
+===== kv: colors, fixed key width, wrap =====
+[36mName[0m            [33msparcli[0m
+[36mLanguage[0m        [33mC11[0m
+[36mLicense[0m         [33mMIT[0m
+[36mDescription[0m     [33mStyled terminal output and[0m
+                [33minteractive prompts for C[0m
+
+===== kv: tab delimiter from stdin =====
+host  localhost
+port  8080
+
+===== kv: custom separator and gap =====
+a = 1
+
+b = 2
+
+===== alert: all levels =====
+[34m╭[0m[34m─[0m [0m[1m[34mℹ Info[0m [0m[34m─────────────────────────────────────────────────────────────────────[0m[34m╮[0m
+[34m│[0m This is a info alert[0m                                                         [34m│[0m
+[34m╰[0m[34m──────────────────────────────────────────────────────────────────────────────[0m[34m╯[0m
+[35m╭[0m[35m─[0m [0m[1m[35m⚙ Debug[0m [0m[35m────────────────────────────────────────────────────────────────────[0m[35m╮[0m
+[35m│[0m This is a debug alert[0m                                                        [35m│[0m
+[35m╰[0m[35m──────────────────────────────────────────────────────────────────────────────[0m[35m╯[0m
+[33m╭[0m[33m─[0m [0m[1m[33m⚠ Warning[0m [0m[33m──────────────────────────────────────────────────────────────────[0m[33m╮[0m
+[33m│[0m This is a warning alert[0m                                                      [33m│[0m
+[33m╰[0m[33m──────────────────────────────────────────────────────────────────────────────[0m[33m╯[0m
+[31m╭[0m[31m─[0m [0m[1m[31m✖ Error[0m [0m[31m────────────────────────────────────────────────────────────────────[0m[31m╮[0m
+[31m│[0m This is a error alert[0m                                                        [31m│[0m
+[31m╰[0m[31m──────────────────────────────────────────────────────────────────────────────[0m[31m╯[0m
+[32m╭[0m[32m─[0m [0m[1m[32m✔ Success[0m [0m[32m──────────────────────────────────────────────────────────────────[0m[32m╮[0m
+[32m│[0m This is a success alert[0m                                                      [32m│[0m
+[32m╰[0m[32m──────────────────────────────────────────────────────────────────────────────[0m[32m╯[0m
+
+===== alert: stdin body with markup =====
+[32m╭[0m[32m─[0m [0m[1m[32m✔ Success[0m [0m[32m──────────────────────────────────────────────────────────────────[0m[32m╮[0m
+[32m│[0m Deploy [0m[1mv2.1[0m finished[0m                                                         [32m│[0m
+[32m╰[0m[32m──────────────────────────────────────────────────────────────────────────────[0m[32m╯[0m
+
+===== badge: plain, colored, custom caps =====
+[v1.2]
+[32m[passing][0m
+[37m[41m[ FAIL ][0m
+<angle>
+
+===== columns: basic =====
+left column[0m   middle column[0m   right column[0m
+
+===== columns: separator, gap, stdin =====
+alpha[0m  │  beta[0m  │  gamma[0m
+
+===== help: command list =====
+Usage: sparcli [global options] <command> [options] [arguments]
+
+Styled terminal output and interactive prompts for the shell,
+powered by the sparcli library.
+
+Global options:
+  -h, --help       Show this help and exit
+  -V, --version    Show the version and exit
+      --no-color   Strip ANSI colors from the output
+      --no-markup  Treat [tag] markup as literal text
+
+Output commands:
+  print      Print markup-styled text
+  panel      Draw a bordered panel around text
+  rule       Draw a horizontal rule with optional title
+  table      Render CSV/TSV data as a table
+  list       Render a bulleted or numbered list
+  tree       Render indented lines as a tree
+  kv         Render key/value lines as an aligned list
+  alert      Show an info/warning/error/success panel
+  badge      Print an inline styled badge
+  columns    Lay out items side by side in columns
+
+Streaming commands:
+  spin       Show a spinner while a command runs
+  progress   Draw a progress bar fed by stdin values
+
+Input commands:
+  confirm    Ask a yes/no question (exit code = answer)
+  input      Prompt for a line of text
+  password   Prompt for a masked secret
+  number     Prompt for a number
+  textarea   Prompt for multi-line text
+  select     Choose one or more items from a list
+  fuzzy      Fuzzy-search and pick an item
+  date       Pick a date from a calendar
+
+Exit codes:
+  0  success / confirmed
+  1  input cancelled / answered no
+  2  error, bad usage or no TTY
+
+Run 'sparcli <command> --help' for the options of a command.
+Full reference: docs/cli.md
+
+===== help: subcommand =====
+Usage: sparcli table [options] [FILE]
+
+Render CSV data from FILE (or stdin) as a table. Use --tsv or
+--delim for other delimiters; quoted fields (RFC 4180) are
+supported. Cell text is parsed as markup unless --no-markup is
+given.
+
+Options:
+  --tsv                      Tab-separated input
+  --delim CHAR               Custom field delimiter
+  --header-row               Treat the first row as the header
+  --header-col               Treat the first column as a header
+  --border STYLE             none|ascii|single|double|rounded|thick
+  --color COLOR              Outer border color
+  --inner-color COLOR        Inner separator color
+  --no-outer                 Hide the outer frame
+  --no-inner-h               Hide row separators
+  --no-inner-v               Hide column separators
+  --striped                  Alternate row backgrounds
+  --stripe-bg COLOR          Stripe background color
+  --title TEXT               Table title
+  --align left|center|right  Default column alignment
+  --width N                  Total table width (0 = fit content)
+  --max-rows N               Show at most N rows
+  --no-markup                Treat [tag] markup as literal
+  --no-color                 Strip ANSI colors from output
+  --help                     Show this help
+
+===== errors =====
+sparcli: unknown command 'bogus-command' (see sparcli --help)
+exit: 2
+sparcli: unknown option '--bogus-flag' (see sparcli --help)
+exit: 2
+sparcli: invalid border 'bogus'
+exit: 2
+sparcli: invalid color 'notacolor'
+exit: 2
+sparcli: invalid alignment 'diagonal'
+exit: 2
+sparcli: cannot read input
+exit: 2
+sparcli: invalid alert level 'bogus-level'
+exit: 2
+sparcli: missing badge text (see --help)
+exit: 2
+sparcli: missing alert level (see --help)
+exit: 2

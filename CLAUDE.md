@@ -5,10 +5,12 @@ A C11 library for styled terminal output: colored text, bordered panels, feature
 ## Build
 
 ```sh
-make            # builds libsparcli.a + shared lib + pkg-config
-make test         # FULL non-interactive suite: chains the four headless gates
-                  # below (test-output-check, test-input ARGS=--logic,
-                  # test-input-style-check, test-input-pty). The canonical check.
+make            # builds libsparcli.a + shared lib + pkg-config + the sparcli CLI
+make cli          # only the sparcli CLI binary (./sparcli)
+make test         # FULL non-interactive suite: chains the headless gates below
+                  # (test-output-check, test-input ARGS=--logic,
+                  # test-input-style-check, test-input-pty, test-cpp,
+                  # test-cli-check, test-cli-pty). The canonical check.
 make test-output  # OUTPUT gallery (tests/output/test_main), printed for eyeballing.
                   # ARGS=--focus / --no-animated (and the combo).
 make test-output-check / -golden   # OUTPUT golden-file diff / regenerate snapshot
@@ -21,6 +23,11 @@ make test-input-style-check / -golden  # style golden-file diff / regenerate
 make test-input-pty   # INPUT self-driving PTY suite under ASan/UBSan: forks each
                   # widget onto a pseudo-terminal and feeds canned keys – gives
                   # interactive coverage with no human. Runs headless (CI).
+make test-cli-check / -golden  # CLI output golden-file diff / regenerate
+                  # (tests/cli/run_output.sh drives every output subcommand)
+make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitized
+                  # CLI binary onto a PTY with stdout on a pipe (= command
+                  # substitution), asserts value + exit code. Headless (CI).
 make sanitize     # OUTPUT suite under ASan/UBSan
 make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
                   # thread-safety invariant; own build tree)
@@ -41,7 +48,7 @@ make clean        # removes build trees, .a, shared libs, test binaries
 
 Compiler: `cc -std=c11 -Wall -Wextra -Iinclude -Isrc`. The build tracks header dependencies (`-MMD -MP`), so editing a header rebuilds dependents without `make clean`. Golden-file tests (`*-check`) diff rendered output against committed `expected.txt`; see `docs/DEVELOPMENT.md` for the full workflow.
 
-Besides the C library, sparcli ships a header-only **C++ wrapper** (`include/sparcli.hpp`), a safe **Rust** crate (`bindings/rust/`) and a Pythonic **Python** package (`bindings/python/`, cffi API-mode). The Rust and Python wrappers compile the C sources themselves, so they need no prior `make`/install. After changing the C API, rebuild each consumer you use (and update the Python `cdef` / regenerate the Rust bindgen output for new/changed symbols) – see the "Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the per-language references `docs/api-{cpp,rust,python}.md`.
+Besides the C library, sparcli ships a header-only **C++ wrapper** (`include/sparcli.hpp`), a safe **Rust** crate (`bindings/rust/`), a Pythonic **Python** package (`bindings/python/`, cffi API-mode) and a **command-line tool** (`cli/`, see below). The Rust and Python wrappers compile the C sources themselves, so they need no prior `make`/install. After changing the C API, rebuild each consumer you use (and update the Python `cdef` / regenerate the Rust bindgen output for new/changed symbols) – see the "Rebuilding the bindings & consumers" section in `docs/DEVELOPMENT.md` and the per-language references `docs/api-{cpp,rust,python}.md`.
 
 ### Directory layout
 
@@ -55,13 +62,27 @@ src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
               textarea, select, fuzzy, datepicker
+cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
+completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/      (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
+tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 
 Public headers live in `include/{core,output,input}/`; cross-includes use **root-relative paths** (`#include "core/sparcli_core.h"`), resolved via `-Iinclude`. `sparcli.h` is the full umbrella; `input/sparcli_input.h` is the input-only sub-umbrella. `#include <sparcli.h>` is unchanged for users; only direct single-header includes moved.
 
-When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in the Makefile. The build tree mirrors `src/` automatically.
+When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in the Makefile. The build tree mirrors `src/` automatically. CLI sources go into `CLI_SRC` instead (they compile with `-Iinclude` only – the CLI never includes `src/` internals).
+
+### Command-line tool (`cli/`)
+
+The `sparcli` binary exposes every widget as a shell subcommand (rich-cli + gum in one tool); full reference in `docs/cli.md`. Key facts:
+
+- **Structure:** `cli/main.c` (dispatch table + global flags) → `cli/cmd_*.c` (one file per command group: output, layout, table, tree, progress, input, select) over shared helpers `cli/cli_common.c` (ctx, errors, capture), `cli_parse.c` (string→enum/color lookup tables), `cli_stdin.c` (file-or-stdin), `cli_csv.c` (RFC-4180-ish parser). Linked against the static `libsparcli.a`, public headers only.
+- **Conventions:** markup parsed by default in all text (`--no-markup` opt-out); `--no-color`/`NO_COLOR` strips ANSI by rendering through a capture stream + `sc_strip_ansi`; exit codes 0 = OK / 1 = cancelled or "no" / 2 = error or no TTY.
+- **Input commands** set `hide_summary`, print only the raw value to stdout (the widget UI goes to `/dev/tty`), so `$(sparcli input …)` command substitution works; `--accent` is applied via `sc_input_set_theme`.
+- **`spin`** forks the wrapped command and routes the spinner to `/dev/tty` (the spinner is a stream widget – it must not pollute the child's stdout); the child's exit code is propagated.
+- **Tests:** `make test-cli-check` (golden, `tests/cli/run_output.sh` + `expected.txt`) and `make test-cli-pty` (`tests/cli/test_cli_pty.c`: forkpty + stdout-pipe redirect, runs the ASan/UBSan `sparcli-sanitize` binary). Both are part of `make test`. New output cases go into `run_output.sh` (+ `make test-cli-golden`), new input cases into the `CASES[]` array.
+- **Install:** `make install` puts the binary in `$(BINDIR)` and `completions/_sparcli` in `$(ZSHFUNCDIR)`.
 
 ---
 
