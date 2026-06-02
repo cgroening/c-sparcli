@@ -13,6 +13,12 @@
 #define TTY_CURSOR_HIDE "\033[?25l"
 #define TTY_CURSOR_SHOW "\033[?25h"
 
+/* Bracketed paste mode: the terminal wraps pasted text in ESC[200~ / ESC[201~
+ * markers so the key reader can treat it as literal text instead of keys.
+ * Terminals without support ignore these sequences (graceful degradation). */
+#define TTY_PASTE_ON  "\033[?2004h"
+#define TTY_PASTE_OFF "\033[?2004l"
+
 /*
  * Termination signals after which we restore the terminal, then re-raise with
  * the default disposition so the process still dies as expected - but with a
@@ -102,6 +108,7 @@ ScInputStatus sc_tty_begin(void) {
     install_handlers();
 
     sc_tty_puts(TTY_CURSOR_HIDE);
+    sc_tty_puts(TTY_PASTE_ON);
     return SC_INPUT_OK;
 }
 
@@ -238,6 +245,7 @@ static void restore_terminal(void) {
     tcsetattr(tty_fd, TCSAFLUSH, &saved_termios);
     ssize_t ignored =
         write(tty_fd, TTY_CURSOR_SHOW, sizeof(TTY_CURSOR_SHOW) - 1);
+    ignored = write(tty_fd, TTY_PASTE_OFF, sizeof(TTY_PASTE_OFF) - 1);
     (void)ignored;
     raw_active = 0;
 }

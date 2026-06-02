@@ -115,7 +115,7 @@ static int get_effective_width(Rule *self) {
 static int get_style(Rule *self) {
     if (self->opts.type >= SC_BORDER_NONE &&
         self->opts.type <= SC_BORDER_THICK) {
-        return self->opts.type;
+        return (int)self->opts.type;
     }
     return SC_BORDER_SINGLE;
 }

@@ -172,6 +172,7 @@ ScInputStatus sc_fuzzy_run(ScFuzzy *self, size_t *out_index) {
     ScPromptVTable vtable = {
         .render = fuzzy_render,
         .on_key = fuzzy_on_key,
+        .paste = SC_PASTE_TEXT,
     };
     ScPromptShortcuts sk = {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id

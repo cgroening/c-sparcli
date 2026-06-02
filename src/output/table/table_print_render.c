@@ -251,7 +251,7 @@ static int compute_rowspan_total_height(
          k < row_span && row_index + (size_t)k < data->row_count;
          k++) {
         if (k > 0) { total += separator_height; }
-        total += table->row_heights[row_index + k];
+        total += table->row_heights[row_index + (size_t)k];
     }
     return total;
 }

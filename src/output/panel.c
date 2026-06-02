@@ -493,7 +493,7 @@ static void resolve_horizontal_border_lines(Panel *panel) {
  * from `border_table`.
  */
 static HBorder make_hborder(Panel *panel, ScPosition position) {
-    int border_type = panel->opts.border.type;
+    int border_type = (int)panel->opts.border.type;
     const char *left_edge_character;
     const char *right_edge_character;
     if (position == SC_POSITION_TOP) {

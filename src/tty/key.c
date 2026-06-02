@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 
+static size_t decode_paste_content(const char *buf, size_t len, ScKey *out);
 static size_t decode_escape(const char *buf, size_t len, ScKey *out);
     static size_t decode_alt_prefix(const char *buf, size_t len, ScKey *out);
     static size_t decode_ss3(char final, ScKey *out);
@@ -19,6 +20,10 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out);
 static char g_buf[64];
 static size_t g_buf_len = 0;
 
+/* Inside a bracketed paste (between ESC[200~ and ESC[201~): bytes are
+ * literal text, not key sequences. */
+static bool g_in_paste = false;
+
 
 ScKey sc_tty_read_key(void) {
     const ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
@@ -29,10 +34,22 @@ ScKey sc_tty_read_key(void) {
     int fd = sc_tty_internal_fd();
     for (;;) {
         ScKey key;
-        size_t used = sc_key_decode(g_buf, g_buf_len, &key);
+        // Inside a bracketed paste, bytes are literal text: decode them as
+        // characters (control bytes filtered) until the end marker arrives.
+        size_t used = g_in_paste
+            ? decode_paste_content(g_buf, g_buf_len, &key)
+            : sc_key_decode(g_buf, g_buf_len, &key);
         if (used > 0) {
             memmove(g_buf, g_buf + used, g_buf_len - used);
             g_buf_len -= used;
+            if (key.type == SC_KEY_PASTE_START) {
+                g_in_paste = true;
+                continue;
+            }
+            if (key.type == SC_KEY_PASTE_END) {
+                g_in_paste = false;
+                continue;
+            }
             // Unrecognized escape sequences and stray control bytes decode
             // to SC_KEY_NONE with their bytes consumed (e.g. pasted ANSI
             // color codes). Skip them silently: the returned SC_KEY_NONE is
@@ -43,12 +60,14 @@ ScKey sc_tty_read_key(void) {
         // A lone ESC is ambiguous: it may begin an escape sequence whose
         // remaining bytes are still in flight, or it may be the user pressing
         // Escape. Wait briefly; if nothing more arrives, treat it as Esc.
+        // (Skipped inside a paste: there an ESC can only start the end
+        // marker, so the reader just waits for the remaining bytes.)
         //
         // Uses select() rather than poll(): on macOS poll() on /dev/tty is
         // broken (it reports POLLNVAL instead of timing out), which would make
         // the reader fall through to a blocking read() and swallow a lone Esc
         // until the next key. select() works on /dev/tty there.
-        if (g_buf_len > 0 && (unsigned char)g_buf[0] == 0x1b) {
+        if (!g_in_paste && g_buf_len > 0 && (unsigned char)g_buf[0] == 0x1b) {
             fd_set read_fds;
             FD_ZERO(&read_fds);
             FD_SET(fd, &read_fds);
@@ -93,6 +112,74 @@ ScKey sc_tty_read_key(void) {
 
 void sc_tty_input_reset(void) {
     g_buf_len = 0;
+    g_in_paste = false;
+}
+
+/**
+ * Decodes one unit of pasted content: the end marker, one literal character
+ * (flagged `SC_MOD_PASTED`), or a filtered control byte (`SC_KEY_NONE`).
+ *
+ * Pasted `\r`/`\n` become `SC_KEY_ENTER`+PASTED (the prompt engine decides
+ * whether the widget accepts newlines); `\t` becomes a literal tab character;
+ * all other control bytes and stray ESC bytes are dropped, so pasted content
+ * is sanitized exactly like any other untrusted input. Returns 0 when more
+ * bytes are needed (incomplete UTF-8 sequence or end-marker prefix).
+ */
+static size_t decode_paste_content(const char *buf, size_t len, ScKey *out) {
+    out->type = SC_KEY_NONE;
+    out->codepoint = 0;
+    out->bytes[0] = '\0';
+    out->mods = SC_MOD_PASTED;
+    if (len == 0) {
+        return 0;
+    }
+
+    static const char end_marker[] = "\x1b[201~";
+    const size_t end_marker_len = sizeof(end_marker) - 1;
+
+    unsigned char first = (unsigned char)buf[0];
+    if (first == 0x1b) {
+        // Either the start of the end marker or a stray ESC to drop.
+        size_t compare_len = len < end_marker_len ? len : end_marker_len;
+        if (memcmp(buf, end_marker, compare_len) == 0) {
+            if (len < end_marker_len) {
+                return 0;   // prefix of the end marker: wait for more bytes
+            }
+            out->type = SC_KEY_PASTE_END;
+            return end_marker_len;
+        }
+        return 1;   // stray ESC inside the paste: drop it (sanitize)
+    }
+    if (first == '\r' || first == '\n') {
+        out->type = SC_KEY_ENTER;
+        // CRLF pastes count as a single newline
+        if (first == '\r' && len >= 2 && buf[1] == '\n') {
+            return 2;
+        }
+        return 1;
+    }
+    if (first == '\t') {
+        // Literal tab text, not the Tab key (must not trigger autocomplete)
+        out->type = SC_KEY_CHAR;
+        out->codepoint = '\t';
+        out->bytes[0] = '\t';
+        out->bytes[1] = '\0';
+        return 1;
+    }
+    if (first < 0x20 || first == 0x7f) {
+        return 1;   // other control bytes: drop (out->type stays NONE)
+    }
+
+    size_t seq_len = utf8_seq_len(first);
+    if (seq_len == 0) {
+        return 1;   // invalid UTF-8 lead byte: drop
+    }
+    if (len < seq_len) {
+        return 0;   // incomplete multi-byte sequence: wait for more bytes
+    }
+    make_char(out, buf, seq_len);
+    out->mods = SC_MOD_PASTED;
+    return seq_len;
 }
 
 size_t sc_key_decode(const char *buf, size_t len, ScKey *out) {
@@ -264,6 +351,8 @@ static void decode_csi_tilde(int param, int modifier, ScKey *out) {
         case 21: out->type = SC_KEY_F10; break;
         case 23: out->type = SC_KEY_F11; break;
         case 24: out->type = SC_KEY_F12; break;
+        case 200: out->type = SC_KEY_PASTE_START; break;
+        case 201: out->type = SC_KEY_PASTE_END;   break;
         default:        out->type = SC_KEY_NONE;   break;
     }
 }

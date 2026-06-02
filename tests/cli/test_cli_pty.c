@@ -58,6 +58,11 @@ static const Case CASES[] = {
       .keys = "y", .want_stdout = "yes\n", .want_exit = 0 },
     { .name = "confirm-esc-cancels", .args = { "confirm", "Proceed?" },
       .keys = "\x1b", .want_stdout = "", .want_exit = 1 },
+    /* Pasted text cannot answer a confirmation (paste-to-confirm attack):
+       the pasted "y" is dropped, only the real "n" afterwards counts. */
+    { .name = "confirm-ignores-pasted-answer",
+      .args = { "confirm", "Proceed?" },
+      .keys = "\x1b[200~y\x1b[201~n", .want_stdout = "", .want_exit = 1 },
 
     /* input / password: value on stdout */
     { .name = "input-value", .args = { "input", "Name:" },
@@ -78,6 +83,12 @@ static const Case CASES[] = {
     { .name = "input-ignores-pasted-ansi", .args = { "input", "Name:" },
       .keys = "\x1b[31mhi\x1b[0m\r", .want_stdout = "hi\n",
       .want_exit = 0 },
+    /* Bracketed paste: pasted text is literal - a pasted \r does not
+       submit, the characters land in the field, and only the real Enter
+       after the paste submits. */
+    { .name = "input-paste-is-literal", .args = { "input", "Name:" },
+      .keys = "ab\x1b[200~cd\rEF\x1b[201~gh\r",
+      .want_stdout = "abcdEFgh\n", .want_exit = 0 },
     { .name = "password-value", .args = { "password", "Secret:" },
       .keys = "hunter2\r", .want_stdout = "hunter2\n", .want_exit = 0 },
 
@@ -93,6 +104,10 @@ static const Case CASES[] = {
     /* textarea: Enter = newline, Ctrl-D submits */
     { .name = "textarea-multiline", .args = { "textarea", "Notes:" },
       .keys = "a\rb\x04", .want_stdout = "a\nb\n", .want_exit = 0 },
+    /* textarea accepts multi-line pastes: pasted newlines stay newlines */
+    { .name = "textarea-paste-multiline", .args = { "textarea", "Notes:" },
+      .keys = "a\x1b[200~b\rc\x1b[201~\x04",
+      .want_stdout = "ab\nc\n", .want_exit = 0 },
 
     /* select: items from args or stdin, choice on stdout */
     { .name = "select-args", .args = { "select", "alpha", "beta", "gamma" },

@@ -111,6 +111,12 @@ typedef enum ScKeyType {
     SC_KEY_F11,
     SC_KEY_F12,
     SC_KEY_RESIZE, /**< Terminal resized (SIGWINCH); repaint and continue. */
+
+    /** Bracketed-paste start marker (`ESC[200~`); consumed by the reader. */
+    SC_KEY_PASTE_START,
+
+    /** Bracketed-paste end marker (`ESC[201~`); consumed by the reader. */
+    SC_KEY_PASTE_END,
 } ScKeyType;
 
 /**
@@ -121,9 +127,16 @@ typedef enum ScKeyType {
  * `SC_MOD_ALT` is set when an `ESC` prefix preceded the key (Alt/Meta).
  */
 typedef enum ScKeyMods {
-    SC_MOD_NONE = 0,
-    SC_MOD_CTRL = 1 << 0,
-    SC_MOD_ALT  = 1 << 1,
+    SC_MOD_NONE   = 0,
+    SC_MOD_CTRL   = 1 << 0,
+    SC_MOD_ALT    = 1 << 1,
+
+    /**
+     * The key comes from pasted text (bracketed paste mode): it is literal
+     * content, never a command. Pasted keys do not cancel prompts, match
+     * shortcuts, or submit single-line inputs.
+     */
+    SC_MOD_PASTED = 1 << 2,
 } ScKeyMods;
 
 /** A single decoded key event. */

@@ -69,6 +69,13 @@ void test_key_decode(void) {
     expect("\x1bOZ", SC_KEY_NONE, 3,
            "unknown SS3 final → none (whole sequence consumed)");
 
+    /* Bracketed-paste markers: the reader uses them to switch into literal
+     * paste mode; they are never delivered to widgets. */
+    expect("\x1b[200~", SC_KEY_PASTE_START, 6,
+           "bracketed-paste start marker");
+    expect("\x1b[201~", SC_KEY_PASTE_END, 6,
+           "bracketed-paste end marker");
+
     /* Multi-byte UTF-8: 'é' = 0xC3 0xA9, one codepoint, two bytes. */
     ScKey k;
     size_t used = sc_key_decode("\xc3\xa9", 2, &k);

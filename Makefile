@@ -10,7 +10,8 @@ AR      = ar
 HARDEN_CFLAGS = -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2
 
 CFLAGS  = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 -Wnull-dereference \
-          -Wcast-align -fPIC $(HARDEN_CFLAGS) -Iinclude -Isrc $(EXTRA_CFLAGS)
+          -Wcast-align -Wconversion -Wsign-conversion -fPIC $(HARDEN_CFLAGS) \
+          -Iinclude -Isrc $(EXTRA_CFLAGS)
 CXXFLAGS = -std=c++20 -Wall -Wextra $(HARDEN_CFLAGS) -Iinclude $(EXTRA_CFLAGS)
 LDFLAGS = $(HARDEN_LDFLAGS)
 
@@ -95,7 +96,8 @@ CLI_OBJ          = $(patsubst cli/%.c,$(BUILDDIR)/cli/%.o,$(CLI_SRC))
 CLI_DEP          = $(CLI_OBJ:.o=.d)
 CLI_BIN          = sparcli
 CLI_CFLAGS       = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 \
-                   -Wnull-dereference -Wcast-align -Iinclude $(EXTRA_CFLAGS)
+                   -Wnull-dereference -Wcast-align -Wconversion \
+                   -Wsign-conversion -Iinclude $(EXTRA_CFLAGS)
 CLI_SANITIZE_OBJ = $(patsubst cli/%.c,$(SANITIZE_BUILDDIR)/cli/%.o,$(CLI_SRC))
 CLI_SANITIZE_DEP = $(CLI_SANITIZE_OBJ:.o=.d)
 CLI_SANITIZE_BIN = sparcli-sanitize

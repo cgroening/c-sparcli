@@ -198,6 +198,21 @@ ScInputStatus sc_prompt_run(
                 break;
         }
 
+        // Pasted keys are literal text: they never match shortcuts or the
+        // editor key, and pasted Enter only reaches widgets that accept
+        // multi-line pastes. Widgets without a text field ignore pastes
+        // entirely (SC_PASTE_IGNORE), so pasted characters cannot navigate
+        // lists or answer confirmations.
+        if (key.mods & SC_MOD_PASTED) {
+            bool drop_key = vtable->paste == SC_PASTE_IGNORE
+                || (key.type == SC_KEY_ENTER
+                    && vtable->paste != SC_PASTE_MULTILINE);
+            if (!drop_key) {
+                vtable->on_key(state, key, &done, &cancel);
+            }
+            continue;
+        }
+
         // External-editor key (opt-in; text_input/textarea only). Matched
         // before shortcuts/on_key, after the reserved cancel keys.
         if (editor_key_matches(editor, vtable, key)) {

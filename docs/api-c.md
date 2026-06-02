@@ -876,6 +876,8 @@ Interactive prompts: confirm, text, password, number, textarea, single/multi sel
 
 Every widget returns an `ScInputStatus`. Esc and Ctrl-C always cancel; a non-TTY context (output piped, CI) returns `SC_INPUT_ERROR` so callers can fall back to a default. On `SC_INPUT_OK` the interactive region is erased and a one-line summary is printed in its place (suppress with `hide_summary`).
 
+**Paste safety:** prompts enable bracketed-paste mode, so pasted text is treated as literal, sanitized content – pasted escape sequences and control bytes are dropped, a pasted `Enter` never submits a single-line field (the textarea keeps pasted newlines), and pasted characters can never answer a confirmation, navigate a list or trigger a custom shortcut. Terminals without bracketed-paste support fall back to interpreting pastes as keystrokes.
+
 ```c
 typedef enum ScInputStatus {
     SC_INPUT_OK = 0,    /* user confirmed a value (Enter / selection) */

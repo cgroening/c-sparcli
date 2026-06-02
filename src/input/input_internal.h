@@ -280,6 +280,17 @@ static inline ScRendered *sc_compose_hint(
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
 
+/**
+ * How a widget treats pasted (bracketed-paste) keys. Zero-init = IGNORE,
+ * the safest default: widgets without a text field never see pasted keys,
+ * so pasted characters cannot navigate, confirm or trigger anything.
+ */
+typedef enum ScPasteMode {
+    SC_PASTE_IGNORE = 0,  /**< Drop all pasted keys (select, confirm, ...). */
+    SC_PASTE_TEXT,        /**< Insert pasted chars; drop pasted Enter. */
+    SC_PASTE_MULTILINE,   /**< Insert pasted chars and newlines (textarea). */
+} ScPasteMode;
+
 /** Per-widget behaviour passed to `sc_prompt_run`. */
 typedef struct ScPromptVTable {
     /** Render the current state into a fresh `ScRendered` (engine frees it). */
@@ -287,6 +298,9 @@ typedef struct ScPromptVTable {
 
     /** Handle one key; set `*done` to accept, `*cancel` to abort. */
     void (*on_key)(void *state, ScKey key, bool *done, bool *cancel);
+
+    /** Pasted-key policy; zero-init = `SC_PASTE_IGNORE`. */
+    ScPasteMode paste;
 
     /**
      * Optional external-editor hooks (text_input / textarea only). `edit_get`

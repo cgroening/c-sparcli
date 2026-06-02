@@ -59,6 +59,7 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
     ScPromptVTable vtable = {
         .render = ta_render,
         .on_key = ta_on_key,
+        .paste = SC_PASTE_MULTILINE,
         .edit_get = ta_edit_get,
         .edit_set = ta_edit_set,
     };

@@ -121,6 +121,7 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
     ScPromptVTable vtable = {
         .render = text_render,
         .on_key = text_on_key,
+        .paste = SC_PASTE_TEXT,
         .edit_get = text_edit_get,
         .edit_set = text_edit_set,
     };

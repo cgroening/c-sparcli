@@ -117,7 +117,8 @@ typedef enum { SC_HINT_POS_DEFAULT = 0, SC_HINT_POS_TOP, SC_HINT_POS_BOTTOM,
 typedef enum { SC_WEEK_START_DEFAULT = 0, SC_WEEK_START_MONDAY = 1,
                SC_WEEK_START_SUNDAY = 2 } ScWeekStart;
 typedef enum { SC_SHORTCUT_RETURN = 0, SC_SHORTCUT_CALLBACK } ScShortcutMode;
-typedef enum { SC_MOD_NONE = 0, SC_MOD_CTRL = 1, SC_MOD_ALT = 2 } ScKeyMods;
+typedef enum { SC_MOD_NONE = 0, SC_MOD_CTRL = 1, SC_MOD_ALT = 2,
+               SC_MOD_PASTED = 4 } ScKeyMods;
 /* ScKeyType: only the members the binding names; ... pulls in the rest. */
 typedef enum { SC_KEY_NONE = 0, SC_KEY_CHAR, SC_KEY_ESC, SC_KEY_ENTER,
                SC_KEY_F1, ... } ScKeyType;

@@ -399,6 +399,8 @@ done | sparcli progress --total 100 --label "Processing"
 
 ## Input commands
 
+All prompts run with bracketed-paste protection: pasted text is inserted literally (escape codes and control characters removed) – a pasted line break does not submit the field, and pasted characters cannot answer `confirm` or trigger shortcuts.
+
 Interactive prompts. The contract that makes them script-friendly:
 
 - the **widget UI is drawn on `/dev/tty`**, never on stdout;

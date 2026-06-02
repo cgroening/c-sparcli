@@ -282,7 +282,7 @@ static void init_tree(Tree *self, const ScTree *tree) {
 static int get_border_type(const ScTreeOpts *opts) {
     if (opts->type >= SC_BORDER_NONE
         && opts->type <= SC_BORDER_THICK) {
-        return opts->type;
+        return (int)opts->type;
     }
     return SC_BORDER_SINGLE;
 }

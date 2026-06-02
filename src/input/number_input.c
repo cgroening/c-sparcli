@@ -52,6 +52,7 @@ ScInputStatus sc_number_input(const char *prompt, double *out,
     ScPromptVTable vtable = {
         .render = number_render,
         .on_key = number_on_key,
+        .paste = SC_PASTE_TEXT,
     };
     ScPromptShortcuts sk = {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
