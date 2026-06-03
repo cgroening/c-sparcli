@@ -301,10 +301,11 @@ make python-test    # build + run the non-interactive pytest suite
 # point make at an interpreter that has cffi:
 make python-test PY=/path/to/python
 
-# run the examples (after `make python`, from bindings/python/):
-PYTHONPATH=src python examples/demo.py            # complete showcase
-PYTHONPATH=src python examples/output_gallery.py  # output only
-PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
+# run the examples (after `make python`, from the repo root). They are grouped
+# by area under examples/python/; see docs/examples.md for the full list:
+PYTHONPATH=bindings/python/src python examples/python/output/table_basic.py
+PYTHONPATH=bindings/python/src python examples/python/input/fuzzy.py  # needs a terminal
+# or, from anywhere: make run-example EX=python/output/table_basic
 ```
 
 Install into an environment – an **editable** (`-e`) install with build isolation **off**, since the C sources are reached through the in-repo `csrc`/`cinclude` symlinks and the build must run in place:

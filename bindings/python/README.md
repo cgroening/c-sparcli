@@ -41,11 +41,14 @@ pip install --no-build-isolation -e bindings/python
 
 ## Examples
 
+Examples live in the repo-wide `examples/python/` tree, grouped by area; the
+full cross-language list is in [`docs/examples.md`](../../docs/examples.md).
+
 ```sh
-cd bindings/python
-PYTHONPATH=src python examples/demo.py            # complete showcase (all widgets)
-PYTHONPATH=src python examples/output_gallery.py  # output only
-PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
+# from the repo root, after `make python`:
+PYTHONPATH=bindings/python/src python examples/python/output/table_basic.py
+PYTHONPATH=bindings/python/src python examples/python/input/fuzzy.py  # needs a terminal
+# or, for any language:  make run-example EX=python/output/table_basic
 ```
 
 See [`docs/api-python.md`](../../docs/api-python.md) for the full reference.

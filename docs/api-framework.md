@@ -359,7 +359,7 @@ sc_args_reset(args);
 
 `sc_args_parse` calls `sc_args_reset` implicitly at its start, so re-parsing the same tree never sees stale values from the previous line - the explicit call only matters when you want to drop results without parsing again. `sc_args_split` does **not** sanitize the tokens (the parser does, per token), and it never renders errors itself - the reason lands in your `err` buffer.
 
-A complete REPL (read line with history, tokenize, parse, dispatch) is in `examples/repl_demo.c`; the in-place dashboard variant with a shortcut bar is `examples/repl_dashboard.c`.
+A complete REPL (read line with history, tokenize, parse, dispatch) is in `examples/c/apps/repl_demo.c`; the in-place dashboard variant with a shortcut bar is `examples/c/apps/repl_dashboard.c`.
 
 ### Supported syntax
 

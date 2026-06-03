@@ -233,10 +233,17 @@ ARGS_TEST_SRC = tests/args/test_args_main.c \
                 tests/args/test_args_split.c
 ARGS_TEST_BIN = tests/args/test_args_main
 
-# Example programs: each examples/*.c compiles to a binary in EXAMPLES_BUILDDIR.
+# Example programs (see docs/examples.md). The tree is grouped by language:
+# examples/c/ and examples/cpp/ compile to binaries in EXAMPLES_BUILDDIR
+# (mirroring the directory structure), examples/rust/ builds through cargo
+# ([[example]] entries in bindings/rust/sparcli/Cargo.toml), examples/python/
+# runs against the cffi package. The readme_screenshots_*.c generators stay at
+# the examples/ root.
 EXAMPLES_BUILDDIR = build.examples.nosync
-EXAMPLES_SRC      = $(wildcard examples/*.c)
+EXAMPLES_SRC      = $(shell find examples -name '*.c')
 EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SRC))
+EXAMPLES_CPP_SRC  = $(shell find examples -name '*.cpp')
+EXAMPLES_CPP_BIN  = $(patsubst examples/%.cpp,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_CPP_SRC))
 
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
@@ -503,7 +510,7 @@ CPP_TEST_BIN     = $(EXAMPLES_BUILDDIR)/test_cpp
 CPP_PTY_TEST_BIN = $(EXAMPLES_BUILDDIR)/test_cpp_pty
 CPP_GOLDEN   = tests/cpp/expected.txt
 test-cpp: $(LIB) $(SANITIZE_LIB) | $(EXAMPLES_BUILDDIR)
-	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
+	$(CXX) $(CXXFLAGS) tests/cpp/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
 	SPARCLI_DEMO_NONINTERACTIVE=1 ./$(CPP_DEMO_BIN) </dev/null 2>/dev/null \
 	    > $(EXAMPLES_BUILDDIR)/cpp.actual.txt
 	diff -u $(CPP_GOLDEN) $(EXAMPLES_BUILDDIR)/cpp.actual.txt
@@ -517,7 +524,7 @@ test-cpp: $(LIB) $(SANITIZE_LIB) | $(EXAMPLES_BUILDDIR)
 
 # Regenerate the C++ demo golden after an intentional rendering change.
 test-cpp-golden: $(LIB) | $(EXAMPLES_BUILDDIR)
-	$(CXX) $(CXXFLAGS) examples/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
+	$(CXX) $(CXXFLAGS) tests/cpp/cpp_demo.cpp $(LIB) $(LDFLAGS) -o $(CPP_DEMO_BIN)
 	SPARCLI_DEMO_NONINTERACTIVE=1 ./$(CPP_DEMO_BIN) </dev/null 2>/dev/null \
 	    > $(CPP_GOLDEN)
 	@echo "Regenerated $(CPP_GOLDEN)"
@@ -612,19 +619,46 @@ lint:
 	    echo "clang-tidy not installed: brew install llvm"; \
 	fi
 
-# Build all example programs into EXAMPLES_BUILDDIR. Linked against the static
-# .a, same as the test binary, so they don't depend on the install path.
-examples: $(EXAMPLES_BIN)
+# Build all C and C++ example programs into EXAMPLES_BUILDDIR. Linked against
+# the static .a, same as the test binary, so they don't depend on the install
+# path. Rust/Python examples are built/run on demand via `run-example`.
+examples: $(EXAMPLES_BIN) $(EXAMPLES_CPP_BIN)
 
 $(EXAMPLES_BUILDDIR)/%: examples/%.c $(LIB) | $(EXAMPLES_BUILDDIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< $(LIB) $(LDFLAGS) -o $@
+
+# The C++ examples are built at C++23 (for std::print) - one step above the
+# C++20 the wrapper itself requires, so they show the modern call style.
+EXAMPLES_CXXFLAGS = -std=c++23 -Wall -Wextra $(HARDEN_CFLAGS) -Iinclude \
+                    $(EXTRA_CFLAGS)
+$(EXAMPLES_BUILDDIR)/%: examples/%.cpp $(LIB) | $(EXAMPLES_BUILDDIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(EXAMPLES_CXXFLAGS) $< $(LIB) $(LDFLAGS) -o $@
 
 $(EXAMPLES_BUILDDIR):
 	mkdir -p $(EXAMPLES_BUILDDIR)
 
-# Build & run a single example: `make run-example EX=readme_screenshots`.
-run-example: $(EXAMPLES_BUILDDIR)/$(EX)
-	./$(EXAMPLES_BUILDDIR)/$(EX)
+# Build & run a single example: `make run-example EX=<language>/<group>/<name>`
+# e.g. EX=c/output/panel_alert, EX=cpp/input/fuzzy, EX=rust/output/table_basic,
+# EX=python/app/paths. Dispatches on the language prefix: c/ and cpp/ compile
+# against the static library, rust/ goes through cargo (example name = path
+# with slashes turned into underscores), python/ runs the script against the
+# cffi package (built first when missing).
+run-example:
+	@case "$(EX)" in \
+	    rust/*) \
+	        name=$$(echo "$(EX)" | sed -e 's|^rust/||' -e 's|/|_|g'); \
+	        cargo run --manifest-path $(RUST_MANIFEST) -p sparcli \
+	            --example $$name ;; \
+	    python/*) \
+	        ls $(PY_DIR)/src/sparcli/_sparcli_cffi*.so >/dev/null 2>&1 \
+	            || $(MAKE) python; \
+	        PYTHONPATH=$(PY_DIR)/src $(PY) examples/$(EX).py ;; \
+	    *) \
+	        $(MAKE) $(EXAMPLES_BUILDDIR)/$(EX); \
+	        ./$(EXAMPLES_BUILDDIR)/$(EX) ;; \
+	esac
 
 install: $(LIB) $(SHLIB) $(PC_FILE) $(CLI_BIN)
 	install -d "$(DESTDIR)$(LIBDIR)"

@@ -686,4 +686,4 @@ done | sparcli progress --total $total --label "Converting"
 sparcli spin --title "Running tests" -- make test
 ```
 
-Two complete, runnable demos ship with the repository: [`examples/cli_output_demo.zsh`](../examples/cli_output_demo.zsh) and [`examples/cli_input_demo.zsh`](../examples/cli_input_demo.zsh).
+Two complete, runnable demos ship with the repository: [`examples/cli/output_demo.zsh`](../examples/cli/output_demo.zsh) and [`examples/cli/input_demo.zsh`](../examples/cli/input_demo.zsh).

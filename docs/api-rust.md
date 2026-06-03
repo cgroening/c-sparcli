@@ -260,12 +260,12 @@ The workspace has no binary, so plain `cargo run` fails – run an **example** (
 make rust          # cargo build (compiles the C via cc)
 make rust-test     # cargo test (non-interactive + doctests)
 
-# from bindings/rust/ :
-cargo run -p sparcli --example demo            # complete showcase (all widgets)
-cargo run -p sparcli --example output_gallery  # output only
-cargo run -p sparcli --example input_demo      # input only (needs a terminal)
+# from bindings/rust/ : examples are grouped by area (group_file), e.g.
+cargo run -p sparcli --example output_table_basic   # an output example
+cargo run -p sparcli --example input_fuzzy          # an input example (needs a terminal)
+cargo run -p sparcli --example app_paths            # an app-helper example
 ```
 
-`demo` shows every output component and, in a real terminal, every input widget (it auto-skips the input section when piped / no TTY).
+The full list of examples, in every language, is in [`docs/examples.md`](examples.md); the Rust examples are registered in `bindings/rust/sparcli/Cargo.toml`. They can also be run from the repo root with `make run-example EX=rust/output/table_basic`.
 
 > Publishing to crates.io would vendor the C sources into `sparcli-sys` (currently referenced from the repo root by `build.rs`).

@@ -1,0 +1,158 @@
+# sparcli – Examples
+
+Self-contained, copy-pasteable examples for every sparcli component, in all
+four languages (C, C++, Rust, Python). Each file is small and focused on one
+group of widgets, with comments explaining the API as it is used. Together
+they cover the full public surface of each binding, so they double as a
+secondary test suite – every example builds warning-free and runs to
+completion (the interactive ones fall back gracefully without a terminal).
+
+The examples live under `examples/`, grouped by language and then by area:
+
+```
+examples/
+  c/output/     c/input/     c/app/     c/apps/   (+ readme_screenshots_*.c)
+  cpp/output/   cpp/input/   cpp/app/
+  rust/output/  rust/input/  rust/app/
+  python/output/ python/input/ python/app/
+  cli/
+```
+
+## Running an example
+
+One command dispatches on the language prefix:
+
+```sh
+make run-example EX=c/output/panel_alert       # compile + run the C example
+make run-example EX=cpp/input/fuzzy            # C++ (built at C++23)
+make run-example EX=rust/output/table_basic    # cargo run --example ...
+make run-example EX=python/app/paths           # run against the cffi package
+```
+
+Equivalent direct invocations:
+
+```sh
+# C / C++: built into build.examples.nosync/ (linked against libsparcli.a)
+make examples
+./build.examples.nosync/c/output/panel_alert
+./build.examples.nosync/cpp/input/fuzzy
+
+# Rust: every example is registered in bindings/rust/sparcli/Cargo.toml under a
+# flattened name (group_file). From bindings/rust/ :
+cargo run -p sparcli --example output_table_basic
+
+# Python: needs the built extension (make python) on the path. From the repo root:
+PYTHONPATH=bindings/python/src python3 examples/python/app/paths.py
+```
+
+Interactive examples (anything under `input/`, plus the pager and live
+display) need a real terminal. Run without one and they print a notice and
+exit cleanly; the pure helpers they also exercise (`calc_eval`,
+`fuzzy_match`, …) still run.
+
+## Feature coverage by binding
+
+The C and Python bindings expose the full library. The C++ wrapper mirrors it
+closely. The Rust wrapper is a deliberately curated subset – a few features
+have no Rust example because the safe wrapper does not surface them yet:
+
+| Feature | C | C++ | Rust | Python |
+|---------|:-:|:---:|:----:|:------:|
+| Output widgets, capture/compose, live, pager | ✓ | ✓ | ✓ | ✓ |
+| Argument parser (`args`) | ✓ | ✓ | – (use `clap`) | – (use `argparse`) |
+| Input theme | ✓ | ✓ | – | ✓ |
+| Fuzzy table view | ✓ | ✓ | – (list only) | ✓ |
+| Text-input validation callback | ✓ | ✓ | – | ✓ |
+| Exact decimal input | via `out_text` | via `number_input_text` | via `number_input_text` | `decimal_input` |
+
+---
+
+## Output
+
+Non-interactive; safe to run anywhere.
+
+| File | What it shows |
+|------|---------------|
+| `output/text_styles` | Colors and attributes, rich multi-span `Text`, OSC-8 links, badges, `strip_ansi`/`truncate`. |
+| `output/markup` | Rich-style markup tags, nesting, literal brackets, inline code spans, link tags, `strip_unknown`/`code_style`. |
+| `output/panel_alert` | Bordered panels (titles, subtitles, padding, alignment, full width) and the five alert presets. |
+| `output/table_basic` | Columns, header/footer rows, alignment, border styles, per-column style. |
+| `output/table_advanced` | Colspan/rowspan, stripes, header column, markup cells, per-row background, word-wrap, row limits.¹ |
+| `output/list_tree` | Numbered/bulleted/nested lists with styled markers, and a styled tree with prefixes. |
+| `output/rule_kv` | Horizontal rules (titles, width, placement) and key-value lists (fixed width, wrapped values). |
+| `output/columns_layout` | Side-by-side columns with separators, capture + `vstack` composition, pad and align. |
+| `output/progress_spinner` | Animated progress bars (block + threshold-colored line) and a spinner with a changing label. |
+| `output/live` | Live in-place dashboard re-rendered from a captured + vstacked frame. |
+| `output/pager` | Routing long output through `$PAGER` / `less -R` (no-op off a terminal). |
+
+¹ Word-wrap and `max_rows` are demonstrated in the C and Python variants; the
+Rust/C++ table opts cover the same border/stripe/span surface.
+
+## Input
+
+Interactive; need a real terminal. Each falls back to a notice without one.
+
+| File | What it shows |
+|------|---------------|
+| `input/confirm_select` | Yes/no confirmation and single/multi selection (pre-check, cursor, viewport). |
+| `input/text_password` | Text input (placeholder, validation¹, char filter, autocomplete dropdown, boxed) and masked password input. |
+| `input/number_calc` | Stepping/clamping numeric input, calculator mode (exact value), and the pure `calc_eval`. |
+| `input/textarea_editor` | Multi-line textarea and the external-`$EDITOR` hook (Ctrl-G). |
+| `input/fuzzy` | Fuzzy finder over a list (all languages) and a table² (C/C++/Python), plus the pure `fuzzy_match`. |
+| `input/datepicker` | Month-grid date picker, today-seeded and pre-seeded, with week-start choice. |
+| `input/history` | Up/Down input history with XDG-file persistence across runs. |
+| `input/shortcuts_theme` (C/C++/Python) · `input/shortcuts` (Rust) | Custom RETURN/CALLBACK key shortcuts; the C/C++/Python files also set the process-wide input theme. |
+
+¹ Validation callback: C/C++/Python only. ² Table view: C/C++/Python only.
+
+## Application framework
+
+| File | What it shows | Languages |
+|------|---------------|-----------|
+| `app/paths` | Per-application XDG config/data/cache/state directories and a file path inside one. | C, C++, Rust, Python |
+| `app/errors_logging` | Pretty error reports (cause chain + hint + code) and leveled logging (global + handle-based). | C, C++, Rust, Python |
+| `app/args` | Declarative argument parser: subcommands, typed options, choices, help/version, did-you-mean. | C, C++ |
+| `app/args_repl` | Reusing one parser tree per input line (tokenizer + implicit reset) – the building block for a REPL. | C, C++ |
+
+## Full applications (C)
+
+Larger end-to-end programs that combine many widgets:
+
+| File | What it shows |
+|------|---------------|
+| `c/apps/repl_minimal` | The smallest REPL: a prompt loop with Up/Down history. |
+| `c/apps/repl_demo` | A task-manager REPL built on the argument parser (split + implicit reset + history). |
+| `c/apps/repl_dashboard` | A fixed live header above an interactive prompt, with a shortcut action bar. |
+
+Run them with `make run-example EX=c/apps/repl_demo` (in a real terminal).
+
+## CLI tool
+
+The `sparcli` command-line binary exposes every widget as a shell subcommand.
+Two runnable zsh walkthroughs:
+
+| File | What it shows |
+|------|---------------|
+| `cli/output_demo.zsh` | Every output subcommand (panels, tables, rules, lists, …). |
+| `cli/input_demo.zsh` | Every input subcommand via command substitution. |
+
+```sh
+make            # build the ./sparcli binary first
+./examples/cli/output_demo.zsh
+./examples/cli/input_demo.zsh
+```
+
+The full CLI reference is in [`docs/cli.md`](cli.md).
+
+## README screenshot generators
+
+`examples/readme_screenshots_output.c` and `examples/readme_screenshots_input.c`
+render the exact frames used for the screenshots in the README. They are not
+tutorial examples – they are kept for regenerating the images.
+
+---
+
+For the per-language API details each example builds on, see
+[`docs/api-c.md`](api-c.md), [`docs/api-cpp.md`](api-cpp.md),
+[`docs/api-rust.md`](api-rust.md), [`docs/api-python.md`](api-python.md) and
+[`docs/api-framework.md`](api-framework.md).

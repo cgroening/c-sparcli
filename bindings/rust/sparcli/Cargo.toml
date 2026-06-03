@@ -14,3 +14,93 @@ libc = "0.2"
 [features]
 # Forward bindgen regeneration to the -sys crate.
 regen = ["sparcli-sys/regen"]
+
+# The structured examples live in the repo-wide examples/ tree (grouped by
+# language: examples/rust/<group>/<name>.rs), not in this crate's own
+# examples/ dir, so each needs an explicit [[example]] path. Run one with
+#   cargo run -p sparcli --example output_text_styles
+# or via the repo Makefile:
+#   make run-example EX=rust/output/text_styles
+[[example]]
+name = "output_text_styles"
+path = "../../../examples/rust/output/text_styles.rs"
+
+[[example]]
+name = "output_markup"
+path = "../../../examples/rust/output/markup.rs"
+
+[[example]]
+name = "output_panel_alert"
+path = "../../../examples/rust/output/panel_alert.rs"
+
+[[example]]
+name = "output_table_basic"
+path = "../../../examples/rust/output/table_basic.rs"
+
+[[example]]
+name = "output_table_advanced"
+path = "../../../examples/rust/output/table_advanced.rs"
+
+[[example]]
+name = "output_list_tree"
+path = "../../../examples/rust/output/list_tree.rs"
+
+[[example]]
+name = "output_rule_kv"
+path = "../../../examples/rust/output/rule_kv.rs"
+
+[[example]]
+name = "output_columns_layout"
+path = "../../../examples/rust/output/columns_layout.rs"
+
+[[example]]
+name = "output_progress_spinner"
+path = "../../../examples/rust/output/progress_spinner.rs"
+
+[[example]]
+name = "output_live"
+path = "../../../examples/rust/output/live.rs"
+
+[[example]]
+name = "output_pager"
+path = "../../../examples/rust/output/pager.rs"
+
+[[example]]
+name = "input_confirm_select"
+path = "../../../examples/rust/input/confirm_select.rs"
+
+[[example]]
+name = "input_text_password"
+path = "../../../examples/rust/input/text_password.rs"
+
+[[example]]
+name = "input_number_calc"
+path = "../../../examples/rust/input/number_calc.rs"
+
+[[example]]
+name = "input_textarea_editor"
+path = "../../../examples/rust/input/textarea_editor.rs"
+
+[[example]]
+name = "input_fuzzy"
+path = "../../../examples/rust/input/fuzzy.rs"
+
+[[example]]
+name = "input_datepicker"
+path = "../../../examples/rust/input/datepicker.rs"
+
+[[example]]
+name = "input_history"
+path = "../../../examples/rust/input/history.rs"
+
+[[example]]
+name = "input_shortcuts"
+path = "../../../examples/rust/input/shortcuts.rs"
+
+[[example]]
+name = "app_paths"
+path = "../../../examples/rust/app/paths.rs"
+
+[[example]]
+name = "app_errors_logging"
+path = "../../../examples/rust/app/errors_logging.rs"

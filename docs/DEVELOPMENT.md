@@ -142,7 +142,7 @@ make test-args
 
 Four checks for the header-only C++20 wrapper (`include/sparcli.hpp`); needs a C++ compiler (`$(CXX)`, default `c++`):
 
-1. **Compile** `examples/cpp_demo.cpp` (so the example never bit-rots).
+1. **Compile** `tests/cpp/cpp_demo.cpp` (so the example never bit-rots).
 2. **Golden diff** the demo's output against `tests/cpp/expected.txt`.
 3. **Assertion suite** `tests/cpp/test_cpp.cpp` – verifies the wrapper's ownership/lifetime guarantees (table built from temporaries, `Table` survives a move, List/Tree rich-text arenas) and that it renders like the C API. Built under **AddressSanitizer + UBSan** so arena/RAII/move memory bugs are caught.
 4. **PTY regression** `tests/cpp/test_cpp_pty.cpp` – drives the interactive string prompts (`text_input` / `password_input` / `textarea`) over a pseudo-terminal and asserts the returned value, so the out-param sequencing those wrappers once got wrong stays fixed. Also under ASan/UBSan.
@@ -181,12 +181,12 @@ make rust-lint     # cargo clippy --all-targets -- -D warnings (part of make qa)
 cargo build --manifest-path bindings/rust/Cargo.toml --features regen  # bindgen path (libclang)
 
 # Examples (the workspace has no bin, so plain `cargo run` fails – pick one).
-# From the repo root:
-cargo run --manifest-path bindings/rust/Cargo.toml -p sparcli --example demo
-# Or from inside bindings/rust/ :
-cargo run -p sparcli --example demo
-#   `demo` = complete showcase (all output components + all input widgets);
-#   `output_gallery` / `input_demo` are the focused variants.
+# They are grouped by area as <group>_<file>; see docs/examples.md for the
+# full list. From inside bindings/rust/ :
+cargo run -p sparcli --example output_table_basic
+cargo run -p sparcli --example input_fuzzy        # needs a terminal
+# Or from the repo root, for any language:
+make run-example EX=rust/output/table_basic
 ```
 
 FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the `regen` feature regenerates them from the headers with bindgen. The reference is [`docs/api-rust.md`](api-rust.md).
@@ -195,7 +195,7 @@ FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the `r
 
 ### `make python` / `make python-test` – Python bindings
 
-The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode wrapper). `build_sparcli.py` compiles the vendored C sources – reached through the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) – into `src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests and examples run with `PYTHONPATH=src`, no install required. Needs Python with `cffi`; kept out of `make test` since neither may be present.
+The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode wrapper). `build_sparcli.py` compiles the vendored C sources – reached through the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) – into `src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests run with `PYTHONPATH=src` (the examples under `examples/python/` with `PYTHONPATH=bindings/python/src`), no install required. Needs Python with `cffi`; kept out of `make test` since neither may be present.
 
 ```sh
 make python                       # build the extension in place
@@ -206,10 +206,11 @@ make python-test PY=/path/to/python   # point make at an interpreter that has cf
 # Both test targets (and tests/conftest.py, for direct `pytest` runs) set
 # SPARCLI_NO_TTY=1 so the no-TTY prompt tests never grab a real terminal.
 
-# Examples (after `make python`, from bindings/python/):
-PYTHONPATH=src python examples/demo.py            # complete showcase (all widgets)
-PYTHONPATH=src python examples/output_gallery.py  # output only
-PYTHONPATH=src python examples/input_demo.py      # input only (needs a terminal)
+# Examples (after `make python`, from the repo root). Grouped by area under
+# examples/python/; see docs/examples.md for the full list:
+PYTHONPATH=bindings/python/src python examples/python/output/table_basic.py
+PYTHONPATH=bindings/python/src python examples/python/input/fuzzy.py  # needs a terminal
+# Or, for any language:  make run-example EX=python/output/table_basic
 ```
 
 To install into an environment instead – an editable (`-e`) install with build isolation off, because the C sources are reached via the in-repo symlinks and the build must run in place:
@@ -287,14 +288,15 @@ make test-input-style-golden
 make test-cli-golden                   # only if you changed the CLI's output
 make test-cpp-golden                   # only if you changed the C++ wrapper
 
-# 3. Examples still build (and try the input widgets by hand):
-make examples                          # compile every examples/*.c
+# 3. Examples still build (and try the input widgets by hand). They are
+#    grouped by language and area under examples/; see docs/examples.md.
+make examples                          # compile every C + C++ example
 make run-example EX=readme_screenshots_output # output widget gallery (static)
 make run-example EX=readme_screenshots_input  # input widget gallery (static)
-make run-example EX=input_demo         # interactive walkthrough of all input widgets
-make run-example EX=shortcut_demo      # custom shortcuts: F2 rename, Ctrl-X delete
-./examples/cli_output_demo.zsh         # CLI output commands demo (zsh)
-./examples/cli_input_demo.zsh          # CLI input commands demo (zsh, interactive)
+make run-example EX=c/input/confirm_select    # one input widget (interactive)
+make run-example EX=c/input/shortcuts_theme   # custom shortcuts: F2 archive, Ctrl-X delete
+./examples/cli/output_demo.zsh         # CLI output commands demo (zsh)
+./examples/cli/input_demo.zsh          # CLI input commands demo (zsh, interactive)
 
 # 4. Interactive widget suite (needs a real terminal):
 make test-input
@@ -440,8 +442,8 @@ make run-example EX=readme_screenshots_output # static gallery of output widgets
 make run-example EX=readme_screenshots_input  # static gallery of input widgets
 make run-example EX=shortcut_demo             # custom shortcuts + rich prompt (interactive)
 
-./examples/cli_output_demo.zsh                # sparcli CLI: every output command (zsh)
-./examples/cli_input_demo.zsh                 # sparcli CLI: every input command (zsh, interactive)
+./examples/cli/output_demo.zsh                # sparcli CLI: every output command (zsh)
+./examples/cli/input_demo.zsh                 # sparcli CLI: every input command (zsh, interactive)
 ```
 
 Examples are auto-discovered (`$(wildcard examples/*.c)`): dropping a new `examples/foo.c` in makes `make run-example EX=foo` work – no Makefile edit. The two `cli_*.zsh` scripts are plain zsh scripts that run the `./sparcli` binary built by `make` (point them at another binary with `SPARCLI=/path/to/sparcli`).

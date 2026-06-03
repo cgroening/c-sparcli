@@ -81,7 +81,7 @@ Everything a complete command-line application needs around the widgets; overvie
 - **Pretty errors**: report fatal errors as red alert panels – message + cause chain + hint + exit code (`sc_die`, [docs](docs/api-framework.md#pretty-errors)).
 - **Pager integration**: pipe long output through `$PAGER` / `less -R` automatically; a no-op in scripts and CI ([docs](docs/api-c.md#pager)).
 - **XDG paths**: resolve per-app config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use) ([docs](docs/api-framework.md#xdg-paths)).
-- **REPL building blocks**: input history with ↑/↓ recall and XDG persistence (`sc_history_*`), a quote-aware line tokenizer (`sc_args_split`), reusable parse trees (implicit `sc_args_reset`), and live-dashboard + prompt composition (`ScLiveOpts.prompt_rows`) – see the `examples/repl_*.c` demos.
+- **REPL building blocks**: input history with ↑/↓ recall and XDG persistence (`sc_history_*`), a quote-aware line tokenizer (`sc_args_split`), reusable parse trees (implicit `sc_args_reset`), and live-dashboard + prompt composition (`ScLiveOpts.prompt_rows`) – see the `examples/c/apps/repl_*.c` demos.
 
 ### Shell & language bindings
 
@@ -195,7 +195,7 @@ fn main() -> sparcli::Result<()> {
 
 ```sh
 # the workspace has no bin, so run an example (from bindings/rust/):
-cargo run -p sparcli --example demo          # complete showcase: all widgets
+cargo run -p sparcli --example output_table_basic   # see docs/examples.md
 ```
 
 ### Python
@@ -220,7 +220,7 @@ if name:
 
 ```sh
 make python                                    # build the extension in place
-PYTHONPATH=bindings/python/src python bindings/python/examples/demo.py  # all widgets
+PYTHONPATH=bindings/python/src python examples/python/output/table_basic.py  # see docs/examples.md
 ```
 
 ---
@@ -326,18 +326,18 @@ if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })
 
 **External editor** – `sc_text_input` / `sc_textarea` can open the value in `$EDITOR` (default chain ending in nvim) with `external_editor = true`; a key (default Ctrl-G) suspends the prompt, and save+quit brings the text back. Runs shell-free with a `0600` temp file; not available for passwords.
 
-Build a runnable demo of every input widget with [`examples/input_demo.c`](examples/input_demo.c), or the shortcuts + rich-prompt demo ([`examples/shortcut_demo.c`](examples/shortcut_demo.c) – F2 renames, Ctrl-X deletes):
+Runnable per-widget examples live under `examples/c/input/` (and mirrored for every binding) – e.g. the confirm/select, text/password, fuzzy, datepicker and history demos, plus a custom-shortcuts + theme demo ([`examples/c/input/shortcuts_theme.c`](examples/c/input/shortcuts_theme.c) – F2 archives, Ctrl-X deletes):
 
 ```sh
-make run-example EX=input_demo
-make run-example EX=shortcut_demo
+make run-example EX=c/input/confirm_select
+make run-example EX=c/input/shortcuts_theme
 ```
 
-**REPLs** – three demos combine history, the line tokenizer, the argument parser and the live display into interactive shells: [`examples/repl_minimal.c`](examples/repl_minimal.c) (prompt loop + history), [`examples/repl_demo.c`](examples/repl_demo.c) (a task-manager REPL on the args module), and [`examples/repl_dashboard.c`](examples/repl_dashboard.c) (a fixed header + in-place updating body above the prompt, with a shortcut action bar):
+**REPLs** – three full programs combine history, the line tokenizer, the argument parser and the live display into interactive shells: [`examples/c/apps/repl_minimal.c`](examples/c/apps/repl_minimal.c) (prompt loop + history), [`examples/c/apps/repl_demo.c`](examples/c/apps/repl_demo.c) (a task-manager REPL on the args module), and [`examples/c/apps/repl_dashboard.c`](examples/c/apps/repl_dashboard.c) (a fixed header + in-place updating body above the prompt, with a shortcut action bar):
 
 ```sh
-make run-example EX=repl_demo
-make run-example EX=repl_dashboard
+make run-example EX=c/apps/repl_demo
+make run-example EX=c/apps/repl_dashboard
 ```
 
 ---
@@ -390,10 +390,10 @@ char *cfg = sc_path_config("myapp");          /* ~/.config/myapp (created) */
 sc_die_msg(2, "No config file found", "Run 'myapp init' to create one");
 ```
 
-A full tool built on the parser is [`examples/args_demo.c`](examples/args_demo.c); the REPL demos ([`examples/repl_demo.c`](examples/repl_demo.c), [`examples/repl_dashboard.c`](examples/repl_dashboard.c)) combine the parser, input history and the live display into interactive shells:
+A tool built on the parser is [`examples/c/app/args.c`](examples/c/app/args.c) (and the REPL-style [`examples/c/app/args_repl.c`](examples/c/app/args_repl.c)); the REPL demos ([`examples/c/apps/repl_demo.c`](examples/c/apps/repl_demo.c), [`examples/c/apps/repl_dashboard.c`](examples/c/apps/repl_dashboard.c)) combine the parser, input history and the live display into interactive shells:
 
 ```sh
-make run-example EX=args_demo
+make run-example EX=c/app/args
 ```
 
 ---
@@ -422,7 +422,7 @@ when=$(sparcli date --format %Y-%m-%d)
 
 Input commands report their outcome through the exit code (`0` = confirmed, `1` = cancelled/no, `2` = error or no TTY), so `&&` / `||` chains and `$(...)` capture work the way shell scripts expect. Markup is parsed everywhere by default (`--no-markup` for literal text); `--no-color` / `NO_COLOR` strip the colors.
 
-Two runnable zsh demos ship in [`examples/cli_output_demo.zsh`](examples/cli_output_demo.zsh) and [`examples/cli_input_demo.zsh`](examples/cli_input_demo.zsh). The full reference – every subcommand, flag, data format and scripting pattern – lives in [`docs/cli.md`](docs/cli.md).
+Two runnable zsh demos ship in [`examples/cli/output_demo.zsh`](examples/cli/output_demo.zsh) and [`examples/cli/input_demo.zsh`](examples/cli/input_demo.zsh). The full reference – every subcommand, flag, data format and scripting pattern – lives in [`docs/cli.md`](docs/cli.md).
 
 ---
 
@@ -478,6 +478,7 @@ src/{core,output,tty,input}/   implementation
 src/output/table/              table sub-modules (see docs/api-c.md)
 cli/                           the sparcli command-line tool (see docs/cli.md)
 completions/                   zsh completion for the CLI
+examples/{c,cpp,rust,python}/  per-language examples (see docs/examples.md)
 bindings/rust/                 safe Rust crate (sparcli-sys + sparcli)
 bindings/python/               safe Python package (cffi API-mode wrapper)
 tests/output/                  output suite
@@ -499,7 +500,7 @@ See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/ in
 - **CLI application framework** – ✅ argument parser (`sc_args_*`, [docs](docs/api-framework.md)), logging (`sc_log_*`), pretty errors (`sc_die`), XDG paths, pager and OSC-8 hyperlinks.
 - **CLI on the args module** – migrate [`cli/`](cli/) from `getopt_long` + hand-written usage strings to the argument parser (`sc_args_*`) once its API has stabilized through real-world use. This would remove the duplicated option/usage/completion definitions and give `sparcli --help` widget-rendered output. Deferred on purpose: the CLI is stable and golden-tested; coupling it to a brand-new API would force follow-up changes on every API adjustment.
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
-- **`examples/` directory** with self-contained copy-pasteable snippets.
+- **`examples/` directory** – ✅ self-contained, copy-pasteable examples for every component in all four languages, grouped by language and area; see [`docs/examples.md`](docs/examples.md).
 
 ---
 

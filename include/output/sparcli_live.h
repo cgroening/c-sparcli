@@ -90,7 +90,7 @@ typedef struct ScLiveOpts {
      * reserved rows always fit on screen and the prompt never scrolls the
      * terminal. Zero-init = 0 (classic behavior: the cursor stays at the
      * end of the frame). This is the building block for REPL dashboards;
-     * see `examples/repl_dashboard.c`.
+     * see `examples/c/apps/repl_dashboard.c`.
      */
     int prompt_rows;
 } ScLiveOpts;

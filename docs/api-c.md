@@ -992,7 +992,7 @@ void    sc_live_end(ScLive *live);   /* restore terminal + free the handle */
 | `show_cursor` | Keep the cursor visible; **zero-init hides it** during the session (the natural default for live displays) and restores it on end |
 | `transient` | Erase the live region on end instead of leaving the final frame; off-terminal it suppresses the final-frame output |
 | `always` | Emit the redraw escape codes even when the output stream is not a terminal |
-| `prompt_rows` | Rows reserved **below** the frame for an interactive prompt (REPL dashboards): after every update the cursor parks at column 0 of the first reserved row, where e.g. `sc_text_input` (with `hide_summary = true`) runs and erases itself; the next update rewinds over frame + reserve together. Reserve as many rows as the prompt draws. Zero-init = 0 = classic behavior. See `examples/repl_dashboard.c` |
+| `prompt_rows` | Rows reserved **below** the frame for an interactive prompt (REPL dashboards): after every update the cursor parks at column 0 of the first reserved row, where e.g. `sc_text_input` (with `hide_summary = true`) runs and erases itself; the next update rewinds over frame + reserve together. Reserve as many rows as the prompt draws. Zero-init = 0 = classic behavior. See `examples/c/apps/repl_dashboard.c` |
 
 ```c
 ScLive *live = sc_live_begin((ScLiveOpts){ 0 });
@@ -1390,7 +1390,7 @@ sc_history_free(hist);   /* writes ~/.local/state/myapp/history */
 
 **Behavior:** ↑ recalls older entries (newest first); the in-progress line is preserved and restored by walking back down past the newest entry; typing/editing leaves the recall. While the autocomplete dropdown shows matches it keeps priority over history on ↑/↓. Auto-add skips empty lines and consecutive duplicates and is disabled per call with `ScTextInputOpts.no_history_add`. Entries are sanitized when they enter the history (`sc_history_add` and file load); lines containing line breaks are rejected.
 
-Examples: `examples/repl_minimal.c` (just the loop + history), `examples/repl_demo.c` (full REPL with the argument parser).
+Examples: `examples/c/apps/repl_minimal.c` (just the loop + history), `examples/c/apps/repl_demo.c` (full REPL with the argument parser).
 
 ### Theme
 
