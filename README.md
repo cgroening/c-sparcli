@@ -10,6 +10,8 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Language: C11](https://img.shields.io/badge/c-11-blue.svg) ![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
 
+> ⚠️ **Status:** sparcli is under active development. The API is still settling – expect breaking changes between 0.x versions.
+
 ![sparcli hero](docs/images/output_hero.png)
 
 ---
@@ -44,7 +46,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
   - [Rich-compatible markup](#rich-compatible-markup)
   - [Development](#development)
   - [Roadmap](#roadmap)
-  - [Inspiration](#inspiration)
+  - [Why sparcli?](#why-sparcli)
   - [License](#license)
 
 ---
@@ -498,13 +500,16 @@ See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/ in
 - **CLI on the args module** – migrate [`cli/`](cli/) from `getopt_long` + hand-written usage strings to the argument parser (`sc_args_*`) once its API has stabilized through real-world use. This would remove the duplicated option/usage/completion definitions and give `sparcli --help` widget-rendered output. Deferred on purpose: the CLI is stable and golden-tested; coupling it to a brand-new API would force follow-up changes on every API adjustment.
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
 - **`examples/` directory** with self-contained copy-pasteable snippets.
-- **More widgets** – open an issue with ideas.
 
 ---
 
-## Inspiration
+## Why sparcli?
 
-Heavily inspired by the wonderful [Rich](https://github.com/Textualize/rich) and [Textual](https://github.com/Textualize/textual) projects by Will McGugan and the Textualize team. The goal of sparcli is to give plain C programs the same level of polish for one-shot CLI output – without taking on a full TUI runtime.
+I picked up C to understand what higher-level languages do under the hood – and ended up falling in love with the language. But coming from Python, I missed the tooling I had taken for granted: [Rich](https://github.com/Textualize/rich) and [Textual](https://github.com/Textualize/textual) for output, [Typer](https://github.com/fastapi/typer)/argparse for command lines, [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit) and [questionary](https://github.com/tmbo/questionary) for prompts. In C, the answer to most of this is still `getopt` and `printf`.
+
+sparcli is my attempt to close that gap: a single dependency-free library that gives plain C programs styled output, interactive prompts, an argument parser, logging – the plumbing a modern CLI needs. This project is inspired by the wonderful Rich and Textual projects by Will McGugan and the Textualize team.
+
+To move faster, sparcli is developed with the help of Claude Code (Anthropic's Opus model) under strict requirements and review: every feature ships with tests, and every change has to pass the full QA gate – sanitizers, ThreadSanitizer, fuzzing, golden-file and PTY suites (see [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)).
 
 ---
 
