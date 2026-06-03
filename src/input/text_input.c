@@ -567,7 +567,12 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
  */
 static bool dropdown_on_key(TextState *self, ScKey key) {
     size_t cap = dropdown_visible(self);
-    SuggestMatch *matches = malloc(cap * sizeof *matches);
+    if (cap == 0) {
+        return false;
+    }
+    // calloc: every slot is defined even when fewer matches than `cap`
+    // are collected, so a stale cursor can never read garbage indices.
+    SuggestMatch *matches = calloc(cap, sizeof *matches);
     if (!matches) {
         return false;
     }
@@ -824,7 +829,11 @@ static ScRendered *capture_dropdown(TextState *self) {
         return NULL;
     }
     size_t cap = dropdown_visible(self);
-    SuggestMatch *matches = malloc(cap * sizeof *matches);
+    if (cap == 0) {
+        return NULL;
+    }
+    // calloc for the same reason as in dropdown_on_key: defined slots
+    SuggestMatch *matches = calloc(cap, sizeof *matches);
     if (!matches) {
         return NULL;
     }

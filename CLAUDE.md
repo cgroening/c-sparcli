@@ -40,7 +40,8 @@ make sanitize     # OUTPUT suite under ASan/UBSan
 make tsan         # INPUT logic suite under ThreadSanitizer (verifies the
                   # thread-safety invariant incl. concurrent logging; own build tree)
 make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
-                  # tools optional, prints install hints when missing)
+                  # warnings are errors; tools optional, prints install hints
+                  # when missing)
 make fuzz         # random-input fuzzing of the markup parser, key decoder,
                   # ANSI sanitizer, CLI CSV parser + argument parser under
                   # ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable)

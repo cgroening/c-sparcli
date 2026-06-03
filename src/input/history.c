@@ -187,6 +187,12 @@ static void clear_entries(ScHistory *self) {
 
 /** Appends an owned entry, evicting the oldest when the cap is reached. */
 static bool append_entry(ScHistory *self, char *entry) {
+    // Defensive: a zero cap can store nothing. sc_history_new never sets
+    // max_entries to 0, but everything below relies on it being >= 1
+    // (eviction reads entries[0], the growth math yields a 0-byte realloc).
+    if (self->max_entries == 0) {
+        return false;
+    }
     if (self->count == self->max_entries) {
         free(self->entries[0]);
         memmove(

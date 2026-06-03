@@ -159,30 +159,43 @@ fn paths_reject_invalid_app_names() {
 
 #[test]
 fn live_buffers_frames_off_terminal() {
-    // Off-terminal (cargo test pipes output), a live session must buffer
-    // updates silently and survive begin/update/end without crashing; the
-    // FFI structs must cross the boundary cleanly.
-    let live = sparcli::Live::begin(sparcli::LiveOpts::new());
-    let frame = sparcli::capture::str("frame one");
-    live.update(&frame);
-    live.update_str("frame two\nsecond line");
-    live.end();
+    // Off-terminal, a live session buffers updates silently and prints only
+    // the FINAL frame on end. capture::output keeps the C-level prints out
+    // of the harness output and lets the test assert the buffering rule.
+    let rendered = capture::output(|| {
+        let live = sparcli::Live::begin(sparcli::LiveOpts::new());
+        let frame = sparcli::capture::str("frame one");
+        live.update(&frame);
+        live.update_str("frame two\nsecond line");
+        live.end();
+    });
+    assert!(!rendered.contains("frame one")); // superseded update is dropped
+    assert!(rendered.contains("frame two"));
+    assert!(rendered.contains("second line"));
 
-    // Transient + builder options exercise every opts field.
-    let transient = sparcli::Live::begin(
-        sparcli::LiveOpts::new().transient().show_cursor(),
-    );
-    transient.update_str("never shown");
-    drop(transient);   // Drop ends the session
+    // Transient + builder options exercise every opts field; a transient
+    // session prints nothing at all on end.
+    let transient_out = capture::output(|| {
+        let transient = sparcli::Live::begin(
+            sparcli::LiveOpts::new().transient().show_cursor(),
+        );
+        transient.update_str("never shown");
+        drop(transient); // Drop ends the session
+    });
+    assert!(transient_out.is_empty());
 }
 
 #[test]
 fn live_prompt_rows_builder() {
     // prompt_rows reserves rows below the frame for a REPL prompt. Off
     // terminal the session buffers, but the opts must cross the FFI cleanly.
-    let live = sparcli::Live::begin(sparcli::LiveOpts::new().prompt_rows(2));
-    live.update_str("dashboard frame");
-    live.end();
+    let rendered = capture::output(|| {
+        let live =
+            sparcli::Live::begin(sparcli::LiveOpts::new().prompt_rows(2));
+        live.update_str("dashboard frame");
+        live.end();
+    });
+    assert!(rendered.contains("dashboard frame"));
 }
 
 #[test]
@@ -312,7 +325,13 @@ fn error_report_builder() {
         .hint("a hint")
         .code(7);
     assert_eq!(report.exit_code(), 7);
-    report.print(); // renders to the (non-TTY) output stream; must not panic
+
+    // capture::output: assert the rendered panel instead of spilling it
+    // into the harness output (libtest cannot intercept C-level stdout).
+    let rendered = capture::output(|| report.print());
+    assert!(rendered.contains("boom"));
+    assert!(rendered.contains("a reason"));
+    assert!(rendered.contains("a hint"));
 }
 
 #[test]

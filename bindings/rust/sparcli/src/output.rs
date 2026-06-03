@@ -1515,6 +1515,55 @@ pub mod capture {
             ffi::sc_capture_rule_str(std::ptr::null(), o)
         })
     }
+
+    /// Runs `f` with the thread-local sparcli output stream redirected into
+    /// an in-memory buffer and returns everything the C library wrote.
+    ///
+    /// Covers print-style calls that have no `sc_capture_*` counterpart
+    /// (error reports, live sessions, plain prints). Tests use it because
+    /// the Rust test harness only intercepts Rust-level prints - bytes that
+    /// C code writes to the process stdout bypass the harness and would
+    /// interleave with its output. Counterpart of the C++ `ScopedOutput`
+    /// RAII helper.
+    ///
+    /// The previous output stream is restored even when `f` panics. When
+    /// the in-memory stream cannot be created, `f` runs uncaptured and an
+    /// empty string is returned.
+    pub fn output<F: FnOnce()>(f: F) -> String {
+        let mut buf: *mut libc::c_char = std::ptr::null_mut();
+        let mut len: libc::size_t = 0;
+        let stream = unsafe { libc::open_memstream(&mut buf, &mut len) };
+        if stream.is_null() {
+            f();
+            return String::new();
+        }
+
+        // Restore-on-drop guard: a panicking `f` must not leave the thread
+        // writing into the (about to be closed) memory stream.
+        struct RestoreStream(*mut ffi::FILE);
+        impl Drop for RestoreStream {
+            fn drop(&mut self) {
+                unsafe { ffi::sc_output_set_stream(self.0) };
+            }
+        }
+        let restore = RestoreStream(unsafe { ffi::sc_output_stream() });
+        unsafe { ffi::sc_output_set_stream(stream.cast()) };
+        f();
+        drop(restore);
+
+        unsafe {
+            libc::fclose(stream);
+            let captured = if buf.is_null() {
+                String::new()
+            } else {
+                let bytes =
+                    std::slice::from_raw_parts(buf as *const u8, len);
+                String::from_utf8_lossy(bytes).into_owned()
+            };
+            libc::free(buf.cast());
+            captured
+        }
+    }
 }
 
 /// Stacks captured renderings top-to-bottom into one column, with `gap` blank

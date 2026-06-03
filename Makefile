@@ -589,6 +589,9 @@ fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 
 # Static analysis. Each tool is optional: the target degrades to an install
 # hint when a tool is missing, so it can run on any machine.
+# Warnings are errors (--warnings-as-errors='*'), consistent with the C build
+# (-Werror in qa) and clippy (-D warnings). If an LLVM upgrade introduces new
+# checks that misfire, disable them in .clang-tidy instead of relaxing this.
 LLVM_TIDY = $(shell command -v clang-tidy 2>/dev/null \
             || ls /opt/homebrew/opt/llvm/bin/clang-tidy 2>/dev/null)
 lint:
@@ -602,8 +605,9 @@ lint:
 	fi
 	@if [ -n "$(LLVM_TIDY)" ]; then \
 	    echo "── clang-tidy ──"; \
-	    $(LLVM_TIDY) --quiet $(SRC) -- $(CFLAGS); \
-	    $(LLVM_TIDY) --quiet $(CLI_SRC) -- $(CLI_CFLAGS); \
+	    $(LLVM_TIDY) --quiet --warnings-as-errors='*' $(SRC) -- $(CFLAGS); \
+	    $(LLVM_TIDY) --quiet --warnings-as-errors='*' $(CLI_SRC) \
+	        -- $(CLI_CFLAGS); \
 	else \
 	    echo "clang-tidy not installed: brew install llvm"; \
 	fi

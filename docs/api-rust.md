@@ -75,6 +75,12 @@ let stacked = vstack(&[&r, &r], 1).unwrap();
 let mut cols = Columns::new(ColumnsOpts::new().gap(3));
 cols.add_rendered(&r, ColItem::new()).add_str("text", ColItem::new());
 cols.print();
+
+// Capture print-style calls that have no capture::* counterpart (error
+// reports, live sessions, plain prints): redirects the thread-local C
+// output stream into a buffer for the duration of the closure.
+let text = capture::output(|| report.print());
+assert!(text.contains("boom"));
 ```
 
 ### Progress & spinner

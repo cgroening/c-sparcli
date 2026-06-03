@@ -152,14 +152,19 @@ void sc_args_opt_choices(
     size_t count = 0;
     while (choices[count]) { count++; }
 
-    char **copies = calloc(count, sizeof(char *));
-    if (!copies) { return; }
-    for (size_t i = 0; i < count; i++) {
-        copies[i] = sc_sanitize_copy(choices[i], false);
-        if (!copies[i]) {
-            for (size_t j = 0; j < i; j++) { free(copies[j]); }
-            free(copies);
-            return;
+    // Copy first, so the old list survives an allocation failure intact.
+    // An empty list (count == 0) skips the allocation and clears below.
+    char **copies = NULL;
+    if (count > 0) {
+        copies = calloc(count, sizeof(char *));
+        if (!copies) { return; }
+        for (size_t i = 0; i < count; i++) {
+            copies[i] = sc_sanitize_copy(choices[i], false);
+            if (!copies[i]) {
+                for (size_t j = 0; j < i; j++) { free(copies[j]); }
+                free(copies);
+                return;
+            }
         }
     }
 
@@ -167,7 +172,7 @@ void sc_args_opt_choices(
         free(option->choices[i]);
     }
     free(option->choices);
-    option->choices = copies;
+    option->choices = copies;   // NULL when the new list is empty
     option->choice_count = count;
 }
 

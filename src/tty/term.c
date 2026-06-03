@@ -250,9 +250,13 @@ static void restore_terminal(void) {
         return;
     }
     tcsetattr(tty_fd, TCSAFLUSH, &saved_termios);
-    ssize_t ignored =
+    // Best-effort writes: nothing useful can be done on failure inside a
+    // signal-safe restore path, so both results are deliberately discarded.
+    ssize_t cursor_result =
         write(tty_fd, TTY_CURSOR_SHOW, sizeof(TTY_CURSOR_SHOW) - 1);
-    ignored = write(tty_fd, TTY_PASTE_OFF, sizeof(TTY_PASTE_OFF) - 1);
-    (void)ignored;
+    ssize_t paste_result =
+        write(tty_fd, TTY_PASTE_OFF, sizeof(TTY_PASTE_OFF) - 1);
+    (void)cursor_result;
+    (void)paste_result;
     raw_active = 0;
 }

@@ -8,6 +8,7 @@ static void check_short_options(void);
 static void check_subcommands(void);
 static void check_positionals(void);
 static void check_defaults_and_types(void);
+static void check_empty_choices_clears(void);
 static void check_double_dash(void);
 static void check_opts_are_copied(void);
 static void check_reset(void);
@@ -22,6 +23,7 @@ void test_args_parse(void) {
     check_subcommands();
     check_positionals();
     check_defaults_and_types();
+    check_empty_choices_clears();
     check_double_dash();
     check_opts_are_copied();
     check_reset();
@@ -203,6 +205,28 @@ static void check_defaults_and_types(void) {
     sc_args_parse(args, 3, argv_negative, &status);
     CHECK(status == SC_ARGS_MATCHED && sc_args_get_int(args, "offset") == -5,
           "parse: negative numbers are accepted as values");
+    sc_args_free(args);
+}
+
+
+/* ── Choices: an empty list clears the restriction ───────────────────────── */
+
+static void check_empty_choices_clears(void) {
+    ScArgs *args = sc_args_new((ScArgsOpts){ .prog = "demo", .about = "" });
+    ScArgsCmd *root = sc_args_root(args);
+    sc_args_opt(root, "mode", 'm', SC_ARG_STR, "MODE", "Build mode");
+    sc_args_opt_choices(
+        root, "mode", (const char *[]){ "debug", "release", NULL }
+    );
+    // Passing an empty list removes the restriction again
+    sc_args_opt_choices(root, "mode", (const char *[]){ NULL });
+
+    char *argv[] = { "demo", "--mode", "anything" };
+    ScArgsStatus status;
+    sc_args_parse(args, 3, argv, &status);
+    CHECK(status == SC_ARGS_MATCHED
+              && strcmp(sc_args_get_str(args, "mode"), "anything") == 0,
+          "parse: an empty choices list clears a previous restriction");
     sc_args_free(args);
 }
 

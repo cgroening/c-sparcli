@@ -184,6 +184,8 @@ SPARCLI_EXPORT void sc_args_opt_default(
  * @param cmd        Command the option was added to.
  * @param long_name  Option to modify.
  * @param choices    `NULL`-terminated array of allowed values; copied.
+ *                   An empty list (first element `NULL`) removes a
+ *                   previously set restriction.
  */
 SPARCLI_EXPORT void sc_args_opt_choices(
     ScArgsCmd *cmd, const char *long_name, const char *const *choices

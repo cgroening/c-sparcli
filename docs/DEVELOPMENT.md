@@ -57,7 +57,7 @@ The complete pre-commit validation. Runs, in order and stopping at the first fai
 1. `make test EXTRA_CFLAGS=-Werror` – build + every headless test gate, warnings as errors
 2. `make sanitize` – output suite under ASan/UBSan
 3. `make tsan` – logic suite under ThreadSanitizer
-4. `make lint` – cppcheck + clang-tidy
+4. `make lint` – cppcheck + clang-tidy, warnings as errors
 5. `make fuzz` – random-input fuzzing of all external parsers (markup, key decoder, sanitizer, CSV, argv)
 6. `make rust-test` – Rust binding (rebuilds the C sources via `cc`)
 7. `make rust-lint` – cargo clippy over the Rust workspace, warnings as errors
@@ -247,7 +247,7 @@ make tsan
 
 ### `make lint` – static analysis (cppcheck + clang-tidy)
 
-Runs cppcheck and clang-tidy (configured by the repo-root `.clang-tidy`; conservative bug-finding checks, noisy style checks disabled with documented reasons) over `src/`. Each tool is optional – the target prints an install hint (`brew install cppcheck` / `brew install llvm`) when one is missing.
+Runs cppcheck and clang-tidy (configured by the repo-root `.clang-tidy`; conservative bug-finding checks, noisy style checks disabled with documented reasons) over `src/`. Warnings are treated as errors (`--warnings-as-errors='*'` / cppcheck `--error-exitcode=1`), consistent with `-Werror` and clippy `-D warnings` – if an LLVM upgrade introduces a misfiring check, disable it in `.clang-tidy` rather than relaxing the gate. Each tool is optional – the target prints an install hint (`brew install cppcheck` / `brew install llvm`) when one is missing.
 
 ```sh
 make lint
