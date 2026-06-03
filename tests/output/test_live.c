@@ -146,6 +146,41 @@ void test_live(void) {
                        "fullscreen dashboard");
         free(buffer);
     }
+
+    printf("\n");
+
+    /* ── 7. Reserved prompt rows (REPL dashboards) ── */
+    printf("--- Live 7. Reserved prompt rows (always = true) ---\n");
+    {
+        char *buffer = NULL;
+        size_t size = 0;
+        FILE *mem = open_memstream(&buffer, &size);
+        if (!mem) {
+            printf("open_memstream failed\n");
+            return;
+        }
+
+        FILE *saved = sc_output_stream();
+        sc_output_set_stream(mem);
+        ScLive *live = sc_live_begin((ScLiveOpts){
+            .always = true, .prompt_rows = 1,
+        });
+        sc_live_update_str(live, "header\nbody");   /* 2 lines + 1 reserved */
+        sc_live_update_str(live, "header\nBODY");   /* redrawn in place */
+        sc_live_end(live);
+        sc_output_set_stream(saved);
+        fclose(mem);
+
+        const char *bytes = buffer ? buffer : "";
+        /* The park sequence after each frame: erase below, one newline into
+           the reserved row, carriage return to column 0. */
+        print_contains("cursor parked below the frame", bytes, "\033[J\n\r");
+        /* The second update must rewind over the frame AND the reserved row
+           (2 frame lines + 1 reserved - 1 = 2 lines up). */
+        print_contains("rewind spans frame + reserved row", bytes, "\033[2A");
+        print_contains("updated frame content drawn", bytes, "BODY");
+        free(buffer);
+    }
 }
 
 /**

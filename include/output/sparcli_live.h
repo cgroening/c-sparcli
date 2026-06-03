@@ -74,6 +74,23 @@ typedef struct ScLiveOpts {
      * updates and print only the final frame (recommended).
      */
     bool always;
+
+    /**
+     * Rows reserved below the frame for an interactive prompt. After every
+     * update the cursor is parked at column 0 of the first reserved row -
+     * exactly where an input widget (e.g. `sc_text_input` with
+     * `hide_summary = true`) then draws and erases itself - and the next
+     * update rewinds over the frame and the reserved rows together, so the
+     * live display and the prompt never corrupt each other's regions.
+     *
+     * Reserve as many rows as the prompt actually draws (input line +
+     * hint/shortcut footer lines); the frame is height-clamped so the
+     * reserved rows always fit on screen and the prompt never scrolls the
+     * terminal. Zero-init = 0 (classic behavior: the cursor stays at the
+     * end of the frame). This is the building block for REPL dashboards;
+     * see `examples/repl_dashboard.c`.
+     */
+    int prompt_rows;
 } ScLiveOpts;
 
 

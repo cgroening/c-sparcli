@@ -334,6 +334,33 @@ const char *leaf = sc_args_selected_command(args);
 
 Getters search the matched command **and its ancestors**, so global flags (`--verbose` on the root) are visible after a subcommand matched. Returned strings are borrowed and stay valid until `sc_args_free`.
 
+### REPL loops: tokenizing & re-parsing
+
+A REPL parses many lines against the same tree. Two helpers complete that loop:
+
+```c
+/* Tokenize one input line shell-style: whitespace splits, '...' is literal,
+ * "..." groups with \ escapes, quoted + bare runs concatenate. argv[0] is
+ * set to the prog name you pass, so the result feeds sc_args_parse directly. */
+int argc = 0;
+char err[64];
+char **argv = sc_args_split("tool", line, &argc, err, sizeof err);
+if (!argv) {
+    sc_alert_error(err);        /* "unterminated quote" / "trailing backslash" */
+} else {
+    sc_args_parse(args, argc, argv, &status);   /* same tree, once per line */
+    /* ... getters ... */
+    sc_args_split_free(argv);   /* frees tokens + array */
+}
+
+/* Clear all parse results without reparsing (rarely needed explicitly): */
+sc_args_reset(args);
+```
+
+`sc_args_parse` calls `sc_args_reset` implicitly at its start, so re-parsing the same tree never sees stale values from the previous line - the explicit call only matters when you want to drop results without parsing again. `sc_args_split` does **not** sanitize the tokens (the parser does, per token), and it never renders errors itself - the reason lands in your `err` buffer.
+
+A complete REPL (read line with history, tokenize, parse, dispatch) is in `examples/repl_demo.c`; the in-place dashboard variant with a shortcut bar is `examples/repl_dashboard.c`.
+
 ### Supported syntax
 
 | Form | Example |
@@ -354,7 +381,7 @@ Getters search the matched command **and its ancestors**, so global flags (`--ve
 - **Errors are pretty errors** (the [Pretty Errors](#pretty-errors) module): red panel to stderr, message + hint, suggested exit code 2.
 - **Did-you-mean:** unknown options/commands within Levenshtein distance ≤ 2 produce a suggestion hint.
 - **Builder strings are copied**; getter results are borrowed from the parser.
-- **Fuzzed:** `make fuzz` runs random argv vectors against a fixed tree under ASan/UBSan (`tests/fuzz/fuzz_args.c`).
+- **Fuzzed:** `make fuzz` runs random argv vectors against a fixed tree under ASan/UBSan (`tests/fuzz/fuzz_args.c`) and random lines through the tokenizer (`tests/fuzz/fuzz_split.c`).
 
 ### Help & completion output
 
@@ -387,4 +414,10 @@ if (auto matched = args.parse(argc, argv)) {
 } else {
     return args.exit_code();                       // 0 for --help, 2 for errors
 }
+
+// REPL helpers: tokenize + parse one line in a single call (implicit reset),
+// or split a line into raw tokens without parsing.
+if (auto cmd = args.parse_line("build \"my app\" --jobs 8")) { /* ... */ }
+auto tokens = sparcli::args_split("add \"Buy milk\"");  // optional<vector<string>>
+args.reset();                                           // clear without reparsing
 ```

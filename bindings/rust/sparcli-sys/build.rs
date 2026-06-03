@@ -50,6 +50,7 @@ const SOURCES: &[&str] = &[
     "src/input/select.c",
     "src/input/fuzzy.c",
     "src/input/datepicker.c",
+    "src/input/history.c",
     "src/app/paths.c",
     "src/app/error.c",
     "src/log/log.c",
@@ -59,6 +60,7 @@ const SOURCES: &[&str] = &[
     "src/args/args_parse.c",
     "src/args/args_help.c",
     "src/args/args_complete.c",
+    "src/args/args_split.c",
 ];
 
 fn main() {

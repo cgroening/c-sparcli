@@ -257,6 +257,56 @@ def test_text_input_suggest_dropdown_opts_accepted():
         sc.text_input("cmd", opts)
 
 
+def test_history_stores_and_recalls():
+    # Input-history storage semantics: copies, consecutive-duplicate dedupe,
+    # cap eviction, and list-style access.
+    history = sc.History()
+    history.add("first").add("first").add("second")
+    assert len(history) == 2
+    assert history[0] == "first"
+    assert history[-1] == "second"
+    assert history.entries() == ["first", "second"]
+    with pytest.raises(IndexError):
+        history[5]
+
+    capped = sc.History(max_entries=2)
+    capped.add("one").add("two").add("three")
+    assert capped.entries() == ["two", "three"]
+
+    kept = sc.History(keep_duplicates=True)
+    kept.add("x").add("x")
+    assert len(kept) == 2
+
+
+def test_history_persists_to_file(tmp_path):
+    # The context manager saves on exit; a fresh handle loads it back.
+    path = str(tmp_path / "history")
+    with sc.History(file=path) as history:
+        history.add('add "Buy milk"')
+        history.add("list --all")
+
+    reloaded = sc.History(file=path)
+    assert reloaded.entries() == ['add "Buy milk"', "list --all"]
+
+    # Strings passed to the constructor are copied by the C side (the cffi
+    # buffers in the arena may be GC'd right after construction).
+    import gc
+
+    gc.collect()
+    assert reloaded.save() is True
+
+
+def test_text_input_history_opts_accepted():
+    # The history fields must reach the C struct (cdef fields + _fill);
+    # without a TTY the prompt raises cleanly and never touches the history.
+    history = sc.History()
+    history.add("earlier command")
+    opts = sc.TextInputOpts(history=history, no_history_add=True)
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.text_input("repl>", opts)
+    assert len(history) == 1
+
+
 def test_fuzzy_outlives_temporary_opts_strings():
     # The prompt is built from a temporary string; the finder must keep its
     # own copy so a GC between construction and run() cannot free it

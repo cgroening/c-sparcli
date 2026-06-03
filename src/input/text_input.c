@@ -42,6 +42,16 @@ typedef struct TextState {
 
     /** Highlighted dropdown row; -1 = none (the field itself). */
     int drop_cursor;
+
+    /** Input history (borrowed) + auto-add resolution. */
+    ScHistory *history;
+    bool history_auto;
+
+    /** Recalled history entry; -1 = editing the live line. */
+    int hist_cursor;
+
+    /** The live line preserved while walking through the history. */
+    char *hist_saved;
 } TextState;
 
 /** A dropdown candidate: index into `suggestions` + its match score. */
@@ -74,6 +84,8 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel);
         static bool dropdown_dispatch(TextState *self, ScKey key,
                                       const SuggestMatch *matches, size_t shown);
         static void accept_suggestion(TextState *self, const char *suggestion);
+    static void history_navigate(TextState *self, bool older);
+        static void history_recall(TextState *self, const char *text);
 static char *text_edit_get(void *state);
 static void text_edit_set(void *state, const char *text);
     static const char *ghost_suggestion(const TextState *self);
@@ -145,6 +157,9 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .external_editor = opts.external_editor,
         .editor          = opts.editor,
         .editor_key      = opts.editor_key,
+        .history         = opts.history,
+        .history_auto    = !opts.no_history_add
+                               && sc_history_auto_add(opts.history),
     };
     return sc_text_entry(&cfg, out);
 }
@@ -191,6 +206,7 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
         }
     }
     sc_le_free(&state.ed);
+    free(state.hist_saved);
     return status;
 }
 
@@ -235,6 +251,10 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         /* cfg->suggest_cursor is 1-based for snapshot frames; 0 = none. */
         .drop_cursor     = cfg->suggest_cursor > 0
                                ? (int)cfg->suggest_cursor - 1 : -1,
+        .history         = cfg->history,
+        .history_auto    = cfg->history_auto,
+        .hist_cursor     = -1,
+        .hist_saved      = NULL,
     };
 }
 
@@ -505,6 +525,12 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     if (dropdown_enabled(self) && dropdown_on_key(self, key)) {
         return;
     }
+    // Up/Down recall input history when no dropdown row consumed them.
+    if (self->history
+        && (key.type == SC_KEY_UP || key.type == SC_KEY_DOWN)) {
+        history_navigate(self, key.type == SC_KEY_UP);
+        return;
+    }
     // Tab accepts the autocomplete ghost suggestion, if any.
     if (key.type == SC_KEY_TAB) {
         const char *suggestion = ghost_suggestion(self);
@@ -516,6 +542,7 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     if (sc_le_handle(&self->ed, key)) {
         self->error = NULL;   // editing clears the previous validation error
         self->drop_cursor = -1;   // typing reshapes the dropdown: deselect
+        self->hist_cursor = -1;   // editing leaves the history recall
         return;
     }
     if (key.type == SC_KEY_ENTER) {
@@ -525,6 +552,10 @@ static void text_on_key(void *state, ScKey key, bool *done, bool *cancel) {
                 self->error = message ? message : "Invalid input";
                 return;
             }
+        }
+        // Record the accepted line before the prompt tears down.
+        if (self->history && self->history_auto) {
+            sc_history_add(self->history, self->ed.buf);
         }
         *done = true;
     }
@@ -593,6 +624,56 @@ static bool dropdown_dispatch(TextState *self, ScKey key,
 static void accept_suggestion(TextState *self, const char *suggestion) {
     sc_le_free(&self->ed);
     sc_le_init(&self->ed, suggestion);
+    self->error = NULL;
+    self->drop_cursor = -1;
+}
+
+/**
+ * Walks the attached history: Up recalls older entries, Down newer ones.
+ * Walking down past the newest entry restores the preserved live line.
+ */
+static void history_navigate(TextState *self, bool older) {
+    size_t count = sc_history_count(self->history);
+    if (count == 0) {
+        return;
+    }
+
+    if (older) {
+        if (self->hist_cursor == -1) {
+            // Leaving the live line: preserve it for the way back down
+            free(self->hist_saved);
+            self->hist_saved = sc_dup_str(self->ed.buf);
+            self->hist_cursor = (int)count - 1;
+        } else if (self->hist_cursor > 0) {
+            self->hist_cursor--;
+        } else {
+            return;   // already at the oldest entry
+        }
+        history_recall(
+            self, sc_history_get(self->history, (size_t)self->hist_cursor)
+        );
+        return;
+    }
+
+    if (self->hist_cursor == -1) {
+        return;   // already editing the live line
+    }
+    if ((size_t)self->hist_cursor + 1 < count) {
+        self->hist_cursor++;
+        history_recall(
+            self, sc_history_get(self->history, (size_t)self->hist_cursor)
+        );
+    } else {
+        // Past the newest entry: back to the live line
+        history_recall(self, self->hist_saved ? self->hist_saved : "");
+        self->hist_cursor = -1;
+    }
+}
+
+/** Replaces the edited value with a recalled history entry. */
+static void history_recall(TextState *self, const char *text) {
+    sc_le_free(&self->ed);
+    sc_le_init(&self->ed, text);
     self->error = NULL;
     self->drop_cursor = -1;
 }
@@ -953,5 +1034,6 @@ static void text_edit_set(void *state, const char *text) {
     while (n > 0 && line[n - 1] == ' ') { line[--n] = '\0'; }
     sc_le_free(&self->ed);
     sc_le_init(&self->ed, line);
+    self->hist_cursor = -1;   // the editor result replaces any recall
     free(line);
 }

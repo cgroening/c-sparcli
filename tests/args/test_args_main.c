@@ -31,6 +31,7 @@ int main(void) {
         { "Parsing & Getters", test_args_parse  },
         { "Errors & Did-you-mean", test_args_errors },
         { "Help & Completion", test_args_help   },
+        { "Line Tokenizer", test_args_split  },
     };
     size_t count = sizeof tests / sizeof tests[0];
 

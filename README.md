@@ -55,6 +55,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 - **Composable**: capture any widget into a buffer, then pad, align, or place it inside a columns layout.
 - **CLI application helpers**: pipe long output through a pager (`$PAGER`/`less`, auto-skipped in scripts), resolve XDG config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use), and report fatal errors as pretty panels (`sc_die`: message + cause chain + hint + exit code).
 - **Argument parser**: declarative subcommands, typed options, auto-generated `--help` (rendered with sparcli widgets), "did you mean ...?" suggestions and zsh completion generation - clap for C (`sc_args_*`).
+- **REPL building blocks**: input history with ↑/↓ recall and XDG persistence (`sc_history_*`), a quote-aware line tokenizer (`sc_args_split`), reusable parse trees (implicit `sc_args_reset`), and live-dashboard + prompt composition (`ScLiveOpts.prompt_rows`) – see the `examples/repl_*.c` demos.
 - **Logging**: leveled, colored terminal logging (`sc_log_info("port %d", p)`) with timestamps and `file:line`, plus plain-text file sinks with their own levels – thread-safe, render-once architecture.
 - **Command-line tool included**: the `sparcli` binary brings every output and input widget to the shell – `sparcli panel`, `name=$(sparcli input "Name:")`, `sparcli confirm && …`. See [Command-line tool](#command-line-tool) and [`docs/cli.md`](docs/cli.md).
 - **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`, namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
@@ -272,6 +273,7 @@ Interactive prompts that drive a real terminal in raw mode. Each returns an `ScI
 | **Select** | `sc_select_*` | Single- or multi-choice list with a scrolling viewport. |
 | **Fuzzy finder** | `sc_fuzzy_*` | Incremental fuzzy search; optional table view. |
 | **Date picker** | `sc_datepicker` | Month-grid calendar; day/week/month/year navigation. |
+| **Input history** | `sc_history_*` | ↑/↓ recall of previous entries in the text input; optional persistence in the XDG state directory (REPL building block). |
 | **Theme** | `sc_input_set_theme` | Process-wide style defaults inherited by every input widget. |
 
 Every widget shows a key-hint footer that is fully configurable: its layout (`hint_layout` – inline, stacked one-per-line, or hidden) and its placement (`hint_pos` – above, below, left, or right of the widget).
@@ -296,6 +298,13 @@ Build a runnable demo of every input widget with [`examples/input_demo.c`](examp
 ```sh
 make run-example EX=input_demo
 make run-example EX=shortcut_demo
+```
+
+**REPLs** – three demos combine history, the line tokenizer, the argument parser and the live display into interactive shells: [`examples/repl_minimal.c`](examples/repl_minimal.c) (prompt loop + history), [`examples/repl_demo.c`](examples/repl_demo.c) (a task-manager REPL on the args module), and [`examples/repl_dashboard.c`](examples/repl_dashboard.c) (a fixed header + in-place updating body above the prompt, with a shortcut action bar):
+
+```sh
+make run-example EX=repl_demo
+make run-example EX=repl_dashboard
 ```
 
 ---

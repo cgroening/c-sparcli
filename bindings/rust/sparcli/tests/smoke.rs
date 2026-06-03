@@ -155,6 +155,78 @@ fn live_buffers_frames_off_terminal() {
 }
 
 #[test]
+fn live_prompt_rows_builder() {
+    // prompt_rows reserves rows below the frame for a REPL prompt. Off
+    // terminal the session buffers, but the opts must cross the FFI cleanly.
+    let live = sparcli::Live::begin(sparcli::LiveOpts::new().prompt_rows(2));
+    live.update_str("dashboard frame");
+    live.end();
+}
+
+#[test]
+fn history_stores_and_recalls_entries() {
+    use sparcli::{History, HistoryOpts};
+
+    // Storage semantics: copy, dedupe consecutive duplicates, cap eviction.
+    let mut history = History::new(HistoryOpts::new());
+    history.add("first").add("first").add("second");
+    assert_eq!(history.count(), 2);
+    assert_eq!(history.get(0).as_deref(), Some("first"));
+    assert_eq!(history.get(1).as_deref(), Some("second"));
+    assert_eq!(history.get(99), None);
+
+    let mut capped = History::new(HistoryOpts::new().max_entries(2));
+    capped.add("one").add("two").add("three");
+    assert_eq!(capped.count(), 2);
+    assert_eq!(capped.get(0).as_deref(), Some("two"));
+
+    // keep_duplicates retains consecutive duplicates.
+    let mut dup = History::new(HistoryOpts::new().keep_duplicates());
+    dup.add("x").add("x");
+    assert_eq!(dup.count(), 2);
+}
+
+#[test]
+fn history_persists_to_file() {
+    use sparcli::{History, HistoryOpts};
+
+    let dir = std::env::temp_dir().join(format!(
+        "sparcli-rust-hist-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("history").to_string_lossy().into_owned();
+
+    {
+        let mut history =
+            History::new(HistoryOpts::new().file(file.clone()));
+        history.add("persisted line");
+    } // drop saves the file
+
+    let reloaded = History::new(HistoryOpts::new().file(file));
+    assert_eq!(reloaded.count(), 1);
+    assert_eq!(reloaded.get(0).as_deref(), Some("persisted line"));
+
+    drop(reloaded);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn text_input_with_history_without_tty_errors() {
+    use sparcli::{text_input, History, HistoryOpts, TextInputOpts};
+
+    // Under cargo test there is no TTY: the prompt must fail cleanly with
+    // Unavailable and never touch the attached history.
+    let history = History::new(HistoryOpts::new());
+    let result = text_input(
+        "repl>",
+        TextInputOpts::new().history(&history).no_history_add(),
+    );
+    assert!(result.is_err());
+    assert_eq!(history.count(), 0);
+}
+
+#[test]
 fn pager_is_noop_off_terminal() {
     // Under `cargo test` stdout is not a terminal -> the session is a no-op
     // and must end cleanly with status 0 without spawning a pager.

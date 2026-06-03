@@ -341,6 +341,19 @@ langs.add_row({ "C", "Static" }).add_row({ "Python", "Dynamic" });
 
 bool m = fuzzy_match("to", "Tokyo");      // pure, no TTY
 set_theme({ .accent = magenta() });  reset_theme();   // InputTheme theme();
+
+// Input history (REPLs): Up/Down recall + auto-add on submit + persistence.
+// History is move-only RAII; the destructor saves the configured file.
+History history({ .app = "myapp" });   // ~/.local/state/myapp/history
+for (;;) {
+    TextInputOpts opts{};
+    history.apply(opts);               // or: opts.history = history.get();
+    auto line = text_input("repl>", opts);
+    if (!line) { break; }
+    // dispatch(*line) - it was already recorded in the history
+}
+// history.add/count/get/save/load for manual control;
+// Args::parse_line(line) tokenizes + parses it in one call (see api-framework.md)
 ```
 
 Text/number input constraints reuse the C filter functions via the opts (`.char_filter = sc_filter_digits`, etc.; see [api-c.md](api-c.md#input-widgets)).

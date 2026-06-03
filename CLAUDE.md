@@ -69,11 +69,12 @@ src/output/   panel, rule, list, tree, columns, kv, alert, badge,
 src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
-              calc (expression evaluator), textarea, select, fuzzy, datepicker
+              calc (expression evaluator), textarea, select, fuzzy, datepicker,
+              history (Up/Down recall + persistence)
 src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
 src/log/      logging: leveled terminal + plain-text file sinks
 src/args/     argument parser: builder, parse loop, typed values, help,
-              did-you-mean, zsh completion generation
+              did-you-mean, zsh completion generation, line tokenizer (split)
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/    include/app/
@@ -631,6 +632,15 @@ void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* 
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
 void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
+
+/* Input history (storage handle; the recall navigation lives in text_input) */
+ScHistory *sc_history_new(ScHistoryOpts opts);   /* .app → XDG state file, .file = explicit path; loads it */
+void       sc_history_add(ScHistory *h, const char *line);  /* skips empty + consecutive duplicates */
+size_t     sc_history_count(const ScHistory *h);
+const char *sc_history_get(const ScHistory *h, size_t i);   /* 0 = oldest */
+bool       sc_history_save(const ScHistory *h);  /* also automatic on free */
+bool       sc_history_load(ScHistory *h);        /* replaces current entries */
+void       sc_history_free(ScHistory *h);        /* saves + frees */
 ```
 
 - **TextInput/Password** share `sc_text_entry` (`text_input.c`, configured via the internal `ScTextEntryCfg`); password is the masked variant (`opts.mask`, default `"*"`). Both accept an optional `validate` callback that keeps the prompt open and shows an error line. A character counter is shown under the field by default – `count` (no limit) or `count/max` when `max_chars > 0`, which also caps input. Hide it with `hide_char_count`; style it via `count_style` (default dim). Counts UTF-8 codepoints, not bytes. Set `boxed = true` to render inside a panel (prompt = top title, counter = bottom-right border via the panel `subtitle`); `border` sets the box style (zero-init type = rounded) and `width` the panel width (0 = full terminal width). A validation error stacks below the box via `sc_vstack`. Long values scroll horizontally within `width` with `‹`/`›` edge markers (line editor). Optional input constraints: `char_filter` (built-ins `sc_filter_digits`, `sc_filter_decimal`, `sc_filter_alpha`, `sc_filter_alnum`, `sc_filter_no_space`) rejects disallowed keystrokes; `suggestions`/`n_suggestions` show a dim autocomplete ghost that Tab accepts. The `suggest` field (`ScSuggestOpts`, text input only) switches the autocomplete presentation to a **dropdown** (`mode = SC_SUGGEST_DROPDOWN`): a list of matches below the field – ↑/↓ move the highlight (↑ past the first row returns to the field), Tab/Enter accept the highlighted row, Enter without highlight submits. Prefix or fuzzy matching (`match`, fuzzy ranks by `sc_fuzzy_match` score), `max_visible` rows (default 5) + dim "… +N more" overflow line, stylable rows (`item_style`/`selected_style` incl. background), optional `border` frame, custom `cursor_marker`/`marker`. Works inline and boxed (the dropdown stacks beneath the panel and matches the box width when framed); exact matches are excluded, so accepting a suggestion closes the list. Logic tests: `tests/input/logic/test_suggest.c`; style snapshots in `test_style_text.c`; PTY cases `suggest-dropdown-*`.
@@ -639,6 +649,7 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
 - **Select** scrolls a viewport (`max_visible`, default 10); `j/k` + arrows move, Space toggles in multi-select. Pre-seed with `sc_select_set_cursor` / `sc_select_set_checked`. A dim `↑ first–last/total ↓` indicator shows when the list scrolls beyond the viewport.
 - **Fuzzy** ranks by `sc_fuzzy_match` on each keystroke; matched characters are highlighted (bold+underline, accent fg) in the list and in the matched table cells (`render_table` builds those cells as highlighted `ScText` via `append_highlighted`, borrowed by the table and freed after capture); the query field scrolls horizontally (`‹`/`›`) when long; table view builds an `ScTableData` of the visible rows each frame (cursor row via row-bg) and `sc_vstack`s query + body + scroll-indicator + footer. `refilter` matches each row via `row_matches` across the columns selected by `opts.search_columns` (bitmask; `0` = all, the default), ranking by the best-scoring column – so a table query can hit (and highlight) any column, not just the first.
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds today. Month/year jumps keep the selected day, clamped to the target month's last valid day (e.g. Jan 31 → Feb 28). `week_start` is `ScWeekStart`.
+- **History** (`history.c` + `include/input/sparcli_history.h`): REPL-style input history for the text input. `ScHistory` is pure storage (handle pattern like `ScSelect`; opts strings copied); the ↑/↓ recall navigation lives in `text_input.c`. Attach via `ScTextInputOpts.history` (**borrowed** for the run, like `shortcuts`): ↑ recalls older entries (the in-progress line is preserved and restored by walking back down past the newest entry), typing/editing leaves the recall, the **dropdown keeps priority** over history on ↑/↓ while it shows matches. Submitted lines are **auto-added** unless `ScTextInputOpts.no_history_add` (per call) or `ScHistoryOpts.no_auto_add` (per handle) is set; empty lines and consecutive duplicates are always skipped (`keep_duplicates` opts them back in), the cap (`max_entries`, default 500) evicts oldest. Persistence: `.app` → `sc_path_file(SC_PATH_STATE, app, "history")`, `.file` = explicit path; plain text, one entry per line, sanitized on load (trust boundary); auto-load on new, auto-save on free. Tests: `tests/input/logic/test_history.c` (storage + sandboxed `$HOME` persistence), PTY cases `history-*` (recall/edit/restore/no-auto-add). Bindings: C++ `sparcli::History` (RAII, `apply(opts)`), Rust `sparcli::History` (Drop = save), Python `sc.History` (context manager, `len()`/`[i]`/`entries()`).
 - **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter select · esc cancel`) by default; override the text with `hint`, restyle with `hint_style`, and choose its layout with `hint_layout` (`ScHintLayout`: `SC_HINT_INLINE` one `·`-separated line / `SC_HINT_STACKED` one hint per line / `SC_HINT_HIDDEN` none; zero-init `SC_HINT_LAYOUT_DEFAULT` inherits the theme, then inline). Stacked is rendered by splitting the hint on ` · `. Its placement is `hint_pos` (`ScHintPosition`: `SC_HINT_POS_TOP`/`_BOTTOM`(default)/ `_LEFT`/`_RIGHT`; left/right sit beside the widget, top-aligned), orthogonal to layout. `sc_compose_hint` (input_internal.h) builds the hint block and places it: vstack for top/bottom, a 2-column `ScColumns` for left/right.
 - **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults (accent, styles, markers, border, `hint_layout`) that every widget inherits for any zero-init option. Precedence: per-call opts > theme > built-in default. Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`). The theme struct **and its glyph strings are copied** by `sc_input_set_theme` (caller buffers may be temporary); the copies are owned by the library and released on the next set/reset.
 - **Custom shortcuts** (`input/sparcli_shortcut.h`): every widget's `Sc*Opts` carries `shortcuts` / `n_shortcuts` (borrowed `ScShortcut[]`) and an optional `out_shortcut_id`. The **prompt engine** (`prompt.c`) matches them before `on_key` – so one implementation covers all widgets – after the reserved cancel keys (Esc / Ctrl-C can't be bound). Build chords with `sc_key_ctrl('e')` / `sc_key_fn(2)` / `sc_key_alt('e')`. `SC_SHORTCUT_RETURN` ends the prompt and writes the fired `id` to `*out_shortcut_id` (`-1` = normal submit); the widget still returns its value. `SC_SHORTCUT_CALLBACK` runs `on_fire(id, user)` in place and stays open unless it returns `false`; `sc_select_cursor` / `sc_fuzzy_cursor_index` expose the live selection to such callbacks, and `sc_select_remove` / `sc_fuzzy_remove` delete the highlighted item live (the emptied-list run tails are guarded). A callback can't open a second prompt (single-session), so the "edit an item" pattern is a RETURN shortcut + `sc_select_label` / `sc_select_set_label` + `sc_select_set_cursor` in a caller re-run loop (see `examples/shortcut_demo.c`). A shortcut with a `hint_label` is shown in a dim footer the **engine** stacks under every frame (key name via `sc_key_chord_name`, e.g. `^X delete`), discoverable on any widget with no per-widget code. The key decoder now also yields `SC_KEY_F1..F12`, Alt via an `ESC`-prefix (`ScKey.mods & SC_MOD_ALT`), and generic Ctrl-letters as `SC_KEY_CHAR` + `SC_MOD_CTRL`. The C++ wrapper adds `sparcli::Shortcuts` (a builder with a `std::function` callback arena) + `key_ctrl/key_fn/key_alt`; `sc.apply(opts)` wires it and `sc.fired()` reads the result.
@@ -686,7 +697,7 @@ Not part of the public API. Used by all source files that include `internal.h`:
 - Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no space fits in the column width, the line is truncated.
 - **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`, `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting. Renderers use `opts_has_format()` to detect this and skip `sc_print()`.
 - **Calculator display/submit exception:** number input's calculator mode (default) displays the result rounded to `decimals` but submits full precision - the one deliberate exception to "displayed text == submitted value". `*out == *out_text` still always holds. `calc_store_rounded` restores display == submit. The exception is made visible in the UI: a dim ` = <exact>` indicator marks a pending full-precision value, and discarding it by editing (when precision is actually lost) raises a yellow warning line that the displayed value is what gets submitted from then on.
-- **Opts-string lifetime:** every handle-based `*_new()` (table columns, list, kv, tree, spinner, progressbar, select, fuzzy, theme) **copies** the string fields of its opts/arguments, so caller buffers (e.g. FFI temporaries) only need to live until the call returns. Documented exceptions stay **borrowed**: table cell strings / `ScText` content (until print), `shortcuts` and `prompt_text` (until the run). Run-once widgets (`sc_confirm`, `sc_text_input`, …) only read their opts during the call. Tests: `tests/input/logic/test_opts_copy.c`, output tests "Opts strings are copied", PTY cases `fuzzy-heap-prompt`/`theme-heap-strings`.
+- **Opts-string lifetime:** every handle-based `*_new()` (table columns, list, kv, tree, spinner, progressbar, select, fuzzy, theme, history) **copies** the string fields of its opts/arguments, so caller buffers (e.g. FFI temporaries) only need to live until the call returns. Documented exceptions stay **borrowed**: table cell strings / `ScText` content (until print), `shortcuts`, `prompt_text` and `history` (until the run). Run-once widgets (`sc_confirm`, `sc_text_input`, …) only read their opts during the call. Tests: `tests/input/logic/test_opts_copy.c`, output tests "Opts strings are copied", PTY cases `fuzzy-heap-prompt`/`theme-heap-strings`.
 - **ANSI sanitization / trust boundary:** every user string is sanitized **exactly once, where it crosses into the library** (`sc_text_append`, `sc_print`, widget add/set/render entry points, markup chunks): control bytes (< 0x20 except `\n`/`\t`, plus DEL) and ANSI escape sequences are removed. The opt-out is `sc_set_allow_ansi(bool)` (process-wide, atomic, default `false`) plus a per-widget `ScAnsiMode ansi` opts field (`SC_ANSI_MODE_DEFAULT`=inherit global / `_ALLOW` / `_SANITIZE`); when allowed, well-formed escape sequences pass through, stray control bytes are still dropped, and **all width functions skip escape sequences** (`sc_utf8_string_length`, `sc_utf8_trim_to_cols`, `sc_text_visible_width`), so frames stay aligned. Library-rendered content (`ScRendered`, captured columns output, CLI capture path) is inside the boundary and is never re-sanitized – internal code uses `sc_text_append_raw`/`sc_print_raw`. External-editor read-back and keyboard input are always filtered (never allow ANSI). **OSC-8 hyperlinks** (`sc_text_append_link`, markup `[link=…]`) are generated on the trusted side: the URL is scrubbed to printable ASCII (`sc_osc8_scrub_url`) so it cannot inject sequences, then the wrapper is built internally (`sc_osc8_wrap`) and appended raw; injected OSC-8 in ordinary user strings is still stripped. Sanitizer: `src/core/sanitize.c` (+ `sanitize_internal.h`). Tests: `tests/input/logic/test_sanitize.c`, `tests/fuzz/fuzz_sanitize.c`, CLI golden "sanitize:" sections.
 
 ---
@@ -1021,7 +1032,7 @@ Tests: `tests/app/test_pager.c` (`make test-app`) – uses `cat`/`false` as dete
 Re-renders a composed `ScRendered` frame **in place** (dashboard like Rich `Live`). Stream-oriented: writes escape codes via `fprintf` to the **thread-local** `sc_output_stream()` captured at begin – so it composes with capture/pager (degrades, see below) and never touches the tty layer. Header: `output/sparcli_live.h`.
 
 ```c
-ScLive *live = sc_live_begin((ScLiveOpts){ 0 });  /* .alt_screen, .show_cursor, .transient, .always */
+ScLive *live = sc_live_begin((ScLiveOpts){ 0 });  /* .alt_screen, .show_cursor, .transient, .always, .prompt_rows */
 sc_live_update(live, frame);                      /* ScRendered: capture + vstack/columns */
 sc_live_update_str/text/table(live, ...);         /* capture + update + free in one call */
 sc_live_end(live);                                /* restore + final flush + free handle */
@@ -1032,12 +1043,13 @@ sc_live_end(live);                                /* restore + final flush + fre
 | Non-TTY stream | Updates buffered; only the **final frame** printed on end (clean CI/script output). `always` forces escape emission |
 | Redraw | Cursor-up to frame top, overwrite line by line + `\033[K`, then `\033[J` for leftover lines; height-clamped via `sc_terminal_height()` (internal.h) |
 | `alt_screen` | `\033[?1049h/l` fullscreen; final frame re-printed on the normal screen on end (unless `transient`) |
+| `prompt_rows` | Rows reserved **below** the frame for an interactive prompt (REPL dashboards): the cursor parks at column 0 of the first reserved row after every update, and `prev_lines` spans frame + reserve so the next rewind still lands on the frame top. Reserve as many rows as the prompt draws; the height clamp shrinks the frame, never the reserve. The prompt must run with `hide_summary = true` (its self-erase via `sc_screen_clear` then returns the cursor exactly to the park row). Zero-init = 0 = classic behavior |
 | Cursor | Hidden during the session (zero-init); `show_cursor` keeps it visible |
 | Cleanup | `atexit` + SIGINT/TERM/HUP/QUIT handlers restore cursor/alt-screen (re-raise after); crash signals not trapped |
 | Ownership | `sc_live_end` frees the handle (pager-style begin/end pair); frames stay caller-owned |
 | Sessions | One per terminal at a time (soft); no background thread (thread-local stream) |
 
-Tests: `tests/output/test_live.c` (`make test-output`; non-TTY path is golden-tested, escape emission verified via memstream + `always`); animated dashboard demo flagged `--no-animated`-skippable. Example: `examples/live_demo.c`.
+Tests: `tests/output/test_live.c` (`make test-output`; non-TTY path is golden-tested, escape emission + `prompt_rows` park/rewind verified via memstream + `always`); animated dashboard demo flagged `--no-animated`-skippable. Examples: `examples/live_demo.c`, `examples/repl_dashboard.c` (live + prompt + shortcut bar).
 
 ---
 
@@ -1134,18 +1146,25 @@ ScArgsStatus status;                       /* MATCHED / HANDLED (help/version) /
 const ScArgsCmd *matched = sc_args_parse(args, argc, argv, &status);
 long jobs = sc_args_get_int(args, "jobs"); /* getters search matched cmd + ancestors */
 sc_args_free(args);
+
+/* REPL loop: tokenize a line, parse the same tree once per line */
+char **line_argv = sc_args_split("tool", line, &line_argc, err, sizeof err); /* quotes/escapes; NULL = error in err */
+sc_args_parse(args, line_argc, line_argv, &status);  /* implicitly resets previous results */
+sc_args_split_free(line_argv);
+sc_args_reset(args);                       /* explicit clear without reparsing */
 ```
 
 | Aspect | Detail |
 |--------|--------|
-| Source layout | `args.c` (builder/getters/free), `args_parse.c` (parse loop), `args_value.c` (int/double/color/choices), `args_suggest.c` (Levenshtein), `args_help.c` (widget-rendered help), `args_complete.c` (zsh completion); internals in `args_internal.h` |
+| Source layout | `args.c` (builder/getters/free/reset), `args_parse.c` (parse loop), `args_value.c` (int/double/color/choices), `args_suggest.c` (Levenshtein), `args_help.c` (widget-rendered help), `args_complete.c` (zsh completion), `args_split.c` (REPL line tokenizer); internals in `args_internal.h` |
 | Syntax | `--opt value`, `--opt=value`, `-j8`, `-vq` (combined flags), `--` terminator, negative numbers as values, nested subcommands, variadic positionals |
 | Types | `SC_ARG_STR/INT/DOUBLE/COLOR`; "enums" = STR + `sc_args_opt_choices` (`sc_args_get_enum` returns the index) |
 | Reserved | `--help`/`-h` (every command), `--version`/`-V` (root, when version set); user options with the same short letter win |
-| Trust boundary | Every argv token is ANSI-sanitized before storage/echoing; errors render as Pretty Errors (stderr, exit code 2) |
+| Trust boundary | Every argv token is ANSI-sanitized before storage/echoing; errors render as Pretty Errors (stderr, exit code 2). `sc_args_split` itself does **not** sanitize (parse does, per token) |
 | Help rendering | Borderless 2-col tables + bold/cyan headings via the normal widget stack; cell strings are kept in a `StringArena` until print (table cells borrow) |
-| Ownership | Builder strings copied; getter results borrowed until `sc_args_free`; `ScArgsCmd*` nodes are borrowed from the tree |
-| Tests | `tests/args/` (`make test-args`: parse/errors/help/completion) + `tests/fuzz/fuzz_args.c` (random argv under ASan/UBSan, part of `make fuzz`) |
-| Example | `examples/args_demo.c` (`make run-example EX=args_demo`) |
+| Ownership | Builder strings copied; getter results borrowed until `sc_args_free`; `ScArgsCmd*` nodes are borrowed from the tree; `sc_args_split` returns a NULL-terminated heap argv (free with `sc_args_split_free`) |
+| REPL reuse | `sc_args_parse` calls `sc_args_reset` at its start, so one tree parses once per REPL line with no stale values; `sc_args_split` rules: whitespace splits, `'…'` literal, `"…"` with `\` escapes, quoted+bare runs concatenate, `argv[0]` = the passed prog name (parse starts at index 1) |
+| Tests | `tests/args/` (`make test-args`: parse/errors/help/completion/split/reset) + `tests/fuzz/fuzz_args.c` + `tests/fuzz/fuzz_split.c` (random input under ASan/UBSan, part of `make fuzz`) |
+| Examples | `examples/args_demo.c`, `examples/repl_demo.c` (REPL: split + implicit reset + history), `examples/repl_minimal.c`, `examples/repl_dashboard.c` |
 
 The fuzzer found (and led to the fix of) a pre-existing out-of-bounds read in `sc_utf8_trim_to_cols`/`sc_utf8_string_length` (`src/internal.h`): truncated UTF-8 sequences at the end of a string are now advanced bounds-safely.

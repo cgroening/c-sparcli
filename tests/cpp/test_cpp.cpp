@@ -351,6 +351,75 @@ static void test_args_parser() {
           "args: --help renders the usage screen");
 }
 
+// The REPL helpers: quote-aware tokenizing (args_split / parse_line) and
+// result clearing (reset / implicit reset on re-parse).
+static void test_args_repl_helpers() {
+    // Standalone tokenizer
+    auto tokens = args_split("add \"Buy milk\" --due friday");
+    CHECK(tokens.has_value() && tokens->size() == 4
+              && (*tokens)[1] == "Buy milk",
+          "split: quote-aware tokens (without argv[0])");
+
+    std::string error;
+    CHECK(!args_split("add \"oops", &error).has_value()
+              && error == "unterminated quote",
+          "split: unbalanced quote reports the reason");
+
+    // parse_line: tokenize + parse in one call, reusable per REPL line
+    Args args(ArgsOpts{ .prog = "repl", .about = "REPL helper test" });
+    ArgsCmd add = args.root().subcommand("add", "Add an item");
+    add.opt("due", 'd', SC_ARG_STR, "WHEN", "Due date")
+        .positional("TEXT", SC_ARG_STR, "Item text", true, false);
+    args.root().subcommand("list", "List items");
+
+    auto first = args.parse_line("add \"Buy milk\" --due friday");
+    CHECK(first.has_value() && first->name() == "add"
+              && args.get_str("TEXT").value_or("") == "Buy milk"
+              && args.get_str("due").value_or("") == "friday",
+          "parse_line: quoted line parses into the tree");
+
+    // The second line on the same tree must not see stale values
+    auto second = args.parse_line("list");
+    CHECK(second.has_value() && second->name() == "list"
+              && !args.present("due"),
+          "parse_line: re-parse clears the previous results");
+
+    // Explicit reset clears without parsing
+    args.reset();
+    CHECK(!args.selected_command().has_value(),
+          "reset: matched command is cleared");
+}
+
+// History must copy entries, dedupe consecutive duplicates, and respect the
+// entry cap; the move-only RAII wrapper frees the handle exactly once.
+static void test_history() {
+    History history;
+    history.add("first").add("first").add("second");
+    CHECK(history.count() == 2,
+          "history: consecutive duplicates collapse");
+    CHECK(history.get(0).value_or("") == "first"
+              && history.get(1).value_or("") == "second",
+          "history: entries are retrievable oldest-first");
+    CHECK(!history.get(99).has_value(),
+          "history: out-of-range returns an empty optional");
+
+    // Entry cap via opts (C++20 designated initializers on the C struct)
+    History capped(HistoryOpts{ .max_entries = 2 });
+    capped.add("one").add("two").add("three");
+    CHECK(capped.count() == 2 && capped.get(0).value_or("") == "two",
+          "history: the cap evicts the oldest entry");
+
+    // apply() wires the handle into a text input's opts
+    TextInputOpts opts{};
+    capped.apply(opts);
+    CHECK(opts.history == capped.get(),
+          "history: apply() attaches the handle to the opts");
+
+    // Move semantics: the moved-from handle must not double-free
+    History moved = std::move(capped);
+    CHECK(moved.count() == 2, "history: handle survives a move");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -367,6 +436,8 @@ int main() {
     test_error_report();
     test_logger();
     test_args_parser();
+    test_args_repl_helpers();
+    test_history();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

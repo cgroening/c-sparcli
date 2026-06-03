@@ -1729,11 +1729,13 @@ pub struct ScLiveOpts {
     pub transient: bool,
     #[doc = " Emit the in-place redraw escape codes even when the output stream\n is not a terminal. Without this flag, non-terminal sessions buffer\n updates and print only the final frame (recommended)."]
     pub always: bool,
+    #[doc = " Rows reserved below the frame for an interactive prompt. After every\n update the cursor is parked at column 0 of the first reserved row -\n exactly where an input widget (e.g. `sc_text_input` with\n `hide_summary = true`) then draws and erases itself - and the next\n update rewinds over the frame and the reserved rows together, so the\n live display and the prompt never corrupt each other's regions.\n\n Reserve as many rows as the prompt actually draws (input line +\n hint/shortcut footer lines); the frame is height-clamped so the\n reserved rows always fit on screen and the prompt never scrolls the\n terminal. Zero-init = 0 (classic behavior: the cursor stays at the\n end of the frame). This is the building block for REPL dashboards;\n see `examples/repl_dashboard.c`."]
+    pub prompt_rows: ::std::os::raw::c_int,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScLiveOpts"][::std::mem::size_of::<ScLiveOpts>() - 4usize];
-    ["Alignment of ScLiveOpts"][::std::mem::align_of::<ScLiveOpts>() - 1usize];
+    ["Size of ScLiveOpts"][::std::mem::size_of::<ScLiveOpts>() - 8usize];
+    ["Alignment of ScLiveOpts"][::std::mem::align_of::<ScLiveOpts>() - 4usize];
     ["Offset of field: ScLiveOpts::alt_screen"]
         [::std::mem::offset_of!(ScLiveOpts, alt_screen) - 0usize];
     ["Offset of field: ScLiveOpts::show_cursor"]
@@ -1741,6 +1743,8 @@ const _: () = {
     ["Offset of field: ScLiveOpts::transient"]
         [::std::mem::offset_of!(ScLiveOpts, transient) - 2usize];
     ["Offset of field: ScLiveOpts::always"][::std::mem::offset_of!(ScLiveOpts, always) - 3usize];
+    ["Offset of field: ScLiveOpts::prompt_rows"]
+        [::std::mem::offset_of!(ScLiveOpts, prompt_rows) - 4usize];
 };
 extern "C" {
     #[doc = " Starts a live session on the calling thread's `sc_output_stream()`.\n\n The target stream is captured at this call; later captures or stream\n redirections on the same thread do not affect the running session.\n Only one live session should drive a given terminal at a time.\n\n Cleanup safety: cursor visibility and the alternate screen are restored\n via `atexit` on clean exits and on SIGINT/SIGTERM/SIGHUP/SIGQUIT (the\n signal is then re-raised). Crash signals (SIGSEGV/SIGABRT) are not\n trapped.\n\n @param opts  Session options; zero-init for defaults.\n @return      Heap-allocated session handle; `NULL` only on allocation\n              failure. Always pair with `sc_live_end`."]
@@ -2050,6 +2054,68 @@ extern "C" {
     #[doc = " Returns the current theme (a zeroed struct when none is set). The string\nfields point at library-owned copies, valid until the next\n`sc_input_set_theme` call."]
     pub fn sc_input_theme() -> ScInputTheme;
 }
+#[doc = " Options for `sc_history_new`. All string fields are copied."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScHistoryOpts {
+    #[doc = " Maximum retained entries; `0` = 500. Oldest entries are evicted when\nthe cap is exceeded."]
+    pub max_entries: usize,
+    #[doc = " Application name for XDG persistence: entries are stored in\n`~/.local/state/<app>/history` (created on first use). `NULL` = no\nXDG persistence."]
+    pub app: *const ::std::os::raw::c_char,
+    #[doc = " Explicit path of the persistence file; overrides `app`. The parent\ndirectory must exist. `NULL` = use `app` (or stay in-memory)."]
+    pub file: *const ::std::os::raw::c_char,
+    #[doc = " When attached to a text input, do NOT auto-add submitted lines (the\napplication then curates the history via `sc_history_add`)."]
+    pub no_auto_add: bool,
+    #[doc = " Keep consecutive duplicate lines instead of collapsing them."]
+    pub keep_duplicates: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScHistoryOpts"][::std::mem::size_of::<ScHistoryOpts>() - 32usize];
+    ["Alignment of ScHistoryOpts"][::std::mem::align_of::<ScHistoryOpts>() - 8usize];
+    ["Offset of field: ScHistoryOpts::max_entries"]
+        [::std::mem::offset_of!(ScHistoryOpts, max_entries) - 0usize];
+    ["Offset of field: ScHistoryOpts::app"][::std::mem::offset_of!(ScHistoryOpts, app) - 8usize];
+    ["Offset of field: ScHistoryOpts::file"][::std::mem::offset_of!(ScHistoryOpts, file) - 16usize];
+    ["Offset of field: ScHistoryOpts::no_auto_add"]
+        [::std::mem::offset_of!(ScHistoryOpts, no_auto_add) - 24usize];
+    ["Offset of field: ScHistoryOpts::keep_duplicates"]
+        [::std::mem::offset_of!(ScHistoryOpts, keep_duplicates) - 25usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScHistory {
+    _unused: [u8; 0],
+}
+extern "C" {
+    #[doc = " Allocates a history.\n\n When a persistence target is configured (`opts.file` or `opts.app`),\n existing entries are loaded immediately; a missing file simply starts\n empty.\n\n @param opts  Configuration; string fields are copied.\n @return      Heap-allocated handle (free with `sc_history_free`);\n              `NULL` on allocation failure."]
+    pub fn sc_history_new(opts: ScHistoryOpts) -> *mut ScHistory;
+}
+extern "C" {
+    #[doc = " Appends one line (copied and sanitized).\n\n Empty lines, lines containing line breaks, and - unless `keep_duplicates`\n was set - lines equal to the most recent entry are skipped. When the entry\n cap is reached, the oldest entry is evicted.\n\n @param history  Target history; no-op when `NULL`.\n @param line     The submitted input line; copied."]
+    pub fn sc_history_add(history: *mut ScHistory, line: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Number of retained entries.\n\n @param history  History to query; `0` when `NULL`."]
+    pub fn sc_history_count(history: *const ScHistory) -> usize;
+}
+extern "C" {
+    #[doc = " Returns the entry at `index` (`0` = oldest, `count - 1` = newest).\n\n @param history  History to read.\n @param index    Entry position.\n @return         Borrowed string (valid until the next mutation);\n                 `NULL` when out of range."]
+    pub fn sc_history_get(history: *const ScHistory, index: usize)
+        -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Writes all entries to the configured persistence file (one per line).\n\n @param history  History to save.\n @return         `true` on success; `false` when no file is configured or\n                 the write fails."]
+    pub fn sc_history_save(history: *const ScHistory) -> bool;
+}
+extern "C" {
+    #[doc = " Reloads the entries from the configured persistence file, replacing the\n current set. Each line is sanitized on load.\n\n @param history  History to reload.\n @return         `true` on success; `false` when no file is configured or\n                 it cannot be read."]
+    pub fn sc_history_load(history: *mut ScHistory) -> bool;
+}
+extern "C" {
+    #[doc = " Saves the history (when a persistence file is configured) and frees the\n handle.\n\n @param history  History to free; safe to pass `NULL`."]
+    pub fn sc_history_free(history: *mut ScHistory);
+}
 #[doc = " Options for `sc_confirm`.\n\n Zero-initialized opts give a sensible prompt: \"No\" preselected, default\n labels, accent in the terminal's default color."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2299,10 +2365,14 @@ pub struct ScTextInputOpts {
     pub editor: *const ::std::os::raw::c_char,
     #[doc = " Key that opens the editor; zero-init = Ctrl-G.\n@see sparcli_shortcut.h"]
     pub editor_key: ScKeyChord,
+    #[doc = " Optional input history: Up/Down recall previous entries (newest\n first); typing returns to the live line. While the suggestion\n dropdown shows matches, it keeps priority over history on Up/Down.\n Submitted lines are added automatically unless `no_history_add` (or\n the handle's own `no_auto_add`) is set. Borrowed for the call.\n @see sparcli_history.h"]
+    pub history: *mut ScHistory,
+    #[doc = " Do not auto-add the submitted line to `history` for this call."]
+    pub no_history_add: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScTextInputOpts"][::std::mem::size_of::<ScTextInputOpts>() - 440usize];
+    ["Size of ScTextInputOpts"][::std::mem::size_of::<ScTextInputOpts>() - 456usize];
     ["Alignment of ScTextInputOpts"][::std::mem::align_of::<ScTextInputOpts>() - 8usize];
     ["Offset of field: ScTextInputOpts::initial"]
         [::std::mem::offset_of!(ScTextInputOpts, initial) - 0usize];
@@ -2370,6 +2440,10 @@ const _: () = {
         [::std::mem::offset_of!(ScTextInputOpts, editor) - 416usize];
     ["Offset of field: ScTextInputOpts::editor_key"]
         [::std::mem::offset_of!(ScTextInputOpts, editor_key) - 424usize];
+    ["Offset of field: ScTextInputOpts::history"]
+        [::std::mem::offset_of!(ScTextInputOpts, history) - 440usize];
+    ["Offset of field: ScTextInputOpts::no_history_add"]
+        [::std::mem::offset_of!(ScTextInputOpts, no_history_add) - 448usize];
 };
 extern "C" {
     #[doc = " Prompts for a single line of text.\n\n On `SC_INPUT_OK`, `*out` receives a heap-allocated string the caller must\n `free()`. `*out` is not modified on cancel/error.\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the entered string (heap; caller frees).\n @param opts    Rendering and validation options."]
@@ -3508,6 +3582,24 @@ extern "C" {
         argv: *mut *mut ::std::os::raw::c_char,
         status: *mut ScArgsStatus,
     ) -> *const ScArgsCmd;
+}
+extern "C" {
+    #[doc = " Clears all parse results without rebuilding the tree: every option becomes\n absent (its value freed), every positional is emptied, and the matched\n command is reset.\n\n `sc_args_parse` calls this implicitly at its start, so a tree can be\n re-parsed (e.g. once per REPL line) with no explicit call. Call it directly\n to discard results without parsing again.\n\n @param args  Parser; safe to pass `NULL`."]
+    pub fn sc_args_reset(args: *mut ScArgs);
+}
+extern "C" {
+    #[doc = " Splits one command line into an argv vector for `sc_args_parse`.\n\n Tokens are separated by whitespace. Single quotes (`'…'`) group literally;\n double quotes (`\"…\"`) group with backslash escapes; a backslash outside\n single quotes escapes the next character. Quoted and bare runs concatenate\n into one token (`a\"b c\"d` becomes `ab cd`). The tokens are *not* sanitized\n here - `sc_args_parse` sanitizes every token itself.\n\n @code\n int argc = 0;\n char err[64];\n char **argv = sc_args_split(\"tool\", line, &argc, err, sizeof err);\n if (!argv) {\n     // unbalanced quote / trailing backslash: err holds the reason\n } else {\n     sc_args_parse(args, argc, argv, &status);\n     sc_args_split_free(argv);\n }\n @endcode\n\n @param prog      Program name placed in `argv[0]` (parsing starts at\n                  index 1, matching `main`); copied; `NULL` = empty.\n @param line      The input line; `NULL` = empty.\n @param argc      Receives the token count including `argv[0]`; may be\n                  `NULL`.\n @param err       Buffer for a short error reason (`\"unterminated quote\"`,\n                  `\"trailing backslash\"`); may be `NULL`.\n @param err_size  Size of `err` in bytes.\n @return          `NULL`-terminated heap argv (free with\n                  `sc_args_split_free`); `NULL` on error."]
+    pub fn sc_args_split(
+        prog: *const ::std::os::raw::c_char,
+        line: *const ::std::os::raw::c_char,
+        argc: *mut ::std::os::raw::c_int,
+        err: *mut ::std::os::raw::c_char,
+        err_size: usize,
+    ) -> *mut *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Frees an argv vector returned by `sc_args_split`.\n\n @param argv  The vector to free; safe to pass `NULL`."]
+    pub fn sc_args_split_free(argv: *mut *mut ::std::os::raw::c_char);
 }
 extern "C" {
     #[doc = " Returns the string value of an option or positional, searching the\n matched command and its ancestors.\n\n @param args  Parser (after parse).\n @param name  Option long name or positional name.\n @return      Borrowed string (valid until `sc_args_free`); the default\n              value when absent; `NULL` when never supplied and no\n              default exists."]

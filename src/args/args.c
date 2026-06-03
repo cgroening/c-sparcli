@@ -18,6 +18,7 @@ static void init_command(ScArgsCmd *cmd, ScArgs *owner, ScArgsCmd *parent);
 static void free_command_contents(ScArgsCmd *cmd);
     static void free_option(ArgOption *option);
     static void free_positional(ArgPositional *positional);
+static void reset_command_results(ScArgsCmd *cmd);
 static char *sanitized_copy_or_empty(const char *str);
 static ArgOption *add_option(
     ScArgsCmd *cmd, const char *long_name, char short_name, const char *help
@@ -62,6 +63,12 @@ void sc_args_free(ScArgs *args) {
     free(args->version);
     free(args->about);
     free(args);
+}
+
+void sc_args_reset(ScArgs *args) {
+    if (!args) { return; }
+    reset_command_results(&args->root);
+    args->matched = NULL;
 }
 
 ScArgsCmd *sc_args_root(ScArgs *args) {
@@ -441,6 +448,28 @@ static void free_positional(ArgPositional *positional) {
         free(positional->values[i]);
     }
     free(positional->values);
+}
+
+/** Clears the parse results of one command and all its subcommands. */
+static void reset_command_results(ScArgsCmd *cmd) {
+    for (size_t i = 0; i < cmd->option_count; i++) {
+        ArgOption *option = &cmd->options[i];
+        option->present = false;
+        free(option->value_text);
+        option->value_text = NULL;
+    }
+
+    for (size_t i = 0; i < cmd->positional_count; i++) {
+        ArgPositional *positional = &cmd->positionals[i];
+        for (size_t j = 0; j < positional->value_count; j++) {
+            free(positional->values[j]);
+        }
+        positional->value_count = 0;
+    }
+
+    for (size_t i = 0; i < cmd->subcommand_count; i++) {
+        reset_command_results(cmd->subcommands[i]);
+    }
 }
 
 /** Sanitized copy of `str`; an empty heap string for `NULL`. */

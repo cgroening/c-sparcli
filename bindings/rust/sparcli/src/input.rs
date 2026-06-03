@@ -364,6 +364,134 @@ impl SuggestOpts {
     }
 }
 
+/* ── Input history ───────────────────────────────────────────────────────── */
+
+/// Options for [`History::new`]. All strings are copied by the C side.
+#[derive(Clone, Debug, Default)]
+pub struct HistoryOpts {
+    /// Maximum retained entries; `0` = 500 (oldest evicted past the cap).
+    pub max_entries: usize,
+
+    /// Application name for XDG persistence: entries are stored in
+    /// `~/.local/state/<app>/history` (created on first use).
+    pub app: Option<String>,
+
+    /// Explicit path of the persistence file; overrides `app`.
+    pub file: Option<String>,
+
+    /// Do not auto-add submitted lines when attached to a text input.
+    pub no_auto_add: bool,
+
+    /// Keep consecutive duplicate lines instead of collapsing them.
+    pub keep_duplicates: bool,
+}
+
+impl HistoryOpts {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn max_entries(mut self, n: usize) -> Self {
+        self.max_entries = n;
+        self
+    }
+    pub fn app(mut self, name: impl Into<String>) -> Self {
+        self.app = Some(name.into());
+        self
+    }
+    pub fn file(mut self, path: impl Into<String>) -> Self {
+        self.file = Some(path.into());
+        self
+    }
+    pub fn no_auto_add(mut self) -> Self {
+        self.no_auto_add = true;
+        self
+    }
+    pub fn keep_duplicates(mut self) -> Self {
+        self.keep_duplicates = true;
+        self
+    }
+}
+
+/// Input history for text prompts: Up/Down recall + optional persistence.
+///
+/// Attach it with [`TextInputOpts::history`]; the prompt then recalls entries
+/// with Up/Down and records every submitted line automatically (the C side
+/// mutates the history through the attached handle). Dropping the handle
+/// saves the persistence file when one is configured.
+///
+/// ```no_run
+/// use sparcli::{text_input, History, HistoryOpts, TextInputOpts};
+///
+/// let history = History::new(HistoryOpts::new().app("myapp"));
+/// loop {
+///     match text_input("repl>", TextInputOpts::new().history(&history)) {
+///         Ok(Some(line)) => println!("{line}"),
+///         _ => break,   // cancelled or no terminal
+///     }
+/// }
+/// // drop(history) saves ~/.local/state/myapp/history
+/// ```
+pub struct History {
+    ptr: *mut ffi::ScHistory,
+}
+
+impl History {
+    /// Allocates a history (loads the file when one is configured).
+    pub fn new(opts: HistoryOpts) -> History {
+        let app = opts.app.as_deref().map(cstring);
+        let file = opts.file.as_deref().map(cstring);
+        let raw = ffi::ScHistoryOpts {
+            max_entries: opts.max_entries,
+            app: app.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+            file: file.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+            no_auto_add: opts.no_auto_add,
+            keep_duplicates: opts.keep_duplicates,
+        };
+        let ptr = unsafe { ffi::sc_history_new(raw) };
+        assert!(!ptr.is_null(), "sc_history_new: out of memory");
+        History { ptr }
+    }
+
+    /// Appends a line (empty lines / consecutive duplicates are skipped).
+    pub fn add(&mut self, line: &str) -> &mut Self {
+        unsafe { ffi::sc_history_add(self.ptr, cstring(line).as_ptr()) };
+        self
+    }
+    /// Number of retained entries.
+    pub fn count(&self) -> usize {
+        unsafe { ffi::sc_history_count(self.ptr) }
+    }
+    /// Entry at `index` (`0` = oldest), or `None` when out of range.
+    pub fn get(&self, index: usize) -> Option<String> {
+        let p = unsafe { ffi::sc_history_get(self.ptr, index) };
+        if p.is_null() {
+            None
+        } else {
+            Some(unsafe {
+                std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned()
+            })
+        }
+    }
+    /// Writes the entries to the configured persistence file.
+    pub fn save(&self) -> bool {
+        unsafe { ffi::sc_history_save(self.ptr) }
+    }
+    /// Reloads the entries from the configured persistence file.
+    pub fn load(&mut self) -> bool {
+        unsafe { ffi::sc_history_load(self.ptr) }
+    }
+
+    pub(crate) fn as_mut_ptr(&self) -> *mut ffi::ScHistory {
+        self.ptr
+    }
+}
+
+impl Drop for History {
+    fn drop(&mut self) {
+        unsafe { ffi::sc_history_free(self.ptr) };
+    }
+}
+
 /// Options for [`text_input`].
 #[derive(Default)]
 pub struct TextInputOpts<'a> {
@@ -388,6 +516,8 @@ pub struct TextInputOpts<'a> {
     pub external_editor: bool,
     pub editor: Option<String>,
     pub editor_key: Option<Chord>,
+    pub history: Option<&'a History>,
+    pub no_history_add: bool,
 }
 
 impl<'a> TextInputOpts<'a> {
@@ -443,6 +573,16 @@ impl<'a> TextInputOpts<'a> {
         self.editor = Some(cmd.into());
         self
     }
+    /// Attaches an input history: Up/Down recall, auto-add on submit.
+    pub fn history(mut self, h: &'a History) -> Self {
+        self.history = Some(h);
+        self
+    }
+    /// Do not auto-add the submitted line to the attached history.
+    pub fn no_history_add(mut self) -> Self {
+        self.no_history_add = true;
+        self
+    }
 }
 
 /// Single-line text entry. `*out` is owned and copied into a `String`.
@@ -491,6 +631,10 @@ pub fn text_input(prompt: &str, opts: TextInputOpts) -> Result<Option<String>> {
     if let Some(k) = opts.editor_key {
         o.editor_key = k.0;
     }
+    if let Some(h) = opts.history {
+        o.history = h.as_mut_ptr();
+    }
+    o.no_history_add = opts.no_history_add;
 
     let mut out: *mut c_char = std::ptr::null_mut();
     let st =

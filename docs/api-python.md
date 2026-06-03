@@ -182,6 +182,28 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 `input_available()` reports whether a prompt can run (useful to fall back to a default in non-interactive contexts).
 
+### Input history (REPLs)
+
+`sc.History` gives the text input ↑/↓ recall of previous entries; submitted lines are recorded automatically and can persist across runs in the XDG state directory (`app="myapp"` → `~/.local/state/myapp/history`) or an explicit `file=...`. As a context manager it saves on exit.
+
+```python
+with sc.History(app="myapp") as history:
+    while (line := sc.text_input("repl>",
+            sc.TextInputOpts(history=history))) is not None:
+        dispatch(line)        # the line is already in the history
+
+# manual control
+history = sc.History(max_entries=200, keep_duplicates=True)
+history.add("first").add("second")
+len(history)                  # 2
+history[0], history[-1]       # "first", "second"
+history.entries()             # ["first", "second"]
+history.save(); history.load()
+
+# per-call opt-out of the automatic recording
+sc.text_input("repl>", sc.TextInputOpts(history=history, no_history_add=True))
+```
+
 ### Input constraints
 
 ### Calculator mode (number input)

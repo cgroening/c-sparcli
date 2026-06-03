@@ -378,6 +378,62 @@ static int child_case(int c) {
             free(text);
             return ok ? 0 : 1;
         }
+        case 26: {
+            /* History recall: Up walks to "second", Up again to "first",
+               Enter submits the recalled entry. Auto-add then appends the
+               submitted line (different from the newest entry). */
+            ScHistory *h = sc_history_new((ScHistoryOpts){ 0 });
+            sc_history_add(h, "first");
+            sc_history_add(h, "second");
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("repl", &t,
+                (ScTextInputOpts){ .history = h });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "first") == 0
+                      && sc_history_count(h) == 3);
+            free(t);
+            sc_history_free(h);
+            return ok ? 0 : 1;
+        }
+        case 27: {
+            /* Recall + edit: Up recalls "list", typing " -a" appends to the
+               recalled text, Enter submits "list -a". */
+            ScHistory *h = sc_history_new((ScHistoryOpts){ 0 });
+            sc_history_add(h, "list");
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("repl", &t,
+                (ScTextInputOpts){ .history = h });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "list -a") == 0);
+            free(t);
+            sc_history_free(h);
+            return ok ? 0 : 1;
+        }
+        case 28: {
+            /* Live-line restore: type "draft", Up recalls "older", Down
+               returns to the preserved "draft", Enter submits it. */
+            ScHistory *h = sc_history_new((ScHistoryOpts){ 0 });
+            sc_history_add(h, "older");
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("repl", &t,
+                (ScTextInputOpts){ .history = h });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "draft") == 0
+                      && sc_history_count(h) == 2);
+            free(t);
+            sc_history_free(h);
+            return ok ? 0 : 1;
+        }
+        case 29: {
+            /* no_history_add: the submitted line must NOT be recorded. */
+            ScHistory *h = sc_history_new((ScHistoryOpts){ 0 });
+            sc_history_add(h, "existing");
+            char *t = NULL;
+            ScInputStatus s = sc_text_input("repl", &t,
+                (ScTextInputOpts){ .history = h, .no_history_add = true });
+            int ok = (s == SC_INPUT_OK && t && strcmp(t, "new") == 0
+                      && sc_history_count(h) == 1);
+            free(t);
+            sc_history_free(h);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -417,6 +473,10 @@ static const Case CASES[] = {
     { "calc-store-rounded", "=10/3\r\r" },         /* rounded display == out */
     { "calc-edit-after-accept", "=2*3\r9\r" },     /* accept "6", edit to "69" */
     { "calc-discard-warning", "=10/3\r\x7f\r" },   /* edit discards exact value */
+    { "history-recall", "\x1b[A\x1b[A\r" },        /* up, up -> oldest entry */
+    { "history-edit-recalled", "\x1b[A -a\r" },    /* up, then append " -a" */
+    { "history-live-restore", "draft\x1b[A\x1b[B\r" },  /* up, down -> draft */
+    { "history-no-auto-add", "new\r" },            /* submit is not recorded */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

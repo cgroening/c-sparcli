@@ -8,6 +8,7 @@ when no controlling terminal is available.
 from __future__ import annotations
 
 import datetime as _dt
+import weakref
 from dataclasses import dataclass, field
 from decimal import Decimal
 
@@ -114,6 +115,84 @@ class SuggestOpts:
         c.marker = cstr(arena, self.marker)
 
 
+# ── input history ────────────────────────────────────────────────────────────
+class History:
+    """Input history for text prompts: Up/Down recall + optional persistence.
+
+    Attach it via :attr:`TextInputOpts.history`; the prompt then recalls
+    entries with the arrow keys and records every submitted line
+    automatically. Use ``app="myapp"`` to persist the history in
+    ``~/.local/state/myapp/history`` across runs; ``file=...`` names an
+    explicit path instead. As a context manager, the history is saved and
+    freed on exit; otherwise it is saved when garbage-collected or via
+    :meth:`save`.
+
+    >>> with sc.History(app="myapp") as history:          # doctest: +SKIP
+    ...     while (line := sc.text_input("repl>",
+    ...             sc.TextInputOpts(history=history))) is not None:
+    ...         dispatch(line)
+    """
+
+    __slots__ = ("_p", "_finalizer", "__weakref__")
+
+    def __init__(self, *, max_entries: int = 0, app: str | None = None,
+                 file: str | None = None, no_auto_add: bool = False,
+                 keep_duplicates: bool = False) -> None:
+        arena: list = []
+        c = ffi.new("ScHistoryOpts *")
+        c.max_entries = max_entries
+        c.app = cstr(arena, app)
+        c.file = cstr(arena, file)
+        c.no_auto_add = no_auto_add
+        c.keep_duplicates = keep_duplicates
+        p = lib.sc_history_new(c[0])
+        if p == ffi.NULL:
+            raise MemoryError("sc_history_new failed")
+        self._p = p
+        self._finalizer = weakref.finalize(self, lib.sc_history_free, p)
+
+    def add(self, line: str) -> "History":
+        """Append a line (empty lines / consecutive duplicates skip)."""
+        local: list = []
+        lib.sc_history_add(self._p, cstr(local, line))
+        return self
+
+    def __len__(self) -> int:
+        return int(lib.sc_history_count(self._p))
+
+    def __getitem__(self, index: int) -> str:
+        """Entry at ``index`` (0 = oldest); raises IndexError out of range."""
+        if index < 0:
+            index += len(self)
+        p = lib.sc_history_get(self._p, index) if index >= 0 else ffi.NULL
+        if p == ffi.NULL:
+            raise IndexError("history index out of range")
+        return ffi.string(p).decode()
+
+    def entries(self) -> list[str]:
+        """All retained entries, oldest first."""
+        return [self[i] for i in range(len(self))]
+
+    def save(self) -> bool:
+        """Write the entries to the configured persistence file."""
+        return bool(lib.sc_history_save(self._p))
+
+    def load(self) -> bool:
+        """Reload the entries from the configured persistence file."""
+        return bool(lib.sc_history_load(self._p))
+
+    def close(self) -> None:
+        """Save (when a file is configured) and free the handle."""
+        self._finalizer()
+
+    def __enter__(self) -> "History":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
+# ── text input ───────────────────────────────────────────────────────────────
 @dataclass
 class TextInputOpts:
     """Options for :func:`text_input`."""
@@ -146,6 +225,8 @@ class TextInputOpts:
     external_editor: bool = False
     editor: str | None = None
     editor_key: KeyChord | None = None
+    history: History | None = None
+    no_history_add: bool = False
 
     def _fill(self, c, arena: list) -> None:
         c.initial = cstr(arena, self.initial)
@@ -174,6 +255,9 @@ class TextInputOpts:
         c.editor = cstr(arena, self.editor)
         if self.editor_key is not None:
             c.editor_key = self.editor_key.value
+        if self.history is not None:
+            c.history = self.history._p
+        c.no_history_add = self.no_history_add
 
 
 def text_input(

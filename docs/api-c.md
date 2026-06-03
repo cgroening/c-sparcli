@@ -963,6 +963,7 @@ void    sc_live_end(ScLive *live);   /* restore terminal + free the handle */
 | `show_cursor` | Keep the cursor visible; **zero-init hides it** during the session (the natural default for live displays) and restores it on end |
 | `transient` | Erase the live region on end instead of leaving the final frame; off-terminal it suppresses the final-frame output |
 | `always` | Emit the redraw escape codes even when the output stream is not a terminal |
+| `prompt_rows` | Rows reserved **below** the frame for an interactive prompt (REPL dashboards): after every update the cursor parks at column 0 of the first reserved row, where e.g. `sc_text_input` (with `hide_summary = true`) runs and erases itself; the next update rewinds over frame + reserve together. Reserve as many rows as the prompt draws. Zero-init = 0 = classic behavior. See `examples/repl_dashboard.c` |
 
 ```c
 ScLive *live = sc_live_begin((ScLiveOpts){ 0 });
@@ -990,8 +991,9 @@ sc_live_end(live);   /* leaves the final frame on screen */
 - **Frames are caller-built:** rebuild the frame against `sc_terminal_width()` each iteration; the session never re-renders on its own (no background thread - the output stream is thread-local).
 - **Cleanup safety:** cursor visibility and the alternate screen are restored via `atexit` on clean exits and on SIGINT/SIGTERM/SIGHUP/SIGQUIT (the signal is then re-raised). Crash signals (SIGSEGV/SIGABRT) are deliberately not trapped - after a crash in `alt_screen` mode, run `reset`.
 - **One session per terminal** at a time; `sc_live_end` frees the handle (no separate `_free`). `sc_live_end(NULL)` is safe.
+- **Composing with a prompt** (`prompt_rows`): the live display and an input widget can share the terminal - the dashboard redraws in place above, the prompt runs in the reserved rows below. The prompt must hide its summary line; its self-erase returns the cursor exactly to where the live display parked it, keeping both regions' arithmetic stable across the loop.
 
-Run the demo with `make run-example EX=live_demo`.
+Run the demos with `make run-example EX=live_demo` and `make run-example EX=repl_dashboard`.
 
 ---
 
@@ -1151,6 +1153,7 @@ Single-line entry over a shared line editor (UTF-8 cursor/insert/delete/word- ki
 | `suggestions` / `n_suggestions` | Text only: autocomplete word list. Default presentation is a dim ghost (first prefix match; Tab accepts); see `suggest` for the dropdown |
 | `suggest` | `ScSuggestOpts` – presentation of `suggestions`: ghost text (zero-init) or a navigable dropdown list (see below) |
 | `validate` / `validate_ctx` | Validator; keeps the prompt open and shows an error line |
+| `history` / `no_history_add` | Text only: attach an `ScHistory` for ↑/↓ recall of previous entries; submitted lines are recorded automatically unless `no_history_add`. Borrowed for the call; see [Input history](#input-history-sc_history) |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 `*out` is heap-allocated on `SC_INPUT_OK` – the caller must `free()` it.
@@ -1314,6 +1317,48 @@ Month-grid calendar. Arrows move day/week; PageUp/PageDown (or `<`/`>`) change m
 | `prompt_style` / `header_style` / `weekday_style` / `selected_style` | Styles |
 | `header_prev` / `header_next` | Month-arrow glyphs; `NULL` = "‹" / "›" |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
+
+### Input history (sc_history)
+
+REPL-style command history for the text input: ↑/↓ recall previous entries, submitted lines are recorded automatically, and the history optionally persists across runs. The handle is pure storage (the recall navigation lives in the text input); one handle naturally spans a whole REPL session. Header: `input/sparcli_history.h`.
+
+```c
+ScHistory  *sc_history_new(ScHistoryOpts opts);   /* loads the file, if configured */
+void        sc_history_add(ScHistory *h, const char *line);
+size_t      sc_history_count(const ScHistory *h);
+const char *sc_history_get(const ScHistory *h, size_t index);  /* 0 = oldest */
+bool        sc_history_save(const ScHistory *h);
+bool        sc_history_load(ScHistory *h);        /* replaces current entries */
+void        sc_history_free(ScHistory *h);        /* saves + frees */
+```
+
+| `ScHistoryOpts` field | Description |
+|-------|-------------|
+| `max_entries` | Retained entry cap; `0` = 500. Oldest entries are evicted past the cap |
+| `app` | XDG persistence: entries live in `~/.local/state/<app>/history` (created on first use) |
+| `file` | Explicit persistence file path; overrides `app`. `NULL` + no `app` = in-memory only |
+| `no_auto_add` | When attached to a text input, do **not** record submitted lines automatically |
+| `keep_duplicates` | Keep consecutive duplicate lines instead of collapsing them |
+
+Attach it via `ScTextInputOpts.history` (borrowed for the call):
+
+```c
+ScHistory *hist = sc_history_new((ScHistoryOpts){ .app = "myapp" });
+
+for (;;) {
+    char *line = NULL;
+    ScInputStatus st = sc_text_input("repl>", &line,
+        (ScTextInputOpts){ .history = hist });
+    if (st != SC_INPUT_OK) { break; }
+    /* dispatch(line) - the line was already added to hist automatically */
+    free(line);
+}
+sc_history_free(hist);   /* writes ~/.local/state/myapp/history */
+```
+
+**Behavior:** ↑ recalls older entries (newest first); the in-progress line is preserved and restored by walking back down past the newest entry; typing/editing leaves the recall. While the autocomplete dropdown shows matches it keeps priority over history on ↑/↓. Auto-add skips empty lines and consecutive duplicates and is disabled per call with `ScTextInputOpts.no_history_add`. Entries are sanitized when they enter the history (`sc_history_add` and file load); lines containing line breaks are rejected.
+
+Examples: `examples/repl_minimal.c` (just the loop + history), `examples/repl_demo.c` (full REPL with the argument parser).
 
 ### Theme
 

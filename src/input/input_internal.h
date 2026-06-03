@@ -454,6 +454,16 @@ void sc_le_render_into(
 );
 
 
+/* ── Input history (history.c) ──────────────────────────────────────────── */
+
+/**
+ * Whether a text input should auto-add submitted lines to this history
+ * (the handle's `no_auto_add` opt-out, NULL-safe). The recall navigation
+ * itself lives in text_input.c; the handle is pure storage.
+ */
+bool sc_history_auto_add(const ScHistory *history);
+
+
 /* ── Shared text-entry core (text_input.c) ──────────────────────────────── */
 
 /**
@@ -532,6 +542,12 @@ typedef struct ScTextEntryCfg {
     bool external_editor;
     const char *editor;
     ScKeyChord editor_key;
+
+    /** Input history for Up/Down recall (borrowed; text_input only). */
+    ScHistory *history;
+
+    /** Auto-add submitted lines to `history` (resolved opt-outs). */
+    bool history_auto;
 } ScTextEntryCfg;
 
 /**

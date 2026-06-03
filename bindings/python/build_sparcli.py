@@ -79,6 +79,7 @@ _SOURCES = [
     "input/select.c",
     "input/fuzzy.c",
     "input/datepicker.c",
+    "input/history.c",
     "output/pager.c",
     "output/live.c",
     "app/paths.c",
@@ -90,6 +91,7 @@ _SOURCES = [
     "args/args_parse.c",
     "args/args_help.c",
     "args/args_complete.c",
+    "args/args_split.c",
 ]
 
 ffibuilder = FFI()
@@ -665,6 +667,24 @@ typedef struct {
 } ScConfirmOpts;
 ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts);
 
+/* ── Input history ─────────────────────────────────────────────────────── */
+typedef struct {
+    size_t max_entries;
+    const char *app;
+    const char *file;
+    bool no_auto_add;
+    bool keep_duplicates;
+    ...;
+} ScHistoryOpts;
+typedef struct ScHistory ScHistory;
+ScHistory *sc_history_new(ScHistoryOpts opts);
+void sc_history_add(ScHistory *history, const char *line);
+size_t sc_history_count(const ScHistory *history);
+const char *sc_history_get(const ScHistory *history, size_t index);
+bool sc_history_save(const ScHistory *history);
+bool sc_history_load(ScHistory *history);
+void sc_history_free(ScHistory *history);
+
 /* ── Text input ────────────────────────────────────────────────────────── */
 typedef struct {
     ScSuggestMode mode;
@@ -713,6 +733,8 @@ typedef struct {
     bool external_editor;
     const char *editor;
     ScKeyChord editor_key;
+    ScHistory *history;
+    bool no_history_add;
     ...;
 } ScTextInputOpts;
 ScInputStatus sc_text_input(const char *prompt, char **out, ScTextInputOpts opts);

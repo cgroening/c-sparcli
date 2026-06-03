@@ -10,6 +10,8 @@ static void check_positionals(void);
 static void check_defaults_and_types(void);
 static void check_double_dash(void);
 static void check_opts_are_copied(void);
+static void check_reset(void);
+static void check_reparse_is_clean(void);
 
 
 /** Parse loop, value binding, getters, defaults and the opts-copy rule. */
@@ -22,6 +24,8 @@ void test_args_parse(void) {
     check_defaults_and_types();
     check_double_dash();
     check_opts_are_copied();
+    check_reset();
+    check_reparse_is_clean();
 }
 
 
@@ -253,5 +257,74 @@ static void check_opts_are_copied(void) {
     sc_args_parse(args, 3, argv, &status);
     CHECK(status == SC_ARGS_MATCHED && sc_args_get_enum(args, "pick") == 1,
           "parse: builder strings are copied (clobbered buffers are safe)");
+    sc_args_free(args);
+}
+
+
+/* ── sc_args_reset ───────────────────────────────────────────────────────── */
+
+static void check_reset(void) {
+    ScArgs *args = test_args_build_demo();
+    char *argv[] = { "demo", "--verbose", "build", "--jobs", "8", "app" };
+    ScArgsStatus status;
+    sc_args_parse(args, 6, argv, &status);
+
+    sc_args_reset(args);
+    CHECK(!sc_args_get_flag(args, "verbose"),
+          "reset: flags are cleared");
+    CHECK(!sc_args_present(args, "jobs"),
+          "reset: option values are cleared");
+    CHECK(sc_args_get_str(args, "TARGET") == NULL,
+          "reset: positional values are cleared");
+    CHECK(sc_args_selected_command(args) == NULL,
+          "reset: the matched command is cleared");
+
+    // The tree stays intact: the same line parses again after a reset
+    sc_args_parse(args, 6, argv, &status);
+    CHECK(status == SC_ARGS_MATCHED && sc_args_get_int(args, "jobs") == 8,
+          "reset: the tree is reusable after a reset");
+
+    // Re-parse without --jobs: the default definition survived the reset
+    char *argv_no_jobs[] = { "demo", "build", "app" };
+    sc_args_parse(args, 3, argv_no_jobs, &status);
+    CHECK(status == SC_ARGS_MATCHED && sc_args_get_int(args, "jobs") == 4,
+          "reset: option defaults survive a reset");
+    sc_args_free(args);
+
+    // NULL safety
+    sc_args_reset(NULL);
+    CHECK(true, "reset: NULL parser is a safe no-op");
+}
+
+
+/* ── Implicit reset on re-parse (REPL loop) ──────────────────────────────── */
+
+static void check_reparse_is_clean(void) {
+    ScArgs *args = test_args_build_demo();
+    ScArgsStatus status;
+
+    // First line binds options + positionals on the build subcommand
+    char *argv_first[] = {
+        "demo", "--verbose", "build", "--jobs", "8", "app", "extra1", "extra2"
+    };
+    sc_args_parse(args, 8, argv_first, &status);
+    CHECK(status == SC_ARGS_MATCHED && sc_args_get_int(args, "jobs") == 8,
+          "reparse: first parse binds values");
+
+    // Second line on the same tree: nothing from the first may survive
+    char *argv_second[] = { "demo", "clean" };
+    const ScArgsCmd *matched = sc_args_parse(args, 2, argv_second, &status);
+    CHECK(status == SC_ARGS_MATCHED
+              && strcmp(sc_args_cmd_name(matched), "clean") == 0,
+          "reparse: second parse matches the new command");
+    CHECK(!sc_args_get_flag(args, "verbose"),
+          "reparse: flags from the previous run are gone");
+    CHECK(!sc_args_present(args, "jobs"),
+          "reparse: option values from the previous run are gone");
+
+    size_t count = 99;
+    sc_args_get_many(args, "EXTRA", &count);
+    CHECK(count == 0,
+          "reparse: variadic positionals from the previous run are gone");
     sc_args_free(args);
 }

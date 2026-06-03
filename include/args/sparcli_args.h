@@ -238,6 +238,63 @@ SPARCLI_EXPORT const ScArgsCmd *sc_args_parse(
     ScArgs *args, int argc, char **argv, ScArgsStatus *status
 );
 
+/**
+ * Clears all parse results without rebuilding the tree: every option becomes
+ * absent (its value freed), every positional is emptied, and the matched
+ * command is reset.
+ *
+ * `sc_args_parse` calls this implicitly at its start, so a tree can be
+ * re-parsed (e.g. once per REPL line) with no explicit call. Call it directly
+ * to discard results without parsing again.
+ *
+ * @param args  Parser; safe to pass `NULL`.
+ */
+SPARCLI_EXPORT void sc_args_reset(ScArgs *args);
+
+/**
+ * Splits one command line into an argv vector for `sc_args_parse`.
+ *
+ * Tokens are separated by whitespace. Single quotes (`'…'`) group literally;
+ * double quotes (`"…"`) group with backslash escapes; a backslash outside
+ * single quotes escapes the next character. Quoted and bare runs concatenate
+ * into one token (`a"b c"d` becomes `ab cd`). The tokens are *not* sanitized
+ * here - `sc_args_parse` sanitizes every token itself.
+ *
+ * @code
+ * int argc = 0;
+ * char err[64];
+ * char **argv = sc_args_split("tool", line, &argc, err, sizeof err);
+ * if (!argv) {
+ *     // unbalanced quote / trailing backslash: err holds the reason
+ * } else {
+ *     sc_args_parse(args, argc, argv, &status);
+ *     sc_args_split_free(argv);
+ * }
+ * @endcode
+ *
+ * @param prog      Program name placed in `argv[0]` (parsing starts at
+ *                  index 1, matching `main`); copied; `NULL` = empty.
+ * @param line      The input line; `NULL` = empty.
+ * @param argc      Receives the token count including `argv[0]`; may be
+ *                  `NULL`.
+ * @param err       Buffer for a short error reason (`"unterminated quote"`,
+ *                  `"trailing backslash"`); may be `NULL`.
+ * @param err_size  Size of `err` in bytes.
+ * @return          `NULL`-terminated heap argv (free with
+ *                  `sc_args_split_free`); `NULL` on error.
+ */
+SPARCLI_EXPORT char **sc_args_split(
+    const char *prog, const char *line, int *argc,
+    char *err, size_t err_size
+);
+
+/**
+ * Frees an argv vector returned by `sc_args_split`.
+ *
+ * @param argv  The vector to free; safe to pass `NULL`.
+ */
+SPARCLI_EXPORT void sc_args_split_free(char **argv);
+
 
 /* ── Reading results (after sc_args_parse) ──────────────────────────────── */
 

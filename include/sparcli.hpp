@@ -98,6 +98,7 @@ using SelectOpts      = ScSelectOpts;
 using FuzzyOpts       = ScFuzzyOpts;
 using DatePickerOpts  = ScDatePickerOpts;
 using InputTheme      = ScInputTheme;
+using HistoryOpts     = ScHistoryOpts;
 
 // ── Color helpers (avoid the C SC_ANSI_COLOR_* compound-literal macros, which
 //    are non-standard in C++; the functional accessors below are equivalent) ──
@@ -1280,6 +1281,35 @@ public:
         if (!matched) { return std::nullopt; }
         return ArgsCmd(const_cast<ScArgsCmd*>(matched));
     }
+    /**
+     * Tokenizes one REPL line (shell-style quotes/escapes) and parses it -
+     * the read-eval loop in one call. Tokenizer errors (unbalanced quote)
+     * are reported through `split_error`; parse errors are rendered by the
+     * parser itself. Re-parsing resets the previous results automatically.
+     * @see sc_args_split, sc_args_parse
+     */
+    std::optional<ArgsCmd> parse_line(std::string_view line,
+                                      std::string* split_error = nullptr) {
+        int argc = 0;
+        char err[64] = "";
+        // argv[0] is a placeholder: errors/help always use the prog name
+        // given at construction, never argv[0].
+        char** argv = sc_args_split("", detail::z(line).c_str(), &argc,
+                                    err, sizeof err);
+        if (!argv) {
+            if (split_error) { *split_error = err; }
+            status_ = SC_ARGS_ERROR;
+            return std::nullopt;
+        }
+        auto matched = parse(argc, argv);
+        sc_args_split_free(argv);
+        return matched;
+    }
+    /** Clears all parse results without reparsing. @see sc_args_reset */
+    void reset() {
+        sc_args_reset(p_);
+        status_ = SC_ARGS_MATCHED;
+    }
     /** Outcome of the last parse. */
     ArgsStatus status() const { return status_; }
     /** Suggested process exit code for the last parse outcome. */
@@ -1338,6 +1368,105 @@ public:
 private:
     ScArgs* p_;
     ArgsStatus status_ = SC_ARGS_MATCHED;
+};
+
+/**
+ * Splits one command line into shell-style tokens (quotes group, backslash
+ * escapes). Unlike `Args::parse_line` this returns the raw tokens, without
+ * a program-name placeholder. Empty optional on unbalanced quotes / trailing
+ * backslash; the reason is written to `*error` when given.
+ * @see sc_args_split
+ */
+inline std::optional<std::vector<std::string>> args_split(
+    std::string_view line, std::string* error = nullptr
+) {
+    int argc = 0;
+    char err[64] = "";
+    char** argv = sc_args_split("", detail::z(line).c_str(), &argc,
+                                err, sizeof err);
+    if (!argv) {
+        if (error) { *error = err; }
+        return std::nullopt;
+    }
+    std::vector<std::string> tokens;
+    if (argc > 1) { tokens.reserve(static_cast<std::size_t>(argc) - 1); }
+    for (int i = 1; i < argc; i++) {   // skip the argv[0] placeholder
+        tokens.emplace_back(argv[i]);
+    }
+    sc_args_split_free(argv);
+    return tokens;
+}
+
+// ── Input history ────────────────────────────────────────────────────────────
+
+/**
+ * Owning, move-only input history (wraps `ScHistory`): Up/Down recall for
+ * text prompts + optional persistence in the XDG state directory.
+ *
+ * Attach it to a text input with `apply(opts)` (or `opts.history = h.get()`);
+ * submitted lines are then added automatically and Up/Down recall them.
+ * The destructor saves the file (when one is configured) and frees the handle.
+ *
+ * @code
+ * sparcli::History history({ .app = "myapp" });   // persisted across runs
+ * for (;;) {
+ *     sparcli::TextInputOpts opts{};
+ *     history.apply(opts);
+ *     auto line = sparcli::text_input("repl>", opts);
+ *     if (!line) { break; }
+ *     dispatch(*line);
+ * }
+ * @endcode
+ *
+ * @see sparcli_history.h
+ */
+class History {
+public:
+    /** Allocates a history (loads the file when one is configured).
+        @throws std::bad_alloc */
+    explicit History(HistoryOpts opts = {}) : p_(sc_history_new(opts)) {
+        if (!p_) throw std::bad_alloc();
+    }
+    ~History() { sc_history_free(p_); }
+    History(History&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    History& operator=(History&& o) noexcept {
+        if (this != &o) { sc_history_free(p_); p_ = o.p_; o.p_ = nullptr; }
+        return *this;
+    }
+    History(const History&) = delete;
+    History& operator=(const History&) = delete;
+
+    /** Appends a line (copied; empty lines / consecutive duplicates skip).
+        @see sc_history_add */
+    History& add(std::string_view line) {
+        sc_history_add(detail::live(p_), detail::z(line).c_str());
+        return *this;
+    }
+    /** Number of retained entries. @see sc_history_count */
+    std::size_t count() const { return sc_history_count(detail::live(p_)); }
+    /** Entry at `index` (0 = oldest); empty optional when out of range.
+        @see sc_history_get */
+    std::optional<std::string> get(std::size_t index) const {
+        const char* entry = sc_history_get(detail::live(p_), index);
+        if (!entry) { return std::nullopt; }
+        return std::string(entry);
+    }
+    /** Writes the entries to the configured file. @see sc_history_save */
+    bool save() const { return sc_history_save(detail::live(p_)); }
+    /** Reloads the entries from the configured file. @see sc_history_load */
+    bool load() { return sc_history_load(detail::live(p_)); }
+
+    /** Wires this history into a text input's opts. */
+    TextInputOpts& apply(TextInputOpts& opts) {
+        opts.history = detail::live(p_);
+        return opts;
+    }
+
+    /** Borrowed underlying `ScHistory*` (for `opts.history`); not owned. */
+    ScHistory* get() { return p_; }
+
+private:
+    ScHistory* p_;
 };
 
 // ── Custom shortcuts ─────────────────────────────────────────────────────────

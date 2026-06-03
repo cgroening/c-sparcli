@@ -3,6 +3,7 @@
 #include "core/sparcli_core.h"
 #include "input/sparcli_term.h"
 #include "input/sparcli_shortcut.h"
+#include "input/sparcli_history.h"
 
 
 SPARCLI_BEGIN_DECLS
@@ -214,6 +215,19 @@ typedef struct ScTextInputOpts {
     /** Key that opens the editor; zero-init = Ctrl-G.
         @see sparcli_shortcut.h */
     ScKeyChord editor_key;
+
+    /**
+     * Optional input history: Up/Down recall previous entries (newest
+     * first); typing returns to the live line. While the suggestion
+     * dropdown shows matches, it keeps priority over history on Up/Down.
+     * Submitted lines are added automatically unless `no_history_add` (or
+     * the handle's own `no_auto_add`) is set. Borrowed for the call.
+     * @see sparcli_history.h
+     */
+    ScHistory *history;
+
+    /** Do not auto-add the submitted line to `history` for this call. */
+    bool no_history_add;
 } ScTextInputOpts;
 
 /**

@@ -30,6 +30,7 @@ extern int g_args_failures;
 void test_args_parse(void);
 void test_args_errors(void);
 void test_args_help(void);
+void test_args_split(void);
 
 /* Shared helpers (test_args_main.c). */
 

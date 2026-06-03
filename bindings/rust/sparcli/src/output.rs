@@ -1560,6 +1560,11 @@ pub struct LiveOpts {
 
     /// Emit redraw escape codes even when output is not a terminal.
     pub always: bool,
+
+    /// Rows reserved below the frame for an interactive prompt (REPL
+    /// dashboards): the cursor is parked there after every update. Reserve
+    /// as many rows as the prompt draws. 0 = classic behavior.
+    pub prompt_rows: i32,
 }
 
 impl LiveOpts {
@@ -1580,6 +1585,10 @@ impl LiveOpts {
     }
     pub fn always(mut self) -> Self {
         self.always = true;
+        self
+    }
+    pub fn prompt_rows(mut self, rows: i32) -> Self {
+        self.prompt_rows = rows;
         self
     }
 }
@@ -1614,6 +1623,7 @@ impl Live {
             show_cursor: opts.show_cursor,
             transient: opts.transient,
             always: opts.always,
+            prompt_rows: opts.prompt_rows,
         };
         let ptr = unsafe { ffi::sc_live_begin(raw_opts) };
         Live { ptr }

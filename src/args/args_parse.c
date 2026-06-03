@@ -65,7 +65,9 @@ const ScArgsCmd *sc_args_parse(
         .index = 1,
         .status = SC_ARGS_MATCHED,
     };
-    args->matched = NULL;
+    // Clear any previous run's results so re-parsing the same tree (e.g.
+    // once per REPL line) never sees stale values.
+    sc_args_reset(args);
 
     for (; state.index < state.argc; state.index++) {
         // Every argv token is untrusted input: sanitize before use

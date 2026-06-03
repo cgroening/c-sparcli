@@ -179,16 +179,25 @@ static void begin_terminal_modes(ScLive *live) {
  * Redraws the live region in place: rewinds to the first line of the
  * previous frame, overwrites line by line (erasing stale content to the
  * right), and erases leftover lines from a previously taller frame.
+ *
+ * With `prompt_rows` reserved, the cursor is then parked at column 0 of the
+ * first reserved row (where an interactive prompt runs); the reserved rows
+ * count into `prev_lines`, so the next rewind still lands on the frame top.
  */
 static void draw_frame(ScLive *live, const ScRendered *frame) {
     FILE *out = live->stream;
+    int reserve = live->opts.prompt_rows > 0 ? live->opts.prompt_rows : 0;
 
     // Never draw more lines than the terminal has rows: a taller frame
-    // would scroll the screen and break the cursor-up arithmetic.
+    // would scroll the screen and break the cursor-up arithmetic. The
+    // reserved prompt rows always survive the clamp; the frame shrinks.
     size_t count = frame->line_count;
     int rows = sc_terminal_height();
-    if (rows > 0 && count > (size_t)rows) {
-        count = (size_t)rows;
+    if (rows > 0 && reserve >= rows) {
+        reserve = rows - 1;
+    }
+    if (rows > 0 && count + (size_t)reserve > (size_t)rows) {
+        count = (size_t)(rows - reserve);
     }
 
     // Rewind to the top-left of the previously drawn region.
@@ -208,7 +217,15 @@ static void draw_frame(ScLive *live, const ScRendered *frame) {
     }
     fputs(LIVE_ERASE_BELOW, out);
 
-    live->prev_lines = (int)count;
+    // Park the cursor at the start of the reserved prompt region.
+    for (int i = 0; i < reserve; i++) {
+        fputc('\n', out);
+    }
+    if (reserve > 0) {
+        fputc('\r', out);
+    }
+
+    live->prev_lines = (int)count + reserve;
     fflush(out);
 }
 

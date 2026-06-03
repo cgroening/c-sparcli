@@ -12,7 +12,7 @@ sparcli = { path = "bindings/rust/sparcli" }
 
 ## Design
 
-- **RAII handles** (`Text`, `Table`, `List`, `Tree`, `Kv`, `Columns`, `Rendered`, `ProgressBar`, `Spinner`, `Select`, `Fuzzy`) free themselves on drop. They hold raw pointers and are therefore **not `Send`/`Sync`**: the C output target is thread-local and the input session is process-global, so build and use a handle on one thread (each thread may build its own).
+- **RAII handles** (`Text`, `Table`, `List`, `Tree`, `Kv`, `Columns`, `Rendered`, `ProgressBar`, `Spinner`, `Select`, `Fuzzy`, `History`) free themselves on drop. They hold raw pointers and are therefore **not `Send`/`Sync`**: the C output target is thread-local and the input session is process-global, so build and use a handle on one thread (each thread may build its own).
 - **Builders.** Every `*Opts` is a plain struct with `Default` and chainable setters; public fields give full access. Borrowed strings (`Title`, cell text, …) are interned into an internal arena for the duration of the call.
 - **Colors / enums.** `Color::{NONE, RED, …, rgb(r,g,b)}`, `Style::bold()`, `Attr`, `Align`, `VAlign`, `BorderType`, `Position`, `ListMarker`, `ProgressType`, `SpinnerType`, `AlertType`, `WeekStart`, `HintLayout`, `HintPos`.
 - **Prompts** return `Result<Option<T>>`: `Ok(Some(v))` = value, `Ok(None)` = cancelled (Esc/Ctrl-C), `Err(Error::Unavailable)` = no TTY / read error.
@@ -115,6 +115,8 @@ let status = pager.end();
 
 // Live display: re-render a composed frame in place (dashboard).
 // Off-terminal, only the final frame is printed when the session ends.
+// .prompt_rows(n) reserves rows below the frame for an interactive prompt
+// (REPL dashboards) - the cursor parks there after every update.
 let live = sparcli::Live::begin(sparcli::LiveOpts::new());
 for percent in (0..=100).step_by(10) {
     let frame = sparcli::capture::str(&format!("progress: {percent}%"));
@@ -185,6 +187,18 @@ if let Some(indices) = sel.run()? { /* Vec<usize> */ }
 let mut fz = Fuzzy::new(FuzzyOpts::new().prompt("Find"));
 fz.add("Tokyo").add("London");
 if let Some(i) = fz.run()? { /* add-order index */ }
+
+// Input history (REPLs): Up/Down recall + auto-add on submit + persistence.
+// Dropping the handle saves the configured file.
+let history = History::new(HistoryOpts::new().app("myapp"));
+loop {
+    match text_input("repl>", TextInputOpts::new().history(&history)) {
+        Ok(Some(line)) => dispatch(&line),   // already recorded in the history
+        _ => break,                          // cancelled or no terminal
+    }
+}
+// history.add/count/get/save/load for manual control;
+// .no_history_add() opts a single prompt out of the automatic recording
 
 if let Some(d) = datepicker(None, DatePickerOpts::new().prompt("Date"))? {
     println!("{:04}-{:02}-{:02}", d.year, d.month, d.day);
