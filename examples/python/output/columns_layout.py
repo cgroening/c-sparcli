@@ -53,12 +53,27 @@ def print_pad_and_align() -> None:
     sc.align_str('centered heading', sc.Align.CENTER)
 
 
+def print_redirected() -> None:
+    """Redirect the output stream into a file for a block, then read it back."""
+    import tempfile
+
+    # ScopedOutput points the (thread-local) output stream at a real file for
+    # the block and restores the previous stream on exit.
+    with tempfile.TemporaryFile('w+') as tmp:
+        with sc.ScopedOutput(tmp):
+            sc.println('rendered into a file')
+        tmp.seek(0)
+        sc.println(f'redirected back to the terminal: {tmp.read().strip()}')
+
+
 def main() -> None:
     print_basic_columns()
     sc.println('')
     print_composed_layout()
     sc.println('')
     print_pad_and_align()
+    sc.println('')
+    print_redirected()
 
 
 if __name__ == '__main__':

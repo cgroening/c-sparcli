@@ -35,6 +35,20 @@ int main() {
 
     markup::println("\n[green]✔[/] Frame above was redrawn "
                     "in place on every update.");
+
+    // Fullscreen variant: alt_screen takes over the whole terminal and
+    // restores the previous screen on scope exit (a no-op off a TTY).
+    markup::println("[dim]Next: the same dashboard on the alternate "
+                    "screen...[/]");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    {
+        Live full(LiveOpts{ .alt_screen = true });
+        for (int step = 0; step <= kTotalSteps; ++step) {
+            full.update(build_frame(step));
+            std::this_thread::sleep_for(std::chrono::milliseconds(40));
+        }
+    }
+    markup::println("[green]✔[/] The previous screen was restored.");
     return 0;
 }
 

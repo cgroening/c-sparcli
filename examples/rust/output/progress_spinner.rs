@@ -11,6 +11,19 @@ fn main() {
     run_progress_bar();
     println("", Style::default());
     run_spinner();
+    println("", Style::default());
+    run_transient_line();
+}
+
+/// clear_line() overwrites the current line in place, for a transient status
+/// that should leave no trace afterwards.
+fn run_transient_line() {
+    use std::io::Write;
+    print("Preparing...", Style::default());
+    std::io::stdout().flush().ok();
+    sleep(Duration::from_millis(500));
+    clear_line();
+    println("Ready.", Style::default());
 }
 
 /// A styled block bar with brackets and a percentage.

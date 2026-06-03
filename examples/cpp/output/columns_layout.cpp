@@ -6,12 +6,16 @@
 
 #include <sparcli.hpp>
 
+#include <cstdio>
+#include <print>
+
 using namespace sparcli;
 
 
 static void print_basic_columns();
 static void print_composed_layout();
 static void print_pad_and_align();
+static void print_redirected();
 
 
 int main() {
@@ -20,6 +24,8 @@ int main() {
     print_composed_layout();
     println("");
     print_pad_and_align();
+    println("");
+    print_redirected();
     return 0;
 }
 
@@ -69,4 +75,22 @@ static void print_pad_and_align() {
 
     pad("indented by eight columns", { .left = 8 });
     align("centered heading", SC_ALIGN_CENTER, 0);
+}
+
+// Redirect the output stream into a file for a scope, then read it back.
+static void print_redirected() {
+    std::FILE* tmp = std::tmpfile();
+    if (!tmp) {
+        return;
+    }
+    // ScopedOutput points the (thread-local) output stream at `tmp` and
+    // restores the previous stream on scope exit.
+    { ScopedOutput to(tmp); println("rendered into a file"); }
+
+    std::rewind(tmp);
+    char line[128] = {};
+    if (std::fgets(line, sizeof line, tmp)) {
+        std::print("redirected back to the terminal: {}", line);
+    }
+    std::fclose(tmp);
 }

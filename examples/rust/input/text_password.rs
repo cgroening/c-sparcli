@@ -13,8 +13,21 @@ fn main() -> sparcli::Result<()> {
 
     run_plain_input()?;
     run_autocomplete_input()?;
+    run_rich_prompt()?;
     run_boxed_input()?;
     run_password()?;
+    Ok(())
+}
+
+/// Rich prompt: only part of the label styled. prompt_markup parses the prompt
+/// string as markup; prompt_text takes a pre-built Text for dynamic content.
+fn run_rich_prompt() -> sparcli::Result<()> {
+    if let Some(renamed) = text_input(
+        "Rename [italic]Apple[/] to",
+        TextInputOpts::new().initial("Apple").prompt_markup(true),
+    )? {
+        println(&format!("  -> {renamed:?}"), Style::default());
+    }
     Ok(())
 }
 

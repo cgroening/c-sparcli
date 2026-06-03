@@ -55,4 +55,15 @@ fn main() {
     let cut = truncate("A sentence that is far too long", 16, "…");
     println(&format!("stripped:  \"{plain}\""), Style::default());
     println(&format!("truncated: \"{cut}\""), Style::default());
+
+    // ANSI trust boundary: user strings are sanitized by default, so raw
+    // escape codes in untrusted input cannot inject styling. Opt in per widget
+    // with .ansi(...) (or process-wide via set_allow_ansi) when input is trusted.
+    println("", Style::default());
+    let pre_colored = "\x1b[31mpre-colored\x1b[0m input";
+    panel(pre_colored, PanelOpts::new().single().title("sanitized (default)"));
+    panel(
+        pre_colored,
+        PanelOpts::new().single().title("ansi allowed").ansi(AnsiMode::Allow),
+    );
 }

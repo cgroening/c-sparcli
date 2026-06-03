@@ -17,13 +17,26 @@
 
 static void run_progress_bars(void);
 static void run_spinner(void);
+static void run_transient_line(void);
 
 
 int main(void) {
     run_progress_bars();
     printf("\n");
     run_spinner();
+    printf("\n");
+    run_transient_line();
     return 0;
+}
+
+/** sc_clear_line overwrites the current line in place (\r + spaces + \r). */
+static void run_transient_line(void) {
+    // Useful for a transient status that should leave no trace afterwards.
+    printf("Preparing...");
+    fflush(stdout);
+    usleep(500000);
+    sc_clear_line();
+    printf("Ready.\n");
 }
 
 /** Two progress bars: a styled block bar and a threshold-colored line bar. */

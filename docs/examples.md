@@ -18,6 +18,21 @@ examples/
   cli/
 ```
 
+## Interactive launcher
+
+[`examples/run.zsh`](../examples/run.zsh) is a zsh launcher that drives the
+`sparcli` CLI on its own demo tree, picking an example in three steps –
+**language → group → example** (e.g. `c → output → table_basic`) – then running
+it. The last step is a fuzzy finder, so you can type to filter. Needs the
+`sparcli` binary (`make`) and a real terminal.
+
+```sh
+./examples/run.zsh        # or: SPARCLI=/usr/local/bin/sparcli ./examples/run.zsh
+```
+
+Enter selects; Esc steps back one level (Esc on the language menu exits). The
+`cli` category has no groups, so it lists its demos directly.
+
 ## Running an example
 
 One command dispatches on the language prefix:
@@ -73,16 +88,16 @@ Non-interactive; safe to run anywhere.
 
 | File | What it shows |
 |------|---------------|
-| `output/text_styles` | Colors and attributes, rich multi-span `Text`, OSC-8 links, badges, `strip_ansi`/`truncate`. |
+| `output/text_styles` | Colors and attributes, rich multi-span `Text`, OSC-8 links, badges, `strip_ansi`/`truncate`, and the ANSI-sanitization opt-out (per-widget `ansi` / `set_allow_ansi`). |
 | `output/markup` | Rich-style markup tags, nesting, literal brackets, inline code spans, link tags, `strip_unknown`/`code_style`. |
 | `output/panel_alert` | Bordered panels (titles, subtitles, padding, alignment, full width) and the five alert presets. |
 | `output/table_basic` | Columns, header/footer rows, alignment, border styles, per-column style. |
 | `output/table_advanced` | Colspan/rowspan, stripes, header column, markup cells, per-row background, word-wrap, row limits.¹ |
 | `output/list_tree` | Numbered/bulleted/nested lists with styled markers, and a styled tree with prefixes. |
 | `output/rule_kv` | Horizontal rules (titles, width, placement) and key-value lists (fixed width, wrapped values). |
-| `output/columns_layout` | Side-by-side columns with separators, capture + `vstack` composition, pad and align. |
-| `output/progress_spinner` | Animated progress bars (block + threshold-colored line) and a spinner with a changing label. |
-| `output/live` | Live in-place dashboard re-rendered from a captured + vstacked frame. |
+| `output/columns_layout` | Side-by-side columns with separators, capture + `vstack` composition, pad/align, and redirecting the output stream into a buffer/file. |
+| `output/progress_spinner` | Animated progress bars (block + threshold-colored line), a spinner with a changing label, and `clear_line` for a transient status. |
+| `output/live` | Live in-place dashboard re-rendered from a captured + vstacked frame, plus the fullscreen alternate-screen (`alt_screen`) variant. |
 | `output/pager` | Routing long output through `$PAGER` / `less -R` (no-op off a terminal). |
 
 ¹ Word-wrap and `max_rows` are demonstrated in the C and Python variants; the
@@ -95,7 +110,7 @@ Interactive; need a real terminal. Each falls back to a notice without one.
 | File | What it shows |
 |------|---------------|
 | `input/confirm_select` | Yes/no confirmation and single/multi selection (pre-check, cursor, viewport). |
-| `input/text_password` | Text input (placeholder, validation¹, char filter, autocomplete dropdown, boxed) and masked password input. |
+| `input/text_password` | Text input (placeholder, validation¹, char filter, autocomplete dropdown, boxed, rich `prompt_markup` prompt) and masked password input. |
 | `input/number_calc` | Stepping/clamping numeric input, calculator mode (exact value), and the pure `calc_eval`. |
 | `input/textarea_editor` | Multi-line textarea and the external-`$EDITOR` hook (Ctrl-G). |
 | `input/fuzzy` | Fuzzy finder over a list (all languages) and a table² (C/C++/Python), plus the pure `fuzzy_match`. |

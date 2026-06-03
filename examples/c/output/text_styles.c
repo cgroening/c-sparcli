@@ -77,5 +77,21 @@ int main(void) {
     free(plain);
     free(cut);
 
+    // ANSI trust boundary: user strings are sanitized by default, so raw
+    // escape codes in untrusted input cannot inject styling. Opt in per widget
+    // with the `ansi` field (or process-wide via sc_set_allow_ansi) when the
+    // input is trusted.
+    printf("\n");
+    const char *pre_colored = "\033[31mpre-colored\033[0m input";
+    sc_panel_str(pre_colored, (ScPanelOpts){
+        .border = { .type = SC_BORDER_SINGLE },
+        .title  = { .text = "sanitized (default)" },
+    });
+    sc_panel_str(pre_colored, (ScPanelOpts){
+        .border = { .type = SC_BORDER_SINGLE },
+        .title  = { .text = "ansi allowed" },
+        .ansi   = SC_ANSI_MODE_ALLOW,
+    });
+
     return 0;
 }

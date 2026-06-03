@@ -24,6 +24,19 @@ fn main() {
 
     markup::println("\n[green]✔[/] Frame above was redrawn in place \
                      on every update.");
+
+    // Fullscreen variant: alt_screen takes over the whole terminal and
+    // restores the previous screen on end (a no-op off a TTY).
+    markup::println("[dim]Next: the same dashboard on the alternate \
+                     screen...[/]");
+    sleep(Duration::from_secs(1));
+    let full = Live::begin(LiveOpts::new().alt_screen());
+    for step in 0..=TOTAL_STEPS {
+        full.update(&build_frame(step));
+        sleep(Duration::from_millis(40));
+    }
+    full.end();
+    markup::println("[green]✔[/] The previous screen was restored.");
 }
 
 /// Composes one dashboard frame: a status table plus a progress line.

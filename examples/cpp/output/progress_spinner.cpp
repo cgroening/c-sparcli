@@ -6,6 +6,7 @@
 #include <sparcli.hpp>
 
 #include <chrono>
+#include <cstdio>
 #include <thread>
 
 using namespace sparcli;
@@ -18,13 +19,26 @@ static void frame_delay(int milliseconds) {
 
 static void run_progress_bars();
 static void run_spinner();
+static void run_transient_line();
 
 
 int main() {
     run_progress_bars();
     println("");
     run_spinner();
+    println("");
+    run_transient_line();
     return 0;
+}
+
+// clear_line() overwrites the current line in place (\r + spaces + \r), for a
+// transient status that should leave no trace afterwards.
+static void run_transient_line() {
+    print("Preparing...");
+    std::fflush(stdout);
+    frame_delay(500);
+    clear_line();
+    println("Ready.");
 }
 
 // A styled block bar and a threshold-colored line bar.

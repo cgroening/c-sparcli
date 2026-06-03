@@ -18,6 +18,7 @@ static bool validate_not_empty(const char *value, void *ctx,
 
 static void run_plain_input(void);
 static void run_autocomplete_input(void);
+static void run_rich_prompt(void);
 static void run_boxed_input(void);
 static void run_password(void);
 
@@ -31,9 +32,25 @@ int main(void) {
 
     run_plain_input();
     run_autocomplete_input();
+    run_rich_prompt();
     run_boxed_input();
     run_password();
     return 0;
+}
+
+/** Rich prompt: only part of the label styled. */
+static void run_rich_prompt(void) {
+    // prompt_markup parses the prompt string as markup (here the old name is
+    // italic). For dynamic text, prompt_text takes a pre-built ScText instead,
+    // which needs no escaping even if the text contains '['.
+    char *renamed = NULL;
+    ScInputStatus status = sc_text_input(
+        "Rename [italic]Apple[/] to", &renamed,
+        (ScTextInputOpts){ .initial = "Apple", .prompt_markup = true });
+    if (status == SC_INPUT_OK) {
+        printf("  -> \"%s\"\n", renamed);
+        free(renamed);
+    }
 }
 
 /** Validation callback: keeps the prompt open until it returns true. */

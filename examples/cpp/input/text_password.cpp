@@ -23,6 +23,7 @@ static bool validate_not_empty(const char* value, void* /*ctx*/,
 
 static void run_plain_input();
 static void run_autocomplete_input();
+static void run_rich_prompt();
 static void run_boxed_input();
 static void run_password();
 
@@ -36,6 +37,7 @@ int main() {
 
     run_plain_input();
     run_autocomplete_input();
+    run_rich_prompt();
     run_boxed_input();
     run_password();
     return 0;
@@ -61,6 +63,15 @@ static void run_autocomplete_input() {
               .suggest = { .mode = SC_SUGGEST_DROPDOWN,
                            .match = SC_SUGGEST_MATCH_FUZZY } })) {
         std::println("  -> \"{}\"", *command);
+    }
+}
+
+// Rich prompt: only part of the label styled. prompt_markup parses the prompt
+// string as markup; prompt_text takes a pre-built Text for dynamic content.
+static void run_rich_prompt() {
+    if (auto renamed = text_input("Rename [italic]Apple[/] to",
+            { .initial = "Apple", .prompt_markup = true })) {
+        std::println("  -> \"{}\"", *renamed);
     }
 }
 

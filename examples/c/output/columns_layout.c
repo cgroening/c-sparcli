@@ -9,11 +9,13 @@
 #include <sparcli.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 
 static void print_basic_columns(void);
 static void print_composed_layout(void);
 static void print_pad_and_align(void);
+static void print_redirected(void);
 
 
 int main(void) {
@@ -22,6 +24,8 @@ int main(void) {
     print_composed_layout();
     printf("\n");
     print_pad_and_align();
+    printf("\n");
+    print_redirected();
     return 0;
 }
 
@@ -101,4 +105,26 @@ static void print_pad_and_align(void) {
     // One-step convenience variants for plain strings.
     sc_pad_str("indented by eight columns", (ScPadOpts){ .left = 8 });
     sc_align_str("centered heading", SC_ALIGN_CENTER, 0);
+}
+
+/** Redirect the output stream into a buffer instead of the terminal. */
+static void print_redirected(void) {
+    // sc_output_set_stream points rendering at any FILE* (thread-local), so
+    // the same widgets compose with capture/pager. Here we capture into an
+    // in-memory buffer and then inspect it.
+    char *buffer = NULL;
+    size_t size = 0;
+    FILE *mem = open_memstream(&buffer, &size);
+    if (!mem) {
+        return;
+    }
+    FILE *saved = sc_output_stream();
+    sc_output_set_stream(mem);
+    sc_println("rendered into a buffer", (ScTextStyle){ 0 });
+    sc_output_set_stream(saved);   // always restore the previous stream
+    fclose(mem);
+
+    printf("redirected %zu bytes back to the terminal: %s",
+           size, buffer ? buffer : "");
+    free(buffer);
 }

@@ -34,6 +34,16 @@ def run_autocomplete_input() -> None:
         sc.println(f'  -> {cmd!r}')
 
 
+def run_rich_prompt() -> None:
+    """Rich prompt: only part of the label styled. prompt_markup parses the
+    prompt as markup; prompt_text takes a pre-built Text for dynamic content."""
+    renamed = sc.text_input('Rename [italic]Apple[/] to',
+                            sc.TextInputOpts(initial='Apple',
+                                             prompt_markup=True))
+    if renamed is not None:
+        sc.println(f'  -> {renamed!r}')
+
+
 def run_boxed_input() -> None:
     """Boxed mode: panel frame, character counter, length limit."""
     title = sc.text_input('Title', sc.TextInputOpts(
@@ -57,6 +67,7 @@ def main() -> None:
         return
     run_plain_input()
     run_autocomplete_input()
+    run_rich_prompt()
     run_boxed_input()
     run_password()
 

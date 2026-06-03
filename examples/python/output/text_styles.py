@@ -50,6 +50,18 @@ def main() -> None:
     sc.println(f'stripped:  "{plain}"')
     sc.println(f'truncated: "{cut}"')
 
+    # ANSI trust boundary: user strings are sanitized by default, so raw escape
+    # codes in untrusted input cannot inject styling. Opt in per widget with
+    # ansi=... (or process-wide via sc.set_allow_ansi) when input is trusted.
+    sc.println('')
+    pre_colored = '\x1b[31mpre-colored\x1b[0m input'
+    sc.panel(pre_colored,
+             sc.PanelOpts(border=sc.BorderStyle(sc.BorderType.SINGLE),
+                          title='sanitized (default)'))
+    sc.panel(pre_colored,
+             sc.PanelOpts(border=sc.BorderStyle(sc.BorderType.SINGLE),
+                          title='ansi allowed', ansi=sc.AnsiMode.ALLOW))
+
 
 if __name__ == '__main__':
     main()

@@ -55,10 +55,24 @@ def run_spinner() -> None:
     spinner.finish(True, 'Done')
 
 
+def run_transient_line() -> None:
+    """clear_line() overwrites the current line in place, for a transient
+    status that should leave no trace afterwards."""
+    import sys
+
+    sc.print_('Preparing...')
+    sys.stdout.flush()
+    time.sleep(0.5)
+    sc.clear_line()
+    sc.println('Ready.')
+
+
 def main() -> None:
     run_progress_bars()
     sc.println('')
     run_spinner()
+    sc.println('')
+    run_transient_line()
 
 
 if __name__ == '__main__':

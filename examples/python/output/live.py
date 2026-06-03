@@ -46,6 +46,17 @@ def main() -> None:
     sc.markup.println('\n[green]✔[/] Frame above was redrawn in place '
                       'on every update.')
 
+    # Fullscreen variant: alt_screen takes over the whole terminal and
+    # restores the previous screen on exit (a no-op off a TTY).
+    sc.markup.println('[dim]Next: the same dashboard on the alternate '
+                      'screen...[/]')
+    time.sleep(1)
+    with sc.Live(alt_screen=True) as full:
+        for step in range(TOTAL_STEPS + 1):
+            full.update(build_frame(step))
+            time.sleep(0.04)
+    sc.markup.println('[green]✔[/] The previous screen was restored.')
+
 
 if __name__ == '__main__':
     main()

@@ -38,6 +38,23 @@ int main(void) {
 
     sc_markup_println("\n[green]✔[/] Frame above was redrawn "
                       "in place on every update.");
+
+    // Fullscreen variant: alt_screen takes over the whole terminal and
+    // restores the previous screen contents on end (a no-op off a TTY, where
+    // only the final frame is printed).
+    sc_markup_println("[dim]Next: the same dashboard on the alternate "
+                      "screen...[/]");
+    sleep(1);
+    ScLive *full = sc_live_begin((ScLiveOpts){ .alt_screen = true });
+    for (int step = 0; step <= TOTAL_STEPS; step++) {
+        ScRendered *frame = build_frame(step);
+        sc_live_update(full, frame);
+        sc_rendered_free(frame);
+        usleep(40000);
+    }
+    sc_live_end(full);
+
+    sc_markup_println("[green]✔[/] The previous screen was restored.");
     return 0;
 }
 

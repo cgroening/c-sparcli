@@ -10,6 +10,21 @@ fn main() {
     print_composed_layout();
     println("", Style::default());
     print_pad_and_align();
+    println("", Style::default());
+    print_redirected();
+}
+
+/// Redirect the output stream into a string for the duration of a closure.
+fn print_redirected() {
+    // capture::output runs the closure with the thread-local output stream
+    // redirected into an in-memory buffer, then returns it as a String.
+    let captured = capture::output(|| {
+        println("rendered into a buffer", Style::default());
+    });
+    print(
+        &format!("redirected back to the terminal: {captured}"),
+        Style::default(),
+    );
 }
 
 /// Columns with a separator.
