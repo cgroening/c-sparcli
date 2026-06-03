@@ -8,8 +8,9 @@ A C11 library for styled terminal output: colored text, bordered panels, feature
 make            # builds libsparcli.a + shared lib + pkg-config + the sparcli CLI
 make cli          # only the sparcli CLI binary (./sparcli)
 make qa           # EVERY QA gate in one command: test -Werror, sanitize, tsan,
-                  # lint, fuzz, rust-test, python-test(+debug). The complete
-                  # pre-commit validation - run this after any change.
+                  # lint, fuzz, rust-test, rust-lint (clippy -D warnings),
+                  # python-test(+debug). The complete pre-commit validation -
+                  # run this after any change.
 make test         # FULL non-interactive suite: chains the headless gates below
                   # (test-output-check, test-input ARGS=--logic,
                   # test-input-style-check, test-input-pty, test-app, test-args,
@@ -45,7 +46,7 @@ make fuzz         # random-input fuzzing of the markup parser, key decoder,
                   # ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable)
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples / run-example EX=<name>   # build all / build+run one examples/*.c
-make rust / rust-test     # build / test the safe Rust crate (bindings/rust/)
+make rust / rust-test / rust-lint   # build / test / clippy the safe Rust crate (bindings/rust/)
 make python / python-test # build / test the Python package (bindings/python/)
 make python-test-debug    # Python suite with poisoned freed memory: makes
                   # use-after-free of cffi buffers deterministic (run after

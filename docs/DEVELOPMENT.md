@@ -60,8 +60,9 @@ The complete pre-commit validation. Runs, in order and stopping at the first fai
 4. `make lint` – cppcheck + clang-tidy
 5. `make fuzz` – random-input fuzzing of all external parsers (markup, key decoder, sanitizer, CSV, argv)
 6. `make rust-test` – Rust binding (rebuilds the C sources via `cc`)
-7. `make python-test` – Python binding (rebuilds the cffi extension)
-8. `make python-test-debug` – Python suite with poisoned freed memory (FFI lifetime gate)
+7. `make rust-lint` – cargo clippy over the Rust workspace, warnings as errors
+8. `make python-test` – Python binding (rebuilds the cffi extension)
+9. `make python-test-debug` – Python suite with poisoned freed memory (FFI lifetime gate)
 
 ```sh
 make qa                       # the one command to run after any change
@@ -176,7 +177,7 @@ The safe Rust crate lives in `bindings/rust/` (a cargo workspace: `sparcli-sys` 
 ```sh
 make rust          # cargo build (compiles the C via cc, links the FFI)
 make rust-test     # cargo test: non-interactive integration tests + doctests
-cargo clippy --manifest-path bindings/rust/Cargo.toml --all-targets -- -D warnings
+make rust-lint     # cargo clippy --all-targets -- -D warnings (part of make qa)
 cargo build --manifest-path bindings/rust/Cargo.toml --features regen  # bindgen path (libclang)
 
 # Examples (the workspace has no bin, so plain `cargo run` fails – pick one).
@@ -277,7 +278,7 @@ Copy-paste block to validate a change.
 # 1. The full QA run: every gate in order (= the pre-commit validation).
 #    Equivalent to running, in order: make test EXTRA_CFLAGS=-Werror,
 #    make sanitize, make tsan, make lint, make fuzz, make rust-test,
-#    make python-test, make python-test-debug.
+#    make rust-lint, make python-test, make python-test-debug.
 make qa
 
 # 2. If you changed rendering on purpose, regenerate + review + commit the golden:

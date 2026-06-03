@@ -241,7 +241,7 @@ EXAMPLES_BIN      = $(patsubst examples/%.c,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_SR
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test python python-test python-test-debug rebuild-all
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all
 
 # `make` must build the C library + CLI (as documented), not the first target
 # that happens to be defined above (the rust/python binding helpers).
@@ -262,6 +262,18 @@ rust:
 # the controlling terminal stays reachable).
 rust-test:
 	SPARCLI_NO_TTY=1 cargo test --manifest-path $(RUST_MANIFEST)
+
+# Rust static analysis: clippy over the whole workspace (lib + tests +
+# examples), warnings are errors. Skipped with an install hint when the
+# clippy component is missing (same pattern as `make lint` for the C tools).
+rust-lint:
+	@if cargo clippy --version >/dev/null 2>&1; then \
+	    echo "── cargo clippy ──"; \
+	    cargo clippy --manifest-path $(RUST_MANIFEST) --all-targets \
+	        -- -D warnings; \
+	else \
+	    echo "clippy not installed: rustup component add clippy"; \
+	fi
 
 # ── Python binding (bindings/python/) ─────────────────────────────────────
 # A cffi (API-mode) wrapper. build_sparcli.py compiles the vendored C sources
@@ -368,8 +380,9 @@ test:
 
 # Full QA run: every gate in order, stops at the first failure. This is the
 # complete pre-commit validation in one command - the headless test suite
-# (warnings as errors), the memory/thread sanitizers, static analysis, parser
-# fuzzing, and both language bindings including the poisoned-memory FFI gate.
+# (warnings as errors), the memory/thread sanitizers, static analysis (C +
+# Rust clippy), parser fuzzing, and both language bindings including the
+# poisoned-memory FFI gate.
 # See docs/DEVELOPMENT.md "After a change - run these".
 qa:
 	$(MAKE) test EXTRA_CFLAGS=-Werror
@@ -378,6 +391,7 @@ qa:
 	$(MAKE) lint
 	$(MAKE) fuzz
 	$(MAKE) rust-test
+	$(MAKE) rust-lint
 	$(MAKE) python-test
 	$(MAKE) python-test-debug
 	@echo "\033[32m✔ All QA gates passed.\033[0m"
