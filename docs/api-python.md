@@ -261,7 +261,9 @@ if sc_.fired() == 1:
     show_help()
 ```
 
-Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`; `fuzzy.cursor_index()`, `fuzzy.remove(i)`.
+Besides `key_ctrl`/`key_fn`/`key_alt`, the named keys `key_left/right/up/down/enter/tab()` build chords for arrows/Enter/Tab - e.g. for Left = back / Right = forward navigation.
+
+Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`; `fuzzy.cursor_index()`, `fuzzy.remove(i)`; `fuzzy.has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter).
 
 ### Rich prompts & external editor
 

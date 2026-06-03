@@ -69,6 +69,10 @@ ScKeyChord sc_key_alt(char letter) {
     };
 }
 
+ScKeyChord sc_key_special(ScKeyType key) {
+    return (ScKeyChord){ .key = key };
+}
+
 bool sc_key_chord_matches(ScKey key, ScKeyChord chord) {
     ScKeyType kt, ct;
     uint32_t kc, cc;
@@ -91,6 +95,20 @@ void sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap) {
     }
     if (chord.key >= SC_KEY_F1 && chord.key <= SC_KEY_F12) {
         snprintf(buf, cap, "F%d", (int)(chord.key - SC_KEY_F1 + 1));
+        return;
+    }
+    // Named navigation/whitespace keys render as their glyph.
+    static const char *const glyphs[] = {
+        [SC_KEY_LEFT]  = "\xe2\x86\x90", /* ← */
+        [SC_KEY_RIGHT] = "\xe2\x86\x92", /* → */
+        [SC_KEY_UP]    = "\xe2\x86\x91", /* ↑ */
+        [SC_KEY_DOWN]  = "\xe2\x86\x93", /* ↓ */
+        [SC_KEY_ENTER] = "\xe2\x86\xb5", /* ↵ */
+        [SC_KEY_TAB]   = "\xe2\x87\xa5", /* ⇥ */
+    };
+    if (chord.mods == SC_MOD_NONE && chord.key < (int)(sizeof glyphs / sizeof *glyphs)
+        && glyphs[chord.key]) {
+        snprintf(buf, cap, "%s", glyphs[chord.key]);
         return;
     }
     ScKeyType nt;

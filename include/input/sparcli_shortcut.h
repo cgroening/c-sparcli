@@ -96,6 +96,16 @@ SPARCLI_EXPORT ScKeyChord sc_key_fn(int n);
 SPARCLI_EXPORT ScKeyChord sc_key_alt(char letter);
 
 /**
+ * Builds a chord for a named (non-character) key, e.g.
+ * `sc_key_special(SC_KEY_LEFT)`. Use it to bind arrows, Enter, Tab, etc. - the
+ * letter builders above only cover Ctrl/Alt + character keys.
+ *
+ * @param key  The `ScKeyType` to match (`SC_KEY_LEFT`, `SC_KEY_ENTER`, …).
+ * @return     A chord with no modifiers that matches that key.
+ */
+SPARCLI_EXPORT ScKeyChord sc_key_special(ScKeyType key);
+
+/**
  * Returns `true` when `key` matches `chord`. Normalizes the named
  * `SC_KEY_CTRL_*` keys against `SC_KEY_CHAR + SC_MOD_CTRL`, so
  * `sc_key_ctrl('e')` matches a decoded Ctrl-E however it was encoded.

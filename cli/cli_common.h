@@ -20,6 +20,7 @@ enum {
     SC_CLI_EXIT_OK        = 0, /**< Success / confirmed. */
     SC_CLI_EXIT_CANCELLED = 1, /**< Input cancelled or answered "no". */
     SC_CLI_EXIT_ERROR     = 2, /**< Usage error, bad data or no TTY. */
+    SC_CLI_EXIT_BACK      = 3, /**< `--arrow-nav` back key (Left) pressed. */
 };
 
 /**

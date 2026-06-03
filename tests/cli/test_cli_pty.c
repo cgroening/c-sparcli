@@ -122,6 +122,13 @@ static const Case CASES[] = {
     { .name = "select-accent-flag", .args = { "select", "--accent",
                                               "magenta", "a", "b" },
       .keys = "\r", .want_stdout = "a\n", .want_exit = 0 },
+    /* --arrow-nav: Right submits like Enter, Left exits with code 3 (back) */
+    { .name = "select-arrow-right", .args = { "select", "--arrow-nav",
+                                              "a", "b" },
+      .keys = "\x1b[B\x1b[C", .want_stdout = "b\n", .want_exit = 0 },
+    { .name = "select-arrow-left-back", .args = { "select", "--arrow-nav",
+                                                  "a", "b" },
+      .keys = "\x1b[D", .want_stdout = "", .want_exit = 3 },
 
     /* fuzzy: query narrows, Enter picks the best match */
     { .name = "fuzzy-query", .args = { "fuzzy", "Groceries", "Rent",
@@ -133,6 +140,18 @@ static const Case CASES[] = {
     { .name = "fuzzy-tsv-table", .args = { "fuzzy", "--tsv", "--header-row" },
       .stdin_data = "Tool\tLang\nrich\tPython\ngum\tGo\nsparcli\tC\n",
       .keys = "gum\r", .want_stdout = "gum\n", .want_exit = 0 },
+    /* --arrow-nav: Right submits the highlighted match, Left exits 3 (back) */
+    { .name = "fuzzy-arrow-right", .args = { "fuzzy", "--arrow-nav",
+                                             "alpha", "beta" },
+      .keys = "\x1b[C", .want_stdout = "alpha\n", .want_exit = 0 },
+    { .name = "fuzzy-arrow-left-back", .args = { "fuzzy", "--arrow-nav",
+                                                 "alpha", "beta" },
+      .keys = "\x1b[D", .want_stdout = "", .want_exit = 3 },
+    /* Right with no matching row must not submit; the prompt stays open until
+       Esc cancels it (exit 1). */
+    { .name = "fuzzy-arrow-right-no-match", .args = { "fuzzy", "--arrow-nav",
+                                                      "alpha", "beta" },
+      .keys = "zzz\x1b[C\x1b", .want_stdout = "", .want_exit = 1 },
 
     /* date: --initial seeds the calendar, Enter confirms */
     { .name = "date-initial", .args = { "date", "--initial", "2030-05-10" },

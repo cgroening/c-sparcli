@@ -7,8 +7,8 @@
 //! instead of letting prompts grab the keyboard.
 
 use sparcli::{
-    capture, fuzzy_match, key_ctrl, key_fn, AnsiMode, ColOpts, Color,
-    PanelOpts, Style, Table, TableOpts, Text,
+    capture, fuzzy_match, key_ctrl, key_fn, AnsiMode, ColOpts, Color, Fuzzy,
+    FuzzyOpts, PanelOpts, Style, Table, TableOpts, Text,
 };
 
 /// Guard for tests that assert the library's no-TTY behavior (prompt errors,
@@ -77,6 +77,19 @@ fn fuzzy_match_pure() {
 fn chord_names() {
     assert_eq!(key_fn(2).name(), "F2");
     assert_eq!(key_ctrl('e').name(), "^E");
+}
+
+#[test]
+fn special_key_chords() {
+    assert_eq!(sparcli::key_left().name(), "\u{2190}");
+    assert_eq!(sparcli::key_right().name(), "\u{2192}");
+}
+
+#[test]
+fn fuzzy_has_no_selection_before_run() {
+    let mut fz = Fuzzy::new(FuzzyOpts::new().prompt("Find"));
+    fz.add("alpha").add("beta");
+    assert!(!fz.has_selection());
 }
 
 #[test]

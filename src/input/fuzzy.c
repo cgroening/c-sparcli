@@ -211,6 +211,10 @@ size_t sc_fuzzy_cursor_index(const ScFuzzy *self) {
     return self->matches[self->cursor].index;
 }
 
+bool sc_fuzzy_has_selection(const ScFuzzy *self) {
+    return self && self->matches && self->match_n > 0;
+}
+
 void sc_fuzzy_remove(ScFuzzy *self, size_t index) {
     if (!self || index >= self->count) {
         return;

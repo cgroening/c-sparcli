@@ -32,12 +32,34 @@ static bool select_source_init(SelectSource *source, int argc, char **argv);
 static void select_source_release(SelectSource *source);
 
 
+/* ── arrow-key navigation (--arrow-nav) ─────────────────────────────────────
+ * Left/Right are bound to RETURN-mode shortcuts so a wrapper script (e.g.
+ * examples/run.zsh) can walk a multi-stage picker: Left reports "back" via the
+ * SC_CLI_EXIT_BACK exit code, Right submits like Enter. */
+enum { NAV_BACK_ID = 1, NAV_FWD_ID = 2 };
+
+/** Closes the fuzzy prompt only when a row is matched (Right = submit). */
+static bool fuzzy_forward_cb(int id, void *user) {
+    (void)id;
+    return !sc_fuzzy_has_selection((const ScFuzzy *)user);
+}
+
+/** Maps the input status + fired nav id to a CLI exit code. */
+static int nav_exit(ScInputStatus status, int fired) {
+    if (status == SC_INPUT_OK && fired == NAV_BACK_ID) {
+        return SC_CLI_EXIT_BACK;
+    }
+    return sc_cli_input_exit(status);
+}
+
+
 /* ── select ─────────────────────────────────────────────────────────────── */
 
 /** Parsed arguments of `sparcli select`. */
 typedef struct SelectArgs {
     ScSelectOpts   opts;
     ScCliInputArgs input;
+    bool           arrow_nav; /**< Bind Left=back / Right=select. */
 } SelectArgs;
 
 static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
@@ -55,6 +77,7 @@ static const char SELECT_USAGE[] =
     "  --prompt TEXT              Heading shown above the list\n"
     "  --multi                    Multi-select with checkboxes\n"
     "  --max-visible N            Viewport height (default 10)\n"
+    "  --arrow-nav                Left = back (exit 3), Right = select\n"
     SC_CLI_INPUT_USAGE;
 
 int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
@@ -62,11 +85,13 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
         OPT_PROMPT = SC_CLI_OPT_CMD_BASE,
         OPT_MULTI,
         OPT_MAX_VISIBLE,
+        OPT_ARROW_NAV,
     };
     static const struct option longopts[] = {
         { "prompt",      required_argument, NULL, OPT_PROMPT },
         { "multi",       no_argument,       NULL, OPT_MULTI },
         { "max-visible", required_argument, NULL, OPT_MAX_VISIBLE },
+        { "arrow-nav",   no_argument,       NULL, OPT_ARROW_NAV },
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -85,6 +110,9 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
             if (!sc_cli_parse_int(optarg, &args.opts.max_visible)) {
                 return sc_cli_error(ctx, "invalid count '%s'", optarg);
             }
+            break;
+        case OPT_ARROW_NAV:
+            args.arrow_nav = true;
             break;
         case SC_CLI_OPT_HELP:
             fputs(SELECT_USAGE, stdout);
@@ -118,7 +146,24 @@ static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
         args->opts.hint_layout = SC_HINT_HIDDEN;
     }
 
-    ScSelect *select = sc_select_new(args->opts);
+    // Left/Right both end the prompt (RETURN); the cursor item is always
+    // valid, so Right submits exactly like Enter. The shortcut pointers go on
+    // a local opts copy so `&fired` never escapes into the caller's struct.
+    int fired = -1;
+    ScShortcut nav[2] = {
+        { .chord = sc_key_special(SC_KEY_LEFT),  .id = NAV_BACK_ID,
+          .mode = SC_SHORTCUT_RETURN, .hint_label = "back" },
+        { .chord = sc_key_special(SC_KEY_RIGHT), .id = NAV_FWD_ID,
+          .mode = SC_SHORTCUT_RETURN, .hint_label = "select" },
+    };
+    ScSelectOpts opts = args->opts;
+    if (args->arrow_nav) {
+        opts.shortcuts       = nav;
+        opts.n_shortcuts     = 2;
+        opts.out_shortcut_id = &fired;
+    }
+
+    ScSelect *select = sc_select_new(opts);
     if (select == NULL) {
         select_source_release(&source);
         return sc_cli_error(ctx, "out of memory");
@@ -137,7 +182,7 @@ static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
     size_t        count  = args->opts.multi ? source.count : 1;
     ScInputStatus status = sc_select_run(select, indices, &count);
 
-    if (status == SC_INPUT_OK) {
+    if (status == SC_INPUT_OK && fired != NAV_BACK_ID) {
         for (size_t i = 0; i < count; i++) {
             printf("%s\n", source.items[indices[i]]);
         }
@@ -146,7 +191,7 @@ static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
     free(indices);
     sc_select_free(select);
     select_source_release(&source);
-    return sc_cli_input_exit(status);
+    return nav_exit(status, fired);
 }
 
 
@@ -159,6 +204,7 @@ typedef struct FuzzyArgs {
     char           delim;      /**< Field delimiter for table mode. */
     bool           table_mode; /**< Split items into table columns. */
     bool           header_row; /**< First line provides the headers. */
+    bool           arrow_nav;  /**< Bind Left=back / Right=select. */
 } FuzzyArgs;
 
 static int run_fuzzy(ScCliCtx *ctx, FuzzyArgs *args, int argc, char **argv);
@@ -182,6 +228,7 @@ static const char FUZZY_USAGE[] =
     "  --tsv                      Tab-separated table view\n"
     "  --delim CHAR               Custom delimiter for the table view\n"
     "  --header-row               First input line provides the headers\n"
+    "  --arrow-nav                Left = back (exit 3), Right = select\n"
     SC_CLI_INPUT_USAGE;
 
 int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
@@ -191,6 +238,7 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         OPT_TSV,
         OPT_DELIM,
         OPT_HEADER_ROW,
+        OPT_ARROW_NAV,
     };
     static const struct option longopts[] = {
         { "prompt",      required_argument, NULL, OPT_PROMPT },
@@ -198,6 +246,7 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         { "tsv",         no_argument,       NULL, OPT_TSV },
         { "delim",       required_argument, NULL, OPT_DELIM },
         { "header-row",  no_argument,       NULL, OPT_HEADER_ROW },
+        { "arrow-nav",   no_argument,       NULL, OPT_ARROW_NAV },
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -223,6 +272,9 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
             break;
         case OPT_HEADER_ROW:
             args.header_row = true;
+            break;
+        case OPT_ARROW_NAV:
+            args.arrow_nav = true;
             break;
         case SC_CLI_OPT_HELP:
             fputs(FUZZY_USAGE, stdout);
@@ -261,24 +313,43 @@ static int run_fuzzy(ScCliCtx *ctx, FuzzyArgs *args, int argc, char **argv) {
         return status;
     }
 
-    ScFuzzy *fuzzy = sc_fuzzy_new(args->opts);
+    // Left ends the prompt (RETURN, reported as "back"); Right submits via a
+    // callback that only closes when a row is matched (so an empty filter
+    // never submits a bogus item). The callback's handle is set after new().
+    int fired = -1;
+    ScShortcut nav[2] = {
+        { .chord = sc_key_special(SC_KEY_LEFT),  .id = NAV_BACK_ID,
+          .mode = SC_SHORTCUT_RETURN, .hint_label = "back" },
+        { .chord = sc_key_special(SC_KEY_RIGHT),
+          .mode = SC_SHORTCUT_CALLBACK, .on_fire = fuzzy_forward_cb,
+          .hint_label = "select" },
+    };
+    ScFuzzyOpts opts = args->opts;
+    if (args->arrow_nav) {
+        opts.shortcuts       = nav;
+        opts.n_shortcuts     = 2;
+        opts.out_shortcut_id = &fired;
+    }
+
+    ScFuzzy *fuzzy = sc_fuzzy_new(opts);
     if (fuzzy == NULL) {
         select_source_release(&source);
         return sc_cli_error(ctx, "out of memory");
     }
+    nav[1].user = fuzzy;   // borrowed shortcuts array: handle reaches the cb
     for (size_t i = 0; i < source.count; i++) {
         sc_fuzzy_add(fuzzy, source.items[i]);
     }
 
     size_t        picked = 0;
     ScInputStatus status = sc_fuzzy_run(fuzzy, &picked);
-    if (status == SC_INPUT_OK) {
+    if (status == SC_INPUT_OK && fired != NAV_BACK_ID) {
         printf("%s\n", source.items[picked]);
     }
 
     sc_fuzzy_free(fuzzy);
     select_source_release(&source);
-    return sc_cli_input_exit(status);
+    return nav_exit(status, fired);
 }
 
 /* Table mode: every input line is split at the delimiter into row fields;
@@ -330,24 +401,41 @@ static int run_fuzzy_table(ScCliCtx *ctx, FuzzyArgs *args,
     args->opts.table  = true;
     args->opts.n_cols = n_cols;
 
-    ScFuzzy *fuzzy = sc_fuzzy_new(args->opts);
+    // Same Left=back / Right=guarded-submit wiring as the plain fuzzy path.
+    int fired = -1;
+    ScShortcut nav[2] = {
+        { .chord = sc_key_special(SC_KEY_LEFT),  .id = NAV_BACK_ID,
+          .mode = SC_SHORTCUT_RETURN, .hint_label = "back" },
+        { .chord = sc_key_special(SC_KEY_RIGHT),
+          .mode = SC_SHORTCUT_CALLBACK, .on_fire = fuzzy_forward_cb,
+          .hint_label = "select" },
+    };
+    ScFuzzyOpts opts = args->opts;
+    if (args->arrow_nav) {
+        opts.shortcuts       = nav;
+        opts.n_shortcuts     = 2;
+        opts.out_shortcut_id = &fired;
+    }
+
+    ScFuzzy *fuzzy = sc_fuzzy_new(opts);
     if (fuzzy == NULL) {
         free_row_fields(rows, source->count);
         return sc_cli_error(ctx, "out of memory");
     }
+    nav[1].user = fuzzy;
     for (size_t i = first_data; i < source->count; i++) {
         sc_fuzzy_add_row(fuzzy, (const char *const *)rows[i], n_cols);
     }
 
     size_t        picked = 0;
     ScInputStatus status = sc_fuzzy_run(fuzzy, &picked);
-    if (status == SC_INPUT_OK) {
+    if (status == SC_INPUT_OK && fired != NAV_BACK_ID) {
         printf("%s\n", rows[first_data + picked][0]);
     }
 
     sc_fuzzy_free(fuzzy);
     free_row_fields(rows, source->count);
-    return sc_cli_input_exit(status);
+    return nav_exit(status, fired);
 }
 
 static void free_row_fields(char ***rows, size_t count) {

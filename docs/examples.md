@@ -30,8 +30,11 @@ it. The last step is a fuzzy finder, so you can type to filter. Needs the
 ./examples/run.zsh        # or: SPARCLI=/usr/local/bin/sparcli ./examples/run.zsh
 ```
 
-Enter selects; Esc steps back one level (Esc on the language menu exits). The
-`cli` category has no groups, so it lists its demos directly.
+Navigate with the arrow keys: **→ selects / goes forward**, **← goes back one
+level** (Enter and Esc still work too; Esc on the language menu exits). This
+uses the CLI's `select`/`fuzzy --arrow-nav` flag, which reports the back key
+via exit code `3`. The `cli` category has no groups, so it lists its demos
+directly.
 
 ## Running an example
 

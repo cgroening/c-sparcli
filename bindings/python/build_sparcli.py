@@ -138,6 +138,7 @@ typedef enum { SC_MOD_NONE = 0, SC_MOD_CTRL = 1, SC_MOD_ALT = 2,
                SC_MOD_PASTED = 4 } ScKeyMods;
 /* ScKeyType: only the members the binding names; ... pulls in the rest. */
 typedef enum { SC_KEY_NONE = 0, SC_KEY_CHAR, SC_KEY_ESC, SC_KEY_ENTER,
+               SC_KEY_TAB, SC_KEY_UP, SC_KEY_DOWN, SC_KEY_LEFT, SC_KEY_RIGHT,
                SC_KEY_F1, ... } ScKeyType;
 
 /* ── Core value types (fully declared: small and stable) ───────────────── */
@@ -607,6 +608,7 @@ typedef struct {
 ScKeyChord sc_key_ctrl(char letter);
 ScKeyChord sc_key_fn(int n);
 ScKeyChord sc_key_alt(char letter);
+ScKeyChord sc_key_special(ScKeyType key);
 bool sc_key_chord_matches(ScKey key, ScKeyChord chord);
 const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
 void sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap);
@@ -909,6 +911,7 @@ void sc_fuzzy_add(ScFuzzy *fuzzy, const char *label);
 void sc_fuzzy_add_row(ScFuzzy *fuzzy, const char *const *fields, size_t n);
 ScInputStatus sc_fuzzy_run(ScFuzzy *fuzzy, size_t *out_index);
 size_t sc_fuzzy_cursor_index(const ScFuzzy *fuzzy);
+bool sc_fuzzy_has_selection(const ScFuzzy *fuzzy);
 void sc_fuzzy_remove(ScFuzzy *fuzzy, size_t index);
 void sc_fuzzy_free(ScFuzzy *fuzzy);
 

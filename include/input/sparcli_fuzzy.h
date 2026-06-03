@@ -185,6 +185,18 @@ SPARCLI_EXPORT ScInputStatus sc_fuzzy_run(ScFuzzy *fuzzy, size_t *out_index);
 SPARCLI_EXPORT size_t sc_fuzzy_cursor_index(const ScFuzzy *fuzzy);
 
 /**
+ * Reports whether a row is currently matched (so the highlighted selection is
+ * valid). Because `sc_fuzzy_cursor_index` returns `0` both for "no match" and
+ * for the first row, a callback that must distinguish the two checks this
+ * first. Returns `false` when the filter excludes every row or `fuzzy` is
+ * `NULL`.
+ *
+ * @param fuzzy  Finder handle; may be `NULL`.
+ * @return       `true` when at least one row matches the current query.
+ */
+SPARCLI_EXPORT bool sc_fuzzy_has_selection(const ScFuzzy *fuzzy);
+
+/**
  * Removes the row at `index` (0-based, current add order), freeing its fields.
  * Intended for a `SC_SHORTCUT_CALLBACK` to delete the highlighted row live:
  * pair it with `sc_fuzzy_cursor_index`. The filtered view and cursor are

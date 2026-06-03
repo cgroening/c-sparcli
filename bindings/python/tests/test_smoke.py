@@ -27,6 +27,22 @@ def test_fuzzy_match():
     assert sc.fuzzy_match("", "anything")[0] is True
 
 
+def test_special_key_chords():
+    # Arrow/Enter/Tab chords construct and are accepted by the shortcut builder
+    # (parity with the CLI's --arrow-nav navigation).
+    for build in (sc.key_left, sc.key_right, sc.key_up, sc.key_down,
+                  sc.key_enter, sc.key_tab):
+        assert isinstance(build(), sc.KeyChord)
+    shortcuts = sc.Shortcuts().on_return(sc.key_left(), 1, name="back")
+    assert shortcuts.fired() == -1  # nothing fired yet
+
+
+def test_fuzzy_has_no_selection_before_run():
+    fz = sc.Fuzzy(sc.FuzzyOpts(prompt="Find"))
+    fz.add("alpha").add("beta")
+    assert fz.has_selection() is False
+
+
 def test_strip_ansi():
     assert sc.strip_ansi("\033[1;31mhi\033[0m") == "hi"
     assert sc.strip_ansi("plain") == "plain"

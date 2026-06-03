@@ -1,6 +1,8 @@
 #include "test_input.h"
 #include "sparcli.h"
 
+#include <string.h>
+
 
 /**
  * Pure tests for the shortcut chord builders and matcher (no TTY needed).
@@ -43,4 +45,22 @@ void test_shortcut(void) {
     CHECK(hit && hit->id == 9, "find returns the Ctrl-O binding");
     hit = sc_shortcut_find(plain_e, items, 2);
     CHECK(hit == NULL, "find returns NULL when nothing matches");
+
+    /* Arrow/Enter chords (carrying a plain special key) match and render as
+       their glyph - used by the CLI's --arrow-nav. */
+    ScKey      left       = { .type = SC_KEY_LEFT };
+    ScKeyChord left_chord  = { .key = SC_KEY_LEFT };
+    ScKeyChord right_chord = { .key = SC_KEY_RIGHT };
+    CHECK(sc_key_chord_matches(left, left_chord),
+          "Left key matches a Left chord");
+    CHECK(!sc_key_chord_matches(left, right_chord),
+          "Left key does not match a Right chord");
+
+    char name[16] = { 0 };
+    sc_key_chord_name(left_chord, name, sizeof name);
+    CHECK(strcmp(name, "\xe2\x86\x90") == 0, "Left chord renders as ←");
+    sc_key_chord_name(right_chord, name, sizeof name);
+    CHECK(strcmp(name, "\xe2\x86\x92") == 0, "Right chord renders as →");
+    sc_key_chord_name(sc_key_fn(2), name, sizeof name);
+    CHECK(strcmp(name, "F2") == 0, "F-key chord still renders as Fn");
 }

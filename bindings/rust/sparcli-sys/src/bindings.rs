@@ -1969,6 +1969,10 @@ extern "C" {
     pub fn sc_key_alt(letter: ::std::os::raw::c_char) -> ScKeyChord;
 }
 extern "C" {
+    #[doc = " Builds a chord for a named (non-character) key, e.g. SC_KEY_LEFT."]
+    pub fn sc_key_special(key: ScKeyType) -> ScKeyChord;
+}
+extern "C" {
     #[doc = " Returns `true` when `key` matches `chord`. Normalizes the named\n `SC_KEY_CTRL_*` keys against `SC_KEY_CHAR + SC_MOD_CTRL`, so\n `sc_key_ctrl('e')` matches a decoded Ctrl-E however it was encoded."]
     pub fn sc_key_chord_matches(key: ScKey, chord: ScKeyChord) -> bool;
 }
@@ -3113,6 +3117,10 @@ extern "C" {
 extern "C" {
     #[doc = " Returns the original add-order index of the currently highlighted row.\n\n Intended for a `SC_SHORTCUT_CALLBACK` callback, which receives the\n `ScFuzzy*` via its `user` pointer and can query the live selection. Returns\n 0 when there is no current match or `fuzzy` is `NULL`."]
     pub fn sc_fuzzy_cursor_index(fuzzy: *const ScFuzzy) -> usize;
+}
+extern "C" {
+    #[doc = " Reports whether a row is currently matched (the highlighted selection is\n valid). `sc_fuzzy_cursor_index` returns 0 for both \"no match\" and row 0."]
+    pub fn sc_fuzzy_has_selection(fuzzy: *const ScFuzzy) -> bool;
 }
 extern "C" {
     #[doc = " Removes the row at `index` (0-based, current add order), freeing its fields.\n Intended for a `SC_SHORTCUT_CALLBACK` to delete the highlighted row live:\n pair it with `sc_fuzzy_cursor_index`. The filtered view and cursor are\n rebuilt. No-op when `index` is out of range. Removing the last match leaves\n an empty result set (Enter can no longer submit; Esc cancels)."]

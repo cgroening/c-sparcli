@@ -362,7 +362,7 @@ The key-hint footer is configured through the opts like any other field: `.hint_
 
 ### Custom shortcuts
 
-Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget. `Shortcuts` is an owning builder (it keeps callback `std::function`s alive); `apply(opts)` wires it into any `*Opts`, and `fired()` reports which RETURN-mode shortcut ended the prompt (`-1` if none). Chords: `key_ctrl('e')`, `key_fn(2)`, `key_alt('e')`; `key_name(chord)` formats one (`"F2"`, `"^E"`, `"M-e"`). (`key_matches(Key, KeyChord)` and `shortcut_find(Key, vector<Shortcut>)` wrap the low-level matchers for callers that decode keys themselves.)
+Bind extra keys (Ctrl-letter / F-key / Alt-letter) to actions on any widget. `Shortcuts` is an owning builder (it keeps callback `std::function`s alive); `apply(opts)` wires it into any `*Opts`, and `fired()` reports which RETURN-mode shortcut ended the prompt (`-1` if none). Chords: `key_ctrl('e')`, `key_fn(2)`, `key_alt('e')`, and the named keys `key_left/right/up/down/enter/tab()` (or `key_special(SC_KEY_LEFT)`) - e.g. for Left = back / Right = forward navigation; `key_name(chord)` formats one (`"F2"`, `"^E"`, `"M-e"`, `"←"`). (`key_matches(Key, KeyChord)` and `shortcut_find(Key, vector<Shortcut>)` wrap the low-level matchers for callers that decode keys themselves.)
 
 ```cpp
 Select sel({ .prompt = "Pick" });
@@ -380,7 +380,7 @@ auto pick = s2.run();
 if (sc.fired() == 1) { /* F2 → edit s2.label(...) / s2.set_label(...) */ }
 ```
 
-A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open unless its lambda returns `false` (it must not open another prompt). For live edits use `Select::cursor/label/set_label/remove` and `Fuzzy::cursor_index/remove`. `Esc` / `Ctrl-C` stay reserved.
+A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open unless its lambda returns `false` (it must not open another prompt). For live edits use `Select::cursor/label/set_label/remove` and `Fuzzy::cursor_index/remove`; `Fuzzy::has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter). `Esc` / `Ctrl-C` stay reserved.
 
 ### Rich prompts
 

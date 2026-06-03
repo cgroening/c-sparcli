@@ -50,6 +50,32 @@ pub fn key_alt(letter: char) -> Chord {
     Chord(unsafe { ffi::sc_key_alt(letter as c_char) })
 }
 
+/// Chord for a named (non-character) key - arrows, Enter, Tab. Use these to
+/// build e.g. Left = back / Right = forward navigation on any widget.
+pub fn key_left() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_LEFT) })
+}
+/// Right-arrow chord. See [`key_left`].
+pub fn key_right() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_RIGHT) })
+}
+/// Up-arrow chord. See [`key_left`].
+pub fn key_up() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_UP) })
+}
+/// Down-arrow chord. See [`key_left`].
+pub fn key_down() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_DOWN) })
+}
+/// Enter-key chord. See [`key_left`].
+pub fn key_enter() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_ENTER) })
+}
+/// Tab-key chord. See [`key_left`].
+pub fn key_tab() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_TAB) })
+}
+
 impl Chord {
     /// A short display name, e.g. `"F2"`, `"^E"`, `"M-e"`.
     pub fn name(&self) -> String {
@@ -1087,6 +1113,12 @@ impl Fuzzy {
     }
     pub fn cursor_index(&self) -> usize {
         unsafe { ffi::sc_fuzzy_cursor_index(self.ptr) }
+    }
+    /// Whether a row matches the current query (the selection is valid).
+    /// Unlike [`cursor_index`](Self::cursor_index), this distinguishes "no
+    /// match" from "row 0" - useful in a forward/submit shortcut callback.
+    pub fn has_selection(&self) -> bool {
+        unsafe { ffi::sc_fuzzy_has_selection(self.ptr) }
     }
     pub fn remove(&mut self, index: usize) {
         unsafe { ffi::sc_fuzzy_remove(self.ptr, index) };

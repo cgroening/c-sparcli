@@ -66,8 +66,9 @@ done
 # (back). On success it execs the example and never returns to the caller loop.
 pick_and_run() {
     local lang=$1 group=$2 prompt=$3 example choice
+    # --arrow-nav: → runs the highlighted example, ← exits 3 (back).
     example=$(leaves_of $lang $group \
-        | "$bin" fuzzy --prompt "$prompt" --accent cyan) || return 1
+        | "$bin" fuzzy --prompt "$prompt" --accent cyan --arrow-nav) || return 1
     [[ -z $example ]] && return 1
 
     if [[ $lang == cli ]]; then
@@ -86,19 +87,21 @@ pick_and_run() {
 
 "$bin" rule "sparcli examples" --color cyan
 
-# ── Three-level picker: language -> group -> example (Esc backs out) ──────────
+# ── Three-level picker: language -> group -> example ─────────────────────────
+# Navigate with the arrow keys (--arrow-nav): → goes forward / selects, ← goes
+# back one level. Esc behaves like ← (and exits at the language menu).
 while true; do
-    lang=$("$bin" select --prompt "Language?" --accent cyan $languages) \
-        || { "$bin" alert info "Bye."; exit 0; }
+    lang=$("$bin" select --prompt "Language?" --accent cyan --arrow-nav \
+        $languages) || { "$bin" alert info "Bye."; exit 0; }
 
     if [[ $lang == cli ]]; then
-        # No group level for cli: pick a demo directly (Esc -> languages).
+        # No group level for cli: pick a demo directly (← -> languages).
         pick_and_run cli "" "cli demo?" || continue
     else
         typeset -a groups=(${(f)"$(groups_of $lang)"})
         while true; do
             group=$("$bin" select --prompt "$lang group?" --accent cyan \
-                $groups) || break                   # Esc -> back to languages
+                --arrow-nav $groups) || break        # ← / Esc -> languages
             pick_and_run $lang $group "$lang/$group example?" || continue
         done
     fi

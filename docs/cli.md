@@ -115,6 +115,7 @@ File and stdin input is capped at **64 MiB**; larger input is rejected with an e
 | `0` | Success; for `confirm`: answered yes |
 | `1` | Input cancelled (Esc / Ctrl-C); for `confirm`: answered no |
 | `2` | Error: bad usage, invalid data, unreadable file, or no TTY for an input command |
+| `3` | `select`/`fuzzy` with `--arrow-nav`: the back key (Left) was pressed |
 
 `spin` is the exception: it propagates the wrapped command's exit code (`128+N` for signals).
 
@@ -545,6 +546,7 @@ Choose one item – or several with `--multi` (Space toggles) – from a list. I
 | `--prompt TEXT` | Heading shown above the list |
 | `--multi` | Multi-select with checkboxes |
 | `--max-visible N` | Viewport height (default 10, scrolls beyond) |
+| `--arrow-nav` | Right arrow selects (like Enter); Left arrow exits with code `3` (back). For multi-stage pickers (see [`examples/run.zsh`](../examples/run.zsh)). |
 
 ```sh
 flavor=$(sparcli select vanilla chocolate pistachio)
@@ -569,6 +571,7 @@ With `--tsv` (or `--delim`) each line is split into columns and shown as a table
 | `--tsv` | Tab-separated table view |
 | `--delim CHAR` | Custom delimiter for the table view |
 | `--header-row` | First input line provides the table headers |
+| `--arrow-nav` | Right arrow selects the highlighted match (no-op with no match); Left arrow exits with code `3` (back). |
 
 ```sh
 file=$(find . -name '*.c' | sparcli fuzzy --prompt "Open:")

@@ -234,6 +234,14 @@ class Fuzzy:
         """Add-order index of the highlighted row (e.g. from a callback)."""
         return int(lib.sc_fuzzy_cursor_index(self._p))
 
+    def has_selection(self) -> bool:
+        """Whether a row matches the current query (the selection is valid).
+
+        Unlike :meth:`cursor_index`, this tells "no match" apart from "row 0" -
+        useful in a forward/submit shortcut callback.
+        """
+        return bool(lib.sc_fuzzy_has_selection(self._p))
+
     def remove(self, index: int) -> None:
         lib.sc_fuzzy_remove(self._p, index)
 

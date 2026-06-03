@@ -43,6 +43,43 @@ def key_alt(letter: str) -> KeyChord:
     return KeyChord(h)
 
 
+def _key_special(key: int) -> KeyChord:
+    """A chord for a named (non-character) key."""
+    h = ffi.new("ScKeyChord *")
+    h[0] = lib.sc_key_special(key)
+    return KeyChord(h)
+
+
+def key_left() -> KeyChord:
+    """Left-arrow chord (e.g. for back navigation)."""
+    return _key_special(lib.SC_KEY_LEFT)
+
+
+def key_right() -> KeyChord:
+    """Right-arrow chord (e.g. for forward/select navigation)."""
+    return _key_special(lib.SC_KEY_RIGHT)
+
+
+def key_up() -> KeyChord:
+    """Up-arrow chord."""
+    return _key_special(lib.SC_KEY_UP)
+
+
+def key_down() -> KeyChord:
+    """Down-arrow chord."""
+    return _key_special(lib.SC_KEY_DOWN)
+
+
+def key_enter() -> KeyChord:
+    """Enter-key chord."""
+    return _key_special(lib.SC_KEY_ENTER)
+
+
+def key_tab() -> KeyChord:
+    """Tab-key chord."""
+    return _key_special(lib.SC_KEY_TAB)
+
+
 class Shortcuts:
     """A set of custom key bindings to attach to a widget via
     ``opts.shortcuts``.

@@ -1069,6 +1069,7 @@ ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n
 void      sc_fuzzy_add    (ScFuzzy *f, const char *label);
 void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* query searches all cols (opts.search_columns) */
 size_t    sc_fuzzy_cursor_index(const ScFuzzy *f);     /* live selection (for callbacks) */
+bool      sc_fuzzy_has_selection(const ScFuzzy *f);    /* a row matches the query? (cursor_index 0 is ambiguous) */
 void      sc_fuzzy_remove (ScFuzzy *f, size_t index);  /* delete row (for callbacks) */
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
 void      sc_fuzzy_free(ScFuzzy *f);
@@ -1082,7 +1083,7 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
 ScKeyChord sc_key_ctrl(char letter);   /* ^letter (Ctrl-C/H/I/J/M not bindable) */
 ScKeyChord sc_key_fn  (int n);         /* F1..F12 */
 ScKeyChord sc_key_alt (char letter);   /* Alt/Meta + letter */
-void       sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap); /* "F2","^E","M-e" */
+void       sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap); /* "F2","^E","M-e","←","→","↵" */
 bool       sc_key_chord_matches(ScKey key, ScKeyChord chord);
 const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
 

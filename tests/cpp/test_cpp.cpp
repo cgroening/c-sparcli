@@ -275,6 +275,21 @@ static void test_calc_eval() {
     CHECK(!calc_eval("garbage").has_value(), "calc: garbage is invalid");
 }
 
+// Arrow/special key chords and the fuzzy selection guard (parity with the
+// CLI's --arrow-nav navigation).
+static void test_special_keys() {
+    CHECK(key_name(key_left()) == "\xe2\x86\x90", "key_left renders as left arrow");
+    CHECK(key_name(key_right()) == "\xe2\x86\x92", "key_right renders as right arrow");
+    CHECK(key_matches(Key{ .type = SC_KEY_LEFT }, key_left()),
+          "decoded Left matches key_left()");
+    CHECK(!key_matches(Key{ .type = SC_KEY_LEFT }, key_right()),
+          "decoded Left does not match key_right()");
+
+    Fuzzy fz({ .prompt = "Find" });
+    fz.add("alpha").add("beta");
+    CHECK(!fz.has_selection(), "fuzzy: no selection before a run");
+}
+
 static void test_error_report() {
     ErrorReport report("something broke");
     report.cause("first reason").hint("try --force").code(3);
@@ -455,6 +470,7 @@ int main() {
     test_paths_and_pager();
     test_live_display();
     test_calc_eval();
+    test_special_keys();
     test_error_report();
     test_logger();
     test_args_parser();

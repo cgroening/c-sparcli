@@ -1483,6 +1483,15 @@ inline KeyChord key_ctrl(char letter) { return sc_key_ctrl(letter); }
 inline KeyChord key_fn(int n)         { return sc_key_fn(n); }
 /** Alt/Meta + letter chord, e.g. `key_alt('e')`. @see sc_key_alt */
 inline KeyChord key_alt(char letter)  { return sc_key_alt(letter); }
+/** Chord for a named key, e.g. `key_special(SC_KEY_LEFT)`. @see sc_key_special */
+inline KeyChord key_special(ScKeyType k) { return sc_key_special(k); }
+/** Arrow / Enter / Tab chords (for e.g. Left=back, Right=forward navigation). */
+inline KeyChord key_left()  { return sc_key_special(SC_KEY_LEFT); }
+inline KeyChord key_right() { return sc_key_special(SC_KEY_RIGHT); }
+inline KeyChord key_up()    { return sc_key_special(SC_KEY_UP); }
+inline KeyChord key_down()  { return sc_key_special(SC_KEY_DOWN); }
+inline KeyChord key_enter() { return sc_key_special(SC_KEY_ENTER); }
+inline KeyChord key_tab()   { return sc_key_special(SC_KEY_TAB); }
 
 /** Short display name for a chord, e.g. "F2", "^E", "M-e".
     @see sc_key_chord_name */
@@ -1792,6 +1801,11 @@ public:
     /** Highlighted row's index (from a callback). @see sc_fuzzy_cursor_index */
     std::size_t cursor_index() const {
         return sc_fuzzy_cursor_index(detail::live(p_));
+    }
+    /** True when a row matches the current query (the selection is valid).
+        @see sc_fuzzy_has_selection */
+    bool has_selection() const {
+        return sc_fuzzy_has_selection(detail::live(p_));
     }
     /** Removes the row at `index` (live, from a callback).
         @see sc_fuzzy_remove */

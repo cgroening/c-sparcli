@@ -12,8 +12,14 @@ void test_fuzzy(void) {
     CHECK(sc_fuzzy_match("", "anything", NULL),
           "fuzzy_match: empty pattern always matches");
 
+    /* has_selection is false without a live run (no filtered matches yet). */
+    CHECK(!sc_fuzzy_has_selection(NULL),
+          "has_selection: NULL has no selection");
+
     /* List view. */
     ScFuzzy *f = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Pick a city" });
+    CHECK(!sc_fuzzy_has_selection(f),
+          "has_selection: false before a run allocates matches");
     const char *cities[] = { "Tokyo", "Toronto", "London", "Berlin",
                              "Boston", "Lisbon", "Amsterdam" };
     for (size_t i = 0; i < sizeof cities / sizeof cities[0]; i++) {
