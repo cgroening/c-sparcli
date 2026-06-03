@@ -1,9 +1,44 @@
 #include "test_args.h"
 
+#include <fcntl.h>
 #include <unistd.h>
 
 
 int g_args_failures = 0;
+
+
+/*
+ * The help/error renderers wrap text to sc_terminal_width(), which reads
+ * ioctl(STDOUT_FILENO, TIOCGWINSZ). The capture helpers below redirect only
+ * the output *stream*, so without this guard the wrap width would be the
+ * invoking terminal's width - making the substring checks pass or fail
+ * depending on how wide the window happens to be (a narrow terminal wraps a
+ * message mid-phrase and breaks the match). Point STDOUT_FILENO at /dev/null
+ * for the duration of a render so the ioctl fails and the width falls back to
+ * the fixed 80 columns every other headless test relies on.
+ */
+typedef struct { int saved_fd; } StdoutWidthGuard;
+
+static StdoutWidthGuard stdout_width_guard_begin(void) {
+    StdoutWidthGuard guard = { .saved_fd = -1 };
+    fflush(stdout);
+    int devnull = open("/dev/null", O_WRONLY);
+    if (devnull >= 0) {
+        guard.saved_fd = dup(STDOUT_FILENO);
+        if (guard.saved_fd >= 0) { dup2(devnull, STDOUT_FILENO); }
+        close(devnull);
+    }
+    return guard;
+}
+
+static void stdout_width_guard_end(StdoutWidthGuard *guard) {
+    fflush(stdout);
+    if (guard->saved_fd >= 0) {
+        dup2(guard->saved_fd, STDOUT_FILENO);
+        close(guard->saved_fd);
+        guard->saved_fd = -1;
+    }
+}
 
 typedef struct Test {
     char name[40];
@@ -97,7 +132,9 @@ char *test_args_parse_capture_stderr(
     bool redirected = stderr_sink && saved_stderr >= 0
         && dup2(fileno(stderr_sink), fileno(stderr)) >= 0;
 
+    StdoutWidthGuard width_guard = stdout_width_guard_begin();
     const ScArgsCmd *result = sc_args_parse(args, argc, argv, status);
+    stdout_width_guard_end(&width_guard);
     if (matched) { *matched = result; }
 
     if (redirected) {
@@ -121,7 +158,9 @@ char *test_args_capture_output(void (*render)(ScArgs *args), ScArgs *args) {
 
     FILE *previous = sc_output_stream();
     sc_output_set_stream(capture);
+    StdoutWidthGuard width_guard = stdout_width_guard_begin();
     render(args);
+    stdout_width_guard_end(&width_guard);
     sc_output_set_stream(previous);
 
     char *buffer = calloc(1, 32768);
