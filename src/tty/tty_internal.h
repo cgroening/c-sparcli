@@ -46,6 +46,9 @@ int sc_tty_internal_fd(void);
 /** Returns the terminal height in rows (fallback 24 when unknown). */
 int sc_tty_rows(void);
 
+/** Returns the terminal width in columns (fallback 80 when unknown). */
+int sc_tty_cols(void);
+
 /** Returns and clears the pending-resize flag set by the SIGWINCH handler. */
 bool sc_tty_take_resize(void);
 

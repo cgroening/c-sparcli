@@ -171,6 +171,15 @@ int sc_tty_rows(void) {
     return 24;
 }
 
+int sc_tty_cols(void) {
+    struct winsize window_size;
+    int fd = (tty_fd >= 0) ? tty_fd : STDOUT_FILENO;
+    if (ioctl(fd, TIOCGWINSZ, &window_size) == 0 && window_size.ws_col > 0) {
+        return (int)window_size.ws_col;
+    }
+    return 80;
+}
+
 bool sc_tty_take_resize(void) {
     if (!resize_pending) {
         return false;
