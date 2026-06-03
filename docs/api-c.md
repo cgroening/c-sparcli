@@ -786,6 +786,8 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[/]` | close most-recent style frame |
 | `[/bold]`, `[/red]`, … | named close (same effect as `[/]`) |
 | `[link=URL]text[/link]` | OSC-8 terminal hyperlink (see [Hyperlinks](#hyperlinks-osc-8)) |
+| `` `inline code` `` | code span: magenta foreground (configurable via `code_style`), backticks removed; body is literal (tags not parsed) |
+| `` \` `` | literal backtick character |
 | `[[` | literal `[` character |
 | `[blink]` (any unrecognized) | emitted verbatim including brackets |
 
@@ -828,8 +830,9 @@ sc_text_free(t);
 
 ```c
 typedef struct {
-    int strip_unknown; /* 1 = silently remove unrecognized tags; 0 = verbatim (default) */
-    ScAnsiMode ansi;   /* raw-ESC passthrough; zero-init = inherit sc_set_allow_ansi */
+    int strip_unknown;      /* 1 = silently remove unrecognized tags; 0 = verbatim (default) */
+    ScAnsiMode ansi;        /* raw-ESC passthrough; zero-init = inherit sc_set_allow_ansi */
+    ScTextStyle code_style; /* style for `inline code` spans; zero-init = magenta fg */
 } ScMarkupOpts;
 ```
 
@@ -870,6 +873,32 @@ sc_table_free(t);  /* frees markup ScText automatically */
 **Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default (including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
 
 **`[[` escape:** Two consecutive opening brackets produce a single literal `[`.
+
+### Backtick inline code
+
+Text between backticks renders as a code span: the backticks are removed and the content gets a magenta foreground by default. The body is **literal** – markup tags and `[[` inside backticks are not parsed (so `` `[bold]` `` shows the tag as code). The code span inherits the surrounding frame's attributes and background; only the foreground is replaced.
+
+```c
+sc_markup_println("run `make qa` before committing");          /* magenta code */
+sc_markup_println("[bold]bold and `code` mixed[/]");           /* bold + magenta */
+sc_markup_println("a literal \\` backtick");                   /* \` escape */
+```
+
+| Input | Result |
+|-------|--------|
+| `` `code` `` | `code` in magenta, backticks removed |
+| `` \` `` | literal backtick, no code span |
+| `` `dangling `` (unclosed) | backtick kept verbatim, no styling |
+| `` `a \` b` `` | code span containing ``a ` b`` |
+
+The style is configurable via `ScMarkupOpts.code_style` (zero-init = magenta foreground). Non-zero fields override the surrounding frame; an unset `code_style.fg` always falls back to magenta:
+
+```c
+/* bold cyan instead of magenta */
+sc_markup_println_opts("see `code`", (ScMarkupOpts){
+    .code_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE },
+});
+```
 
 ---
 

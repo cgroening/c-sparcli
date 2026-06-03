@@ -357,6 +357,8 @@ sc_markup_println("[rgb(120,200,255)]custom[/] color");
 
 By default, unknown tags such as `[blink]` are emitted verbatim. Pass `ScMarkupOpts{ .strip_unknown = 1 }` to silently drop them and keep only the inner content.
 
+**Backtick inline code**: `` `code` `` renders the content in magenta with the backticks removed (Markdown-style); the body is literal, so tags inside are not parsed. Escape a literal backtick with `` \` ``. The style is configurable via `ScMarkupOpts.code_style`.
+
 Clickable **OSC-8 hyperlinks** use the same syntax as Rich: `[link=https://example.com]text[/link]` (or `sc_text_append_link()` from code). Supporting terminals open the URL on Cmd/Ctrl+click; others show just the text.
 
 Any widget that takes an `ScText *` accepts markup via `sc_markup_parse()`. For tables, use the `SC_CELL_M("…")` macro to embed markup directly into a cell.

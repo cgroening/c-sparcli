@@ -922,6 +922,8 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[/]` | close most-recent style frame |
 | `[/bold]`, `[/red]`, … | named close (same effect as `[/]`) |
 | `[link=URL]text[/link]` | OSC-8 hyperlink; body is literal (nested tags not parsed), also closable with `[/]`; empty URL = unknown tag |
+| `` `inline code` `` | code span: magenta fg by default (`ScMarkupOpts.code_style`), backticks removed; body is literal (tags/`[[` not parsed); unclosed backtick stays verbatim |
+| `` \` `` | literal backtick character (also inside a code span) |
 | `[[` | literal `[` character |
 | `[blink]` (any unrecognized) | emitted verbatim including brackets |
 
@@ -963,8 +965,11 @@ sc_text_free(t);
 
 ```c
 typedef struct {
-    int strip_unknown; /* 1 = silently remove unrecognized tags; 0 = verbatim (default) */
-    ScAnsiMode ansi;   /* raw-ESC passthrough; zero-init = inherit sc_set_allow_ansi */
+    int strip_unknown;      /* 1 = silently remove unrecognized tags; 0 = verbatim (default) */
+    ScAnsiMode ansi;        /* raw-ESC passthrough; zero-init = inherit sc_set_allow_ansi */
+    ScTextStyle code_style; /* style for `inline code` spans; zero-init = magenta fg.
+                               Non-zero fields override the surrounding frame; fg always
+                               replaced (magenta when unset), attr/bg inherited when unset */
 } ScMarkupOpts;
 ```
 
@@ -1005,6 +1010,8 @@ sc_table_free(t);  /* frees markup ScText automatically */
 **Unknown tags:** Any tag with an unrecognized token is emitted verbatim by default (including brackets). Use `ScMarkupOpts{ .strip_unknown = 1 }` to silently discard them.
 
 **`[[` escape:** Two consecutive opening brackets produce a single literal `[`.
+
+**Backtick inline code:** `` `code` `` renders the body in magenta (or `ScMarkupOpts.code_style`) with the backticks removed. The body is literal (like the `[link=…]` body): tags and `[[` are not parsed inside. `` \` `` escapes a literal backtick (outside and inside code spans); an unclosed backtick is kept verbatim. The code span inherits the surrounding frame's attr/bg; only the fg is replaced. Bindings: C++ uses `ScMarkupOpts` directly, Rust `MarkupOpts::code_style`, Python `code_style=` kwarg on `sc.markup.*` / `sc.Text.from_markup/append_markup`.
 
 ---
 

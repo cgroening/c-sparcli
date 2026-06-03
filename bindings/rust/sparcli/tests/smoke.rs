@@ -126,6 +126,32 @@ fn capture_text_markup() {
 }
 
 #[test]
+fn markup_backtick_inline_code() {
+    // Backtick spans render in magenta (ESC[35m) with the backticks removed;
+    // \` escapes a literal backtick.
+    let t = Text::markup("run `make qa` or \\` now");
+    let raw = capture::text(&t).lines().join("\n");
+    assert!(raw.contains("\x1b[35m"));
+    assert!(raw.contains("make qa"));
+    assert!(!raw.contains('`') || raw.matches('`').count() == 1);
+}
+
+#[test]
+fn markup_backtick_custom_code_style() {
+    // A custom code_style overrides the default magenta (cyan = ESC[36m).
+    let t = sparcli::markup::parse_opts(
+        "see `code`",
+        sparcli::MarkupOpts {
+            code_style: Style::default().fg(Color::CYAN),
+            ..Default::default()
+        },
+    );
+    let raw = capture::text(&t).lines().join("\n");
+    assert!(raw.contains("\x1b[36m"));
+    assert!(!raw.contains("\x1b[35m"));
+}
+
+#[test]
 fn styled_text_builds() {
     let mut t = Text::new();
     t.append("a", Style::bold().fg(Color::RED))

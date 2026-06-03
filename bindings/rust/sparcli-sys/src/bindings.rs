@@ -432,14 +432,18 @@ pub struct ScMarkupOpts {
     pub strip_unknown: bool,
     #[doc = " ANSI passthrough for raw escape bytes in the markup text; zero-init\n inherits the `sc_set_allow_ansi` global."]
     pub ansi: ScAnsiMode,
+    #[doc = " Style for backtick-delimited `inline code` spans. Zero-init renders\n code in the default magenta foreground. Non-zero fields override the\n surrounding style frame; the foreground is always replaced (magenta\n when `code_style.fg` is unset). Escape a literal backtick with `\\``."]
+    pub code_style: ScTextStyle,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScMarkupOpts"][::std::mem::size_of::<ScMarkupOpts>() - 8usize];
+    ["Size of ScMarkupOpts"][::std::mem::size_of::<ScMarkupOpts>() - 28usize];
     ["Alignment of ScMarkupOpts"][::std::mem::align_of::<ScMarkupOpts>() - 4usize];
     ["Offset of field: ScMarkupOpts::strip_unknown"]
         [::std::mem::offset_of!(ScMarkupOpts, strip_unknown) - 0usize];
     ["Offset of field: ScMarkupOpts::ansi"][::std::mem::offset_of!(ScMarkupOpts, ansi) - 4usize];
+    ["Offset of field: ScMarkupOpts::code_style"]
+        [::std::mem::offset_of!(ScMarkupOpts, code_style) - 8usize];
 };
 extern "C" {
     #[doc = " Parses `markup` into a new `ScText` using default options.\n\n @param markup  Source string with Rich-style tags (e.g. `[bold red]…[/]`).\n                Pass `NULL` to get an empty `ScText`.\n @return        Heap-allocated `ScText`; free with `sc_text_free`."]
@@ -1892,7 +1896,7 @@ extern "C" {
     pub fn sc_key_decode(buf: *const ::std::os::raw::c_char, len: usize, out: *mut ScKey) -> usize;
 }
 extern "C" {
-    #[doc = " Returns `true` when an interactive prompt can run, i.e. a controlling\n terminal is available for both reading and writing.\n\n Widgets call this internally and return `SC_INPUT_ERROR` when it is\n `false` (output redirected to a pipe/file, no TTY in CI, …). Callers can\n use it to decide whether to fall back to a non-interactive default."]
+    #[doc = " Returns `true` when an interactive prompt can run, i.e. a controlling\n terminal is available for both reading and writing.\n\n Widgets call this internally and return `SC_INPUT_ERROR` when it is\n `false` (output redirected to a pipe/file, no TTY in CI, …). Callers can\n use it to decide whether to fall back to a non-interactive default.\n\n Setting the environment variable `SPARCLI_NO_TTY` to a non-empty value\n other than `\"0\"` forces `false` even when a terminal is attached. Test\n suites use this so prompts never grab the developer's real terminal."]
     pub fn sc_input_available() -> bool;
 }
 #[doc = " A key combination to match against a decoded `ScKey`."]
@@ -3552,7 +3556,7 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = " Restricts an option to a fixed set of values (rendered in help; invalid\n values produce an error listing the choices).\n\n @param cmd        Command the option was added to.\n @param long_name  Option to modify.\n @param choices    `NULL`-terminated array of allowed values; copied."]
+    #[doc = " Restricts an option to a fixed set of values (rendered in help; invalid\n values produce an error listing the choices).\n\n @param cmd        Command the option was added to.\n @param long_name  Option to modify.\n @param choices    `NULL`-terminated array of allowed values; copied.\n                   An empty list (first element `NULL`) removes a\n                   previously set restriction."]
     pub fn sc_args_opt_choices(
         cmd: *mut ScArgsCmd,
         long_name: *const ::std::os::raw::c_char,

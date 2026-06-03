@@ -32,6 +32,9 @@ section "print: markup"
 section "print: multiple args joined"
 "$BIN" print "[bold]first[/]" "second" "third"
 
+section "print: backtick inline code"
+"$BIN" print 'run `make qa` or an escaped \` backtick'
+
 section "print: --no-markup leaves tags verbatim"
 "$BIN" print --no-markup "[bold]not bold[/]"
 

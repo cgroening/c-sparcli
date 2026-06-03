@@ -112,6 +112,12 @@ pub struct MarkupOpts {
     /// inherits the process-wide [`set_allow_ansi`](crate::set_allow_ansi)
     /// setting.
     pub ansi: AnsiMode,
+
+    /// Style for backtick-delimited `` `inline code` `` spans. The default
+    /// (zero-init) renders code in a magenta foreground; non-default fields
+    /// override the surrounding style frame. Escape a literal backtick
+    /// with `` \` ``.
+    pub code_style: Style,
 }
 
 impl MarkupOpts {
@@ -119,6 +125,7 @@ impl MarkupOpts {
         ffi::ScMarkupOpts {
             strip_unknown: self.strip_unknown,
             ansi: self.ansi.raw(),
+            code_style: self.code_style.raw(),
         }
     }
 }

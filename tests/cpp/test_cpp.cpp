@@ -169,6 +169,27 @@ static void test_wrapper_matches_c() {
     CHECK(contains(wt, "a") && contains(wt, "b"), "Text builder renders spans");
 }
 
+// Backtick inline code must render in magenta with the backticks removed;
+// the MarkupOpts::code_style field must override the default via the wrapper.
+static void test_markup_inline_code() {
+    std::string out = render([] {
+        Text::markup("run `make qa` now").print();
+    });
+    CHECK(out.find("\033[35m") != std::string::npos
+              && contains(out, "run make qa now"),
+          "backtick code renders magenta without the backticks");
+
+    std::string custom = render([] {
+        Text::markup(
+            "see `code`",
+            MarkupOpts{ .code_style = { .fg = SC_ANSI_COLOR_CYAN } })
+            .print();
+    });
+    CHECK(custom.find("\033[36m") != std::string::npos
+              && custom.find("\033[35m") == std::string::npos,
+          "MarkupOpts::code_style overrides the default magenta");
+}
+
 // Text::append_link must emit an OSC-8 hyperlink wrapping the visible text;
 // the escape bytes must not contribute to the visible width.
 static void test_text_link() {
@@ -429,6 +450,7 @@ int main() {
     test_tree_text_arena();
     test_table_column_style();
     test_wrapper_matches_c();
+    test_markup_inline_code();
     test_text_link();
     test_paths_and_pager();
     test_live_display();

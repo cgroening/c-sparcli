@@ -38,10 +38,22 @@ class Text:
         return t
 
     @classmethod
-    def from_markup(cls, markup: str, *, strip_unknown: bool = False) -> "Text":
-        """Parse Rich-style ``markup`` (e.g. ``[bold red]hi[/]``) into Text."""
+    def from_markup(
+        cls,
+        markup: str,
+        *,
+        strip_unknown: bool = False,
+        code_style: Style | None = None,
+    ) -> "Text":
+        """Parse Rich-style ``markup`` (e.g. ``[bold red]hi[/]``) into Text.
+
+        ``code_style`` styles backtick ```inline code``` spans; ``None``
+        renders them in the default magenta foreground.
+        """
         t = cls()
-        t.append_markup(markup, strip_unknown=strip_unknown)
+        t.append_markup(
+            markup, strip_unknown=strip_unknown, code_style=code_style
+        )
         return t
 
     # ── building ────────────────────────────────────────────────────────────
@@ -69,12 +81,22 @@ class Text:
         return self
 
     def append_markup(
-        self, markup: str, *, strip_unknown: bool = False
+        self,
+        markup: str,
+        *,
+        strip_unknown: bool = False,
+        code_style: Style | None = None,
     ) -> "Text":
-        """Parse ``markup`` and append the resulting spans. Returns ``self``."""
+        """Parse ``markup`` and append the resulting spans. Returns ``self``.
+
+        ``code_style`` styles backtick ```inline code``` spans; ``None``
+        renders them in the default magenta foreground.
+        """
         arena: list = []
         opts = ffi.new("ScMarkupOpts *")
         opts.strip_unknown = strip_unknown
+        if code_style is not None:
+            apply_style(opts.code_style, code_style)
         lib.sc_markup_append_opts(self._p, cstr(arena, markup), opts[0])
         return self
 

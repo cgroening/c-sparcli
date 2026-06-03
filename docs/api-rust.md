@@ -58,10 +58,19 @@ t.print();
 
 markup::println("[bold red]Error:[/] file not found");
 markup::println("Open [link=https://example.com]the docs[/link]");
+markup::println("run `make qa` first");            // backtick code span (magenta)
 let parsed: Text = Text::markup("[italic]hi[/]");
+
+// Custom inline-code style instead of the default magenta:
+let t = markup::parse_opts("see `code`", MarkupOpts {
+    code_style: Style::bold().fg(Color::CYAN),
+    ..Default::default()
+});
 ```
 
 `append_link` and the `[link=URL]text[/link]` markup tag emit OSC-8 terminal hyperlinks (clickable in supporting terminals, plain text elsewhere); the escape bytes have zero visible width.
+
+Backtick `` `inline code` `` spans render in magenta with the backticks removed; the body is literal (tags are not parsed inside). Escape a literal backtick with `` \` ``. `MarkupOpts::code_style` overrides the default style.
 
 ### Capture / compose
 

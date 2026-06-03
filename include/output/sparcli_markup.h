@@ -22,6 +22,14 @@ typedef struct ScMarkupOpts {
      * inherits the `sc_set_allow_ansi` global.
      */
     ScAnsiMode ansi;
+
+    /**
+     * Style for backtick-delimited `inline code` spans. Zero-init renders
+     * code in the default magenta foreground. Non-zero fields override the
+     * surrounding style frame; the foreground is always replaced (magenta
+     * when `code_style.fg` is unset). Escape a literal backtick with `\``.
+     */
+    ScTextStyle code_style;
 } ScMarkupOpts;
 
 

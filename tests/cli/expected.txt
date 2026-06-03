@@ -5,6 +5,9 @@
 ===== print: multiple args joined =====
 [1mfirst[0m second third[0m
 
+===== print: backtick inline code =====
+run [0m[35mmake qa[0m or an escaped [0m`[0m backtick[0m
+
 ===== print: --no-markup leaves tags verbatim =====
 [bold]not bold[/][0m
 

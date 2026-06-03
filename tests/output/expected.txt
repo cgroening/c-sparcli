@@ -788,7 +788,27 @@ Plain prefix - [0m[1m[31mappended markup[0m - [0m[3m[36msecond append[0m
 │[0m [31m✖ Error[0m      │[0m [1m[31mCompilation failed[0m         │[0m
 └[0m──────────────[0m┴[0m────────────────────────────[0m┘[0m
 
---- Markup 11. sc_markup_parse + sc_panel_text ---
+--- Markup 11. backtick inline code ---
+Use [0m[35msc_print()[0m to write styled text[0m
+a literal [0m`[0m backtick is escaped[0m
+a dangling ` backtick stays verbatim[0m
+an empty [0m span renders nothing[0m
+[1mbold with [0m[1m[35mcode[0m[1m inside[0m plain again[0m
+[44mbg kept around [0m[35m[44mcode[0m[44m span[0m
+[35m[bold] and [[ stay literal inside code[0m
+[35mescaped ` inside code[0m
+custom [0m[1m[36mcode style[0m via opts[0m
+
+--- Markup 12. backtick inline code in table ---
+┌[0m──────────────────[0m┬[0m────────────────────────────[0m┐[0m
+│[0m [1mFunction[0m         │[0m [1mPurpose[0m                    │[0m
+├[0m──────────────────[0m┼[0m────────────────────────────[0m┤[0m
+│[0m [35msc_panel_str()[0m   │[0m Render a [0m[1mpanel[0m frame[0m       │[0m
+├[0m──────────────────[0m┼[0m────────────────────────────[0m┤[0m
+│[0m [35msc_rule_str()[0m    │[0m Draw a [0m[35mrule[0m line[0m           │[0m
+└[0m──────────────────[0m┴[0m────────────────────────────[0m┘[0m
+
+--- Markup 13. sc_markup_parse + sc_panel_text ---
 [36m╭[0m[36m──────────────[0m [0m[1m[36m Markup Demo [0m [0m[36m───────────────[0m[36m╮[0m
 [36m│[0m                                            [36m│[0m
 [36m│[0m  [1msparcli[0m supports [0m[3mRich-compatible[0m markup.[0m  [36m│[0m

@@ -62,10 +62,16 @@ t.print()
 
 sc.markup.println("[bold red]Error:[/] file not found")
 sc.markup.println("Open [link=https://example.com]the docs[/link]")
+sc.markup.println("run `make qa` first")                    # backtick code span (magenta)
 parsed = sc.Text.from_markup("[italic]hi[/]")               # use with any *_text widget
+
+# Custom inline-code style instead of the default magenta:
+sc.markup.println("see `code`", code_style=sc.Style(fg=sc.Color.CYAN))
 ```
 
 `append_link` and the `[link=URL]text[/link]` markup tag emit OSC-8 terminal hyperlinks (clickable in supporting terminals, plain text elsewhere); the escape bytes have zero visible width.
+
+Backtick `` `inline code` `` spans render in magenta with the backticks removed; the body is literal (tags are not parsed inside). Escape a literal backtick with `` \` ``. The `code_style=` keyword (on `sc.markup.parse/print/println` and `sc.Text.from_markup/append_markup`) overrides the default style.
 
 ### Capture / compose
 

@@ -189,7 +189,7 @@ FILE *sc_output_stream(void);
 void sc_output_set_stream(FILE *out);
 
 /* ── Markup ────────────────────────────────────────────────────────────── */
-typedef struct { bool strip_unknown; ScAnsiMode ansi; ...; } ScMarkupOpts;
+typedef struct { bool strip_unknown; ScAnsiMode ansi; ScTextStyle code_style; ...; } ScMarkupOpts;
 ScText *sc_markup_parse(const char *markup);
 ScText *sc_markup_parse_opts(const char *markup, ScMarkupOpts opts);
 void sc_markup_append(ScText *text, const char *markup);

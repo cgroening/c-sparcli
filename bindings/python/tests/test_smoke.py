@@ -94,6 +94,26 @@ def test_capture_markup_text():
     assert t.visible_width >= len("Err ok")
 
 
+def test_markup_backtick_inline_code():
+    # Backtick spans render in magenta (ESC[35m) with the backticks removed;
+    # \` escapes a literal backtick.
+    t = sc.Text.from_markup("run `make qa` or \\` now")
+    raw = "\n".join(sc.capture.text(t).lines)
+    assert "\x1b[35m" in raw
+    plain = "\n".join(_plain(sc.capture.text(t)))
+    assert "run make qa or ` now" in plain
+
+
+def test_markup_backtick_custom_code_style():
+    # code_style overrides the default magenta (cyan = ESC[36m).
+    t = sc.Text.from_markup(
+        "see `code`", code_style=sc.Style(fg=sc.Color.CYAN)
+    )
+    raw = "\n".join(sc.capture.text(t).lines)
+    assert "\x1b[36m" in raw
+    assert "\x1b[35m" not in raw
+
+
 def test_vstack_combines():
     a = sc.capture.string("one")
     b = sc.capture.string("two")

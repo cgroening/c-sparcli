@@ -166,8 +166,57 @@ void test_markup(void) {
 
     printf("\n");
 
-    /* ── 11. sc_markup_parse + sc_panel_text ── */
-    printf("--- Markup 11. sc_markup_parse + sc_panel_text ---\n");
+    /* ── 11. backtick inline code ── */
+    printf("--- Markup 11. backtick inline code ---\n");
+    sc_markup_println("Use `sc_print()` to write styled text");
+    sc_markup_println("a literal \\` backtick is escaped");
+    sc_markup_println("a dangling ` backtick stays verbatim");
+    sc_markup_println("an empty `` span renders nothing");
+    sc_markup_println("[bold]bold with `code` inside[/] plain again");
+    sc_markup_println("[on blue]bg kept around `code` span[/]");
+    sc_markup_println("`[bold] and [[ stay literal inside code`");
+    sc_markup_println("`escaped \\` inside code`");
+    sc_markup_println_opts(
+        "custom `code style` via opts",
+        (ScMarkupOpts){ .code_style = bold_cyan }
+    );
+
+    printf("\n");
+
+    /* ── 12. backtick inline code in a table cell ── */
+    printf("--- Markup 12. backtick inline code in table ---\n");
+    {
+        ScTableData *table = sc_table_new();
+        sc_table_add_column(
+            table, "Function", (ScColOpts){ .fixed_width = 18 }
+        );
+        sc_table_add_column(table, "Purpose", (ScColOpts){ .fixed_width = 28 });
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell_m("`sc_panel_str()`"),
+            sc_cell_m("Render a [bold]panel[/] frame"),
+        }, 2);
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell_m("`sc_rule_str()`"),
+            sc_cell_m("Draw a `rule` line"),
+        }, 2);
+        sc_table_print(table, (ScTableOpts){
+            .border = {
+                SC_BORDER_SINGLE,
+                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+                SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE,
+                0, 0, 0
+            },
+            .header.row = true,
+            .header.style = bold,
+            .cell_pad = { 0, 1, 0, 1 },
+        });
+        sc_table_free(table);
+    }
+
+    printf("\n");
+
+    /* ── 13. sc_markup_parse + sc_panel_text ── */
+    printf("--- Markup 13. sc_markup_parse + sc_panel_text ---\n");
     {
         ScText *content = sc_markup_parse(
             "[bold]sparcli[/] supports [italic]Rich-compatible[/] markup.\n"

@@ -1,6 +1,7 @@
 #include "sparcli.h"
 #include "core/sanitize_internal.h"
 #include "core/text_internal.h"
+#include "internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,6 +88,13 @@ typedef struct Parser {
      * nested tags) is part of the link text.
      */
     char *link_url;
+
+    /**
+     * User-supplied style for backtick code spans (`ScMarkupOpts.code_style`,
+     * stored verbatim). The magenta default for an unset foreground is
+     * applied at merge time, not here.
+     */
+    ScTextStyle code_style;
 } Parser;
 
 
@@ -101,6 +109,16 @@ static ScText *parse_internal(const char *markup, ScMarkupOpts opts);
             const char *start, size_t length, ScTextStyle style
         );
         static ScTextStyle current_style(const Parser *self);
+    static bool consume_literal_backtick(Parser *self);
+    static bool consume_code_span(Parser *self);
+        static const char *find_code_end(const char *body_start);
+        static void append_code_chunk(
+            Parser *self, const char *start, size_t length
+        );
+            static void unescape_backticks(char *str);
+            static ScTextStyle merge_code_style(
+                ScTextStyle frame, ScTextStyle code
+            );
     static bool consume_tag(Parser *self);
         static const char *find_tag_end(const char *open_bracket);
         static void handle_closing_tag(
@@ -213,6 +231,8 @@ static ScText *parse_internal(const char *markup, ScMarkupOpts opts) {
             continue;
         }
         if (consume_literal_bracket(&self)) { continue; }
+        if (consume_literal_backtick(&self)) { continue; }
+        if (consume_code_span(&self)) { continue; }
         if (consume_tag(&self)) { continue; }
         self.cursor++;
     }
@@ -234,6 +254,7 @@ static void init_parser(
     self->depth = 0;
     self->dropped_opens = 0;
     self->link_url = NULL;
+    self->code_style = opts.code_style;
     self->stack[0] = (ScTextStyle){
         SC_TEXT_ATTR_NONE,
         SC_ANSI_COLOR_NONE,
@@ -260,6 +281,125 @@ static bool consume_literal_bracket(Parser *self) {
     self->cursor += 2;
     self->segment_start = self->cursor;
     return true;
+}
+
+/**
+ * Detects `\`` at the cursor: emits the pending segment, writes a literal
+ * backtick span, and advances the cursor past the escape. Returns `true`
+ * when the case applied.
+ */
+static bool consume_literal_backtick(Parser *self) {
+    if (!(self->cursor[0] == '\\' && self->cursor[1] == '`')) {
+        return false;
+    }
+
+    append_chunk(
+        self, self->segment_start,
+        (size_t)(self->cursor - self->segment_start),
+        current_style(self)
+    );
+    sc_text_append_raw(self->text, "`", current_style(self));
+    self->cursor += 2;
+    self->segment_start = self->cursor;
+    return true;
+}
+
+/**
+ * Detects a backtick-delimited `inline code` span at the cursor: both
+ * backticks are removed and the body is emitted as one literal span (no
+ * tag parsing) with the code style merged onto the current frame. Returns
+ * `false` when no closing backtick exists, so the opening backtick stays
+ * plain text (caller advances past it).
+ */
+static bool consume_code_span(Parser *self) {
+    if (self->cursor[0] != '`') { return false; }
+
+    const char *close = find_code_end(self->cursor + 1);
+    if (!close) { return false; }
+
+    append_chunk(
+        self, self->segment_start,
+        (size_t)(self->cursor - self->segment_start),
+        current_style(self)
+    );
+    append_code_chunk(
+        self, self->cursor + 1, (size_t)(close - self->cursor - 1)
+    );
+    self->cursor = close + 1;
+    self->segment_start = self->cursor;
+    return true;
+}
+
+/**
+ * Returns a pointer to the closing backtick of a code span whose body
+ * starts at `body_start`, or `NULL` when none exists. Escaped backticks
+ * (`\``) inside the body do not close the span.
+ */
+static const char *find_code_end(const char *body_start) {
+    const char *p = body_start;
+    while (*p) {
+        if (p[0] == '\\' && p[1] == '`') {
+            p += 2;
+            continue;
+        }
+        if (*p == '`') { return p; }
+        p++;
+    }
+    return NULL;
+}
+
+/**
+ * Appends the literal body of a code span: sanitizes it, collapses `\``
+ * escapes into plain backticks, and emits one span styled with the code
+ * style merged onto the current frame; does nothing when `length == 0`.
+ */
+static void append_code_chunk(
+    Parser *self, const char *start, size_t length
+) {
+    if (length == 0) { return; }
+    char *chunk = strndup(start, length);
+    if (!chunk) { return; }
+
+    // The code body is literal text: raw escape bytes are always stripped
+    char *clean = sc_sanitize_copy(chunk, false);
+    free(chunk);
+    if (!clean) { return; }
+
+    unescape_backticks(clean);
+    sc_text_append_raw(
+        self->text, clean,
+        merge_code_style(current_style(self), self->code_style)
+    );
+    free(clean);
+}
+
+/** Collapses every `\`` escape in `str` to a plain backtick, in place. */
+static void unescape_backticks(char *str) {
+    char *write = str;
+    for (const char *read = str; *read; read++) {
+        if (read[0] == '\\' && read[1] == '`') {
+            continue;   // skip the backslash; the backtick is copied next
+        }
+        *write++ = *read;
+    }
+    *write = '\0';
+}
+
+/**
+ * Merges the user-supplied code style onto the surrounding style frame:
+ * non-zero fields of `code` override `frame`; the foreground is always
+ * replaced (default magenta when `code.fg` is unset).
+ */
+static ScTextStyle merge_code_style(ScTextStyle frame, ScTextStyle code) {
+    ScTextStyle merged = frame;
+    if (code.attr != SC_TEXT_ATTR_NONE) {
+        merged.attr = code.attr;
+    }
+    merged.fg = sc_color_is_active(code.fg) ? code.fg : SC_ANSI_COLOR_MAGENTA;
+    if (sc_color_is_active(code.bg)) {
+        merged.bg = code.bg;
+    }
+    return merged;
 }
 
 /**

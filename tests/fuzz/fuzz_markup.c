@@ -6,7 +6,11 @@
 /** Extra bytes needed to wrap a fuzz input in a `[link=…]` construct. */
 #define LINK_WRAP_EXTRA 32
 
+/** Extra bytes needed to wrap a fuzz input in backtick code constructs. */
+#define CODE_WRAP_EXTRA 8
+
 static void fuzz_link_wrapped(const char *input, size_t size);
+static void fuzz_code_wrapped(const char *input, size_t size);
 
 /**
  * Fuzz target for the inline-markup parser (`sc_markup_parse`): random byte
@@ -32,6 +36,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     sc_text_free(stripped);
 
     fuzz_link_wrapped(input, size);
+    fuzz_code_wrapped(input, size);
 
     free(input);
     return 0;
@@ -58,6 +63,32 @@ static void fuzz_link_wrapped(const char *input, size_t size) {
     if (written > 0 && (size_t)written < buffer_size) {
         ScText *as_body = sc_markup_parse(wrapped);
         sc_text_free(as_body);
+    }
+
+    free(wrapped);
+}
+
+/**
+ * Exercises the backtick inline-code parser path: feeds the raw input once
+ * as a closed code span and once behind a `\`` escape.
+ */
+static void fuzz_code_wrapped(const char *input, size_t size) {
+    size_t buffer_size = size + CODE_WRAP_EXTRA;
+    char *wrapped = malloc(buffer_size);
+    if (!wrapped) {
+        return;
+    }
+
+    int written = snprintf(wrapped, buffer_size, "`%s`", input);
+    if (written > 0 && (size_t)written < buffer_size) {
+        ScText *as_code = sc_markup_parse(wrapped);
+        sc_text_free(as_code);
+    }
+
+    written = snprintf(wrapped, buffer_size, "\\`%s", input);
+    if (written > 0 && (size_t)written < buffer_size) {
+        ScText *as_escaped = sc_markup_parse(wrapped);
+        sc_text_free(as_escaped);
     }
 
     free(wrapped);

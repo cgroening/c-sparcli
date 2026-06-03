@@ -61,7 +61,10 @@ All text content – `print` text, panel/rule/table titles, table cells, list it
 ```sh
 sparcli print "[bold red]Error:[/] [dim]something went wrong[/]"
 sparcli list "[green]✔[/] done" "[yellow]…[/] running"
+sparcli print 'run `make qa` first'     # backtick inline code → magenta
 ```
+
+Backtick `` `inline code` `` spans render in magenta with the backticks removed; the body is literal (tags inside are not parsed). Escape a literal backtick with `` \` `` (in single shell quotes: `'\` '`).
 
 `--no-markup` disables parsing for one invocation; the text is then rendered exactly as given. Exception: `kv` values and `badge` text are always literal (the underlying widgets take plain strings).
 
