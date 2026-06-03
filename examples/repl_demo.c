@@ -216,16 +216,18 @@ static void cmd_list(ScArgs *args) {
     sc_table_add_column(table, "Due", (ScColOpts){ 0 });
     sc_table_add_column(table, "State", (ScColOpts){ 0 });
 
+    // Cell strings are borrowed until print, so the id buffers must outlive
+    // the loop (one slot per row, not one reused stack variable).
+    char ids[MAX_TASKS][16];
     size_t shown = 0;
     for (size_t i = 0; i < g_task_count; i++) {
         const Task *task = &g_tasks[i];
         if (task->completed && !show_all) {
             continue;
         }
-        char id[16];
-        snprintf(id, sizeof id, "%zu", i + 1);
+        snprintf(ids[i], sizeof ids[i], "%zu", i + 1);
         sc_table_add_row(table, (ScCell[]){
-            sc_cell(id),
+            sc_cell(ids[i]),
             sc_cell(task->text),
             sc_cell(task->due[0] ? task->due : "-"),
             sc_cell_m(task->completed ? "[green]done[/]" : "[yellow]open[/]"),

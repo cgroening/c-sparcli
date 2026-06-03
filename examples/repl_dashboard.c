@@ -203,11 +203,13 @@ static ScRendered *capture_task_table(const AppState *state) {
     sc_table_add_column(table, "Task", (ScColOpts){ .min_width = 32 });
     sc_table_add_column(table, "State", (ScColOpts){ 0 });
 
+    // Cell strings are borrowed until capture, so the id buffers must
+    // outlive the loop (one slot per row, not one reused stack variable).
+    char ids[MAX_TASKS][16];
     for (size_t i = 0; i < state->task_count; i++) {
-        char id[16];
-        snprintf(id, sizeof id, "%zu", i + 1);
+        snprintf(ids[i], sizeof ids[i], "%zu", i + 1);
         sc_table_add_row(table, (ScCell[]){
-            sc_cell(id),
+            sc_cell(ids[i]),
             sc_cell(state->tasks[i].text),
             sc_cell_m(state->tasks[i].completed
                           ? "[green]done[/]" : "[yellow]open[/]"),
@@ -249,7 +251,7 @@ static void dispatch(AppState *state, const char *line) {
     char err[64];
     char **argv = sc_args_split("dash", line, &argc, err, sizeof err);
     if (!argv) {
-        set_status(state, "Input error: %s", err);
+        set_status(state, "Input error: ", err);
         return;
     }
     if (argc <= 1) {
@@ -291,7 +293,7 @@ static void cmd_add(AppState *state, char **argv, int argc) {
         snprintf(task->text + used, sizeof task->text - used, "%s%s",
                  used > 0 ? " " : "", argv[i]);
     }
-    set_status(state, "Added: %s", task->text);
+    set_status(state, "Added: ", task->text);
 }
 
 /** `done <n>` / `del <n>`. */
@@ -305,14 +307,14 @@ static void cmd_done(AppState *state, char **argv, int argc, bool del) {
 
     size_t index = (size_t)id - 1;
     if (del) {
-        set_status(state, "Removed: %s", state->tasks[index].text);
+        set_status(state, "Removed: ", state->tasks[index].text);
         for (size_t i = index; i + 1 < state->task_count; i++) {
             state->tasks[i] = state->tasks[i + 1];
         }
         state->task_count--;
     } else {
         state->tasks[index].completed = true;
-        set_status(state, "Completed: %s", state->tasks[index].text);
+        set_status(state, "Completed: ", state->tasks[index].text);
     }
 }
 
