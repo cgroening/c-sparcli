@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "internal.h"   /* sc_no_tty_override */
 
 #include <errno.h>
 #include <signal.h>
@@ -42,10 +43,13 @@ ScPager *sc_pager_begin(ScPagerOpts opts) {
     ScPager *pager = calloc(1, sizeof(ScPager));
     if (!pager) { return NULL; }
 
-    // Off-terminal output (pipe, file, capture) is not paged by default
+    // Off-terminal output (pipe, file, capture) is not paged by default;
+    // the SPARCLI_NO_TTY override counts as "off terminal" too.
     FILE *current = sc_output_stream();
     int current_fd = fileno(current);
-    if (!opts.always && (current_fd < 0 || !isatty(current_fd))) {
+    bool off_terminal = sc_no_tty_override()
+        || current_fd < 0 || !isatty(current_fd);
+    if (!opts.always && off_terminal) {
         return pager;
     }
 

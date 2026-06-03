@@ -1,10 +1,30 @@
 //! Non-interactive integration tests: pure functions and render-and-capture.
-//! No TTY needed, so they run anywhere (CI included).
+//!
+//! The prompt tests exercise the "no TTY" error path. `make rust-test` sets
+//! `SPARCLI_NO_TTY=1` so prompts fail cleanly even when the suite runs from
+//! an interactive terminal (cargo only redirects stdin/stdout; `/dev/tty`
+//! stays reachable). A direct `cargo test` from a terminal skips those tests
+//! instead of letting prompts grab the keyboard.
 
 use sparcli::{
     capture, fuzzy_match, key_ctrl, key_fn, AnsiMode, ColOpts, Color,
     PanelOpts, Style, Table, TableOpts, Text,
 };
+
+/// Guard for tests that assert the library's no-TTY behavior (prompt errors,
+/// pager no-op).
+///
+/// Returns `false` (and logs a skip notice) when an interactive terminal is
+/// attached and `SPARCLI_NO_TTY` is not set: a prompt would open `/dev/tty`
+/// and block on a keystroke, and the pager would spawn a real `less` that
+/// waits for `q`.
+fn no_tty_behavior_testable() -> bool {
+    if sparcli::input_available() {
+        eprintln!("skipped: interactive terminal (run via `make rust-test`)");
+        return false;
+    }
+    true
+}
 
 #[test]
 fn version_is_reported() {
@@ -32,15 +52,17 @@ fn calc_eval_pure() {
     assert_eq!(sparcli::calc_eval("garbage"), None);
 
     // The calculator opts cross the FFI boundary cleanly (no TTY -> error).
-    let r = sparcli::number_input(
-        "Amount",
-        sparcli::NumberOpts::new()
-            .decimals(2)
-            .calculator(true)
-            .calc_store_rounded(true)
-            .calc_show_precise(true),
-    );
-    assert!(r.is_err());
+    if no_tty_behavior_testable() {
+        let r = sparcli::number_input(
+            "Amount",
+            sparcli::NumberOpts::new()
+                .decimals(2)
+                .calculator(true)
+                .calc_store_rounded(true)
+                .calc_show_precise(true),
+        );
+        assert!(r.is_err());
+    }
 }
 
 #[test]
@@ -215,8 +237,11 @@ fn history_persists_to_file() {
 fn text_input_with_history_without_tty_errors() {
     use sparcli::{text_input, History, HistoryOpts, TextInputOpts};
 
-    // Under cargo test there is no TTY: the prompt must fail cleanly with
-    // Unavailable and never touch the attached history.
+    if !no_tty_behavior_testable() {
+        return;
+    }
+    // Without a usable TTY the prompt must fail cleanly with Unavailable
+    // and never touch the attached history.
     let history = History::new(HistoryOpts::new());
     let result = text_input(
         "repl>",
@@ -228,8 +253,11 @@ fn text_input_with_history_without_tty_errors() {
 
 #[test]
 fn pager_is_noop_off_terminal() {
-    // Under `cargo test` stdout is not a terminal -> the session is a no-op
-    // and must end cleanly with status 0 without spawning a pager.
+    if !no_tty_behavior_testable() {
+        return;
+    }
+    // Without a usable terminal (or with SPARCLI_NO_TTY set) the session is
+    // a no-op and must end cleanly with status 0 without spawning a pager.
     let pager = sparcli::Pager::begin(sparcli::PagerOpts::new());
     assert_eq!(pager.end(), 0);
 }
@@ -289,8 +317,11 @@ fn error_report_builder() {
 
 #[test]
 fn input_without_tty_errors() {
-    // No controlling terminal under `cargo test`, so prompts return an error
-    // (callers fall back to a default), never a panic.
+    if !no_tty_behavior_testable() {
+        return;
+    }
+    // Without a usable TTY prompts return an error (callers fall back to a
+    // default), never a panic.
     let r = sparcli::confirm("Proceed?", sparcli::ConfirmOpts::new());
     assert!(r.is_err());
     assert!(!sparcli::input_available());
@@ -298,6 +329,9 @@ fn input_without_tty_errors() {
 
 #[test]
 fn text_input_suggest_dropdown_without_tty_errors() {
+    if !no_tty_behavior_testable() {
+        return;
+    }
     // The dropdown SuggestOpts must cross the FFI boundary cleanly; without
     // a TTY the prompt still errors instead of crashing on the new fields.
     let r = sparcli::text_input(
@@ -323,6 +357,9 @@ fn text_input_suggest_dropdown_without_tty_errors() {
 
 #[test]
 fn number_input_text_without_tty_errors() {
+    if !no_tty_behavior_testable() {
+        return;
+    }
     // The exact-text variant follows the same no-TTY contract.
     let r = sparcli::number_input_text(
         "Amount",

@@ -141,7 +141,8 @@ def test_xdg_paths(tmp_path, monkeypatch):
 
 
 def test_pager_noop_off_terminal():
-    # Under pytest the output stream is not a terminal -> no-op session
+    # SPARCLI_NO_TTY (conftest.py / make python-test) forces the no-op
+    # session even when the suite runs from an interactive terminal.
     with sc.Pager() as pager:
         sc.println("paged content")
     assert pager.exit_status == 0
@@ -194,7 +195,8 @@ def test_columns_capture_runs():
 
 # ── no-TTY input behaviour ────────────────────────────────────────
 def test_input_unavailable_without_tty():
-    # Under pytest stdin/stdout are not a terminal.
+    # conftest.py / make python-test set SPARCLI_NO_TTY=1, so the library
+    # reports "no terminal" even when the suite runs from an interactive one.
     assert sc.input_available() is False
     with pytest.raises(sc.SparcliInputUnavailable):
         sc.confirm("ok?")

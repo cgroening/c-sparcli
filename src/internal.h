@@ -106,6 +106,30 @@ static inline size_t max_sz_n(const size_t *arr, size_t n) {
 
 
 /**
+ * Name of the environment variable that forces "no terminal attached"
+ * behavior throughout the library (see `sc_no_tty_override`).
+ */
+#define SC_NO_TTY_ENV "SPARCLI_NO_TTY"
+
+/**
+ * Returns `true` when the `SPARCLI_NO_TTY` environment override is set to a
+ * non-empty value other than `"0"`, forcing the library to behave as if no
+ * terminal were attached.
+ *
+ * Honored by every terminal-presence check on both sides of the
+ * output/input boundary: the input widgets (`sc_input_available`,
+ * `sc_tty_begin`) and the output-stream checks (pager, live display).
+ * Test suites set it so widgets never grab a developer's real terminal -
+ * test runners like `cargo test` or `pytest` only redirect stdin/stdout,
+ * the controlling terminal stays reachable via `/dev/tty` and `isatty()`.
+ * Re-read on every call so tests can toggle it at runtime.
+ */
+static inline bool sc_no_tty_override(void) {
+    const char *value = getenv(SC_NO_TTY_ENV);
+    return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+/**
  * Returns the current terminal width in columns, or 80 when it cannot
  * be determined (terminal not attached, ioctl failure, etc.).
  */

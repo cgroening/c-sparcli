@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
         { "ANSI Sanitizer", test_sanitize,       0 },
         { "Suggest Dropdown", test_suggest,      0 },
         { "Input History",  test_history,        0 },
+        { "No-TTY Override", test_no_tty,        0 },
         { "Thread Safety",  test_threads,        0 },
         { "Confirm",        test_confirm,        1 },
         { "Text Input",     test_text_input,     1 },

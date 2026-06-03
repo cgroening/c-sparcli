@@ -1,4 +1,5 @@
 #include "tty_internal.h"
+#include "internal.h"   /* sc_no_tty_override */
 
 #include <errno.h>
 #include <fcntl.h>
@@ -62,6 +63,9 @@ static void restore_terminal(void);
 ScInputStatus sc_tty_begin(void) {
     if (raw_active) {
         return SC_INPUT_OK;
+    }
+    if (sc_no_tty_override()) {
+        return SC_INPUT_ERROR;
     }
 
     // Prefer the controlling terminal so input still works when stdout is
@@ -176,6 +180,9 @@ bool sc_tty_take_resize(void) {
 }
 
 bool sc_input_available(void) {
+    if (sc_no_tty_override()) {
+        return false;
+    }
     int fd = open("/dev/tty", O_RDWR | O_CLOEXEC);
     if (fd >= 0) {
         close(fd);

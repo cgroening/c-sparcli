@@ -180,7 +180,7 @@ d = sc.datepicker(datetime.date.today(), sc.DatePickerOpts(week_start=sc.WeekSta
 ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 ```
 
-`input_available()` reports whether a prompt can run (useful to fall back to a default in non-interactive contexts).
+`input_available()` reports whether a prompt can run (useful to fall back to a default in non-interactive contexts). Setting the env var `SPARCLI_NO_TTY=1` forces `False` / the no-TTY error even when a terminal is attached – the pytest suite uses this so prompts never grab a real terminal.
 
 ### Input history (REPLs)
 

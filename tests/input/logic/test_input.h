@@ -35,6 +35,7 @@ void test_calc(void);
 void test_sanitize(void);
 void test_suggest(void);
 void test_history(void);
+void test_no_tty(void);
 void test_threads(void);
 
 /* Interactive widget tests (require a TTY). */

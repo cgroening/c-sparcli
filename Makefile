@@ -194,6 +194,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_sanitize.c \
                  tests/input/logic/test_suggest.c \
                  tests/input/logic/test_history.c \
+                 tests/input/logic/test_no_tty.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
 
@@ -255,8 +256,12 @@ RUST_MANIFEST = bindings/rust/Cargo.toml
 rust:
 	cargo build --manifest-path $(RUST_MANIFEST)
 
+# SPARCLI_NO_TTY=1: the smoke tests exercise the "no TTY" error paths. Without
+# it, running from an interactive terminal would let prompts open /dev/tty,
+# hijack the keyboard and hang the suite (cargo only redirects stdin/stdout;
+# the controlling terminal stays reachable).
 rust-test:
-	cargo test --manifest-path $(RUST_MANIFEST)
+	SPARCLI_NO_TTY=1 cargo test --manifest-path $(RUST_MANIFEST)
 
 # ── Python binding (bindings/python/) ─────────────────────────────────────
 # A cffi (API-mode) wrapper. build_sparcli.py compiles the vendored C sources
@@ -275,8 +280,10 @@ python:
 	rm -f $(PY_DIR)/src/sparcli/_sparcli_cffi*.so
 	cd $(PY_DIR) && $(PY) build_sparcli.py
 
+# SPARCLI_NO_TTY=1 for the same reason as rust-test (also set in conftest.py
+# as a fallback for direct `pytest` runs).
 python-test: python
-	cd $(PY_DIR) && PYTHONPATH=src $(PY) -m pytest tests -q
+	cd $(PY_DIR) && PYTHONPATH=src SPARCLI_NO_TTY=1 $(PY) -m pytest tests -q
 
 # Poisoned-memory run: freed memory is filled with a marker byte, so any
 # use-after-free in the C layer breaks assertions instead of silently working
@@ -286,7 +293,7 @@ python-test: python
 # to the cffi buffers too. MallocScribble/MallocPreScribble = macOS,
 # MALLOC_PERTURB_ = glibc; the foreign one is silently ignored.
 python-test-debug: python
-	cd $(PY_DIR) && PYTHONPATH=src PYTHONMALLOC=malloc \
+	cd $(PY_DIR) && PYTHONPATH=src SPARCLI_NO_TTY=1 PYTHONMALLOC=malloc \
 	    MallocScribble=1 MallocPreScribble=1 MALLOC_PERTURB_=85 \
 	    $(PY) -m pytest tests -q
 

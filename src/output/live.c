@@ -84,9 +84,10 @@ ScLive *sc_live_begin(ScLiveOpts opts) {
     live->stream = sc_output_stream();
 
     // Off-terminal output (pipe, file, capture) buffers updates and prints
-    // only the final frame, unless `always` forces escape emission.
+    // only the final frame, unless `always` forces escape emission. The
+    // SPARCLI_NO_TTY override counts as "off terminal" too.
     int fd = fileno(live->stream);
-    bool is_terminal = (fd >= 0 && isatty(fd));
+    bool is_terminal = !sc_no_tty_override() && fd >= 0 && isatty(fd);
     live->emit = is_terminal || opts.always;
 
     // The latest frame is kept whenever the end of the session needs to

@@ -180,6 +180,10 @@ SPARCLI_EXPORT size_t sc_key_decode(const char *buf, size_t len, ScKey *out);
  * Widgets call this internally and return `SC_INPUT_ERROR` when it is
  * `false` (output redirected to a pipe/file, no TTY in CI, …). Callers can
  * use it to decide whether to fall back to a non-interactive default.
+ *
+ * Setting the environment variable `SPARCLI_NO_TTY` to a non-empty value
+ * other than `"0"` forces `false` even when a terminal is attached. Test
+ * suites use this so prompts never grab the developer's real terminal.
  */
 SPARCLI_EXPORT bool sc_input_available(void);
 

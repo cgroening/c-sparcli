@@ -15,7 +15,7 @@ sparcli = { path = "bindings/rust/sparcli" }
 - **RAII handles** (`Text`, `Table`, `List`, `Tree`, `Kv`, `Columns`, `Rendered`, `ProgressBar`, `Spinner`, `Select`, `Fuzzy`, `History`) free themselves on drop. They hold raw pointers and are therefore **not `Send`/`Sync`**: the C output target is thread-local and the input session is process-global, so build and use a handle on one thread (each thread may build its own).
 - **Builders.** Every `*Opts` is a plain struct with `Default` and chainable setters; public fields give full access. Borrowed strings (`Title`, cell text, …) are interned into an internal arena for the duration of the call.
 - **Colors / enums.** `Color::{NONE, RED, …, rgb(r,g,b)}`, `Style::bold()`, `Attr`, `Align`, `VAlign`, `BorderType`, `Position`, `ListMarker`, `ProgressType`, `SpinnerType`, `AlertType`, `WeekStart`, `HintLayout`, `HintPos`.
-- **Prompts** return `Result<Option<T>>`: `Ok(Some(v))` = value, `Ok(None)` = cancelled (Esc/Ctrl-C), `Err(Error::Unavailable)` = no TTY / read error.
+- **Prompts** return `Result<Option<T>>`: `Ok(Some(v))` = value, `Ok(None)` = cancelled (Esc/Ctrl-C), `Err(Error::Unavailable)` = no TTY / read error. The env var `SPARCLI_NO_TTY=1` forces the no-TTY error even with a terminal attached (used by `make rust-test`).
 - **Escape hatch.** The raw FFI is re-exported as `sparcli::sys`.
 
 ## Output

@@ -15,7 +15,9 @@ SPARCLI_BEGIN_DECLS
  * `sc_output_stream()` (all sparcli widgets and prints on the calling
  * thread) is piped into a pager process instead of the terminal. When the
  * output stream is not a terminal (pipe, file, capture) paging is skipped
- * and the calls become no-ops, so the same code works in scripts.
+ * and the calls become no-ops, so the same code works in scripts. The
+ * `SPARCLI_NO_TTY` environment override (see `sc_input_available`) also
+ * forces the no-op behavior, so test suites never spawn a real pager.
  */
 
 

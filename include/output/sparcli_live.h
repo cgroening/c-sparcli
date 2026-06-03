@@ -22,7 +22,9 @@ SPARCLI_BEGIN_DECLS
  *
  * When the output stream is not a terminal (pipe, file, capture), updates
  * are buffered and only the final frame is printed by `sc_live_end`, so
- * the same code produces clean output in scripts and CI.
+ * the same code produces clean output in scripts and CI. The
+ * `SPARCLI_NO_TTY` environment override (see `sc_input_available`) also
+ * forces this buffered behavior.
  *
  * @code
  * ScLive *live = sc_live_begin((ScLiveOpts){ 0 });

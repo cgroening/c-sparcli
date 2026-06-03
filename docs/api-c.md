@@ -1003,6 +1003,8 @@ Interactive prompts: confirm, text, password, number, textarea, single/multi sel
 
 Every widget returns an `ScInputStatus`. Esc and Ctrl-C always cancel; a non-TTY context (output piped, CI) returns `SC_INPUT_ERROR` so callers can fall back to a default. On `SC_INPUT_OK` the interactive region is erased and a one-line summary is printed in its place (suppress with `hide_summary`).
 
+Setting the environment variable `SPARCLI_NO_TTY` to a non-empty value other than `0` forces the non-TTY behavior even when a terminal is attached: `sc_input_available()` returns `false`, every prompt returns `SC_INPUT_ERROR` without touching `/dev/tty`, the pager becomes a no-op, and the live display buffers its frames. Test suites use this so widgets never grab the developer's real terminal (test runners like `cargo test` or `pytest` only redirect stdin/stdout – the controlling terminal stays reachable).
+
 **Paste safety:** prompts enable bracketed-paste mode, so pasted text is treated as literal, sanitized content – pasted escape sequences and control bytes are dropped, a pasted `Enter` never submits a single-line field (the textarea keeps pasted newlines), and pasted characters can never answer a confirmation, navigate a list or trigger a custom shortcut. Terminals without bracketed-paste support fall back to interpreting pastes as keystrokes.
 
 ```c
@@ -1064,7 +1066,8 @@ bool sc_filter_alpha   (uint32_t cp, void *ctx);   /* letters */
 bool sc_filter_alnum   (uint32_t cp, void *ctx);   /* letters + digits */
 bool sc_filter_no_space(uint32_t cp, void *ctx);   /* rejects whitespace */
 
-bool sc_input_available(void);   /* true when a prompt can run (a TTY is present) */
+bool sc_input_available(void);   /* true when a prompt can run (a TTY is present
+                                    and SPARCLI_NO_TTY is not set) */
 ```
 
 Most styling options are zero-init-friendly: an unset `ScTextStyle`/`ScColor` selects the widget's built-in default. Every widget has a `prompt_style`, `summary_style`/`hide_summary`, and a key-hint footer (`hint` / `hint_layout` / `hint_pos` / `hint_style`).

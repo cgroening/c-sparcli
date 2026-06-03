@@ -289,7 +289,7 @@ if (auto matched = args.parse(argc, argv)) {
 
 ## Input widgets
 
-Each returns `std::optional` / `std::vector`; the result is empty (`std::nullopt`) when the user cancels (Esc / Ctrl-C) or no interactive terminal is available. `input_available()` reports whether a prompt can run.
+Each returns `std::optional` / `std::vector`; the result is empty (`std::nullopt`) when the user cancels (Esc / Ctrl-C) or no interactive terminal is available. `input_available()` reports whether a prompt can run (the env var `SPARCLI_NO_TTY=1` forces `false`, see the C reference).
 
 ```cpp
 if (auto ok   = confirm("Proceed?")) { /* *ok is bool */ }

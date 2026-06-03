@@ -190,6 +190,8 @@ cargo run -p sparcli --example demo
 
 FFI bindings are committed (`bindings/rust/sparcli-sys/src/bindings.rs`); the `regen` feature regenerates them from the headers with bindgen. The reference is [`docs/api-rust.md`](api-rust.md).
 
+`make rust-test` sets `SPARCLI_NO_TTY=1` so the smoke tests that assert the library's no-TTY behavior (prompt errors, pager no-op, live buffering) stay non-interactive even when the suite is started from a real terminal – `cargo test` only redirects stdin/stdout, the controlling terminal stays reachable via `/dev/tty` and `isatty()`, and without the override a prompt would grab the keyboard and the pager would spawn a blocking `less`. A direct `cargo test` from an interactive terminal skips those tests instead.
+
 ### `make python` / `make python-test` – Python bindings
 
 The Pythonic `sparcli` package lives in `bindings/python/` (a cffi API-mode wrapper). `build_sparcli.py` compiles the vendored C sources – reached through the in-tree `csrc`/`cinclude` symlinks (→ `../../src`, `../../include`) – into `src/sparcli/_sparcli_cffi.*`, so `make python` builds in place and the tests and examples run with `PYTHONPATH=src`, no install required. Needs Python with `cffi`; kept out of `make test` since neither may be present.
@@ -199,6 +201,9 @@ make python                       # build the extension in place
 make python-test                  # build + run the non-interactive pytest suite
 make python-test-debug            # same suite with poisoned freed memory (see below)
 make python-test PY=/path/to/python   # point make at an interpreter that has cffi
+
+# Both test targets (and tests/conftest.py, for direct `pytest` runs) set
+# SPARCLI_NO_TTY=1 so the no-TTY prompt tests never grab a real terminal.
 
 # Examples (after `make python`, from bindings/python/):
 PYTHONPATH=src python examples/demo.py            # complete showcase (all widgets)
