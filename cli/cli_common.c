@@ -69,7 +69,53 @@ bool sc_cli_input_opt(ScCliCtx *ctx, int opt, ScCliInputArgs *args) {
         args->hide_hint = true;
         return true;
     }
+    if (opt == SC_CLI_OPT_HINT_LAYOUT) {
+        return sc_cli_parse_hint_layout(optarg, &args->hint_layout);
+    }
+    if (opt == SC_CLI_OPT_HINT_POS) {
+        return sc_cli_parse_hint_pos(optarg, &args->hint_pos);
+    }
     return sc_cli_common_opt(ctx, opt);
+}
+
+void sc_cli_style_collect(ScCliStyleArgs *styles, const char *arg) {
+    if (styles->count < sizeof styles->raw / sizeof styles->raw[0]) {
+        styles->raw[styles->count] = arg;
+        styles->count++;
+    }
+}
+
+bool sc_cli_apply_styles(const ScCliCtx *ctx, const ScCliStyleArgs *styles,
+                         const ScCliStyleSlot *slots, size_t n_slots) {
+    for (size_t i = 0; i < styles->count; i++) {
+        const char *arg = styles->raw[i];
+        const char *eq  = strchr(arg, '=');
+        if (eq == NULL) {
+            sc_cli_error(ctx, "invalid --style '%s' (expected ELEMENT=SPEC)",
+                         arg);
+            return false;
+        }
+
+        size_t       name_len = (size_t)(eq - arg);
+        ScTextStyle *field    = NULL;
+        for (size_t s = 0; s < n_slots; s++) {
+            if (strlen(slots[s].name) == name_len
+                && strncmp(slots[s].name, arg, name_len) == 0) {
+                field = slots[s].field;
+                break;
+            }
+        }
+        if (field == NULL) {
+            sc_cli_error(ctx, "unknown --style element '%.*s'",
+                         (int)name_len, arg);
+            return false;
+        }
+        if (!sc_cli_parse_style(eq + 1, field)) {
+            sc_cli_error(ctx, "invalid --style spec '%s'", eq + 1);
+            return false;
+        }
+    }
+    return true;
 }
 
 int sc_cli_input_exit(ScInputStatus status) {

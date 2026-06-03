@@ -62,6 +62,9 @@ void sc_print_badge(const char *text, ScBadgeOpts opts) {
     if (!clean) { return; }
 
     if (sc_style_has_format(self.style)) {
+        // Attributes (bold/dim/italic/underline) before colors, matching
+        // sc_print_raw - the color-only emit here used to drop them.
+        sc_apply_style(self.style.attr);
         sc_apply_colors(self.style.fg, self.style.bg);
         fputs(clean, sc_output_stream());
         fputs(SC_ANSI_ESCAPE_CODE_RESET, sc_output_stream());

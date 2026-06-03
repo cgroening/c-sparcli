@@ -30,6 +30,7 @@ typedef struct SelectSource {
 
 static bool select_source_init(SelectSource *source, int argc, char **argv);
 static void select_source_release(SelectSource *source);
+static bool parse_search_columns(const char *spec, uint64_t *out);
 
 
 /* ── arrow-key navigation (--arrow-nav) ─────────────────────────────────────
@@ -59,6 +60,7 @@ static int nav_exit(ScInputStatus status, int fired) {
 typedef struct SelectArgs {
     ScSelectOpts   opts;
     ScCliInputArgs input;
+    ScCliStyleArgs styles;
     bool           arrow_nav; /**< Bind Left=back / Right=select. */
 } SelectArgs;
 
@@ -77,21 +79,35 @@ static const char SELECT_USAGE[] =
     "  --prompt TEXT              Heading shown above the list\n"
     "  --multi                    Multi-select with checkboxes\n"
     "  --max-visible N            Viewport height (default 10)\n"
+    "  --marker STR               Marker before non-cursor rows\n"
+    "  --cursor-marker STR        Marker before the cursor row\n"
+    "  --checkbox-on STR          Checked box glyph (multi-select)\n"
+    "  --checkbox-off STR         Unchecked box glyph (multi-select)\n"
     "  --arrow-nav                Left = back (exit 3), Right = select\n"
-    SC_CLI_INPUT_USAGE;
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, selected, summary, hint\n";
 
 int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
     enum {
         OPT_PROMPT = SC_CLI_OPT_CMD_BASE,
         OPT_MULTI,
         OPT_MAX_VISIBLE,
+        OPT_MARKER,
+        OPT_CURSOR_MARKER,
+        OPT_CHECKBOX_ON,
+        OPT_CHECKBOX_OFF,
         OPT_ARROW_NAV,
     };
     static const struct option longopts[] = {
-        { "prompt",      required_argument, NULL, OPT_PROMPT },
-        { "multi",       no_argument,       NULL, OPT_MULTI },
-        { "max-visible", required_argument, NULL, OPT_MAX_VISIBLE },
-        { "arrow-nav",   no_argument,       NULL, OPT_ARROW_NAV },
+        { "prompt",        required_argument, NULL, OPT_PROMPT },
+        { "multi",         no_argument,       NULL, OPT_MULTI },
+        { "max-visible",   required_argument, NULL, OPT_MAX_VISIBLE },
+        { "marker",        required_argument, NULL, OPT_MARKER },
+        { "cursor-marker", required_argument, NULL, OPT_CURSOR_MARKER },
+        { "checkbox-on",   required_argument, NULL, OPT_CHECKBOX_ON },
+        { "checkbox-off",  required_argument, NULL, OPT_CHECKBOX_OFF },
+        { "arrow-nav",     no_argument,       NULL, OPT_ARROW_NAV },
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -111,8 +127,23 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid count '%s'", optarg);
             }
             break;
+        case OPT_MARKER:
+            args.opts.marker = optarg;
+            break;
+        case OPT_CURSOR_MARKER:
+            args.opts.cursor_marker = optarg;
+            break;
+        case OPT_CHECKBOX_ON:
+            args.opts.checkbox_on = optarg;
+            break;
+        case OPT_CHECKBOX_OFF:
+            args.opts.checkbox_off = optarg;
+            break;
         case OPT_ARROW_NAV:
             args.arrow_nav = true;
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&args.styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(SELECT_USAGE, stdout);
@@ -142,8 +173,23 @@ static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
     args->opts.hide_summary  = true;
     args->opts.prompt_markup = ctx->markup;
     args->opts.hint          = args->input.hint;
+    args->opts.hint_pos      = args->input.hint_pos;
     if (args->input.hide_hint) {
         args->opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (args->input.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        args->opts.hint_layout = args->input.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",   &args->opts.prompt_style },
+        { "selected", &args->opts.selected_style },
+        { "summary",  &args->opts.summary_style },
+        { "hint",     &args->opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &args->styles, slots,
+                             SC_CLI_TABLE_SIZE(slots))) {
+        select_source_release(&source);
+        return SC_CLI_EXIT_ERROR;
     }
 
     // Left/Right both end the prompt (RETURN); the cursor item is always
@@ -201,6 +247,7 @@ static int run_select(ScCliCtx *ctx, SelectArgs *args, int argc,
 typedef struct FuzzyArgs {
     ScFuzzyOpts    opts;
     ScCliInputArgs input;
+    ScCliStyleArgs styles;
     char           delim;      /**< Field delimiter for table mode. */
     bool           table_mode; /**< Split items into table columns. */
     bool           header_row; /**< First line provides the headers. */
@@ -228,8 +275,13 @@ static const char FUZZY_USAGE[] =
     "  --tsv                      Tab-separated table view\n"
     "  --delim CHAR               Custom delimiter for the table view\n"
     "  --header-row               First input line provides the headers\n"
+    "  --marker STR               Marker before non-cursor rows\n"
+    "  --cursor-marker STR        Marker before the cursor row\n"
+    "  --search-columns LIST      Table columns to search (e.g. 1,3)\n"
     "  --arrow-nav                Left = back (exit 3), Right = select\n"
-    SC_CLI_INPUT_USAGE;
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, selected, cursor, counter, summary, hint\n";
 
 int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -238,15 +290,21 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         OPT_TSV,
         OPT_DELIM,
         OPT_HEADER_ROW,
+        OPT_MARKER,
+        OPT_CURSOR_MARKER,
+        OPT_SEARCH_COLUMNS,
         OPT_ARROW_NAV,
     };
     static const struct option longopts[] = {
-        { "prompt",      required_argument, NULL, OPT_PROMPT },
-        { "max-visible", required_argument, NULL, OPT_MAX_VISIBLE },
-        { "tsv",         no_argument,       NULL, OPT_TSV },
-        { "delim",       required_argument, NULL, OPT_DELIM },
-        { "header-row",  no_argument,       NULL, OPT_HEADER_ROW },
-        { "arrow-nav",   no_argument,       NULL, OPT_ARROW_NAV },
+        { "prompt",         required_argument, NULL, OPT_PROMPT },
+        { "max-visible",    required_argument, NULL, OPT_MAX_VISIBLE },
+        { "tsv",            no_argument,       NULL, OPT_TSV },
+        { "delim",          required_argument, NULL, OPT_DELIM },
+        { "header-row",     no_argument,       NULL, OPT_HEADER_ROW },
+        { "marker",         required_argument, NULL, OPT_MARKER },
+        { "cursor-marker",  required_argument, NULL, OPT_CURSOR_MARKER },
+        { "search-columns", required_argument, NULL, OPT_SEARCH_COLUMNS },
+        { "arrow-nav",      no_argument,       NULL, OPT_ARROW_NAV },
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -273,8 +331,23 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         case OPT_HEADER_ROW:
             args.header_row = true;
             break;
+        case OPT_MARKER:
+            args.opts.marker = optarg;
+            break;
+        case OPT_CURSOR_MARKER:
+            args.opts.cursor_marker = optarg;
+            break;
+        case OPT_SEARCH_COLUMNS:
+            if (!parse_search_columns(optarg, &args.opts.search_columns)) {
+                return sc_cli_error(ctx, "invalid columns '%s' (e.g. 1,3)",
+                                    optarg);
+            }
+            break;
         case OPT_ARROW_NAV:
             args.arrow_nav = true;
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&args.styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(FUZZY_USAGE, stdout);
@@ -303,8 +376,25 @@ static int run_fuzzy(ScCliCtx *ctx, FuzzyArgs *args, int argc, char **argv) {
     args->opts.hide_summary  = true;
     args->opts.prompt_markup = ctx->markup;
     args->opts.hint          = args->input.hint;
+    args->opts.hint_pos      = args->input.hint_pos;
     if (args->input.hide_hint) {
         args->opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (args->input.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        args->opts.hint_layout = args->input.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",   &args->opts.prompt_style },
+        { "selected", &args->opts.selected_style },
+        { "cursor",   &args->opts.cursor_style },
+        { "counter",  &args->opts.counter_style },
+        { "summary",  &args->opts.summary_style },
+        { "hint",     &args->opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &args->styles, slots,
+                             SC_CLI_TABLE_SIZE(slots))) {
+        select_source_release(&source);
+        return SC_CLI_EXIT_ERROR;
     }
 
     if (args->table_mode) {
@@ -468,7 +558,11 @@ static const char DATE_USAGE[] =
     "                             %Y-%m-%d)\n"
     "  --initial YYYY-MM-DD       Initially selected date (default today)\n"
     "  --week-start monday|sunday First day of the week\n"
-    SC_CLI_INPUT_USAGE;
+    "  --header-prev STR          Glyph for the previous-month control\n"
+    "  --header-next STR          Glyph for the next-month control\n"
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, header, weekday, selected, summary, hint\n";
 
 int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -476,18 +570,23 @@ int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
         OPT_FORMAT,
         OPT_INITIAL,
         OPT_WEEK_START,
+        OPT_HEADER_PREV,
+        OPT_HEADER_NEXT,
     };
     static const struct option longopts[] = {
-        { "prompt",     required_argument, NULL, OPT_PROMPT },
-        { "format",     required_argument, NULL, OPT_FORMAT },
-        { "initial",    required_argument, NULL, OPT_INITIAL },
-        { "week-start", required_argument, NULL, OPT_WEEK_START },
+        { "prompt",      required_argument, NULL, OPT_PROMPT },
+        { "format",      required_argument, NULL, OPT_FORMAT },
+        { "initial",     required_argument, NULL, OPT_INITIAL },
+        { "week-start",  required_argument, NULL, OPT_WEEK_START },
+        { "header-prev", required_argument, NULL, OPT_HEADER_PREV },
+        { "header-next", required_argument, NULL, OPT_HEADER_NEXT },
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
 
     ScDatePickerOpts opts       = { 0 };
     ScCliInputArgs   input_args = { 0 };
+    ScCliStyleArgs   styles     = { 0 };
     const char      *format     = "%Y-%m-%d";
     const char      *initial    = NULL;
 
@@ -507,6 +606,15 @@ int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
             if (!sc_cli_parse_week_start(optarg, &opts.week_start)) {
                 return sc_cli_error(ctx, "invalid week start '%s'", optarg);
             }
+            break;
+        case OPT_HEADER_PREV:
+            opts.header_prev = optarg;
+            break;
+        case OPT_HEADER_NEXT:
+            opts.header_next = optarg;
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(DATE_USAGE, stdout);
@@ -530,8 +638,23 @@ int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
     opts.hide_summary  = true;
     opts.prompt_markup = ctx->markup;
     opts.hint          = input_args.hint;
+    opts.hint_pos      = input_args.hint_pos;
     if (input_args.hide_hint) {
         opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (input_args.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        opts.hint_layout = input_args.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",   &opts.prompt_style },
+        { "header",   &opts.header_style },
+        { "weekday",  &opts.weekday_style },
+        { "selected", &opts.selected_style },
+        { "summary",  &opts.summary_style },
+        { "hint",     &opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     ScInputStatus status = sc_datepicker(&picked, opts);
@@ -608,4 +731,38 @@ static void select_source_release(SelectSource *source) {
     free(source->data);
     source->lines = NULL;
     source->data  = NULL;
+}
+
+/* Parses a comma-separated list of 1-based column indices into a bitmask
+   (column 1 -> bit 0). Indices above 64 are ignored. Returns false on an
+   empty list or a non-positive / unparseable index. */
+static bool parse_search_columns(const char *spec, uint64_t *out) {
+    enum { MAX_COLUMN = 64 };
+    uint64_t    mask   = 0;
+    const char *cursor = spec;
+    bool        any    = false;
+
+    while (*cursor != '\0') {
+        char *end   = NULL;
+        long  value = strtol(cursor, &end, 10);
+        if (end == cursor || value < 1) {
+            return false;
+        }
+        if (value <= MAX_COLUMN) {
+            mask |= (uint64_t)1 << (value - 1);
+        }
+        any    = true;
+        cursor = end;
+        if (*cursor == ',') {
+            cursor++;
+        } else if (*cursor != '\0') {
+            return false;
+        }
+    }
+
+    if (!any) {
+        return false;
+    }
+    *out = mask;
+    return true;
 }

@@ -230,6 +230,32 @@ section "sanitize: --allow-ansi passes well-formed escape codes through"
 "$BIN" panel --border single --allow-ansi \
     "$(printf '\033[32mgreen\033[0m text')"
 
+# ── styling (--style ELEMENT=SPEC, colors) ───────────────────────────────────
+
+section "style: rule title-pad"
+"$BIN" rule "Title" --width 30 --title-pad 2
+
+section "style: table header/footer styles and backgrounds"
+printf 'A,B\n1,2\n' \
+    | "$BIN" table --header-row --title T --style title='underline' \
+        --style header='bold cyan' --header-bg blue --footer-bg red \
+        --cell-pad 0,2
+
+section "style: list marker style + affixes"
+"$BIN" list a b --marker number --style marker='bold red' \
+    --marker-prefix '(' --marker-suffix ')'
+
+section "style: kv key/val styles"
+printf 'Key\tVal\n' | "$BIN" kv --style key='bold cyan' --style val='dim'
+
+section "style: badge text style"
+"$BIN" badge OK --style text='bold green on white'
+
+section "style: errors"
+expect_fail "$BIN" badge X --style bogus=bold
+expect_fail "$BIN" badge X --style text='bold notacolor'
+expect_fail "$BIN" badge X --style missingequals
+
 # ── global flags / errors ────────────────────────────────────────────────────
 
 section "help: command list"

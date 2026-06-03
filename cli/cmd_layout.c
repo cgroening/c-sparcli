@@ -234,33 +234,45 @@ static const char LIST_USAGE[] =
     "                             roman|roman-upper (default: bullet)\n"
     "  --bullet STR               Bullet character (marker 'bullet' only)\n"
     "  --marker-color COLOR       Marker color\n"
+    "  --marker-prefix STR        Text before the marker value\n"
+    "  --marker-suffix STR        Text after the marker value\n"
     "  --indent N                 Left indent in columns\n"
     "  --gap N                    Blank lines between items\n"
+    "  --margin EDGES             Outer margin: N or T,R,B,L\n"
     "  --width N                  List width (0 = terminal width)\n"
-    SC_CLI_COMMON_USAGE;
+    SC_CLI_COMMON_USAGE
+    "\n"
+    "--style elements: marker (overrides --marker-color)\n";
 
 int sc_cli_cmd_list(ScCliCtx *ctx, int argc, char **argv) {
     enum {
         OPT_MARKER = SC_CLI_OPT_CMD_BASE,
         OPT_BULLET,
         OPT_MARKER_COLOR,
+        OPT_MARKER_PREFIX,
+        OPT_MARKER_SUFFIX,
         OPT_INDENT,
         OPT_GAP,
+        OPT_MARGIN,
         OPT_WIDTH,
     };
     static const struct option longopts[] = {
-        { "marker",       required_argument, NULL, OPT_MARKER },
-        { "bullet",       required_argument, NULL, OPT_BULLET },
-        { "marker-color", required_argument, NULL, OPT_MARKER_COLOR },
-        { "indent",       required_argument, NULL, OPT_INDENT },
-        { "gap",          required_argument, NULL, OPT_GAP },
-        { "width",        required_argument, NULL, OPT_WIDTH },
+        { "marker",        required_argument, NULL, OPT_MARKER },
+        { "bullet",        required_argument, NULL, OPT_BULLET },
+        { "marker-color",  required_argument, NULL, OPT_MARKER_COLOR },
+        { "marker-prefix", required_argument, NULL, OPT_MARKER_PREFIX },
+        { "marker-suffix", required_argument, NULL, OPT_MARKER_SUFFIX },
+        { "indent",        required_argument, NULL, OPT_INDENT },
+        { "gap",           required_argument, NULL, OPT_GAP },
+        { "margin",        required_argument, NULL, OPT_MARGIN },
+        { "width",         required_argument, NULL, OPT_WIDTH },
         SC_CLI_COMMON_LONGOPTS,
         { 0 },
     };
 
-    ListArgs args = { 0 };
-    int      opt  = 0;
+    ListArgs       args   = { 0 };
+    ScCliStyleArgs styles = { 0 };
+    int            opt    = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (opt) {
         case OPT_MARKER:
@@ -276,6 +288,12 @@ int sc_cli_cmd_list(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid color '%s'", optarg);
             }
             break;
+        case OPT_MARKER_PREFIX:
+            args.opts.marker_prefix = optarg;
+            break;
+        case OPT_MARKER_SUFFIX:
+            args.opts.marker_suffix = optarg;
+            break;
         case OPT_INDENT:
             if (!sc_cli_parse_int(optarg, &args.opts.indent)) {
                 return sc_cli_error(ctx, "invalid indent '%s'", optarg);
@@ -286,10 +304,18 @@ int sc_cli_cmd_list(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid gap '%s'", optarg);
             }
             break;
+        case OPT_MARGIN:
+            if (!sc_cli_parse_edges(optarg, &args.opts.margin)) {
+                return sc_cli_error(ctx, "invalid margin '%s'", optarg);
+            }
+            break;
         case OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &args.opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(LIST_USAGE, stdout);
@@ -300,6 +326,13 @@ int sc_cli_cmd_list(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         }
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "marker", &args.opts.marker_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     return run_list(ctx, &args, argc - optind, argv + optind);
@@ -375,8 +408,11 @@ static const char KV_USAGE[] =
     "  --val-color COLOR          Value color\n"
     "  --wrap                     Word-wrap long values\n"
     "  --gap N                    Blank lines between items\n"
+    "  --margin EDGES             Outer margin: N or T,R,B,L\n"
     "  --width N                  Total width (0 = terminal width)\n"
-    SC_CLI_COMMON_USAGE;
+    SC_CLI_COMMON_USAGE
+    "\n"
+    "--style elements: key (overrides --key-color), val (overrides --val-color)\n";
 
 int sc_cli_cmd_kv(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -387,6 +423,7 @@ int sc_cli_cmd_kv(ScCliCtx *ctx, int argc, char **argv) {
         OPT_VAL_COLOR,
         OPT_WRAP,
         OPT_GAP,
+        OPT_MARGIN,
         OPT_WIDTH,
     };
     static const struct option longopts[] = {
@@ -397,13 +434,15 @@ int sc_cli_cmd_kv(ScCliCtx *ctx, int argc, char **argv) {
         { "val-color", required_argument, NULL, OPT_VAL_COLOR },
         { "wrap",      no_argument,       NULL, OPT_WRAP },
         { "gap",       required_argument, NULL, OPT_GAP },
+        { "margin",    required_argument, NULL, OPT_MARGIN },
         { "width",     required_argument, NULL, OPT_WIDTH },
         SC_CLI_COMMON_LONGOPTS,
         { 0 },
     };
 
-    KvArgs args = { 0 };
-    int    opt  = 0;
+    KvArgs         args   = { 0 };
+    ScCliStyleArgs styles = { 0 };
+    int            opt    = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (opt) {
         case OPT_DELIM:
@@ -435,10 +474,18 @@ int sc_cli_cmd_kv(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid gap '%s'", optarg);
             }
             break;
+        case OPT_MARGIN:
+            if (!sc_cli_parse_edges(optarg, &args.opts.margin)) {
+                return sc_cli_error(ctx, "invalid margin '%s'", optarg);
+            }
+            break;
         case OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &args.opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(KV_USAGE, stdout);
@@ -449,6 +496,14 @@ int sc_cli_cmd_kv(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         }
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "key", &args.opts.key_style },
+        { "val", &args.opts.val_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     if (optind < argc) {

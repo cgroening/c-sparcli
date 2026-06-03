@@ -34,6 +34,12 @@ bool sc_cli_parse_progress(const char *name, ScProgressType *out);
 /** Parses a week start name (`monday|sunday`). */
 bool sc_cli_parse_week_start(const char *name, ScWeekStart *out);
 
+/** Parses a key-hint footer layout name (`inline|stacked|hidden`). */
+bool sc_cli_parse_hint_layout(const char *name, ScHintLayout *out);
+
+/** Parses a key-hint footer position name (`top|bottom|left|right`). */
+bool sc_cli_parse_hint_pos(const char *name, ScHintPosition *out);
+
 /**
  * Parses an input character filter name
  * (`digits|decimal|alpha|alnum|no-space`).
@@ -56,6 +62,18 @@ bool sc_cli_parse_color(const char *spec, ScColor *out);
  * or `T,R,B,L`.
  */
 bool sc_cli_parse_edges(const char *spec, ScEdges *out);
+
+/**
+ * Parses a text-style spec into `*out` (markup vocabulary without brackets).
+ *
+ * Space-separated tokens: `bold`, `dim`, `italic`, `underline` set attribute
+ * bits (`none` clears them); `on` makes the next token the background color;
+ * any other token is the foreground color (parsed with `sc_cli_parse_color`).
+ * Examples: `"bold cyan"`, `"dim"`, `"bold red on white"`,
+ * `"#5fafff on #202020"`. Returns `false` on an unknown attribute, an
+ * unparseable color, or a stray `on` without a following color.
+ */
+bool sc_cli_parse_style(const char *spec, ScTextStyle *out);
 
 /** Parses a non-negative integer. */
 bool sc_cli_parse_int(const char *str, int *out);

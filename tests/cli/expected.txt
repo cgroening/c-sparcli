@@ -332,7 +332,7 @@ b = 2
 
 ===== badge: plain, colored, custom caps =====
 [v1.2]
-[32m[passing][0m
+[1m[32m[passing][0m
 [37m[41m[ FAIL ][0m
 <angle>
 
@@ -358,6 +358,34 @@ ok[31mred[0m[0m
 ┌[0m────────────[0m┐[0m
 │[0m [32mgreen[0m text[0m │[0m
 └[0m────────────[0m┘[0m
+
+===== style: rule title-pad =====
+──────────  Title[0m  ───────────
+
+===== style: table header/footer styles and backgrounds =====
+┌[0m─[0m [0m[4mT[0m [0m───────[0m┐[0m
+│[0m[44m  [0m[1m[36m[44mA[0m[44m  [0m│[0m[44m  [0m[1m[36m[44mB[0m[44m  [0m│[0m
+├[0m─────[0m┼[0m─────[0m┤[0m
+│[0m  1[0m  │[0m  2[0m  │[0m
+└[0m─────[0m┴[0m─────[0m┘[0m
+
+===== style: list marker style + affixes =====
+[1m[31m(1) [0ma[0m
+[1m[31m(2) [0mb[0m
+
+===== style: kv key/val styles =====
+[1m[36mKey[0m  [2mVal[0m
+
+===== style: badge text style =====
+[1m[32m[47m[OK][0m
+
+===== style: errors =====
+sparcli: unknown --style element 'bogus'
+exit: 2
+sparcli: invalid --style spec 'bold notacolor'
+exit: 2
+sparcli: invalid --style 'missingequals' (expected ELEMENT=SPEC)
+exit: 2
 
 ===== help: command list =====
 Usage: sparcli [global options] <command> [options] [arguments]
@@ -427,14 +455,26 @@ Options:
   --no-inner-v               Hide column separators
   --striped                  Alternate row backgrounds
   --stripe-bg COLOR          Stripe background color
+  --header-bg COLOR          Header row background
+  --header-col-bg COLOR      Header column background
+  --footer-bg COLOR          Footer row background
+  --footer-col-bg COLOR      Footer column background
   --title TEXT               Table title
+  --title-align left|center|right  Title alignment
   --align left|center|right  Default column alignment
+  --cell-pad EDGES           Inner cell padding: N or T,R,B,L
+  --margin EDGES             Outer table margin: N or T,R,B,L
   --width N                  Total table width (0 = fit content)
   --max-rows N               Show at most N rows
+  --rtl                      Right-to-left column order
+  --style ELEM=SPEC          Style an element (e.g. 'bold red on
+                             white'); repeatable, see below
   --no-markup                Treat [tag] markup as literal
   --no-color                 Strip ANSI colors from output
   --allow-ansi               Pass ANSI escapes in input through
   --help                     Show this help
+
+--style elements: title, header, footer
 
 ===== errors =====
 sparcli: unknown command 'bogus-command' (see sparcli --help)

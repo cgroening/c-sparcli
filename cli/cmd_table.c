@@ -50,11 +50,21 @@ static const char TABLE_USAGE[] =
     "  --no-inner-v               Hide column separators\n"
     "  --striped                  Alternate row backgrounds\n"
     "  --stripe-bg COLOR          Stripe background color\n"
+    "  --header-bg COLOR          Header row background\n"
+    "  --header-col-bg COLOR      Header column background\n"
+    "  --footer-bg COLOR          Footer row background\n"
+    "  --footer-col-bg COLOR      Footer column background\n"
     "  --title TEXT               Table title\n"
+    "  --title-align left|center|right  Title alignment\n"
     "  --align left|center|right  Default column alignment\n"
+    "  --cell-pad EDGES           Inner cell padding: N or T,R,B,L\n"
+    "  --margin EDGES             Outer table margin: N or T,R,B,L\n"
     "  --width N                  Total table width (0 = fit content)\n"
     "  --max-rows N               Show at most N rows\n"
-    SC_CLI_COMMON_USAGE;
+    "  --rtl                      Right-to-left column order\n"
+    SC_CLI_COMMON_USAGE
+    "\n"
+    "--style elements: title, header, footer\n";
 
 int sc_cli_cmd_table(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -70,28 +80,44 @@ int sc_cli_cmd_table(ScCliCtx *ctx, int argc, char **argv) {
         OPT_NO_INNER_V,
         OPT_STRIPED,
         OPT_STRIPE_BG,
+        OPT_HEADER_BG,
+        OPT_HEADER_COL_BG,
+        OPT_FOOTER_BG,
+        OPT_FOOTER_COL_BG,
         OPT_TITLE,
+        OPT_TITLE_ALIGN,
         OPT_ALIGN,
+        OPT_CELL_PAD,
+        OPT_MARGIN,
         OPT_WIDTH,
         OPT_MAX_ROWS,
+        OPT_RTL,
     };
     static const struct option longopts[] = {
-        { "tsv",         no_argument,       NULL, OPT_TSV },
-        { "delim",       required_argument, NULL, OPT_DELIM },
-        { "header-row",  no_argument,       NULL, OPT_HEADER_ROW },
-        { "header-col",  no_argument,       NULL, OPT_HEADER_COL },
-        { "border",      required_argument, NULL, OPT_BORDER },
-        { "color",       required_argument, NULL, OPT_COLOR },
-        { "inner-color", required_argument, NULL, OPT_INNER_COLOR },
-        { "no-outer",    no_argument,       NULL, OPT_NO_OUTER },
-        { "no-inner-h",  no_argument,       NULL, OPT_NO_INNER_H },
-        { "no-inner-v",  no_argument,       NULL, OPT_NO_INNER_V },
-        { "striped",     no_argument,       NULL, OPT_STRIPED },
-        { "stripe-bg",   required_argument, NULL, OPT_STRIPE_BG },
-        { "title",       required_argument, NULL, OPT_TITLE },
-        { "align",       required_argument, NULL, OPT_ALIGN },
-        { "width",       required_argument, NULL, OPT_WIDTH },
-        { "max-rows",    required_argument, NULL, OPT_MAX_ROWS },
+        { "tsv",           no_argument,       NULL, OPT_TSV },
+        { "delim",         required_argument, NULL, OPT_DELIM },
+        { "header-row",    no_argument,       NULL, OPT_HEADER_ROW },
+        { "header-col",    no_argument,       NULL, OPT_HEADER_COL },
+        { "border",        required_argument, NULL, OPT_BORDER },
+        { "color",         required_argument, NULL, OPT_COLOR },
+        { "inner-color",   required_argument, NULL, OPT_INNER_COLOR },
+        { "no-outer",      no_argument,       NULL, OPT_NO_OUTER },
+        { "no-inner-h",    no_argument,       NULL, OPT_NO_INNER_H },
+        { "no-inner-v",    no_argument,       NULL, OPT_NO_INNER_V },
+        { "striped",       no_argument,       NULL, OPT_STRIPED },
+        { "stripe-bg",     required_argument, NULL, OPT_STRIPE_BG },
+        { "header-bg",     required_argument, NULL, OPT_HEADER_BG },
+        { "header-col-bg", required_argument, NULL, OPT_HEADER_COL_BG },
+        { "footer-bg",     required_argument, NULL, OPT_FOOTER_BG },
+        { "footer-col-bg", required_argument, NULL, OPT_FOOTER_COL_BG },
+        { "title",         required_argument, NULL, OPT_TITLE },
+        { "title-align",   required_argument, NULL, OPT_TITLE_ALIGN },
+        { "align",         required_argument, NULL, OPT_ALIGN },
+        { "cell-pad",      required_argument, NULL, OPT_CELL_PAD },
+        { "margin",        required_argument, NULL, OPT_MARGIN },
+        { "width",         required_argument, NULL, OPT_WIDTH },
+        { "max-rows",      required_argument, NULL, OPT_MAX_ROWS },
+        { "rtl",           no_argument,       NULL, OPT_RTL },
         SC_CLI_COMMON_LONGOPTS,
         { 0 },
     };
@@ -101,6 +127,7 @@ int sc_cli_cmd_table(ScCliCtx *ctx, int argc, char **argv) {
                    .cell_pad = { .left = 1, .right = 1 } },
         .delim = ',',
     };
+    ScCliStyleArgs styles = { 0 };
 
     int opt = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
@@ -149,12 +176,47 @@ int sc_cli_cmd_table(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid color '%s'", optarg);
             }
             break;
+        case OPT_HEADER_BG:
+            if (!sc_cli_parse_color(optarg, &args.opts.header.row_bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case OPT_HEADER_COL_BG:
+            if (!sc_cli_parse_color(optarg, &args.opts.header.col_bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case OPT_FOOTER_BG:
+            if (!sc_cli_parse_color(optarg, &args.opts.footer.row_bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case OPT_FOOTER_COL_BG:
+            if (!sc_cli_parse_color(optarg, &args.opts.footer.col_bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
         case OPT_TITLE:
             args.opts.title.text = optarg;
+            break;
+        case OPT_TITLE_ALIGN:
+            if (!sc_cli_parse_halign(optarg, &args.opts.title.halign)) {
+                return sc_cli_error(ctx, "invalid alignment '%s'", optarg);
+            }
             break;
         case OPT_ALIGN:
             if (!sc_cli_parse_halign(optarg, &args.col_halign)) {
                 return sc_cli_error(ctx, "invalid alignment '%s'", optarg);
+            }
+            break;
+        case OPT_CELL_PAD:
+            if (!sc_cli_parse_edges(optarg, &args.opts.cell_pad)) {
+                return sc_cli_error(ctx, "invalid padding '%s'", optarg);
+            }
+            break;
+        case OPT_MARGIN:
+            if (!sc_cli_parse_edges(optarg, &args.opts.margin)) {
+                return sc_cli_error(ctx, "invalid margin '%s'", optarg);
             }
             break;
         case OPT_WIDTH:
@@ -167,6 +229,12 @@ int sc_cli_cmd_table(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid row count '%s'", optarg);
             }
             break;
+        case OPT_RTL:
+            args.opts.right_to_left = true;
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
+            break;
         case SC_CLI_OPT_HELP:
             fputs(TABLE_USAGE, stdout);
             return SC_CLI_EXIT_OK;
@@ -176,6 +244,15 @@ int sc_cli_cmd_table(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         }
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "title",  &args.opts.title.style },
+        { "header", &args.opts.header.style },
+        { "footer", &args.opts.footer.style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     if (optind < argc) {

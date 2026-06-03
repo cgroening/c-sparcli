@@ -219,10 +219,15 @@ Renders CSV data from `FILE` (or stdin) as a table. Quoted fields per RFC 4180 a
 | `--no-inner-v` | Hide column separators |
 | `--striped` | Alternate row backgrounds |
 | `--stripe-bg COLOR` | Stripe background color |
+| `--header-bg` / `--header-col-bg` / `--footer-bg` / `--footer-col-bg COLOR` | Header/footer backgrounds |
 | `--title TEXT` | Table title |
+| `--title-align left\|center\|right` | Title alignment |
 | `--align left\|center\|right` | Default column alignment |
+| `--cell-pad EDGES` / `--margin EDGES` | Inner cell padding / outer margin |
 | `--width N` | Total table width (0 = fit content) |
 | `--max-rows N` | Show at most N rows (with truncation indicator) |
+| `--rtl` | Right-to-left column order |
+| `--style title=… header=… footer=…` | Per-section text styles |
 
 ```sh
 sparcli table data.csv --header-row
@@ -242,9 +247,11 @@ Renders a bulleted or numbered list. Each `ITEM` argument is one entry; without 
 |--------|-------------|
 | `--marker STYLE` | `bullet` (default) `number` `alpha` `alpha-upper` `roman` `roman-upper` |
 | `--bullet STR` | Bullet character (marker `bullet` only) |
-| `--marker-color COLOR` | Marker color |
+| `--marker-color COLOR` | Marker color (or `--style marker=SPEC` for full styling) |
+| `--marker-prefix STR` / `--marker-suffix STR` | Text around the marker value |
 | `--indent N` | Left indent in columns |
 | `--gap N` | Blank lines between items |
+| `--margin EDGES` | Outer margin |
 | `--width N` | List width; long items word-wrap with hanging indent |
 
 ```sh
@@ -285,10 +292,11 @@ Renders `key: value` (or `key<TAB>value`) lines from `FILE` (or stdin) as an ali
 | `--delim CHAR` | Input delimiter (default: tab, then `:`) |
 | `--sep STR` | Output separator between key and value (default: two spaces) |
 | `--key-width N` | Fixed key column width (0 = widest key) |
-| `--key-color COLOR` | Key color |
-| `--val-color COLOR` | Value color |
+| `--key-color COLOR` | Key color (or `--style key=SPEC` for full styling) |
+| `--val-color COLOR` | Value color (or `--style val=SPEC`) |
 | `--wrap` | Word-wrap long values with hanging indent |
 | `--gap N` | Blank lines between items |
+| `--margin EDGES` | Outer margin |
 | `--width N` | Total width (0 = terminal width) |
 
 ```sh
@@ -321,7 +329,7 @@ Prints an inline styled badge like `[ok]`. The badge text is literal (no markup)
 |--------|-------------|
 | `--color COLOR` | Text color |
 | `--bg COLOR` | Background color |
-| `--bold` | Bold text |
+| `--bold` | Bold text (or `--style text='bold …'` for full styling) |
 | `--left STR` / `--right STR` | Cap strings (default `[` / `]`) |
 | `--pad N` | Spaces inside the caps |
 
@@ -370,6 +378,8 @@ Without `-- COMMAND`, the spinner runs while stdin is consumed to EOF (for the e
 | `--spinner STYLE` | `braille` (default) `pipe` `dots` `arrow` |
 | `--color COLOR` | Spinner color |
 
+`--style` elements: `label`.
+
 ```sh
 sparcli spin --title "Compiling" -- make -j8
 sparcli spin --title "Downloading" -- curl -sLO https://example.com/file.tar.gz
@@ -387,10 +397,16 @@ Draws a progress bar driven by numeric values read from stdin (one per line). Wi
 |--------|-------------|
 | `--total N` | Value that counts as 100% |
 | `--type STYLE` | `block` (default) `ascii` `line` `shaded` |
-| `--label TEXT` | Label left of the bar |
-| `--color COLOR` | Fill color |
-| `--width N` | Total line width (0 = terminal width) |
+| `--label TEXT` | Label left of the bar (`--style label=SPEC` to style it) |
+| `--color COLOR` / `--empty-color COLOR` | Fill / unfilled colors |
+| `--left-cap STR` / `--right-cap STR` | Bracket strings |
+| `--show-value` | Append `(value/max)` after the percent |
 | `--no-percent` | Hide the percentage |
+| `--bar-width N` / `--label-width N` | Inner bar / label column widths |
+| `--width N` | Total line width (0 = terminal width) |
+| `--thresholds` | Color the fill by ratio |
+| `--threshold-mid RATIO` / `--threshold-high RATIO` | Range boundaries (0.5 / 0.75) |
+| `--threshold-low-color` / `--threshold-mid-color` / `--threshold-high-color COLOR` | Per-range fill colors |
 
 ```sh
 for i in $(seq 100); do
@@ -426,7 +442,33 @@ Options shared by **all** input commands:
 | `--accent COLOR` | Accent color of the widget (cursor, highlights) |
 | `--hint TEXT` | Custom key-hint footer text |
 | `--no-hint` | Hide the key-hint footer |
+| `--hint-layout LAYOUT` | Hint layout: `inline` \| `stacked` \| `hidden` |
+| `--hint-pos POS` | Hint placement: `top` \| `bottom` \| `left` \| `right` |
+| `--style ELEM=SPEC` | Style a named element (repeatable); see [Styling](#styling-with---style) |
 | `--no-markup` | Treat markup in the prompt as literal text |
+
+The boxed input commands (`input`, `password`, `number`, `textarea`) also share `--boxed`, `--border STYLE`, **`--border-color COLOR`**, **`--border-bg COLOR`** and `--width N`.
+
+### Styling with `--style`
+
+Every command (input and output) accepts repeatable `--style ELEMENT=SPEC`
+options to style individual parts. The element names are command-specific and
+listed at the bottom of each command's `--help` (e.g. `prompt`, `value`,
+`cursor`, `summary`, `hint` for text inputs; `title`, `header`, `footer` for
+tables; `marker` for lists; `key`/`val` for kv; `label` for progress/spin;
+`text` for badge).
+
+`SPEC` reuses sparcli's markup vocabulary without the brackets — whitespace-
+separated tokens:
+
+| Token | Effect |
+|-------|--------|
+| `bold` `dim` `italic` `underline` | set the attribute (combine freely; `none` clears) |
+| a color (name, `#RRGGBB`, `R,G,B`) | foreground |
+| `on COLOR` | background |
+
+Examples: `--style prompt='bold cyan'`, `--style header='underline'`,
+`--style value='#5fafff on #202020'`, `--style summary=dim`.
 
 ### confirm
 
@@ -441,6 +483,8 @@ Asks a yes/no question. The exit code carries the answer: `0` = yes, `1` = no or
 | `--default-yes` / `--default-no` | Preselected answer (default: yes) |
 | `--yes LABEL` / `--no LABEL` | Custom choice labels |
 | `--print` | Print `yes` or `no` to stdout |
+
+`--style` elements: `prompt`, `selected`, `unselected`, `summary`, `hint`.
 
 ```sh
 sparcli confirm "Deploy to production?" && ./deploy.sh
@@ -460,11 +504,18 @@ Prompts for a line of text and prints it to stdout.
 | `--initial TEXT` | Pre-filled value |
 | `--placeholder TEXT` | Dim placeholder shown while empty |
 | `--max N` | Maximum number of characters (also caps typing) |
+| `--no-count` | Hide the character counter |
 | `--filter FILTER` | Restrict input: `digits` `decimal` `alpha` `alnum` `no-space` |
 | `--suggest TEXT` | Autocomplete suggestion, Tab accepts (repeatable) |
+| `--suggest-dropdown` | Show suggestions as a navigable dropdown |
+| `--suggest-match prefix\|fuzzy` | Dropdown match mode |
+| `--suggest-max N` | Dropdown rows before a "… +N more" line |
+| `--external-editor` / `--editor CMD` | Open the value in `$EDITOR` (Ctrl-G) |
 | `--boxed` | Draw the field inside a panel |
-| `--border STYLE` | Box border style (with `--boxed`) |
+| `--border STYLE` / `--border-color COLOR` / `--border-bg COLOR` | Box border style/color/background |
 | `--width N` | Field width (0 = terminal width) |
+
+`--style` elements: `prompt`, `value`, `cursor`, `error`, `count`, `summary`, `hint`.
 
 ```sh
 name=$(sparcli input "Your name:" --placeholder "Ada Lovelace")
@@ -483,8 +534,12 @@ Prompts for a masked secret and prints it to stdout.
 | Option | Description |
 |--------|-------------|
 | `--mask STR` | Mask character (default `*`; empty string hides the length) |
-| `--max N` | Maximum number of characters |
-| `--boxed` / `--border STYLE` / `--width N` | Boxed rendering |
+| `--placeholder TEXT` | Dim placeholder shown while empty |
+| `--max N` / `--no-count` | Length cap / hide the character counter |
+| `--filter FILTER` | Restrict input: `digits` `decimal` `alpha` `alnum` `no-space` |
+| `--boxed` / `--border STYLE` / `--border-color COLOR` / `--border-bg COLOR` / `--width N` | Boxed rendering |
+
+`--style` elements: `prompt`, `cursor`, `error`, `count`, `summary`, `hint`.
 
 ```sh
 token=$(sparcli password "API token:" --mask "•")
@@ -506,7 +561,13 @@ Prompts for a number; ↑/↓ step the value. Prints the **exact text** of the e
 | `--step N` | ↑/↓ step size |
 | `--decimals N` | Decimal places shown |
 | `--decimal-sep . \| ,` | Separator shown/accepted while editing |
-| `--boxed` / `--border STYLE` / `--width N` | Boxed rendering |
+| `--calculator` | Allow `=`-prefixed expressions (e.g. `=1,5+2*3`) |
+| `--calc-store-rounded` | Submit the displayed (rounded) value |
+| `--calc-show-precise` | Display the full-precision result |
+| `--calc-warn-text TEXT` | Message shown when an exact result is discarded |
+| `--boxed` / `--border STYLE` / `--border-color COLOR` / `--border-bg COLOR` / `--width N` | Boxed rendering |
+
+`--style` elements: `prompt`, `value`, `cursor`, `error`, `summary`, `hint`, `calc-warn`.
 
 ```sh
 amount=$(sparcli number "Amount (EUR):" --decimals 2 --decimal-sep , --min 0 --start-empty)
@@ -527,7 +588,9 @@ Prompts for multi-line text (Enter inserts a newline, **Ctrl-D submits**) and pr
 | `--placeholder TEXT` | Dim placeholder shown while empty |
 | `--external-editor` | Ctrl-G opens `$VISUAL` / `$EDITOR` |
 | `--editor CMD` | Specific editor command (implies `--external-editor`) |
-| `--boxed` / `--border STYLE` / `--width N` | Boxed rendering |
+| `--boxed` / `--border STYLE` / `--border-color COLOR` / `--border-bg COLOR` / `--width N` | Boxed rendering |
+
+`--style` elements: `prompt`, `value`, `cursor`, `summary`, `hint`.
 
 ```sh
 notes=$(sparcli textarea "Release notes:" --external-editor)
@@ -546,7 +609,11 @@ Choose one item – or several with `--multi` (Space toggles) – from a list. I
 | `--prompt TEXT` | Heading shown above the list |
 | `--multi` | Multi-select with checkboxes |
 | `--max-visible N` | Viewport height (default 10, scrolls beyond) |
+| `--marker STR` / `--cursor-marker STR` | Row / cursor-row markers |
+| `--checkbox-on STR` / `--checkbox-off STR` | Checkbox glyphs (multi-select) |
 | `--arrow-nav` | Right arrow selects (like Enter); Left arrow exits with code `3` (back). For multi-stage pickers (see [`examples/run.zsh`](../examples/run.zsh)). |
+
+`--style` elements: `prompt`, `selected`, `summary`, `hint`.
 
 ```sh
 flavor=$(sparcli select vanilla chocolate pistachio)
@@ -571,7 +638,11 @@ With `--tsv` (or `--delim`) each line is split into columns and shown as a table
 | `--tsv` | Tab-separated table view |
 | `--delim CHAR` | Custom delimiter for the table view |
 | `--header-row` | First input line provides the table headers |
+| `--marker STR` / `--cursor-marker STR` | Row / cursor-row markers |
+| `--search-columns LIST` | Table columns to search, e.g. `1,3` (default: all) |
 | `--arrow-nav` | Right arrow selects the highlighted match (no-op with no match); Left arrow exits with code `3` (back). |
+
+`--style` elements: `prompt`, `selected`, `cursor`, `counter`, `summary`, `hint`.
 
 ```sh
 file=$(find . -name '*.c' | sparcli fuzzy --prompt "Open:")
@@ -593,6 +664,9 @@ Pick a date from a month-grid calendar (arrows move, PageUp/Down change month, S
 | `--format FMT` | strftime output format (default `%Y-%m-%d`) |
 | `--initial YYYY-MM-DD` | Initially selected date (default: today) |
 | `--week-start monday\|sunday` | First day of the week |
+| `--header-prev STR` / `--header-next STR` | Month-control glyphs |
+
+`--style` elements: `prompt`, `header`, `weekday`, `selected`, `summary`, `hint`.
 
 ```sh
 deadline=$(sparcli date --prompt "Deadline?" --format "%d.%m.%Y")

@@ -71,6 +71,27 @@ static const ScCliName WEEK_START_NAMES[] = {
     { .name = "sunday", .value = SC_WEEK_START_SUNDAY },
 };
 
+static const ScCliName HINT_LAYOUT_NAMES[] = {
+    { .name = "inline",  .value = SC_HINT_INLINE },
+    { .name = "stacked", .value = SC_HINT_STACKED },
+    { .name = "hidden",  .value = SC_HINT_HIDDEN },
+};
+
+static const ScCliName HINT_POS_NAMES[] = {
+    { .name = "top",    .value = SC_HINT_POS_TOP },
+    { .name = "bottom", .value = SC_HINT_POS_BOTTOM },
+    { .name = "left",   .value = SC_HINT_POS_LEFT },
+    { .name = "right",  .value = SC_HINT_POS_RIGHT },
+};
+
+static const ScCliName STYLE_ATTR_NAMES[] = {
+    { .name = "none",      .value = SC_TEXT_ATTR_NONE },
+    { .name = "bold",      .value = SC_TEXT_ATTR_BOLD },
+    { .name = "dim",       .value = SC_TEXT_ATTR_DIM },
+    { .name = "italic",    .value = SC_TEXT_ATTR_ITALIC },
+    { .name = "underline", .value = SC_TEXT_ATTR_UNDER },
+};
+
 /* ANSI color names; values are the ScColor.index of each named color. */
 static const ScCliName COLOR_NAMES[] = {
     { .name = "black",   .value = 1 },
@@ -169,6 +190,26 @@ bool sc_cli_parse_week_start(const char *name, ScWeekStart *out) {
     return true;
 }
 
+bool sc_cli_parse_hint_layout(const char *name, ScHintLayout *out) {
+    int value = 0;
+    if (!lookup_value(HINT_LAYOUT_NAMES, SC_CLI_TABLE_SIZE(HINT_LAYOUT_NAMES),
+                      name, &value)) {
+        return false;
+    }
+    *out = (ScHintLayout)value;
+    return true;
+}
+
+bool sc_cli_parse_hint_pos(const char *name, ScHintPosition *out) {
+    int value = 0;
+    if (!lookup_value(HINT_POS_NAMES, SC_CLI_TABLE_SIZE(HINT_POS_NAMES),
+                      name, &value)) {
+        return false;
+    }
+    *out = (ScHintPosition)value;
+    return true;
+}
+
 bool sc_cli_parse_filter(const char *name, ScCharFilter *out) {
     for (size_t i = 0; i < SC_CLI_TABLE_SIZE(FILTER_NAMES); i++) {
         if (strcmp(FILTER_NAMES[i].name, name) == 0) {
@@ -190,6 +231,45 @@ bool sc_cli_parse_color(const char *spec, ScColor *out) {
         return parse_hex_color(spec, out);
     }
     return parse_rgb_color(spec, out);
+}
+
+bool sc_cli_parse_style(const char *spec, ScTextStyle *out) {
+    ScTextStyle style = { 0 };
+    bool        have_fg = false;
+
+    // Tokenize on whitespace into a private copy (strtok mutates).
+    char buffer[256];
+    size_t len = strlen(spec);
+    if (len >= sizeof buffer) {
+        return false;
+    }
+    memcpy(buffer, spec, len + 1);
+
+    char *save  = NULL;
+    char *token = strtok_r(buffer, " \t", &save);
+    while (token != NULL) {
+        int attr = 0;
+        if (lookup_value(STYLE_ATTR_NAMES, SC_CLI_TABLE_SIZE(STYLE_ATTR_NAMES),
+                         token, &attr)) {
+            style.attr = (attr == SC_TEXT_ATTR_NONE)
+                             ? SC_TEXT_ATTR_NONE
+                             : (ScTextAttribute)(style.attr
+                                                 | (ScTextAttribute)attr);
+        } else if (strcmp(token, "on") == 0) {
+            token = strtok_r(NULL, " \t", &save);
+            if (token == NULL || !sc_cli_parse_color(token, &style.bg)) {
+                return false;
+            }
+        } else if (!have_fg && sc_cli_parse_color(token, &style.fg)) {
+            have_fg = true;
+        } else {
+            return false;   // unknown attribute / second fg / bad color
+        }
+        token = strtok_r(NULL, " \t", &save);
+    }
+
+    *out = style;
+    return true;
 }
 
 bool sc_cli_parse_edges(const char *spec, ScEdges *out) {

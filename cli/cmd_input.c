@@ -40,7 +40,9 @@ static const char CONFIRM_USAGE[] =
     "  --yes LABEL                Label of the Yes choice\n"
     "  --no LABEL                 Label of the No choice\n"
     "  --print                    Print 'yes' or 'no' to stdout\n"
-    SC_CLI_INPUT_USAGE;
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, selected, unselected, summary, hint\n";
 
 int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -62,6 +64,7 @@ int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
 
     ScConfirmOpts  opts        = { .default_yes = true };
     ScCliInputArgs input_args  = { 0 };
+    ScCliStyleArgs styles      = { 0 };
     bool           print_reply = false;
 
     int opt = 0;
@@ -81,6 +84,9 @@ int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
             break;
         case OPT_PRINT:
             print_reply = true;
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(CONFIRM_USAGE, stdout);
@@ -102,8 +108,23 @@ int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
     opts.hide_summary  = true;
     opts.prompt_markup = ctx->markup;
     opts.hint          = input_args.hint;
+    opts.hint_pos      = input_args.hint_pos;
     if (input_args.hide_hint) {
         opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (input_args.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        opts.hint_layout = input_args.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",     &opts.prompt_style },
+        { "selected",   &opts.selected_style },
+        { "unselected", &opts.unselected_style },
+        { "summary",    &opts.summary_style },
+        { "hint",       &opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        free(question);
+        return SC_CLI_EXIT_ERROR;
     }
 
     bool          answer = false;
@@ -141,39 +162,53 @@ static const char INPUT_USAGE[] =
     "  --initial TEXT             Pre-filled value\n"
     "  --placeholder TEXT         Dim placeholder shown when empty\n"
     "  --max N                    Maximum number of characters\n"
+    "  --no-count                 Hide the character counter\n"
     "  --filter FILTER            digits|decimal|alpha|alnum|no-space\n"
     "  --suggest TEXT             Autocomplete suggestion (repeatable)\n"
-    "  --boxed                    Draw the field inside a panel\n"
-    "  --border STYLE             Box border style (with --boxed)\n"
-    "  --width N                  Field width (0 = terminal width)\n"
-    SC_CLI_INPUT_USAGE;
+    "  --suggest-dropdown         Show suggestions as a dropdown list\n"
+    "  --suggest-match MATCH      Dropdown match: prefix|fuzzy\n"
+    "  --suggest-max N            Dropdown rows before overflow\n"
+    "  --external-editor          Allow editing in $VISUAL/$EDITOR (Ctrl-G)\n"
+    "  --editor CMD               External editor command\n"
+    SC_CLI_BOX_USAGE
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, value, cursor, error, count, summary, hint\n";
 
 int sc_cli_cmd_input(ScCliCtx *ctx, int argc, char **argv) {
     enum {
         OPT_INITIAL = SC_CLI_OPT_CMD_BASE,
         OPT_PLACEHOLDER,
         OPT_MAX,
+        OPT_NO_COUNT,
         OPT_FILTER,
         OPT_SUGGEST,
-        OPT_BOXED,
-        OPT_BORDER,
-        OPT_WIDTH,
+        OPT_SUGGEST_DROPDOWN,
+        OPT_SUGGEST_MATCH,
+        OPT_SUGGEST_MAX,
+        OPT_EXTERNAL_EDITOR,
+        OPT_EDITOR,
     };
     static const struct option longopts[] = {
-        { "initial",     required_argument, NULL, OPT_INITIAL },
-        { "placeholder", required_argument, NULL, OPT_PLACEHOLDER },
-        { "max",         required_argument, NULL, OPT_MAX },
-        { "filter",      required_argument, NULL, OPT_FILTER },
-        { "suggest",     required_argument, NULL, OPT_SUGGEST },
-        { "boxed",       no_argument,       NULL, OPT_BOXED },
-        { "border",      required_argument, NULL, OPT_BORDER },
-        { "width",       required_argument, NULL, OPT_WIDTH },
+        { "initial",          required_argument, NULL, OPT_INITIAL },
+        { "placeholder",      required_argument, NULL, OPT_PLACEHOLDER },
+        { "max",              required_argument, NULL, OPT_MAX },
+        { "no-count",         no_argument,       NULL, OPT_NO_COUNT },
+        { "filter",           required_argument, NULL, OPT_FILTER },
+        { "suggest",          required_argument, NULL, OPT_SUGGEST },
+        { "suggest-dropdown", no_argument,       NULL, OPT_SUGGEST_DROPDOWN },
+        { "suggest-match",    required_argument, NULL, OPT_SUGGEST_MATCH },
+        { "suggest-max",      required_argument, NULL, OPT_SUGGEST_MAX },
+        { "external-editor",  no_argument,       NULL, OPT_EXTERNAL_EDITOR },
+        { "editor",           required_argument, NULL, OPT_EDITOR },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
 
-    InputArgs args = { 0 };
-    int       opt  = 0;
+    InputArgs      args   = { 0 };
+    ScCliStyleArgs styles = { 0 };
+    int            opt    = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (opt) {
         case OPT_INITIAL:
@@ -187,6 +222,9 @@ int sc_cli_cmd_input(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid maximum '%s'", optarg);
             }
             break;
+        case OPT_NO_COUNT:
+            args.opts.hide_char_count = true;
+            break;
         case OPT_FILTER:
             if (!sc_cli_parse_filter(optarg, &args.opts.char_filter)) {
                 return sc_cli_error(ctx, "invalid filter '%s'", optarg);
@@ -198,18 +236,58 @@ int sc_cli_cmd_input(ScCliCtx *ctx, int argc, char **argv) {
                 args.n_suggestions++;
             }
             break;
-        case OPT_BOXED:
+        case OPT_SUGGEST_DROPDOWN:
+            args.opts.suggest.mode = SC_SUGGEST_DROPDOWN;
+            break;
+        case OPT_SUGGEST_MATCH:
+            if (strcmp(optarg, "prefix") == 0) {
+                args.opts.suggest.match = SC_SUGGEST_MATCH_PREFIX;
+            } else if (strcmp(optarg, "fuzzy") == 0) {
+                args.opts.suggest.match = SC_SUGGEST_MATCH_FUZZY;
+            } else {
+                return sc_cli_error(ctx, "invalid match '%s' "
+                                    "(prefix|fuzzy)", optarg);
+            }
+            args.opts.suggest.mode = SC_SUGGEST_DROPDOWN;
+            break;
+        case OPT_SUGGEST_MAX:
+            if (!sc_cli_parse_int(optarg, &args.opts.suggest.max_visible)) {
+                return sc_cli_error(ctx, "invalid count '%s'", optarg);
+            }
+            args.opts.suggest.mode = SC_SUGGEST_DROPDOWN;
+            break;
+        case OPT_EXTERNAL_EDITOR:
+            args.opts.external_editor = true;
+            break;
+        case OPT_EDITOR:
+            args.opts.editor          = optarg;
+            args.opts.external_editor = true;
+            break;
+        case SC_CLI_OPT_BOXED:
             args.opts.boxed = true;
             break;
-        case OPT_BORDER:
+        case SC_CLI_OPT_BORDER:
             if (!sc_cli_parse_border(optarg, &args.opts.border.type)) {
                 return sc_cli_error(ctx, "invalid border '%s'", optarg);
             }
             break;
-        case OPT_WIDTH:
+        case SC_CLI_OPT_BORDER_COLOR:
+            if (!sc_cli_parse_color(optarg, &args.opts.border.color)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_BORDER_BG:
+            if (!sc_cli_parse_color(optarg, &args.opts.border.bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &args.opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(INPUT_USAGE, stdout);
@@ -231,12 +309,29 @@ int sc_cli_cmd_input(ScCliCtx *ctx, int argc, char **argv) {
     args.opts.hide_summary  = true;
     args.opts.prompt_markup = ctx->markup;
     args.opts.hint          = args.input.hint;
+    args.opts.hint_pos      = args.input.hint_pos;
     if (args.input.hide_hint) {
         args.opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (args.input.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        args.opts.hint_layout = args.input.hint_layout;
     }
     if (args.n_suggestions > 0) {
         args.opts.suggestions   = args.suggestions;
         args.opts.n_suggestions = args.n_suggestions;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",  &args.opts.prompt_style },
+        { "value",   &args.opts.value_style },
+        { "cursor",  &args.opts.cursor_style },
+        { "error",   &args.opts.error_style },
+        { "count",   &args.opts.count_style },
+        { "summary", &args.opts.summary_style },
+        { "hint",    &args.opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        free(prompt);
+        return SC_CLI_EXIT_ERROR;
     }
 
     char         *value  = NULL;
@@ -258,32 +353,37 @@ static const char PASSWORD_USAGE[] =
     "Options:\n"
     "  --mask STR                 Mask character (default '*'; '' hides\n"
     "                             the length entirely)\n"
+    "  --placeholder TEXT         Dim placeholder shown when empty\n"
     "  --max N                    Maximum number of characters\n"
-    "  --boxed                    Draw the field inside a panel\n"
-    "  --border STYLE             Box border style (with --boxed)\n"
-    "  --width N                  Field width (0 = terminal width)\n"
-    SC_CLI_INPUT_USAGE;
+    "  --no-count                 Hide the character counter\n"
+    "  --filter FILTER            digits|decimal|alpha|alnum|no-space\n"
+    SC_CLI_BOX_USAGE
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, cursor, error, count, summary, hint\n";
 
 int sc_cli_cmd_password(ScCliCtx *ctx, int argc, char **argv) {
     enum {
         OPT_MASK = SC_CLI_OPT_CMD_BASE,
+        OPT_PLACEHOLDER,
         OPT_MAX,
-        OPT_BOXED,
-        OPT_BORDER,
-        OPT_WIDTH,
+        OPT_NO_COUNT,
+        OPT_FILTER,
     };
     static const struct option longopts[] = {
-        { "mask",   required_argument, NULL, OPT_MASK },
-        { "max",    required_argument, NULL, OPT_MAX },
-        { "boxed",  no_argument,       NULL, OPT_BOXED },
-        { "border", required_argument, NULL, OPT_BORDER },
-        { "width",  required_argument, NULL, OPT_WIDTH },
+        { "mask",        required_argument, NULL, OPT_MASK },
+        { "placeholder", required_argument, NULL, OPT_PLACEHOLDER },
+        { "max",         required_argument, NULL, OPT_MAX },
+        { "no-count",    no_argument,       NULL, OPT_NO_COUNT },
+        { "filter",      required_argument, NULL, OPT_FILTER },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
 
     ScPasswordOpts opts       = { 0 };
     ScCliInputArgs input_args = { 0 };
+    ScCliStyleArgs styles     = { 0 };
 
     int opt = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
@@ -291,23 +391,47 @@ int sc_cli_cmd_password(ScCliCtx *ctx, int argc, char **argv) {
         case OPT_MASK:
             opts.mask = optarg;
             break;
+        case OPT_PLACEHOLDER:
+            opts.placeholder = optarg;
+            break;
         case OPT_MAX:
             if (!sc_cli_parse_int(optarg, &opts.max_chars)) {
                 return sc_cli_error(ctx, "invalid maximum '%s'", optarg);
             }
             break;
-        case OPT_BOXED:
+        case OPT_NO_COUNT:
+            opts.hide_char_count = true;
+            break;
+        case OPT_FILTER:
+            if (!sc_cli_parse_filter(optarg, &opts.char_filter)) {
+                return sc_cli_error(ctx, "invalid filter '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_BOXED:
             opts.boxed = true;
             break;
-        case OPT_BORDER:
+        case SC_CLI_OPT_BORDER:
             if (!sc_cli_parse_border(optarg, &opts.border.type)) {
                 return sc_cli_error(ctx, "invalid border '%s'", optarg);
             }
             break;
-        case OPT_WIDTH:
+        case SC_CLI_OPT_BORDER_COLOR:
+            if (!sc_cli_parse_color(optarg, &opts.border.color)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_BORDER_BG:
+            if (!sc_cli_parse_color(optarg, &opts.border.bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(PASSWORD_USAGE, stdout);
@@ -329,8 +453,24 @@ int sc_cli_cmd_password(ScCliCtx *ctx, int argc, char **argv) {
     opts.hide_summary  = true;
     opts.prompt_markup = ctx->markup;
     opts.hint          = input_args.hint;
+    opts.hint_pos      = input_args.hint_pos;
     if (input_args.hide_hint) {
         opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (input_args.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        opts.hint_layout = input_args.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",  &opts.prompt_style },
+        { "cursor",  &opts.cursor_style },
+        { "error",   &opts.error_style },
+        { "count",   &opts.count_style },
+        { "summary", &opts.summary_style },
+        { "hint",    &opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        free(prompt);
+        return SC_CLI_EXIT_ERROR;
     }
 
     char         *value  = NULL;
@@ -358,10 +498,14 @@ static const char NUMBER_USAGE[] =
     "  --step N                   Up/down arrow step size\n"
     "  --decimals N               Number of decimal places\n"
     "  --decimal-sep CHAR         Decimal separator shown ('.' or ',')\n"
-    "  --boxed                    Draw the field inside a panel\n"
-    "  --border STYLE             Box border style (with --boxed)\n"
-    "  --width N                  Field width (0 = terminal width)\n"
-    SC_CLI_INPUT_USAGE;
+    "  --calculator               Enable '='-prefixed expression input\n"
+    "  --calc-store-rounded       Submit the displayed (rounded) value\n"
+    "  --calc-show-precise        Display the full-precision result\n"
+    "  --calc-warn-text TEXT      Message when an exact result is discarded\n"
+    SC_CLI_BOX_USAGE
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, value, cursor, error, summary, hint, calc-warn\n";
 
 int sc_cli_cmd_number(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -372,27 +516,31 @@ int sc_cli_cmd_number(ScCliCtx *ctx, int argc, char **argv) {
         OPT_STEP,
         OPT_DECIMALS,
         OPT_DECIMAL_SEP,
-        OPT_BOXED,
-        OPT_BORDER,
-        OPT_WIDTH,
+        OPT_CALCULATOR,
+        OPT_CALC_STORE_ROUNDED,
+        OPT_CALC_SHOW_PRECISE,
+        OPT_CALC_WARN_TEXT,
     };
     static const struct option longopts[] = {
-        { "initial",     required_argument, NULL, OPT_INITIAL },
-        { "start-empty", no_argument,       NULL, OPT_START_EMPTY },
-        { "min",         required_argument, NULL, OPT_MIN },
-        { "max",         required_argument, NULL, OPT_MAX },
-        { "step",        required_argument, NULL, OPT_STEP },
-        { "decimals",    required_argument, NULL, OPT_DECIMALS },
-        { "decimal-sep", required_argument, NULL, OPT_DECIMAL_SEP },
-        { "boxed",       no_argument,       NULL, OPT_BOXED },
-        { "border",      required_argument, NULL, OPT_BORDER },
-        { "width",       required_argument, NULL, OPT_WIDTH },
+        { "initial",            required_argument, NULL, OPT_INITIAL },
+        { "start-empty",        no_argument,       NULL, OPT_START_EMPTY },
+        { "min",                required_argument, NULL, OPT_MIN },
+        { "max",                required_argument, NULL, OPT_MAX },
+        { "step",               required_argument, NULL, OPT_STEP },
+        { "decimals",           required_argument, NULL, OPT_DECIMALS },
+        { "decimal-sep",        required_argument, NULL, OPT_DECIMAL_SEP },
+        { "calculator",         no_argument,       NULL, OPT_CALCULATOR },
+        { "calc-store-rounded", no_argument,       NULL, OPT_CALC_STORE_ROUNDED },
+        { "calc-show-precise",  no_argument,       NULL, OPT_CALC_SHOW_PRECISE },
+        { "calc-warn-text",     required_argument, NULL, OPT_CALC_WARN_TEXT },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
 
     ScNumberOpts   opts       = { 0 };
     ScCliInputArgs input_args = { 0 };
+    ScCliStyleArgs styles     = { 0 };
 
     int opt = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
@@ -428,18 +576,46 @@ int sc_cli_cmd_number(ScCliCtx *ctx, int argc, char **argv) {
         case OPT_DECIMAL_SEP:
             opts.decimal_sep = optarg[0];
             break;
-        case OPT_BOXED:
+        case OPT_CALCULATOR:
+            opts.calculator = true;
+            break;
+        case OPT_CALC_STORE_ROUNDED:
+            opts.calc_store_rounded = true;
+            opts.calculator         = true;
+            break;
+        case OPT_CALC_SHOW_PRECISE:
+            opts.calc_show_precise = true;
+            opts.calculator        = true;
+            break;
+        case OPT_CALC_WARN_TEXT:
+            opts.calc_warn_text = optarg;
+            opts.calculator     = true;
+            break;
+        case SC_CLI_OPT_BOXED:
             opts.boxed = true;
             break;
-        case OPT_BORDER:
+        case SC_CLI_OPT_BORDER:
             if (!sc_cli_parse_border(optarg, &opts.border.type)) {
                 return sc_cli_error(ctx, "invalid border '%s'", optarg);
             }
             break;
-        case OPT_WIDTH:
+        case SC_CLI_OPT_BORDER_COLOR:
+            if (!sc_cli_parse_color(optarg, &opts.border.color)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_BORDER_BG:
+            if (!sc_cli_parse_color(optarg, &opts.border.bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(NUMBER_USAGE, stdout);
@@ -465,8 +641,25 @@ int sc_cli_cmd_number(ScCliCtx *ctx, int argc, char **argv) {
     opts.hide_summary  = true;
     opts.prompt_markup = ctx->markup;
     opts.hint          = input_args.hint;
+    opts.hint_pos      = input_args.hint_pos;
     if (input_args.hide_hint) {
         opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (input_args.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        opts.hint_layout = input_args.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",    &opts.prompt_style },
+        { "value",     &opts.value_style },
+        { "cursor",    &opts.cursor_style },
+        { "error",     &opts.error_style },
+        { "summary",   &opts.summary_style },
+        { "hint",      &opts.hint_style },
+        { "calc-warn", &opts.calc_warn_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        free(prompt);
+        return SC_CLI_EXIT_ERROR;
     }
 
     double        value  = 0.0;
@@ -495,10 +688,10 @@ static const char TEXTAREA_USAGE[] =
     "  --placeholder TEXT         Dim placeholder shown when empty\n"
     "  --external-editor          Allow editing in $VISUAL/$EDITOR (Ctrl-G)\n"
     "  --editor CMD               External editor command\n"
-    "  --boxed                    Draw the editor inside a panel\n"
-    "  --border STYLE             Box border style (with --boxed)\n"
-    "  --width N                  Editor width (0 = terminal width)\n"
-    SC_CLI_INPUT_USAGE;
+    SC_CLI_BOX_USAGE
+    SC_CLI_INPUT_USAGE
+    "\n"
+    "--style elements: prompt, value, cursor, summary, hint\n";
 
 int sc_cli_cmd_textarea(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -506,24 +699,20 @@ int sc_cli_cmd_textarea(ScCliCtx *ctx, int argc, char **argv) {
         OPT_PLACEHOLDER,
         OPT_EXTERNAL_EDITOR,
         OPT_EDITOR,
-        OPT_BOXED,
-        OPT_BORDER,
-        OPT_WIDTH,
     };
     static const struct option longopts[] = {
         { "initial",         required_argument, NULL, OPT_INITIAL },
         { "placeholder",     required_argument, NULL, OPT_PLACEHOLDER },
         { "external-editor", no_argument,       NULL, OPT_EXTERNAL_EDITOR },
         { "editor",          required_argument, NULL, OPT_EDITOR },
-        { "boxed",           no_argument,       NULL, OPT_BOXED },
-        { "border",          required_argument, NULL, OPT_BORDER },
-        { "width",           required_argument, NULL, OPT_WIDTH },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
 
     ScTextareaOpts opts       = { 0 };
     ScCliInputArgs input_args = { 0 };
+    ScCliStyleArgs styles     = { 0 };
 
     int opt = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
@@ -541,18 +730,31 @@ int sc_cli_cmd_textarea(ScCliCtx *ctx, int argc, char **argv) {
             opts.editor          = optarg;
             opts.external_editor = true;
             break;
-        case OPT_BOXED:
+        case SC_CLI_OPT_BOXED:
             opts.boxed = true;
             break;
-        case OPT_BORDER:
+        case SC_CLI_OPT_BORDER:
             if (!sc_cli_parse_border(optarg, &opts.border.type)) {
                 return sc_cli_error(ctx, "invalid border '%s'", optarg);
             }
             break;
-        case OPT_WIDTH:
+        case SC_CLI_OPT_BORDER_COLOR:
+            if (!sc_cli_parse_color(optarg, &opts.border.color)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_BORDER_BG:
+            if (!sc_cli_parse_color(optarg, &opts.border.bg)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case SC_CLI_OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(TEXTAREA_USAGE, stdout);
@@ -574,8 +776,23 @@ int sc_cli_cmd_textarea(ScCliCtx *ctx, int argc, char **argv) {
     opts.hide_summary  = true;
     opts.prompt_markup = ctx->markup;
     opts.hint          = input_args.hint;
+    opts.hint_pos      = input_args.hint_pos;
     if (input_args.hide_hint) {
         opts.hint_layout = SC_HINT_HIDDEN;
+    } else if (input_args.hint_layout != SC_HINT_LAYOUT_DEFAULT) {
+        opts.hint_layout = input_args.hint_layout;
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "prompt",  &opts.prompt_style },
+        { "value",   &opts.value_style },
+        { "cursor",  &opts.cursor_style },
+        { "summary", &opts.summary_style },
+        { "hint",    &opts.hint_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        free(prompt);
+        return SC_CLI_EXIT_ERROR;
     }
 
     char         *value  = NULL;

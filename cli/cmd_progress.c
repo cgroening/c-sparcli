@@ -56,7 +56,9 @@ static const char SPIN_USAGE[] =
     "  --title TEXT               Label next to the spinner\n"
     "  --spinner STYLE            braille|pipe|dots|arrow\n"
     "  --color COLOR              Spinner color\n"
-    SC_CLI_COMMON_USAGE;
+    SC_CLI_COMMON_USAGE
+    "\n"
+    "--style elements: label\n";
 
 int sc_cli_cmd_spin(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -72,8 +74,9 @@ int sc_cli_cmd_spin(ScCliCtx *ctx, int argc, char **argv) {
         { 0 },
     };
 
-    SpinArgs args = { .title = "Working..." };
-    int      opt  = 0;
+    SpinArgs       args   = { .title = "Working..." };
+    ScCliStyleArgs styles = { 0 };
+    int            opt    = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (opt) {
         case OPT_TITLE:
@@ -89,6 +92,9 @@ int sc_cli_cmd_spin(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid color '%s'", optarg);
             }
             break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
+            break;
         case SC_CLI_OPT_HELP:
             fputs(SPIN_USAGE, stdout);
             return SC_CLI_EXIT_OK;
@@ -98,6 +104,13 @@ int sc_cli_cmd_spin(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         }
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "label", &args.opts.label_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     if (optind < argc) {
@@ -234,9 +247,23 @@ static const char PROGRESS_USAGE[] =
     "  --type STYLE               block|ascii|line|shaded\n"
     "  --label TEXT               Label left of the bar\n"
     "  --color COLOR              Fill color\n"
-    "  --width N                  Total line width (0 = terminal width)\n"
+    "  --empty-color COLOR        Color of the unfilled part\n"
+    "  --left-cap STR             Left bracket (e.g. '[')\n"
+    "  --right-cap STR            Right bracket (e.g. ']')\n"
+    "  --show-value               Append (value/max) after the percent\n"
     "  --no-percent               Hide the percentage\n"
-    SC_CLI_COMMON_USAGE;
+    "  --bar-width N              Inner bar width (0 = auto)\n"
+    "  --label-width N            Fixed label column width\n"
+    "  --width N                  Total line width (0 = terminal width)\n"
+    "  --thresholds               Color the fill by ratio\n"
+    "  --threshold-mid RATIO      Low/mid boundary (default 0.5)\n"
+    "  --threshold-high RATIO     Mid/high boundary (default 0.75)\n"
+    "  --threshold-low-color COLOR   Fill color below mid\n"
+    "  --threshold-mid-color COLOR   Fill color between mid and high\n"
+    "  --threshold-high-color COLOR  Fill color at/above high\n"
+    SC_CLI_COMMON_USAGE
+    "\n"
+    "--style elements: label\n";
 
 int sc_cli_cmd_progress(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -244,22 +271,50 @@ int sc_cli_cmd_progress(ScCliCtx *ctx, int argc, char **argv) {
         OPT_TYPE,
         OPT_LABEL,
         OPT_COLOR,
+        OPT_EMPTY_COLOR,
+        OPT_LEFT_CAP,
+        OPT_RIGHT_CAP,
+        OPT_SHOW_VALUE,
         OPT_WIDTH,
+        OPT_BAR_WIDTH,
+        OPT_LABEL_WIDTH,
         OPT_NO_PERCENT,
+        OPT_THRESHOLDS,
+        OPT_THRESHOLD_MID,
+        OPT_THRESHOLD_HIGH,
+        OPT_THRESHOLD_LOW_COLOR,
+        OPT_THRESHOLD_MID_COLOR,
+        OPT_THRESHOLD_HIGH_COLOR,
     };
     static const struct option longopts[] = {
-        { "total",      required_argument, NULL, OPT_TOTAL },
-        { "type",       required_argument, NULL, OPT_TYPE },
-        { "label",      required_argument, NULL, OPT_LABEL },
-        { "color",      required_argument, NULL, OPT_COLOR },
-        { "width",      required_argument, NULL, OPT_WIDTH },
-        { "no-percent", no_argument,       NULL, OPT_NO_PERCENT },
+        { "total",                required_argument, NULL, OPT_TOTAL },
+        { "type",                 required_argument, NULL, OPT_TYPE },
+        { "label",                required_argument, NULL, OPT_LABEL },
+        { "color",                required_argument, NULL, OPT_COLOR },
+        { "empty-color",          required_argument, NULL, OPT_EMPTY_COLOR },
+        { "left-cap",             required_argument, NULL, OPT_LEFT_CAP },
+        { "right-cap",            required_argument, NULL, OPT_RIGHT_CAP },
+        { "show-value",           no_argument,       NULL, OPT_SHOW_VALUE },
+        { "width",                required_argument, NULL, OPT_WIDTH },
+        { "bar-width",            required_argument, NULL, OPT_BAR_WIDTH },
+        { "label-width",          required_argument, NULL, OPT_LABEL_WIDTH },
+        { "no-percent",           no_argument,       NULL, OPT_NO_PERCENT },
+        { "thresholds",           no_argument,       NULL, OPT_THRESHOLDS },
+        { "threshold-mid",        required_argument, NULL, OPT_THRESHOLD_MID },
+        { "threshold-high",       required_argument, NULL, OPT_THRESHOLD_HIGH },
+        { "threshold-low-color",  required_argument, NULL,
+          OPT_THRESHOLD_LOW_COLOR },
+        { "threshold-mid-color",  required_argument, NULL,
+          OPT_THRESHOLD_MID_COLOR },
+        { "threshold-high-color", required_argument, NULL,
+          OPT_THRESHOLD_HIGH_COLOR },
         SC_CLI_COMMON_LONGOPTS,
         { 0 },
     };
 
-    ProgressArgs args = { .opts = { .show_percent = true } };
-    int          opt  = 0;
+    ProgressArgs   args   = { .opts = { .show_percent = true } };
+    ScCliStyleArgs styles = { 0 };
+    int            opt    = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (opt) {
         case OPT_TOTAL:
@@ -280,13 +335,74 @@ int sc_cli_cmd_progress(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid color '%s'", optarg);
             }
             break;
+        case OPT_EMPTY_COLOR:
+            if (!sc_cli_parse_color(optarg, &args.opts.empty_color)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            break;
+        case OPT_LEFT_CAP:
+            args.opts.left_cap = optarg;
+            break;
+        case OPT_RIGHT_CAP:
+            args.opts.right_cap = optarg;
+            break;
+        case OPT_SHOW_VALUE:
+            args.opts.show_value = true;
+            break;
         case OPT_WIDTH:
             if (!sc_cli_parse_int(optarg, &args.opts.width)) {
                 return sc_cli_error(ctx, "invalid width '%s'", optarg);
             }
             break;
+        case OPT_BAR_WIDTH:
+            if (!sc_cli_parse_int(optarg, &args.opts.bar_width)) {
+                return sc_cli_error(ctx, "invalid width '%s'", optarg);
+            }
+            break;
+        case OPT_LABEL_WIDTH:
+            if (!sc_cli_parse_int(optarg, &args.opts.label_width)) {
+                return sc_cli_error(ctx, "invalid width '%s'", optarg);
+            }
+            break;
         case OPT_NO_PERCENT:
             args.opts.show_percent = false;
+            break;
+        case OPT_THRESHOLDS:
+            args.opts.thresholds.enabled = true;
+            break;
+        case OPT_THRESHOLD_MID:
+            if (!sc_cli_parse_double(optarg, &args.opts.thresholds.mid)) {
+                return sc_cli_error(ctx, "invalid ratio '%s'", optarg);
+            }
+            args.opts.thresholds.enabled = true;
+            break;
+        case OPT_THRESHOLD_HIGH:
+            if (!sc_cli_parse_double(optarg, &args.opts.thresholds.high)) {
+                return sc_cli_error(ctx, "invalid ratio '%s'", optarg);
+            }
+            args.opts.thresholds.enabled = true;
+            break;
+        case OPT_THRESHOLD_LOW_COLOR:
+            if (!sc_cli_parse_color(optarg, &args.opts.thresholds.color_low)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            args.opts.thresholds.enabled = true;
+            break;
+        case OPT_THRESHOLD_MID_COLOR:
+            if (!sc_cli_parse_color(optarg, &args.opts.thresholds.color_mid)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            args.opts.thresholds.enabled = true;
+            break;
+        case OPT_THRESHOLD_HIGH_COLOR:
+            if (!sc_cli_parse_color(optarg,
+                                    &args.opts.thresholds.color_high)) {
+                return sc_cli_error(ctx, "invalid color '%s'", optarg);
+            }
+            args.opts.thresholds.enabled = true;
+            break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
             break;
         case SC_CLI_OPT_HELP:
             fputs(PROGRESS_USAGE, stdout);
@@ -297,6 +413,13 @@ int sc_cli_cmd_progress(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         }
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "label", &args.opts.label_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     return run_progress(ctx, &args);

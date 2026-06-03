@@ -91,6 +91,11 @@ static const Case CASES[] = {
       .want_stdout = "abcdEFgh\n", .want_exit = 0 },
     { .name = "password-value", .args = { "password", "Secret:" },
       .keys = "hunter2\r", .want_stdout = "hunter2\n", .want_exit = 0 },
+    /* New styling/box flags must parse and leave the value/exit intact. */
+    { .name = "input-boxed-border-color-style",
+      .args = { "input", "--boxed", "--border-color", "magenta",
+                "--style", "prompt=bold cyan", "--no-count", "Name:" },
+      .keys = "Bob\r", .want_stdout = "Bob\n", .want_exit = 0 },
 
     /* number: arrows step, exact text out */
     { .name = "number-step", .args = { "number", "--initial", "10",
@@ -123,6 +128,10 @@ static const Case CASES[] = {
                                               "magenta", "a", "b" },
       .keys = "\r", .want_stdout = "a\n", .want_exit = 0 },
     /* --arrow-nav: Right submits like Enter, Left exits with code 3 (back) */
+    { .name = "select-marker-style",
+      .args = { "select", "--marker", "> ", "--style", "selected=bold green",
+                "a", "b" },
+      .keys = "\x1b[B\r", .want_stdout = "b\n", .want_exit = 0 },
     { .name = "select-arrow-right", .args = { "select", "--arrow-nav",
                                               "a", "b" },
       .keys = "\x1b[B\x1b[C", .want_stdout = "b\n", .want_exit = 0 },

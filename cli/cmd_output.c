@@ -119,8 +119,10 @@ static const char RULE_USAGE[] =
     "                             rounded|thick (default: single)\n"
     "  --color COLOR              Line color (name, #RRGGBB or R,G,B)\n"
     "  --align left|center|right  Title position (default: center)\n"
+    "  --title-pad N              Spaces around the title\n"
     "  --width N                  Fixed rule width (0 = terminal width)\n"
     "  --margin EDGES             Outer margin: N or T,R,B,L\n"
+    "  (style the title with markup, e.g. rule \"[bold cyan]Title[/]\")\n"
     SC_CLI_COMMON_USAGE;
 
 int sc_cli_cmd_rule(ScCliCtx *ctx, int argc, char **argv) {
@@ -128,15 +130,17 @@ int sc_cli_cmd_rule(ScCliCtx *ctx, int argc, char **argv) {
         OPT_BORDER = SC_CLI_OPT_CMD_BASE,
         OPT_COLOR,
         OPT_ALIGN,
+        OPT_TITLE_PAD,
         OPT_WIDTH,
         OPT_MARGIN,
     };
     static const struct option longopts[] = {
-        { "border", required_argument, NULL, OPT_BORDER },
-        { "color",  required_argument, NULL, OPT_COLOR },
-        { "align",  required_argument, NULL, OPT_ALIGN },
-        { "width",  required_argument, NULL, OPT_WIDTH },
-        { "margin", required_argument, NULL, OPT_MARGIN },
+        { "border",    required_argument, NULL, OPT_BORDER },
+        { "color",     required_argument, NULL, OPT_COLOR },
+        { "align",     required_argument, NULL, OPT_ALIGN },
+        { "title-pad", required_argument, NULL, OPT_TITLE_PAD },
+        { "width",     required_argument, NULL, OPT_WIDTH },
+        { "margin",    required_argument, NULL, OPT_MARGIN },
         SC_CLI_COMMON_LONGOPTS,
         { 0 },
     };
@@ -161,6 +165,11 @@ int sc_cli_cmd_rule(ScCliCtx *ctx, int argc, char **argv) {
         case OPT_ALIGN:
             if (!sc_cli_parse_halign(optarg, &args.opts.title.halign)) {
                 return sc_cli_error(ctx, "invalid alignment '%s'", optarg);
+            }
+            break;
+        case OPT_TITLE_PAD:
+            if (!sc_cli_parse_int(optarg, &args.opts.title.pad)) {
+                return sc_cli_error(ctx, "invalid pad '%s'", optarg);
             }
             break;
         case OPT_WIDTH:
@@ -298,7 +307,9 @@ static const char BADGE_USAGE[] =
     "  --left STR                 Left cap (default \"[\")\n"
     "  --right STR                Right cap (default \"]\")\n"
     "  --pad N                    Spaces inside the caps\n"
-    SC_CLI_COMMON_USAGE;
+    SC_CLI_COMMON_USAGE
+    "\n"
+    "--style elements: text (overrides --color/--bg/--bold)\n";
 
 int sc_cli_cmd_badge(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -320,8 +331,9 @@ int sc_cli_cmd_badge(ScCliCtx *ctx, int argc, char **argv) {
         { 0 },
     };
 
-    BadgeArgs args = { 0 };
-    int       opt  = 0;
+    BadgeArgs      args   = { 0 };
+    ScCliStyleArgs styles = { 0 };
+    int            opt    = 0;
     while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (opt) {
         case OPT_COLOR:
@@ -348,6 +360,9 @@ int sc_cli_cmd_badge(ScCliCtx *ctx, int argc, char **argv) {
                 return sc_cli_error(ctx, "invalid pad '%s'", optarg);
             }
             break;
+        case SC_CLI_OPT_STYLE:
+            sc_cli_style_collect(&styles, optarg);
+            break;
         case SC_CLI_OPT_HELP:
             fputs(BADGE_USAGE, stdout);
             return SC_CLI_EXIT_OK;
@@ -357,6 +372,13 @@ int sc_cli_cmd_badge(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         }
+    }
+
+    const ScCliStyleSlot slots[] = {
+        { "text", &args.opts.text_style },
+    };
+    if (!sc_cli_apply_styles(ctx, &styles, slots, SC_CLI_TABLE_SIZE(slots))) {
+        return SC_CLI_EXIT_ERROR;
     }
 
     return run_badge(ctx, &args, argc - optind, argv + optind);

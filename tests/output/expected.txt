@@ -644,7 +644,7 @@ Status    running
 ❮v1.2.3❯ (main)
 
 --- Badge 3. Colored + padded ---
-[30m[43m[ BETA ][0m [37m[42m[ STABLE ][0m [37m[41m[ DEPRECATED ][0m
+[1m[30m[43m[ BETA ][0m [1m[37m[42m[ STABLE ][0m [1m[37m[41m[ DEPRECATED ][0m
 
 --- Badge 4. Inside ScText ---
 [1mStatus: [0m[1m[37m[42m[ OK ][0m[1m  Release: [0m[36m(v2.0.0)[0m
