@@ -1,11 +1,12 @@
 # sparcli – Polished CLI output & prompts
 
-A C11 library for **styled terminal output** and **interactive prompts**:
+A C11 library for **styled terminal output**, **interactive prompts** and **CLI applications**:
 
-- panels, tables, rules, columns, lists, trees, key/value blocks, alerts, badges, progress bars and spinners;
-- confirm, text, password, number, textarea, select, fuzzy and date-picker prompts.
+- panels, tables, rules, columns, lists, trees, key/value blocks, alerts, badges, progress bars, spinners and live-updating dashboards;
+- confirm, text, password, number, textarea, select, fuzzy and date-picker prompts – every one extensible with custom keyboard shortcuts;
+- an application framework: argument parser ("clap for C"), logging, pretty errors, XDG paths, pager integration and REPL building blocks.
 
-Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, safe, idiomatic **Rust** and **Python** bindings, and a **`sparcli` command-line tool** that exposes everything to the shell (zsh/bash) – think [rich-cli](https://github.com/Textualize/rich-cli) and [gum](https://github.com/charmbracelet/gum) in one binary.
+Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, safe, idiomatic **Rust** and **Python** bindings, and a **`sparcli` command-line tool** that exposes everything to the shell (zsh/bash).
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Language: C11](https://img.shields.io/badge/c-11-blue.svg) ![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-orange.svg)
 
@@ -22,6 +23,11 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 - [sparcli – Polished CLI output \& prompts](#sparcli--polished-cli-output--prompts)
   - [Table of contents](#table-of-contents)
   - [Features](#features)
+    - [Output](#output)
+    - [Input](#input)
+    - [CLI application framework](#cli-application-framework)
+    - [Shell \& language bindings](#shell--language-bindings)
+    - [Robustness \& engineering](#robustness--engineering)
   - [Quick start](#quick-start)
     - [C](#c)
     - [C++ (header-only)](#c-header-only)
@@ -33,6 +39,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
     - [Requirements](#requirements)
   - [Output widgets](#output-widgets)
   - [Input widgets](#input-widgets)
+  - [Application framework](#application-framework)
   - [Command-line tool](#command-line-tool)
   - [Rich-compatible markup](#rich-compatible-markup)
   - [Development](#development)
@@ -44,23 +51,47 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 
 ## Features
 
+### Output
+
+The full reference for every output component lives in [`docs/api-c.md`](docs/api-c.md); a per-widget overview is in [Output widgets](#output-widgets).
+
 - **Large set of widgets**: panels, tables, rules, side-by-side columns, lists, trees, key/value blocks, alerts, badges, progress bars, spinners.
-- **Interactive prompts**: confirm, text/password, number, textarea, single & multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
-- **Custom key shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a partly-italic label) – see [Input widgets](#input-widgets).
-- **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`, `[rgb(120,200,255)]…[/]` – same syntax as [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual).
-- **Clickable hyperlinks (OSC-8)**: `[link=https://…]text[/link]` markup or `sc_text_append_link()` – Cmd/Ctrl+click opens the URL in supporting terminals, plain text everywhere else.
+- **Live display & dashboards**: re-render a composed frame in place (`sc_live_*`) – build dashboards from any widgets that update continuously, in-place or on the fullscreen alternate screen ([docs](docs/api-c.md#live-display)).
+- **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`, `[rgb(120,200,255)]…[/]` – same syntax as [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual). See [Rich-compatible markup](#rich-compatible-markup).
+- **Clickable hyperlinks (OSC-8)**: `[link=https://…]text[/link]` markup or `sc_text_append_link()` – Cmd/Ctrl+click opens the URL in supporting terminals, plain text everywhere else ([docs](docs/api-c.md#hyperlinks-osc-8)).
 - **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
-- **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
-- **ANSI-injection safe by default**: control bytes and escape sequences in user strings are stripped at the API boundary; opt back in globally (`sc_set_allow_ansi`) or per widget (`.ansi = SC_ANSI_MODE_ALLOW`) with widths staying correct.
-- **Composable**: capture any widget into a buffer, then pad, align, or place it inside a columns layout.
-- **CLI application helpers**: pipe long output through a pager (`$PAGER`/`less`, auto-skipped in scripts), resolve XDG config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use), and report fatal errors as pretty panels (`sc_die`: message + cause chain + hint + exit code).
-- **Argument parser**: declarative subcommands, typed options, auto-generated `--help` (rendered with sparcli widgets), "did you mean ...?" suggestions and zsh completion generation - clap for C (`sc_args_*`).
+- **Composable**: capture any widget into a buffer, then pad, align, stack (`sc_vstack`), or place it inside a columns layout ([docs](docs/api-c.md#capture-api)).
+
+### Input
+
+The full reference for every input widget lives in [`docs/api-c.md`](docs/api-c.md#input-widgets); a per-widget overview is in [Input widgets](#input-widgets).
+
+- **Interactive prompts**: confirm, text/password, number, textarea, single & multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
+- **Custom keyboard shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a partly-italic label) ([docs](docs/api-c.md#custom-shortcuts)).
+- **Input history**: ↑/↓ recall of previous entries in the text input, with optional persistence in the XDG state directory (`sc_history_*`).
+
+### CLI application framework
+
+Everything a complete command-line application needs around the widgets; overview in [Application framework](#application-framework), full reference in [`docs/api-framework.md`](docs/api-framework.md).
+
+- **Argument parser** – *clap for C*: declarative subcommands, typed options, auto-generated `--help` (rendered with sparcli panels and tables), "did you mean ...?" suggestions and zsh completion generation (`sc_args_*`, [docs](docs/api-framework.md#argument-parser)).
+- **Logging**: leveled, colored terminal logging (`sc_log_info("port %d", p)`) with timestamps and `file:line`, plus plain-text file sinks with their own levels – thread-safe, render-once architecture ([docs](docs/api-framework.md#logging)).
+- **Pretty errors**: report fatal errors as red alert panels – message + cause chain + hint + exit code (`sc_die`, [docs](docs/api-framework.md#pretty-errors)).
+- **Pager integration**: pipe long output through `$PAGER` / `less -R` automatically; a no-op in scripts and CI ([docs](docs/api-c.md#pager)).
+- **XDG paths**: resolve per-app config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use) ([docs](docs/api-framework.md#xdg-paths)).
 - **REPL building blocks**: input history with ↑/↓ recall and XDG persistence (`sc_history_*`), a quote-aware line tokenizer (`sc_args_split`), reusable parse trees (implicit `sc_args_reset`), and live-dashboard + prompt composition (`ScLiveOpts.prompt_rows`) – see the `examples/repl_*.c` demos.
-- **Logging**: leveled, colored terminal logging (`sc_log_info("port %d", p)`) with timestamps and `file:line`, plus plain-text file sinks with their own levels – thread-safe, render-once architecture.
+
+### Shell & language bindings
+
 - **Command-line tool included**: the `sparcli` binary brings every output and input widget to the shell – `sparcli panel`, `name=$(sparcli input "Name:")`, `sparcli confirm && …`. See [Command-line tool](#command-line-tool) and [`docs/cli.md`](docs/cli.md).
-- **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`, namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs.
+- **C++ wrapper included**: a header-only RAII C++20 layer (`<sparcli.hpp>`, namespace `sparcli`) – no manual `free`, owned strings, `std::optional` inputs. See [`docs/api-cpp.md`](docs/api-cpp.md).
 - **Rust bindings included**: a safe, idiomatic crate (`bindings/rust/`, builds the C via `cc` – no install needed) with RAII handles, builder options and `Result<Option<T>>` prompts. See [`docs/api-rust.md`](docs/api-rust.md).
 - **Python bindings included**: a safe, Pythonic package (`bindings/python/`, a cffi wrapper that compiles the C – no install needed) with RAII handles, `@dataclass` options and `value`/`None` prompts. See [`docs/api-python.md`](docs/api-python.md).
+
+### Robustness & engineering
+
+- **UTF-8 & ANSI-aware** width math everywhere (codepoints, not bytes).
+- **ANSI-injection safe by default**: control bytes and escape sequences in user strings are stripped at the API boundary; opt back in globally (`sc_set_allow_ansi`) or per widget (`.ansi = SC_ANSI_MODE_ALLOW`) with widths staying correct.
 - **FFI-ready**: `extern "C"`, hidden symbol visibility, opaque types, NULL-safe entry points – the C++, Rust and Python wrappers build on this.
 - **No runtime dependencies** beyond libc.
 - **Static + shared library**, `pkg-config` file, optional ASan/UBSan build.
@@ -309,9 +340,65 @@ make run-example EX=repl_dashboard
 
 ---
 
+## Application framework
+
+Beyond the widgets, sparcli covers the plumbing a complete CLI application needs – the parts that clap, argparse, or Rich-style logging provide in other languages. The full reference – every type, option, and invariant – lives in [`docs/api-framework.md`](docs/api-framework.md).
+
+| Module | Function family | What it does |
+|--------|----------------|--------------|
+| **Argument parser** | `sc_args_*` | Declarative subcommands, typed options (string/int/double/color) with defaults, choices and required arguments, auto-generated `--help` rendered with sparcli widgets, "did you mean ...?" suggestions, zsh completion generation. |
+| **Logging** | `sc_log_*`, `sc_logger_*` | Leveled, colored terminal logging with timestamps and `file:line`, plus plain-text file sinks with their own levels – thread-safe. |
+| **Pretty errors** | `sc_error_*`, `sc_die` | Fatal errors as red alert panels: message + cause chain + hint + exit code. |
+| **XDG paths** | `sc_path_*` | Per-application config/data/cache/state directories per the XDG spec, created on first use. |
+| **Pager** | `sc_pager_*` | Pipe long output through `$PAGER` / `less -R`; a no-op when output is not a terminal ([C API docs](docs/api-c.md#pager)). |
+| **Line tokenizer** | `sc_args_split` | Split a REPL input line into argv (quotes + escapes) and feed it into the same parse tree, once per line. |
+
+A taste of the argument parser – subcommands, typed options and `--help` in a few lines:
+
+```c
+ScArgs *args = sc_args_new((ScArgsOpts){
+    .prog = "tool", .version = "1.0.0", .about = "Build things, fast",
+});
+ScArgsCmd *root  = sc_args_root(args);
+ScArgsCmd *build = sc_args_subcommand(root, "build", "Build a target");
+sc_args_opt(build, "jobs", 'j', SC_ARG_INT, "N", "Parallel jobs");
+sc_args_positional(build, "TARGET", SC_ARG_STR, "What to build", true, false);
+
+/* --help, --version, did-you-mean and parse errors are all handled here */
+ScArgsStatus status;
+const ScArgsCmd *matched = sc_args_parse(args, argc, argv, &status);
+if (status != SC_ARGS_MATCHED) {
+    return status == SC_ARGS_HANDLED ? 0 : 2;   /* help/version printed = 0 */
+}
+
+if (matched == build) {
+    long jobs = sc_args_get_int(args, "jobs");  /* typed, validated access */
+    /* ... */
+}
+sc_args_free(args);
+```
+
+The other helpers are one-liners:
+
+```c
+sc_log_info("listening on port %d", port);    /* leveled, colored, timestamped */
+
+char *cfg = sc_path_config("myapp");          /* ~/.config/myapp (created) */
+
+sc_die_msg(2, "No config file found", "Run 'myapp init' to create one");
+```
+
+A full tool built on the parser is [`examples/args_demo.c`](examples/args_demo.c); the REPL demos ([`examples/repl_demo.c`](examples/repl_demo.c), [`examples/repl_dashboard.c`](examples/repl_dashboard.c)) combine the parser, input history and the live display into interactive shells:
+
+```sh
+make run-example EX=args_demo
+```
+
+---
+
 ## Command-line tool
 
-Everything above is also available from the shell: `make` builds a `sparcli` binary (installed to `$(PREFIX)/bin` by `make install`, together with a zsh completion) that wraps every output and input widget as a subcommand – inspired by [rich-cli](https://github.com/Textualize/rich-cli) for output and [gum](https://github.com/charmbracelet/gum) for prompts.
+Everything above is also available from the shell: `make` builds a `sparcli` binary (installed to `$(PREFIX)/bin` by `make install`, together with a zsh completion) that wraps every output and input widget as a subcommand.
 
 ```sh
 # Output: markup, panels, rules, tables, trees, alerts, ...
