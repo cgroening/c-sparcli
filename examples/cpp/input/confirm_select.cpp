@@ -52,7 +52,16 @@ static void run_confirm() {
 
 // Single selection: run_one() returns the chosen index.
 static void run_single_select() {
-    Select select({ .prompt = "Primary language", .accent = cyan() });
+    // Widget background (no frame): rows inherit it and the cursor row is a
+    // full-width highlight bar (selected_style carries a bg). Content width by
+    // default, kept at least 28 columns wide.
+    Select select({ .prompt = "Primary language",
+                    .accent = cyan(),
+                    .selected_style = { .attr = SC_TEXT_ATTR_BOLD,
+                                        .fg = white(), .bg = magenta() },
+                    .box = { .bg = rgb(30, 30, 46),
+                             .padding = { .left = 1, .right = 1 },
+                             .min_width = 28 } });
     for (const auto& language : kLanguages) {
         select.add(language);
     }

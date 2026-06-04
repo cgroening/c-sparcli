@@ -42,6 +42,18 @@ static void run_list_finder(void) {
     ScFuzzy *finder = sc_fuzzy_new((ScFuzzyOpts){
         .prompt = "Switch branch",
         .accent = SC_ANSI_COLOR_CYAN,
+        // Rounded frame + dark content background: every result row inherits
+        // the background, and the cursor row is a full-width highlight bar.
+        // The box fits the content width by default.
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            sc_color_from_rgb(255, 121, 198) },
+        .box = {
+            .enabled = true,
+            .border  = { .type = SC_BORDER_ROUNDED,
+                         .color = sc_color_from_rgb(255, 121, 198) },
+            .bg      = sc_color_from_rgb(30, 30, 46),
+            .padding = { .left = 1, .right = 1 },
+        },
     });
     for (size_t i = 0; i < sizeof BRANCHES / sizeof BRANCHES[0]; i++) {
         sc_fuzzy_add(finder, BRANCHES[i]);

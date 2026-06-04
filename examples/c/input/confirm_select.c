@@ -60,6 +60,17 @@ static void run_single_select(void) {
     ScSelect *select = sc_select_new((ScSelectOpts){
         .prompt = "Primary language",
         .accent = SC_ANSI_COLOR_CYAN,
+        // Widget background (no frame): every row inherits it, and the cursor
+        // row becomes a full-width highlight bar (selected_style carries a bg).
+        // The list fits its content by default (SC_WIDTH_CONTENT); min_width
+        // keeps it at least 28 columns wide.
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_MAGENTA },
+        .box = {
+            .bg        = sc_color_from_rgb(30, 30, 46),  // dark widget bg
+            .min_width = 28,
+            .padding   = { .left = 1, .right = 1 },
+        },
     });
     for (size_t i = 0; i < LANGUAGE_COUNT; i++) {
         sc_select_add(select, LANGUAGES[i]);

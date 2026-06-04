@@ -37,7 +37,20 @@ fn run_confirm() -> sparcli::Result<()> {
 
 /// Single selection: `run_one` returns the chosen index.
 fn run_single_select() -> sparcli::Result<()> {
-    let mut select = Select::new(SelectOpts::new().prompt("Primary language"));
+    // Widget background (no frame): rows inherit it and the cursor row is a
+    // full-width highlight bar (selected_style carries a bg). Content width by
+    // default, kept at least 28 columns wide.
+    let mut select = Select::new(
+        SelectOpts::new()
+            .prompt("Primary language")
+            .selected_style(Style::bold().fg(Color::WHITE).bg(Color::MAGENTA))
+            .box_style(
+                BoxStyle::default()
+                    .bg(Color::rgb(30, 30, 46))
+                    .padding(Edges::symmetric(0, 1))
+                    .width_content(28, 0),
+            ),
+    );
     for language in LANGUAGES {
         select.add(language);
     }

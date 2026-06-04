@@ -38,7 +38,17 @@ static void run_list_finder() {
         "fix/table-wrap", "release/1.2",
     };
 
-    Fuzzy finder({ .prompt = "Switch branch", .accent = cyan() });
+    // Rounded frame + dark content background: result rows inherit the
+    // background and the cursor row is a full-width highlight bar.
+    Fuzzy finder({ .prompt = "Switch branch",
+                   .accent = cyan(),
+                   .selected_style = { .attr = SC_TEXT_ATTR_BOLD,
+                                       .fg = white(), .bg = rgb(255, 121, 198) },
+                   .box = { .enabled = true,
+                            .border = { .type = SC_BORDER_ROUNDED,
+                                        .color = rgb(255, 121, 198) },
+                            .bg = rgb(30, 30, 46),
+                            .padding = { .left = 1, .right = 1 } } });
     for (const auto& branch : branches) {
         finder.add(branch);
     }

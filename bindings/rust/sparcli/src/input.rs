@@ -969,6 +969,7 @@ pub struct SelectOpts {
     pub multi: bool,
     pub max_visible: i32,
     pub accent: Color,
+    pub selected_style: Style,
     pub box_: BoxStyle,
 }
 
@@ -990,6 +991,12 @@ impl SelectOpts {
     }
     pub fn accent(mut self, c: Color) -> Self {
         self.accent = c;
+        self
+    }
+    /// Style of the cursor row. A background fills the full row width as a
+    /// highlight bar (see [`BoxStyle::bg_extent`]).
+    pub fn selected_style(mut self, s: Style) -> Self {
+        self.selected_style = s;
         self
     }
     /// Frame the list in a panel (border, background, padding, margin, width).
@@ -1014,6 +1021,7 @@ impl Select {
         o.multi = opts.multi;
         o.max_visible = opts.max_visible;
         o.accent = opts.accent.raw();
+        o.selected_style = opts.selected_style.raw();
         o.box_ = opts.box_.raw();
         let ptr = unsafe { ffi::sc_select_new(o) };
         assert!(!ptr.is_null(), "sc_select_new: out of memory");
@@ -1119,6 +1127,7 @@ pub struct FuzzyOpts {
     pub prompt: Option<String>,
     pub max_visible: i32,
     pub accent: Color,
+    pub selected_style: Style,
     pub box_: BoxStyle,
 }
 
@@ -1132,6 +1141,13 @@ impl FuzzyOpts {
     }
     pub fn accent(mut self, c: Color) -> Self {
         self.accent = c;
+        self
+    }
+    /// Style of the cursor row. A background fills the full row width as a
+    /// highlight bar (see [`BoxStyle::bg_extent`]); in the table view it
+    /// overrides the accent highlight.
+    pub fn selected_style(mut self, s: Style) -> Self {
+        self.selected_style = s;
         self
     }
     /// Frame the finder in a panel (border, background, padding, margin, width).
@@ -1154,6 +1170,7 @@ impl Fuzzy {
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.max_visible = opts.max_visible;
         o.accent = opts.accent.raw();
+        o.selected_style = opts.selected_style.raw();
         o.box_ = opts.box_.raw();
         let ptr = unsafe { ffi::sc_fuzzy_new(o) };
         assert!(!ptr.is_null(), "sc_fuzzy_new: out of memory");

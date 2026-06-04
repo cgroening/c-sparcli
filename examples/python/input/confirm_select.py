@@ -26,9 +26,20 @@ def run_confirm() -> None:
 
 
 def run_single_select() -> None:
-    """Single selection: run_one() returns the chosen index."""
-    select = sc.Select(sc.SelectOpts(prompt='Primary language',
-                                     accent=sc.Color.CYAN))
+    """Single selection: run_one() returns the chosen index.
+
+    Widget background (no frame): rows inherit it and the cursor row is a
+    full-width highlight bar (selected_style carries a bg). Content width by
+    default, kept at least 28 columns wide.
+    """
+    select = sc.Select(sc.SelectOpts(
+        prompt='Primary language',
+        accent=sc.Color.CYAN,
+        selected_style=sc.Style(sc.Attr.BOLD, sc.Color.WHITE, sc.Color.MAGENTA),
+        box=sc.BoxStyle(bg=sc.Color.rgb(30, 30, 46),
+                        padding=sc.Edges(left=1, right=1),
+                        width_mode=sc.WidthMode.CONTENT, min_width=28),
+    ))
     for language in LANGUAGES:
         select.add(language)
     index = select.run_one()

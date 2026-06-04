@@ -15,7 +15,18 @@ def run_list_finder() -> None:
     """List mode: the returned index is the original add order."""
     branches = ['main', 'develop', 'feature/fuzzy-finder',
                 'feature/live-display', 'fix/table-wrap', 'release/1.2']
-    finder = sc.Fuzzy(sc.FuzzyOpts(prompt='Switch branch', accent=sc.Color.CYAN))
+    # Rounded frame + dark content background: result rows inherit the
+    # background and the cursor row is a full-width highlight bar.
+    pink = sc.Color.rgb(255, 121, 198)
+    finder = sc.Fuzzy(sc.FuzzyOpts(
+        prompt='Switch branch', accent=sc.Color.CYAN,
+        selected_style=sc.Style(sc.Attr.BOLD, sc.Color.WHITE, pink),
+        box=sc.BoxStyle(enabled=True,
+                        border=sc.BorderStyle(type=sc.BorderType.ROUNDED,
+                                              color=pink),
+                        bg=sc.Color.rgb(30, 30, 46),
+                        padding=sc.Edges(left=1, right=1)),
+    ))
     for branch in branches:
         finder.add(branch)
     index = finder.run()

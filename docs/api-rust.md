@@ -195,7 +195,14 @@ if let Some(total) = number_input_text(
 // The evaluator is also available as a pure function:
 assert_eq!(sparcli::calc_eval("1,5+2*3"), Some(7.5));
 
-let mut sel = Select::new(SelectOpts::new().prompt("Pick").multi(true));
+// Select/Fuzzy take `.accent`, `.selected_style` (cursor row; a bg fills the
+// full row width as a highlight bar) and `.box_style` (border / background /
+// width mode); `box_style` also works borderless (just a background fill).
+let mut sel = Select::new(
+    SelectOpts::new()
+        .prompt("Pick")
+        .selected_style(Style::bold().fg(Color::WHITE).bg(Color::MAGENTA))
+        .box_style(BoxStyle::default().bg(Color::rgb(30, 30, 46)).width_content(28, 0)));
 sel.add("a").add("b").add("c");
 if let Some(indices) = sel.run()? { /* Vec<usize> */ }
 
