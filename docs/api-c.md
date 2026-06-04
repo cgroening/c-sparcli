@@ -1321,7 +1321,7 @@ Opaque handle (variable item count). `j/k` + arrows move; Space toggles in multi
 | `prompt_style` / `selected_style` | Heading + cursor-row styles |
 | `cursor_marker` / `marker` | Cursor / other-row prefixes; `NULL` = "‣ " / "  " |
 | `checkbox_on` / `checkbox_off` | Multi only; `NULL` = "[x] " / "[ ] " |
-| `box` (`ScBoxStyle`) | Frame the list in a panel (border / bg / padding / margin / width); zero-init = inline |
+| `box` (`ScBoxStyle`) | Background / frame / width: `bg` fills behind rows (rows inherit it; a `bg` works borderless), `width_mode` (default `content`, + `min_width`/`max_width`) / `fixed`/`full`, `bg_extent` controls the fill reach. The cursor row becomes a full-width bar when `selected_style.bg` is set |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### sc_fuzzy
@@ -1336,7 +1336,7 @@ Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched charac
 | `table` / `headers` / `n_cols` | Table view configuration |
 | `search_columns` | Bitmask of columns the query searches (bit `c` = column `c`); `0` = all (default). Table view only; a row matches when any selected column matches |
 | `table_opts` | Passed through to the table renderer (border, header, …); the cursor-row background defaults to `accent`, overridable via `selected_style.bg` |
-| `box` (`ScBoxStyle`) | Frame the finder (query + results) in a panel; zero-init = inline |
+| `box` (`ScBoxStyle`) | Background / frame / width for the finder (query + results): `bg` fills behind rows (borderless ok), `width_mode` (default `content` + `min_width`/`max_width`) / `fixed`/`full`, `bg_extent`; the list cursor row becomes a full-width bar when `selected_style.bg` is set |
 | `prompt_style` / `selected_style` / `cursor_style` / `counter_style` | Styles |
 | `cursor_marker` / `marker` | List cursor / other-row prefixes |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |

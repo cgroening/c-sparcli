@@ -132,6 +132,11 @@ static const Case CASES[] = {
       .args = { "select", "--boxed", "--border", "double", "--bg", "blue",
                 "--padding", "1", "a", "b" },
       .keys = "\x1b[B\r", .want_stdout = "b\n", .want_exit = 0 },
+    /* widget bg + content width (no frame) + min-width still returns value */
+    { .name = "select-bg-content-width",
+      .args = { "select", "--bg", "blue", "--width", "content",
+                "--min-width", "20", "a", "b" },
+      .keys = "\x1b[B\r", .want_stdout = "b\n", .want_exit = 0 },
     /* --arrow-nav: Right submits like Enter, Left exits with code 3 (back) */
     { .name = "select-marker-style",
       .args = { "select", "--marker", "> ", "--style", "selected=bold green",
@@ -154,6 +159,11 @@ static const Case CASES[] = {
     /* boxed fuzzy with a content background still substitutes the raw value */
     { .name = "fuzzy-boxed-bg",
       .args = { "fuzzy", "--boxed", "--bg", "magenta", "Groceries", "Rent" },
+      .keys = "Ren\r", .want_stdout = "Rent\n", .want_exit = 0 },
+    /* fuzzy with bg-extent=text + fixed width still returns the raw value */
+    { .name = "fuzzy-bg-extent-text",
+      .args = { "fuzzy", "--bg-extent", "text", "--width", "30",
+                "Groceries", "Rent" },
       .keys = "Ren\r", .want_stdout = "Rent\n", .want_exit = 0 },
     { .name = "fuzzy-tsv-table", .args = { "fuzzy", "--tsv", "--header-row" },
       .stdin_data = "Tool\tLang\nrich\tPython\ngum\tGo\nsparcli\tC\n",

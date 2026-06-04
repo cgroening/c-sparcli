@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .color import Color
-from .enums import Align, Attr, BorderType, Position
+from .enums import Align, Attr, BgExtent, BorderType, Position, WidthMode
 
 
 @dataclass
@@ -74,7 +74,11 @@ class BoxStyle:
     bg: Color = Color.NONE
     padding: Edges = field(default_factory=Edges)
     margin: Edges = field(default_factory=Edges)
+    width_mode: WidthMode = WidthMode.DEFAULT
     width: int = 0
+    min_width: int = 0
+    max_width: int = 0
+    bg_extent: BgExtent = BgExtent.WIDGET
 
 
 @dataclass

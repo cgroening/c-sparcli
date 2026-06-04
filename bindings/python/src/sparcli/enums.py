@@ -30,6 +30,22 @@ class BorderType(IntEnum):
     THICK = 5
 
 
+class WidthMode(IntEnum):
+    """How a :class:`~sparcli.style.BoxStyle` resolves its width."""
+
+    DEFAULT = 0  # per-widget default (lists = content, text = full)
+    CONTENT = 1  # fit content, clamped to [min_width, max_width]
+    FIXED = 2    # exactly BoxStyle.width columns
+    FULL = 3     # full terminal width
+
+
+class BgExtent(IntEnum):
+    """How far a widget background / row highlight extends."""
+
+    WIDGET = 0  # fill to the widget width (default)
+    TEXT = 1    # only behind the text
+
+
 class Position(IntEnum):
     """Title placement (top / bottom edge)."""
 

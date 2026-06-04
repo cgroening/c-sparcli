@@ -318,6 +318,15 @@ fn box_style_builders_and_boxed_widgets_without_tty() {
         .width(40);
     assert!(boxed.enabled && boxed.width == 40);
 
+    // Width-mode + background-extent builders for list widgets.
+    let content = BoxStyle::default()
+        .bg(Color::BLACK)
+        .width_content(20, 50)
+        .bg_extent(sparcli::BgExtent::Text);
+    assert!(content.min_width == 20 && content.max_width == 50);
+    assert!(BoxStyle::default().width_full().width_mode
+            == sparcli::WidthMode::Full);
+
     if !no_tty_behavior_testable() {
         return;
     }

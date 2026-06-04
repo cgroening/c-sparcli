@@ -82,7 +82,11 @@ def apply_box(dst, box: "BoxStyle") -> None:
     apply_color(dst.bg, box.bg)
     apply_edges(dst.padding, box.padding)
     apply_edges(dst.margin, box.margin)
+    dst.width_mode = int(box.width_mode)
     dst.width = box.width
+    dst.min_width = box.min_width
+    dst.max_width = box.max_width
+    dst.bg_extent = int(box.bg_extent)
 
 
 def apply_title(dst, title: "Title", arena: list) -> None:

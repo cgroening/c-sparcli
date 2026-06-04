@@ -50,9 +50,12 @@ enum {
     SC_CLI_OPT_BORDER_COLOR = 922, /**< `--border-color` (boxed input) */
     SC_CLI_OPT_BORDER_BG   = 923,  /**< `--border-bg` (boxed input) */
     SC_CLI_OPT_WIDTH       = 924,  /**< `--width` (boxed input widgets) */
-    SC_CLI_OPT_BG          = 925,  /**< `--bg` (content background; boxed) */
-    SC_CLI_OPT_PADDING     = 926,  /**< `--padding` (inner padding; boxed) */
-    SC_CLI_OPT_MARGIN      = 927,  /**< `--margin` (outer margin; boxed) */
+    SC_CLI_OPT_BG          = 925,  /**< `--bg` (content background) */
+    SC_CLI_OPT_PADDING     = 926,  /**< `--padding` (inner padding) */
+    SC_CLI_OPT_MARGIN      = 927,  /**< `--margin` (outer margin) */
+    SC_CLI_OPT_MIN_WIDTH   = 928,  /**< `--min-width` (content clamp) */
+    SC_CLI_OPT_MAX_WIDTH   = 929,  /**< `--max-width` (content clamp) */
+    SC_CLI_OPT_BG_EXTENT   = 930,  /**< `--bg-extent` (text | widget) */
     SC_CLI_OPT_CMD_BASE    = 1000, /**< First command-specific option value. */
 };
 
@@ -101,18 +104,24 @@ enum {
     { "bg",           required_argument, NULL, SC_CLI_OPT_BG },              \
     { "padding",      required_argument, NULL, SC_CLI_OPT_PADDING },         \
     { "margin",       required_argument, NULL, SC_CLI_OPT_MARGIN },          \
+    { "min-width",    required_argument, NULL, SC_CLI_OPT_MIN_WIDTH },       \
+    { "max-width",    required_argument, NULL, SC_CLI_OPT_MAX_WIDTH },       \
+    { "bg-extent",    required_argument, NULL, SC_CLI_OPT_BG_EXTENT },       \
     { "width",        required_argument, NULL, SC_CLI_OPT_WIDTH }
 
 /** Usage-text lines for the boxed-widget block. */
 #define SC_CLI_BOX_USAGE                                                     \
     "  --boxed                    Draw the widget inside a panel\n"          \
-    "  --border STYLE             Box border style (with --boxed)\n"         \
-    "  --border-color COLOR       Box border color (with --boxed)\n"         \
-    "  --border-bg COLOR          Box border background (with --boxed)\n"    \
-    "  --bg COLOR                 Content background color (with --boxed)\n" \
-    "  --padding EDGES            Inner padding, CSS order (with --boxed)\n" \
-    "  --margin EDGES             Outer margin, CSS order (with --boxed)\n"  \
-    "  --width N                  Box/field width (0 = terminal width)\n"
+    "  --border STYLE             Box border style\n"                        \
+    "  --border-color COLOR       Box border color\n"                        \
+    "  --border-bg COLOR          Box border background\n"                   \
+    "  --bg COLOR                 Content background color\n"                \
+    "  --padding EDGES            Inner padding, CSS order\n"                \
+    "  --margin EDGES             Outer margin, CSS order\n"                 \
+    "  --width content|full|N     Width mode (lists default 'content')\n"    \
+    "  --min-width N              Min content width (--width content)\n"     \
+    "  --max-width N              Max content width (--width content)\n"     \
+    "  --bg-extent text|widget    Background reach (default 'widget')\n"
 
 /** Usage-text lines for the shared input options. */
 #define SC_CLI_INPUT_USAGE                                                  \

@@ -85,4 +85,50 @@ void style_select(void) {
     style_show("boxed: double cyan border, blue bg, padding 1/2, margin l2",
                sc_select_frame(g));
     sc_select_free(g);
+
+    /* Widget background without a frame: rows inherit it, cursor row is a
+     * full-width highlight bar (selected_style.bg). */
+    ScSelect *h = build((ScSelectOpts){
+        .prompt = "Pick one",
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_MAGENTA },
+        .box = { .bg = SC_ANSI_COLOR_BLACK },
+    }, items, n);
+    sc_select_set_cursor(h, 1);
+    style_show("borderless bg: black widget bg, magenta full-width cursor bar",
+               sc_select_frame(h));
+    sc_select_free(h);
+
+    /* bg_extent = text: the cursor background hugs the text only. */
+    ScSelect *i = build((ScSelectOpts){
+        .prompt = "Pick one",
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_MAGENTA },
+        .box = { .bg_extent = SC_BG_EXTENT_TEXT },
+    }, items, n);
+    sc_select_set_cursor(i, 1);
+    style_show("bg_extent=text: cursor background hugs the text",
+               sc_select_frame(i));
+    sc_select_free(i);
+
+    /* Content width with a minimum: the bar is at least 24 columns wide. */
+    ScSelect *j = build((ScSelectOpts){
+        .prompt = "Pick",
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
+                            SC_ANSI_COLOR_CYAN },
+        .box = { .width_mode = SC_WIDTH_CONTENT, .min_width = 24,
+                 .bg = SC_ANSI_COLOR_BLUE },
+    }, items, n);
+    style_show("width content, min_width 24 (bg fills to >= 24)",
+               sc_select_frame(j));
+    sc_select_free(j);
+
+    /* Fixed width frame with a content background. */
+    ScSelect *k = build((ScSelectOpts){
+        .prompt = "Pick one",
+        .box = { .enabled = true, .width_mode = SC_WIDTH_FIXED, .width = 24,
+                 .bg = SC_ANSI_COLOR_BLUE },
+    }, items, n);
+    style_show("width fixed 24, blue bg, rounded frame", sc_select_frame(k));
+    sc_select_free(k);
 }

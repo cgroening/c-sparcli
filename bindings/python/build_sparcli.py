@@ -130,6 +130,9 @@ typedef enum { SC_HINT_POS_DEFAULT = 0, SC_HINT_POS_TOP, SC_HINT_POS_BOTTOM,
                SC_HINT_POS_LEFT, SC_HINT_POS_RIGHT } ScHintPosition;
 typedef enum { SC_WEEK_START_DEFAULT = 0, SC_WEEK_START_MONDAY = 1,
                SC_WEEK_START_SUNDAY = 2 } ScWeekStart;
+typedef enum { SC_WIDTH_DEFAULT = 0, SC_WIDTH_CONTENT, SC_WIDTH_FIXED,
+               SC_WIDTH_FULL } ScWidthMode;
+typedef enum { SC_BG_EXTENT_WIDGET = 0, SC_BG_EXTENT_TEXT } ScBgExtent;
 typedef enum { SC_SUGGEST_GHOST = 0, SC_SUGGEST_DROPDOWN } ScSuggestMode;
 typedef enum { SC_SUGGEST_MATCH_PREFIX = 0,
                SC_SUGGEST_MATCH_FUZZY } ScSuggestMatch;
@@ -152,7 +155,11 @@ typedef struct {
     ScColor bg;
     ScEdges padding;
     ScEdges margin;
+    ScWidthMode width_mode;
     int width;
+    int min_width;
+    int max_width;
+    ScBgExtent bg_extent;
 } ScBoxStyle;
 
 typedef struct ScText ScText;

@@ -179,12 +179,16 @@ widget's opts and in `ScInputTheme`. Zero-init = no frame (inline render).
 
 ```c
 typedef struct {
-    bool          enabled;  /* render the widget inside a panel frame */
-    ScBorderStyle border;   /* type/color/bg; NONE type → rounded when enabled */
-    ScColor       bg;       /* content-area background; zero-init = none */
-    ScEdges       padding;  /* inner padding; all-zero = default (1 left/right) */
-    ScEdges       margin;   /* outer margin; zero-init = none */
-    int           width;    /* frame/field width; 0 = full terminal width */
+    bool          enabled;     /* draw a default (rounded) border */
+    ScBorderStyle border;      /* type/color/bg; NONE+enabled → rounded, else borderless */
+    ScColor       bg;          /* content background; fills behind rows (rows inherit it) */
+    ScEdges       padding;     /* inner padding; all-zero = default (1 left/right) */
+    ScEdges       margin;      /* outer margin; zero-init = none */
+    ScWidthMode   width_mode;  /* DEFAULT(0)/CONTENT/FIXED/FULL */
+    int           width;       /* FIXED width (and DEFAULT when >0) */
+    int           min_width;   /* CONTENT clamp; 0 = none */
+    int           max_width;   /* CONTENT clamp; 0 = none */
+    ScBgExtent    bg_extent;   /* WIDGET(0, fill to width) / TEXT (hug text) */
 } ScBoxStyle;
 ```
 
@@ -193,11 +197,28 @@ Used by `sc_confirm`, `sc_text_input`, `sc_password_input`, `sc_number_input`,
 The text-entry widgets route the prompt to the panel **title** (counter/range
 on the bottom border); the list/choice widgets (`select`, `fuzzy`, `confirm`,
 `datepicker`) keep the prompt inside the frame. The key-hint footer always sits
-**outside** the frame. Implemented via `sc_box_wrap` + `sc_capture_panel_rendered`
-(input_internal.h); zero-init `padding` resolves to the historic `{1,1}` look via
-`sc_box_padding`. **Migration note:** this replaced the older flat `boxed` /
-`border` / `width` fields on the four text-entry widgets and the theme's flat
-`border`.
+**outside** the frame.
+
+**Border, background and width are independent.** `enabled` only requests a
+default border; a `bg`, `padding` or non-default `width`/`width_mode` alone
+routes the widget through a **borderless** panel (background/width fill). The
+background fills each line to the resolved width, so list rows without their own
+background inherit it (`SC_BG_EXTENT_WIDGET`); `SC_BG_EXTENT_TEXT` keeps it
+hugging the text. **Width modes** (`ScWidthMode`): `DEFAULT` = per-widget (lists
+fit content, text-entry span full width; a non-zero `width` means fixed);
+`CONTENT` = fit content clamped to `[min_width, max_width]`; `FIXED` = `width`
+columns; `FULL` = terminal width.
+
+**select/fuzzy** additionally extend the **cursor row into a full-width highlight
+bar** (padded to the interior width) when its `selected_style.bg` is set and
+`bg_extent == WIDGET` - other rows inherit the panel `bg`. Resolution lives in
+`sc_box_layout` (+ `sc_pad_line_to`) in `input_internal.h`; the box auto-fits the
+content (`CONTENT`) so the frame matches the list, not the terminal.
+
+**Migration notes:** `ScBoxStyle` replaced the older flat `boxed`/`border`/
+`width` fields on the four text-entry widgets and the theme's flat `border`; and
+the boxed default width for **list widgets** changed from full-terminal to
+**content** width.
 
 ### ScTitle
 

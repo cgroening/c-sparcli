@@ -1,4 +1,5 @@
 #include "input_internal.h"
+#include "internal.h"   /* sc_terminal_width, sc_utf8_string_length */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,8 +29,12 @@ static const char *const HINT_MULTI =
 static void copy_opts_strings(ScSelect *self);
 static void free_opts_strings(ScSelect *self);
 static ScRendered *select_render(void *state);
-    static void append_scroll_hint(ScText *text, size_t top, size_t end,
-                                   size_t count);
+    static int format_scroll_hint(char *buf, size_t size, size_t top,
+                                  size_t end, size_t count);
+    static int select_row_width(ScSelect *self, size_t i, bool on_cursor,
+                                const char *cursor_marker, const char *marker,
+                                const char *checkbox_on,
+                                const char *checkbox_off);
 static void select_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static void reframe(ScSelect *self);
 
@@ -217,17 +222,25 @@ static void free_opts_strings(ScSelect *self) {
     free((char *)opts->hint);
 }
 
+/** Visible width of one row: marker + optional checkbox + label. */
+static int select_row_width(ScSelect *self, size_t i, bool on_cursor,
+                            const char *cursor_marker, const char *marker,
+                            const char *checkbox_on, const char *checkbox_off) {
+    const char *mk = on_cursor ? cursor_marker : marker;
+    int width = (int)sc_utf8_string_length(mk, strlen(mk));
+    if (self->opts.multi) {
+        const char *box = self->checked[i] ? checkbox_on : checkbox_off;
+        width += (int)sc_utf8_string_length(box, strlen(box));
+    }
+    width += (int)sc_utf8_string_length(self->items[i], strlen(self->items[i]));
+    return width;
+}
+
 static ScRendered *select_render(void *state) {
     ScSelect *self = state;
     ScText *text = sc_text_new();
     if (!text) {
         return NULL;
-    }
-
-    if (self->opts.prompt || self->opts.prompt_text) {
-        sc_prompt_append(text, self->opts.prompt, self->opts.prompt_style,
-                         self->opts.prompt_markup, self->opts.prompt_text);
-        sc_text_append(text, "\n", (ScTextStyle){ 0 });
     }
 
     ScTextStyle selected_style = sc_style_set(self->opts.selected_style)
@@ -247,9 +260,38 @@ static ScRendered *select_render(void *state) {
         end = self->count;
     }
 
+    bool have_prompt = self->opts.prompt || self->opts.prompt_text;
+    int prompt_w = have_prompt
+        ? sc_prompt_width(self->opts.prompt, self->opts.prompt_style,
+                          self->opts.prompt_markup, self->opts.prompt_text)
+        : 0;
+    char scroll[80];
+    int scroll_w = format_scroll_hint(scroll, sizeof scroll, self->top, end,
+                                      self->count);
+
+    /* Widest line drives the box width; the box maps it through its width
+     * mode (default = content) to the interior width rows fill to. */
+    int content_w = prompt_w > scroll_w ? prompt_w : scroll_w;
+    for (size_t i = self->top; i < end; i++) {
+        int w = select_row_width(self, i, i == self->cursor, cursor_marker,
+                                 marker, checkbox_on, checkbox_off);
+        if (w > content_w) { content_w = w; }
+    }
+    ScBoxLayout layout = sc_box_layout(self->opts.box, content_w,
+                                       sc_terminal_width(), SC_WIDTH_CONTENT);
+    bool fill = self->opts.box.bg_extent != SC_BG_EXTENT_TEXT;
+
+    if (have_prompt) {
+        sc_prompt_append(text, self->opts.prompt, self->opts.prompt_style,
+                         self->opts.prompt_markup, self->opts.prompt_text);
+        sc_text_append(text, "\n", (ScTextStyle){ 0 });
+    }
+
     for (size_t i = self->top; i < end; i++) {
         bool on_cursor = (i == self->cursor);
         ScTextStyle row = on_cursor ? selected_style : (ScTextStyle){ 0 };
+        int used = select_row_width(self, i, on_cursor, cursor_marker, marker,
+                                    checkbox_on, checkbox_off);
 
         sc_text_append(text, on_cursor ? cursor_marker : marker, row);
         if (self->opts.multi) {
@@ -257,40 +299,54 @@ static ScRendered *select_render(void *state) {
                            row);
         }
         sc_text_append(text, self->items[i], row);
+        /* Extend the cursor highlight into a full-width bar when it carries a
+         * background and bg_extent fills the widget width. Other rows inherit
+         * the widget background from the panel fill (when boxed). */
+        if (on_cursor && fill && selected_style.bg.index != 0) {
+            sc_pad_line_to(text, used, layout.interior_w, selected_style);
+        }
         if (i + 1 < end) {
             sc_text_append(text, "\n", (ScTextStyle){ 0 });
         }
     }
 
-    append_scroll_hint(text, self->top, end, self->count);
+    if (scroll_w > 0) {
+        sc_text_append(text, "\n", (ScTextStyle){ 0 });
+        sc_text_append(text, scroll, (ScTextStyle){ SC_TEXT_ATTR_DIM,
+                       SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+    }
 
     const char *hint = self->opts.hint ? self->opts.hint
                      : (self->opts.multi ? HINT_MULTI : HINT_SINGLE);
 
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    body = sc_box_wrap(body, self->opts.box);
+    if (layout.active) {
+        ScRendered *framed = sc_capture_panel_rendered(body, layout.panel);
+        if (framed) {
+            sc_rendered_free(body);
+            body = framed;
+        }
+    }
     return sc_compose_hint(body, hint, self->opts.hint_layout,
                            self->opts.hint_pos, self->opts.hint_style);
 }
 
 /**
- * Appends a dim "↑ first-last/total ↓" line when the list scrolls beyond the
- * viewport, so a long list never looks silently truncated.
+ * Formats the dim "↑ first-last/total ↓" scroll indicator into `buf` and
+ * returns its visible width, or 0 when the list fits the viewport (no
+ * indicator). Shown so a long list never looks silently truncated.
  */
-static void append_scroll_hint(ScText *text, size_t top, size_t end,
-                               size_t count) {
+static int format_scroll_hint(char *buf, size_t size, size_t top, size_t end,
+                              size_t count) {
     if (top == 0 && end >= count) {
-        return;
+        return 0;
     }
-    char buf[80];
-    snprintf(buf, sizeof buf, "  %s %zu-%zu/%zu %s",
+    snprintf(buf, size, "  %s %zu-%zu/%zu %s",
              top > 0     ? "\xe2\x86\x91" : " ",   /* ↑ */
              top + 1, end, count,
              end < count ? "\xe2\x86\x93" : " ");  /* ↓ */
-    sc_text_append(text, "\n", (ScTextStyle){ 0 });
-    sc_text_append(text, buf, (ScTextStyle){ SC_TEXT_ATTR_DIM,
-                   SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+    return (int)sc_utf8_string_length(buf, strlen(buf));
 }
 
 static void select_on_key(void *state, ScKey key, bool *done, bool *cancel) {

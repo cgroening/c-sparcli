@@ -193,24 +193,55 @@ typedef struct ScBorderStyle {
 } ScBorderStyle;
 
 /**
+ * How a box resolves its width. Zero-init (`SC_WIDTH_DEFAULT`) leaves the
+ * choice to the widget: list/choice widgets (select, fuzzy, confirm,
+ * datepicker) fit their content, text-entry widgets span the full width.
+ */
+typedef enum ScWidthMode {
+    SC_WIDTH_DEFAULT = 0, /**< Per-widget default (lists = content, text = full).
+                               A non-zero `ScBoxStyle.width` means fixed. */
+    SC_WIDTH_CONTENT,     /**< Fit the content, clamped to [min_width, max_width]. */
+    SC_WIDTH_FIXED,       /**< Exactly `ScBoxStyle.width` columns. */
+    SC_WIDTH_FULL,        /**< Full terminal width. */
+} ScWidthMode;
+
+/**
+ * How far a background color extends across a widget's lines. The default
+ * fills to the resolved widget width (so a row highlight is a full-width bar);
+ * `SC_BG_EXTENT_TEXT` keeps the background hugging the text only.
+ */
+typedef enum ScBgExtent {
+    SC_BG_EXTENT_WIDGET = 0, /**< Fill backgrounds to the widget width (default). */
+    SC_BG_EXTENT_TEXT,       /**< Background only behind the text. */
+} ScBgExtent;
+
+/**
  * Shared "framed box" styling used by the input widgets: render a widget
- * inside a panel with an optional border, content background, inner padding
- * and outer margin. Zero-init (`ScBoxStyle{0}`) means "no frame" - the widget
- * renders inline as before.
+ * inside a panel with an optional border, content background, inner padding,
+ * outer margin and a width mode. Zero-init (`ScBoxStyle{0}`) means "no styling"
+ * - the widget renders inline as before.
+ *
+ * The border, background, padding and width apply independently: `enabled`
+ * requests a default (rounded) border, but a `bg`, `padding` or non-default
+ * `width_mode` alone already routes the widget through the panel layout
+ * *without* a border (a borderless background/width fill).
  *
  * The same struct is embedded in every `Sc*Opts` of the input layer and in
  * `ScInputTheme`, so box styling is configured uniformly across widgets and
  * can be themed once for the whole process.
  */
 typedef struct ScBoxStyle {
-    /** Render the widget inside a panel frame. */
+    /** Draw a frame border. With a zero-init `border.type` this defaults to
+        `SC_BORDER_ROUNDED`; an explicit `border.type` is used as-is. */
     bool enabled;
 
-    /** Frame border (type/color/bg); when `enabled` and `type` is
-        `SC_BORDER_NONE`, it defaults to `SC_BORDER_ROUNDED`. */
+    /** Frame border (type/color/bg). A non-`SC_BORDER_NONE` type draws a border
+        even when `enabled` is false; `SC_BORDER_NONE` = borderless. */
     ScBorderStyle border;
 
-    /** Content-area background color; zero-init = none. */
+    /** Content-area background color; zero-init = none. Fills behind the
+        widget's lines (to the width set by `bg_extent`), so list rows without
+        their own background inherit it. Works with or without a border. */
     ScColor bg;
 
     /** Inner padding (top/right/bottom/left). An all-zero value selects the
@@ -221,9 +252,24 @@ typedef struct ScBoxStyle {
     /** Outer margin around the frame; zero-init = none. */
     ScEdges margin;
 
-    /** Frame width in columns; `0` = full terminal width. For text-entry
-        widgets this is also the field width in inline (non-boxed) mode. */
+    /** Width mode; zero-init = `SC_WIDTH_DEFAULT` (per-widget). */
+    ScWidthMode width_mode;
+
+    /** Fixed width in columns (used by `SC_WIDTH_FIXED`, and by
+        `SC_WIDTH_DEFAULT` when non-zero). `0` = full terminal width for
+        text-entry widgets / content width for lists. Also the inline field
+        width for text-entry widgets. */
     int width;
+
+    /** Lower width clamp for `SC_WIDTH_CONTENT`; `0` = none. */
+    int min_width;
+
+    /** Upper width clamp for `SC_WIDTH_CONTENT`; `0` = none. */
+    int max_width;
+
+    /** How far the background (and row highlights) extend; zero-init =
+        `SC_BG_EXTENT_WIDGET` (full widget width). */
+    ScBgExtent bg_extent;
 } ScBoxStyle;
 
 /**

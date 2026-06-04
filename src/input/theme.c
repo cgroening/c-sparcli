@@ -216,4 +216,10 @@ static void m_box(ScBoxStyle *dst, ScBoxStyle src) {
                         dst->margin.bottom == 0 && dst->margin.left == 0;
     if (margin_unset) { dst->margin = src.margin; }
     if (dst->width == 0) { dst->width = src.width; }
+    if (dst->width_mode == SC_WIDTH_DEFAULT) { dst->width_mode = src.width_mode; }
+    if (dst->min_width == 0) { dst->min_width = src.min_width; }
+    if (dst->max_width == 0) { dst->max_width = src.max_width; }
+    if (dst->bg_extent == SC_BG_EXTENT_WIDGET) {
+        dst->bg_extent = src.bg_extent;
+    }
 }

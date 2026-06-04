@@ -195,6 +195,25 @@ repr_enum!(
     } default Default
 );
 
+repr_enum!(
+    /// How a [`BoxStyle`] resolves its width. `Default` is per-widget
+    /// (list/choice widgets fit content, text-entry widgets span full width).
+    WidthMode {
+        Default = ffi::ScWidthMode_SC_WIDTH_DEFAULT,
+        Content = ffi::ScWidthMode_SC_WIDTH_CONTENT,
+        Fixed = ffi::ScWidthMode_SC_WIDTH_FIXED,
+        Full = ffi::ScWidthMode_SC_WIDTH_FULL,
+    } default Default
+);
+
+repr_enum!(
+    /// How far a widget background / row highlight extends.
+    BgExtent {
+        Widget = ffi::ScBgExtent_SC_BG_EXTENT_WIDGET,
+        Text = ffi::ScBgExtent_SC_BG_EXTENT_TEXT,
+    } default Widget
+);
+
 /// Inner/outer spacing: top, right, bottom, left (in columns/lines).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Edges {
@@ -282,8 +301,16 @@ pub struct BoxStyle {
     pub padding: Edges,
     /// Outer margin around the frame.
     pub margin: Edges,
-    /// Frame/field width in columns; `0` = full terminal width.
+    /// Width mode; `Default` is per-widget (lists fit content, text = full).
+    pub width_mode: WidthMode,
+    /// Fixed width in columns (for `Fixed`, or `Default` when non-zero).
     pub width: i32,
+    /// Lower width clamp for `Content`; `0` = none.
+    pub min_width: i32,
+    /// Upper width clamp for `Content`; `0` = none.
+    pub max_width: i32,
+    /// How far the background / row highlights extend.
+    pub bg_extent: BgExtent,
 }
 
 impl BoxStyle {
@@ -321,9 +348,27 @@ impl BoxStyle {
         self.margin = e;
         self
     }
-    /// Set the frame/field width (`0` = full terminal width).
+    /// Set a fixed frame/field width in columns.
     pub fn width(mut self, w: i32) -> Self {
+        self.width_mode = WidthMode::Fixed;
         self.width = w;
+        self
+    }
+    /// Fit the content, clamped to `[min, max]` (`0` = no clamp).
+    pub fn width_content(mut self, min: i32, max: i32) -> Self {
+        self.width_mode = WidthMode::Content;
+        self.min_width = min;
+        self.max_width = max;
+        self
+    }
+    /// Span the full terminal width.
+    pub fn width_full(mut self) -> Self {
+        self.width_mode = WidthMode::Full;
+        self
+    }
+    /// Set how far the background / row highlights extend.
+    pub fn bg_extent(mut self, e: BgExtent) -> Self {
+        self.bg_extent = e;
         self
     }
     pub(crate) fn raw(self) -> ffi::ScBoxStyle {
@@ -333,7 +378,11 @@ impl BoxStyle {
             bg: self.bg.0,
             padding: self.padding.raw(),
             margin: self.margin.raw(),
+            width_mode: self.width_mode.raw(),
             width: self.width,
+            min_width: self.min_width,
+            max_width: self.max_width,
+            bg_extent: self.bg_extent.raw(),
         }
     }
 }

@@ -28,10 +28,10 @@ from .capture import (Live, PadOpts, Rendered, align_str, align_text, capture,
                       pad_str, pad_text, vstack)
 from .color import Color
 from .columns import ColItem, Columns, ColumnsOpts
-from .enums import (Align, AnsiMode, Attr, AlertType, BorderType, HintLayout,
-                    HintPos, ListMarker, LogLevel, PathKind, Position,
-                    ProgressType, SpinnerType, SuggestMatch, SuggestMode,
-                    VAlign, WeekStart)
+from .enums import (Align, AnsiMode, Attr, AlertType, BgExtent, BorderType,
+                    HintLayout, HintPos, ListMarker, LogLevel, PathKind,
+                    Position, ProgressType, SpinnerType, SuggestMatch,
+                    SuggestMode, VAlign, WeekStart, WidthMode)
 from .log import (Logger, log_add_file, log_debug, log_error,
                   log_hide_timestamps, log_info, log_level, log_reset,
                   log_set_level, log_warning)
@@ -69,6 +69,7 @@ __all__ = [
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",
+    "WidthMode", "BgExtent",
     "SuggestMode", "SuggestMatch", "AnsiMode", "PathKind",
     # errors
     "SparcliError", "SparcliInputUnavailable",

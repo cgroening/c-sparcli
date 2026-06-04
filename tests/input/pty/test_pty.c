@@ -472,6 +472,40 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 32: {
+            /* Widget bg + content width + full-width cursor bar: exercises the
+               cursor-row padding and the content min/max clamp under ASan. */
+            ScSelect *sl = sc_select_new((ScSelectOpts){
+                .prompt = "Pick",
+                .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                                    SC_ANSI_COLOR_MAGENTA },
+                .box = { .bg = SC_ANSI_COLOR_BLACK,
+                         .width_mode = SC_WIDTH_CONTENT, .min_width = 20 } });
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            sc_select_add(sl, "c");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            int ok = (s == SC_INPUT_OK && idx[0] == 1);
+            sc_select_free(sl);
+            return ok ? 0 : 1;
+        }
+        case 33: {
+            /* Fuzzy with bg_extent=text (no cursor padding) + fixed width. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .prompt = "Find",
+                .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                                    SC_ANSI_COLOR_MAGENTA },
+                .box = { .bg_extent = SC_BG_EXTENT_TEXT,
+                         .width_mode = SC_WIDTH_FIXED, .width = 24 } });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -517,6 +551,8 @@ static const Case CASES[] = {
     { "history-no-auto-add", "new\r" },            /* submit is not recorded */
     { "select-boxed", "\x1b[B\r" },                /* boxed list: down, enter */
     { "fuzzy-boxed", "Ren\r" },                    /* boxed fuzzy: query, enter */
+    { "select-bg-bar", "\x1b[B\r" },               /* widget bg + cursor bar */
+    { "fuzzy-bg-extent-text", "Ren\r" },           /* bg_extent=text + fixed */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

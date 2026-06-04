@@ -447,7 +447,7 @@ Options shared by **all** input commands:
 | `--style ELEM=SPEC` | Style a named element (repeatable); see [Styling](#styling-with---style) |
 | `--no-markup` | Treat markup in the prompt as literal text |
 
-**Box framing** is available on **every** interactive command (`confirm`, `input`, `password`, `number`, `textarea`, `select`, `fuzzy`, `date`): `--boxed` draws the widget inside a panel, with `--border STYLE`, `--border-color COLOR`, `--border-bg COLOR`, `--bg COLOR` (content background), `--padding EDGES`, `--margin EDGES` (CSS edge order: one value, or `T,R,B,L`) and `--width N`. The box flags take effect only together with `--boxed`. Example: `sparcli select --boxed --border double --bg blue --padding 1 a b c`.
+**Box framing** is available on **every** interactive command (`confirm`, `input`, `password`, `number`, `textarea`, `select`, `fuzzy`, `date`): `--boxed` draws a (rounded) border, `--border STYLE` / `--border-color COLOR` / `--border-bg COLOR` style it, `--bg COLOR` sets the content background, `--padding EDGES` / `--margin EDGES` add spacing (CSS edge order: one value or `T,R,B,L`). A `--bg` works **without** `--boxed` (a borderless background fill). `--width content|full|N` chooses the width mode (lists default to `content`; `N` = fixed columns), with `--min-width N` / `--max-width N` clamping the content mode, and `--bg-extent text|widget` controls how far the background reaches (default `widget` = full width). For `select`/`fuzzy` the cursor-row background (`--style selected`) then fills the full width as a highlight bar. Examples: `sparcli select --boxed --border double --bg blue a b c`; `sparcli select --bg blue --width content --min-width 20 a b c`.
 
 ### Styling with `--style`
 

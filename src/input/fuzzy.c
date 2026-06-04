@@ -43,7 +43,8 @@ static void refilter(ScFuzzy *self);
                             int *best);
 static ScRendered *fuzzy_render(void *state);
     static ScRendered *render_query_line(ScFuzzy *self);
-    static ScRendered *render_list(ScFuzzy *self);
+    static int render_list_width(ScFuzzy *self);
+    static ScRendered *render_list(ScFuzzy *self, int interior_w, bool fill);
         static void append_highlighted(
             ScText *text, const char *label, const char *query,
             ScTextStyle base_style, ScColor accent);
@@ -355,14 +356,40 @@ static void refilter(ScFuzzy *self) {
 static ScRendered *fuzzy_render(void *state) {
     ScFuzzy *self = state;
     ScRendered *query = render_query_line(self);
-    ScRendered *body =
-        self->opts.table ? render_table(self) : render_list(self);
-    if (!query || !body) {
-        sc_rendered_free(query);
-        sc_rendered_free(body);
+    ScRendered *scroll = render_scroll_hint(self);
+    if (!query) {
+        sc_rendered_free(scroll);
         return NULL;
     }
-    ScRendered *scroll = render_scroll_hint(self);
+
+    /* Resolve the widget width across the query line, the results and the
+     * scroll indicator, then map it through the box's width mode. */
+    int query_w = query->max_column_width;
+    int scroll_w = scroll ? scroll->max_column_width : 0;
+    ScRendered *body = NULL;
+    int body_w;
+    if (self->opts.table) {
+        body = render_table(self);   /* table fills its own row widths */
+        body_w = body ? body->max_column_width : 0;
+    } else {
+        body_w = render_list_width(self);   /* measured before rendering */
+    }
+
+    int content_w = query_w;
+    if (scroll_w > content_w) { content_w = scroll_w; }
+    if (body_w > content_w) { content_w = body_w; }
+    ScBoxLayout layout = sc_box_layout(self->opts.box, content_w,
+                                       sc_terminal_width(), SC_WIDTH_CONTENT);
+    bool fill = self->opts.box.bg_extent != SC_BG_EXTENT_TEXT;
+
+    if (!self->opts.table) {
+        body = render_list(self, layout.interior_w, fill);
+    }
+    if (!body) {
+        sc_rendered_free(query);
+        sc_rendered_free(scroll);
+        return NULL;
+    }
 
     const ScRendered *parts[3];
     size_t count = 0;
@@ -378,7 +405,13 @@ static ScRendered *fuzzy_render(void *state) {
     if (!stacked) {
         return NULL;
     }
-    stacked = sc_box_wrap(stacked, self->opts.box);
+    if (layout.active) {
+        ScRendered *framed = sc_capture_panel_rendered(stacked, layout.panel);
+        if (framed) {
+            sc_rendered_free(stacked);
+            stacked = framed;
+        }
+    }
     return sc_compose_hint(stacked,
                            self->opts.hint ? self->opts.hint : DEFAULT_HINT,
                            self->opts.hint_layout, self->opts.hint_pos,
@@ -426,8 +459,33 @@ static ScRendered *render_query_line(ScFuzzy *self) {
     return rendered;
 }
 
-/** List view: one row per match, matched characters emphasized. */
-static ScRendered *render_list(ScFuzzy *self) {
+/** Widest visible list row (marker + label), for the box width resolution. */
+static int render_list_width(ScFuzzy *self) {
+    size_t visible = (size_t)self->max_visible;
+    size_t end = self->top + visible;
+    if (end > self->match_n) {
+        end = self->match_n;
+    }
+    const char *cursor_marker = self->opts.cursor_marker
+        ? self->opts.cursor_marker : "\xe2\x80\xa3 ";
+    const char *marker = self->opts.marker ? self->opts.marker : "  ";
+    int max = 0;
+    for (size_t i = self->top; i < end; i++) {
+        const char *mk = (i == self->cursor) ? cursor_marker : marker;
+        const char *label = self->rows[self->matches[i].index][0];
+        int w = (int)sc_utf8_string_length(mk, strlen(mk))
+              + (int)sc_utf8_string_length(label, strlen(label));
+        if (w > max) { max = w; }
+    }
+    return max;
+}
+
+/**
+ * List view: one row per match, matched characters emphasized. The cursor row
+ * is extended into a full-width highlight bar (to `interior_w`) when `fill` is
+ * set and the cursor style carries a background.
+ */
+static ScRendered *render_list(ScFuzzy *self, int interior_w, bool fill) {
     ScText *text = sc_text_new();
     if (!text) {
         return NULL;
@@ -448,9 +506,15 @@ static ScRendered *render_list(ScFuzzy *self) {
     for (size_t i = self->top; i < end; i++) {
         bool on_cursor = (i == self->cursor);
         ScTextStyle row = on_cursor ? selected_style : (ScTextStyle){ 0 };
-        sc_text_append(text, on_cursor ? cursor_marker : marker, row);
-        append_highlighted(text, self->rows[self->matches[i].index][0],
-                           self->query.buf, row, self->accent);
+        const char *mk = on_cursor ? cursor_marker : marker;
+        const char *label = self->rows[self->matches[i].index][0];
+        sc_text_append(text, mk, row);
+        append_highlighted(text, label, self->query.buf, row, self->accent);
+        if (on_cursor && fill && selected_style.bg.index != 0) {
+            int used = (int)sc_utf8_string_length(mk, strlen(mk))
+                     + (int)sc_utf8_string_length(label, strlen(label));
+            sc_pad_line_to(text, used, interior_w, selected_style);
+        }
         if (i + 1 < end) {
             sc_text_append(text, "\n", (ScTextStyle){ 0 });
         }

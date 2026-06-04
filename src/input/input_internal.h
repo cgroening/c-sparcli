@@ -82,45 +82,144 @@ static inline ScEdges sc_box_padding(ScEdges padding) {
     return padding;
 }
 
+/** Returns true when `edges` has any non-zero side. */
+static inline bool sc_edges_any(ScEdges edges) {
+    return edges.top != 0 || edges.right != 0 ||
+           edges.bottom != 0 || edges.left != 0;
+}
+
 /**
- * Builds the `ScPanelOpts` that frame a widget per `box`: a NONE border
- * defaults to rounded, padding falls back via `sc_box_padding`, and `width`
- * chooses a fixed width or full terminal width. Shared so every widget frames
- * its content identically. `title`/`subtitle` are left zero (callers that route
- * a prompt into the frame fill them in afterwards).
+ * Resolved layout for a box: the `ScPanelOpts` to frame the body with, whether
+ * the box does anything at all (`active`), and the interior width that content
+ * lines should be padded to when filling backgrounds to the widget width.
  */
-static inline ScPanelOpts sc_box_panel_opts(ScBoxStyle box) {
+typedef struct ScBoxLayout {
+    ScPanelOpts panel;     /**< Ready for `sc_capture_panel_rendered`. */
+    bool        active;    /**< False = render the body unframed. */
+    int         interior_w;/**< Width rows pad to (bg_extent = WIDGET). */
+} ScBoxLayout;
+
+/**
+ * Resolves a box's width mode, border and panel opts. `content_w` is the
+ * natural (unpadded) content width; `default_mode` is used when the box leaves
+ * `width_mode` at `SC_WIDTH_DEFAULT` and `width` is 0 (lists pass
+ * `SC_WIDTH_CONTENT`, text-entry widgets `SC_WIDTH_FULL`).
+ *
+ * The border is drawn when `enabled` or an explicit `border.type`; `enabled`
+ * with a NONE type defaults to rounded, otherwise NONE stays borderless. A bg,
+ * padding, margin or any width constraint activates the (possibly borderless)
+ * panel on its own.
+ */
+static inline ScBoxLayout sc_box_layout(
+    ScBoxStyle box, int content_w, int term_w, ScWidthMode default_mode
+) {
+    ScWidthMode mode = box.width_mode;
+    if (mode == SC_WIDTH_DEFAULT) {
+        mode = box.width > 0 ? SC_WIDTH_FIXED : default_mode;
+    }
+
+    bool border_drawn = box.enabled || box.border.type != SC_BORDER_NONE;
     ScBorderStyle border = box.border;
-    if (border.type == SC_BORDER_NONE) {
+    if (border_drawn && border.type == SC_BORDER_NONE) {
         border.type = SC_BORDER_ROUNDED;
     }
-    ScPanelOpts opts = {
+
+    ScBoxLayout layout = { 0 };
+    layout.active = box.enabled || box.border.type != SC_BORDER_NONE
+        || box.bg.index != 0 || sc_edges_any(box.padding)
+        || sc_edges_any(box.margin) || box.width > 0
+        || box.width_mode != SC_WIDTH_DEFAULT
+        || box.min_width > 0 || box.max_width > 0;
+
+    ScEdges padding = layout.active ? sc_box_padding(box.padding)
+                                    : (ScEdges){ 0 };
+    int overhead = (border_drawn ? 2 : 0) + padding.left + padding.right;
+
+    ScPanelOpts panel = {
         .border        = border,
         .bg            = box.bg,
-        .padding       = sc_box_padding(box.padding),
+        .padding       = padding,
         .margin        = box.margin,
         .content_align = SC_ALIGN_LEFT,
     };
-    if (box.width > 0) {
-        opts.width = box.width;
-    } else {
-        opts.full_width = true;
+
+    int interior;
+    switch (mode) {
+    case SC_WIDTH_FIXED: {
+        int outer = box.width > 0 ? box.width : content_w + overhead;
+        panel.width = outer;
+        interior = outer - overhead;
+        break;
     }
-    return opts;
+    case SC_WIDTH_FULL: {
+        panel.full_width = true;
+        int outer = term_w - 2;
+        interior = outer - overhead;
+        break;
+    }
+    case SC_WIDTH_CONTENT:
+    default:
+        interior = content_w;
+        if (box.min_width > 0 && interior < box.min_width) {
+            interior = box.min_width;
+        }
+        if (box.max_width > 0 && interior > box.max_width) {
+            interior = box.max_width;
+        }
+        /* Pure content auto-fits; a min/max clamp pins the panel width. */
+        if (box.min_width > 0 || box.max_width > 0) {
+            panel.width = interior + overhead;
+        }
+        break;
+    }
+    if (interior < 1) { interior = 1; }
+    layout.interior_w = interior;
+    layout.panel = panel;
+    return layout;
+}
+
+/**
+ * Appends `target_w - used_cols` background-styled spaces to `text`, extending
+ * a line to the widget width. No-op when the line already meets the width.
+ * Used to fill row backgrounds / highlight bars to the full widget width.
+ */
+static inline void sc_pad_line_to(
+    ScText *text, int used_cols, int target_w, ScTextStyle bg
+) {
+    int pad = target_w - used_cols;
+    if (pad <= 0) {
+        return;
+    }
+    char *spaces = malloc((size_t)pad + 1);
+    if (!spaces) {
+        return;
+    }
+    memset(spaces, ' ', (size_t)pad);
+    spaces[pad] = '\0';
+    sc_text_append(text, spaces, bg);
+    free(spaces);
 }
 
 /**
  * Frames an already-composed `body` per `box`, consuming `body` and returning
- * the framed block (or `body` unchanged when the box is disabled / on failure).
- * For widgets whose prompt stays inside the body (select, fuzzy, confirm,
- * datepicker); the key-hint footer is composed around the result afterwards, so
- * it sits outside the frame - matching the text-entry widgets.
+ * the framed block (or `body` unchanged when the box is inactive / on failure).
+ * For widgets whose prompt stays inside the body and that need no per-row
+ * background fill (confirm, datepicker). `default_mode` picks the width when
+ * the box leaves it at `SC_WIDTH_DEFAULT`. select/fuzzy use `sc_box_layout`
+ * directly so they can pad the cursor row to the interior width.
  */
-static inline ScRendered *sc_box_wrap(ScRendered *body, ScBoxStyle box) {
-    if (!box.enabled || !body) {
+static inline ScRendered *sc_box_wrap(
+    ScRendered *body, ScBoxStyle box, ScWidthMode default_mode, int term_w
+) {
+    if (!body) {
         return body;
     }
-    ScRendered *framed = sc_capture_panel_rendered(body, sc_box_panel_opts(box));
+    int content_w = body->max_column_width;
+    ScBoxLayout layout = sc_box_layout(box, content_w, term_w, default_mode);
+    if (!layout.active) {
+        return body;
+    }
+    ScRendered *framed = sc_capture_panel_rendered(body, layout.panel);
     if (!framed) {
         return body;
     }

@@ -94,6 +94,9 @@ int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
         case SC_CLI_OPT_BG:
         case SC_CLI_OPT_PADDING:
         case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_MIN_WIDTH:
+        case SC_CLI_OPT_MAX_WIDTH:
+        case SC_CLI_OPT_BG_EXTENT:
         case SC_CLI_OPT_WIDTH:
             if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
                 return SC_CLI_EXIT_ERROR;
@@ -284,6 +287,9 @@ int sc_cli_cmd_input(ScCliCtx *ctx, int argc, char **argv) {
         case SC_CLI_OPT_BG:
         case SC_CLI_OPT_PADDING:
         case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_MIN_WIDTH:
+        case SC_CLI_OPT_MAX_WIDTH:
+        case SC_CLI_OPT_BG_EXTENT:
         case SC_CLI_OPT_WIDTH:
             if (!sc_cli_box_opt(ctx, opt, optarg, &args.opts.box)) {
                 return SC_CLI_EXIT_ERROR;
@@ -417,6 +423,9 @@ int sc_cli_cmd_password(ScCliCtx *ctx, int argc, char **argv) {
         case SC_CLI_OPT_BG:
         case SC_CLI_OPT_PADDING:
         case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_MIN_WIDTH:
+        case SC_CLI_OPT_MAX_WIDTH:
+        case SC_CLI_OPT_BG_EXTENT:
         case SC_CLI_OPT_WIDTH:
             if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
                 return SC_CLI_EXIT_ERROR;
@@ -590,6 +599,9 @@ int sc_cli_cmd_number(ScCliCtx *ctx, int argc, char **argv) {
         case SC_CLI_OPT_BG:
         case SC_CLI_OPT_PADDING:
         case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_MIN_WIDTH:
+        case SC_CLI_OPT_MAX_WIDTH:
+        case SC_CLI_OPT_BG_EXTENT:
         case SC_CLI_OPT_WIDTH:
             if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
                 return SC_CLI_EXIT_ERROR;
@@ -718,6 +730,9 @@ int sc_cli_cmd_textarea(ScCliCtx *ctx, int argc, char **argv) {
         case SC_CLI_OPT_BG:
         case SC_CLI_OPT_PADDING:
         case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_MIN_WIDTH:
+        case SC_CLI_OPT_MAX_WIDTH:
+        case SC_CLI_OPT_BG_EXTENT:
         case SC_CLI_OPT_WIDTH:
             if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
                 return SC_CLI_EXIT_ERROR;

@@ -310,6 +310,20 @@ def test_box_style_reaches_widgets():
     with pytest.raises(sc.SparcliInputUnavailable):
         sc.text_input("name", sc.TextInputOpts(box=box))
 
+    # Width modes + background extent (the new list-widget controls) must also
+    # reach the C struct cleanly.
+    wbox = sc.BoxStyle(
+        bg=sc.Color.BLACK,
+        width_mode=sc.WidthMode.CONTENT,
+        min_width=20,
+        max_width=50,
+        bg_extent=sc.BgExtent.TEXT,
+    )
+    sel = sc.Select(sc.SelectOpts(prompt="pick", box=wbox))
+    sel.add("a").add("b")
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sel.run()
+
     sel = sc.Select(sc.SelectOpts(prompt="pick", box=box))
     sel.add("a").add("b")
     with pytest.raises(sc.SparcliInputUnavailable):

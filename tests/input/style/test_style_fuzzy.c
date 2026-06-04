@@ -107,4 +107,26 @@ void style_fuzzy(void) {
     style_show("fuzzy table: boxed thick green border, black bg, padding h2",
                sc_fuzzy_frame(i, ""));
     sc_fuzzy_free(i);
+
+    /* List view, widget background without a frame: rows inherit it and the
+     * cursor row is a full-width bar (selected_style.bg). */
+    ScFuzzy *j = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City",
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_MAGENTA },
+        .box = { .bg = SC_ANSI_COLOR_BLACK } });
+    for (size_t k = 0; k < n; k++) { sc_fuzzy_add(j, cities[k]); }
+    style_show("fuzzy list: black widget bg, magenta full-width cursor bar",
+               sc_fuzzy_frame(j, "o"));
+    sc_fuzzy_free(j);
+
+    /* List view, fixed width 28 with a content background. */
+    ScFuzzy *k = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City",
+        .box = { .width_mode = SC_WIDTH_FIXED, .width = 28,
+                 .bg = SC_ANSI_COLOR_BLUE } });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(k, cities[m]); }
+    style_show("fuzzy list: borderless blue bg, fixed width 28",
+               sc_fuzzy_frame(k, "to"));
+    sc_fuzzy_free(k);
 }

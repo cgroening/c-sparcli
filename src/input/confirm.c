@@ -1,4 +1,5 @@
 #include "input_internal.h"
+#include "internal.h"   /* sc_terminal_width */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,7 +111,8 @@ static ScRendered *confirm_render(void *state) {
 
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
-    body = sc_box_wrap(body, self->opts.box);
+    body = sc_box_wrap(body, self->opts.box, SC_WIDTH_CONTENT,
+                       sc_terminal_width());
     return sc_compose_hint(body,
                            self->opts.hint ? self->opts.hint : DEFAULT_HINT,
                            self->opts.hint_layout, self->opts.hint_pos,

@@ -115,9 +115,42 @@ bool sc_cli_box_opt(
             return sc_cli_error(ctx, "invalid margin '%s'", value), false;
         }
         return true;
-    case SC_CLI_OPT_WIDTH:
-        if (!sc_cli_parse_int(value, &box->width)) {
+    case SC_CLI_OPT_MIN_WIDTH:
+        if (!sc_cli_parse_int(value, &box->min_width)) {
             return sc_cli_error(ctx, "invalid width '%s'", value), false;
+        }
+        if (box->width_mode == SC_WIDTH_DEFAULT) {
+            box->width_mode = SC_WIDTH_CONTENT;
+        }
+        return true;
+    case SC_CLI_OPT_MAX_WIDTH:
+        if (!sc_cli_parse_int(value, &box->max_width)) {
+            return sc_cli_error(ctx, "invalid width '%s'", value), false;
+        }
+        if (box->width_mode == SC_WIDTH_DEFAULT) {
+            box->width_mode = SC_WIDTH_CONTENT;
+        }
+        return true;
+    case SC_CLI_OPT_BG_EXTENT:
+        if (strcmp(value, "text") == 0) {
+            box->bg_extent = SC_BG_EXTENT_TEXT;
+        } else if (strcmp(value, "widget") == 0) {
+            box->bg_extent = SC_BG_EXTENT_WIDGET;
+        } else {
+            return sc_cli_error(ctx, "invalid bg-extent '%s' (text|widget)",
+                                value), false;
+        }
+        return true;
+    case SC_CLI_OPT_WIDTH:
+        if (strcmp(value, "content") == 0) {
+            box->width_mode = SC_WIDTH_CONTENT;
+        } else if (strcmp(value, "full") == 0) {
+            box->width_mode = SC_WIDTH_FULL;
+        } else if (sc_cli_parse_int(value, &box->width)) {
+            box->width_mode = SC_WIDTH_FIXED;
+        } else {
+            return sc_cli_error(ctx, "invalid width '%s' (content|full|N)",
+                                value), false;
         }
         return true;
     default:

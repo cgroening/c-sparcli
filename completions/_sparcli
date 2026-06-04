@@ -41,7 +41,10 @@ _sparcli() {
         "--bg=[Content background color]:color:_message '$color_msg'"
         '--padding=[Inner padding (CSS edge order)]:edges:'
         '--margin=[Outer margin (CSS edge order)]:edges:'
-        '--width=[Box/field width]:width:'
+        '--width=[Width: content | full | N]:width:(content full)'
+        '--min-width=[Min content width]:width:'
+        '--max-width=[Max content width]:width:'
+        '--bg-extent=[Background reach]:extent:(text widget)'
     )
 
     local -a commands=(
