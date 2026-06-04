@@ -295,6 +295,32 @@ def test_text_input_suggest_dropdown_opts_accepted():
         sc.text_input("cmd", opts)
 
 
+def test_box_style_reaches_widgets():
+    # BoxStyle must flow into the C struct for both a migrated text widget and
+    # a newly-boxed list widget (cdef field + apply_box). Without a TTY the
+    # prompts/run still raise/return cleanly instead of erroring on the field.
+    box = sc.BoxStyle(
+        enabled=True,
+        border=sc.BorderStyle(type=sc.BorderType.DOUBLE, color=sc.Color.CYAN),
+        bg=sc.Color.BLUE,
+        padding=sc.Edges(left=2, right=2),
+        margin=sc.Edges(top=1),
+        width=40,
+    )
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sc.text_input("name", sc.TextInputOpts(box=box))
+
+    sel = sc.Select(sc.SelectOpts(prompt="pick", box=box))
+    sel.add("a").add("b")
+    with pytest.raises(sc.SparcliInputUnavailable):
+        sel.run()
+
+    # Themeable box defaults: set + reset must not raise.
+    sc.set_theme(sc.Theme(box=sc.BoxStyle(
+        border=sc.BorderStyle(type=sc.BorderType.ROUNDED))))
+    sc.set_theme(None)
+
+
 def test_history_stores_and_recalls():
     # Input-history storage semantics: copies, consecutive-duplicate dedupe,
     # cap eviction, and list-style access.

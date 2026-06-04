@@ -53,7 +53,7 @@ from .progress import (ProgressBar, ProgressBarOpts, Spinner, SpinnerOpts,
 from .select import (Fuzzy, FuzzyOpts, Select, SelectOpts, fuzzy_match)
 from .structures import (Kv, KvOpts, List, ListItem, ListOpts, Tree, TreeNode,
                          TreeOpts)
-from .style import BorderStyle, Edges, Style, Title
+from .style import BorderStyle, BoxStyle, Edges, Style, Title
 from .table import (Cell, ColOpts, Table, TableBorder, TableOpts)
 from .text import Text
 from .theme import Theme, set_theme
@@ -64,7 +64,8 @@ __all__ = [
     # raw FFI
     "sys",
     # core values
-    "Color", "Style", "Attr", "BorderStyle", "Edges", "Title", "Text",
+    "Color", "Style", "Attr", "BorderStyle", "BoxStyle", "Edges", "Title",
+    "Text",
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",

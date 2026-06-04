@@ -137,19 +137,14 @@ typedef struct ScTextInputOpts {
     ScTextStyle count_style;
 
     /**
-     * Render the field inside a bordered panel: prompt as the top title,
-     * counter on the bottom-right border.
+     * Optional frame: render the field inside a bordered panel (prompt as the
+     * top title, counter on the bottom-right border) with a border, content
+     * background, inner padding and outer margin. Zero-init = inline (no frame).
+     * `box.width` is the field width in columns (`0` = terminal width); long
+     * values scroll horizontally, and in boxed mode it is the panel width.
+     * @see ScBoxStyle
      */
-    bool boxed;
-
-    /** Box border (boxed mode); zero-init type = rounded. */
-    ScBorderStyle border;
-
-    /**
-     * Field width in columns; `0` = terminal width. Long values scroll
-     * horizontally. In boxed mode this is the panel width.
-     */
-    int width;
+    ScBoxStyle box;
 
     /** Key-hint footer; `NULL` = sensible default. */
     const char *hint;
@@ -277,14 +272,11 @@ typedef struct ScPasswordOpts {
     /** Style of the character counter; zero-init = dim. */
     ScTextStyle count_style;
 
-    /** Render the field inside a bordered panel. */
-    bool boxed;
-
-    /** Box border (boxed mode); zero-init type = rounded. */
-    ScBorderStyle border;
-
-    /** Field width; `0` = terminal width (boxed: panel width). */
-    int width;
+    /** Optional frame: render the field inside a bordered panel with a border,
+        content background, inner padding and outer margin. Zero-init = inline.
+        `box.width` is the field width (`0` = terminal width; boxed = panel
+        width). @see ScBoxStyle */
+    ScBoxStyle box;
 
     /** Key-hint footer; `NULL` = sensible default. */
     const char *hint;

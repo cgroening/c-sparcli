@@ -304,6 +304,35 @@ fn text_input_with_history_without_tty_errors() {
 }
 
 #[test]
+fn box_style_builders_and_boxed_widgets_without_tty() {
+    use sparcli::{
+        text_input, BorderStyle, BorderType, BoxStyle, Color, Edges, Select,
+        SelectOpts, TextInputOpts,
+    };
+
+    // The BoxStyle builders compose; .border()/.new() imply enabled.
+    let boxed = BoxStyle::new(BorderStyle::new(BorderType::Double))
+        .bg(Color::BLUE)
+        .padding(Edges::symmetric(0, 2))
+        .margin(Edges { left: 1, ..Default::default() })
+        .width(40);
+    assert!(boxed.enabled && boxed.width == 40);
+
+    if !no_tty_behavior_testable() {
+        return;
+    }
+    // A migrated text widget and a newly-boxed list widget both accept a box
+    // style and still fail cleanly off a TTY.
+    let r = text_input("name", TextInputOpts::new().box_style(boxed));
+    assert!(r.is_err());
+
+    let mut sel = Select::new(SelectOpts::new().prompt("pick").box_style(boxed));
+    sel.add("a");
+    sel.add("b");
+    assert!(sel.run().is_err());
+}
+
+#[test]
 fn pager_is_noop_off_terminal() {
     if !no_tty_behavior_testable() {
         return;

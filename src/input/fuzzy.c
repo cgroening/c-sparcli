@@ -378,6 +378,7 @@ static ScRendered *fuzzy_render(void *state) {
     if (!stacked) {
         return NULL;
     }
+    stacked = sc_box_wrap(stacked, self->opts.box);
     return sc_compose_hint(stacked,
                            self->opts.hint ? self->opts.hint : DEFAULT_HINT,
                            self->opts.hint_layout, self->opts.hint_pos,
@@ -510,6 +511,8 @@ static ScRendered *render_table(ScFuzzy *self) {
     uint64_t mask = self->opts.search_columns;   /* 0 = all columns */
     ScTextStyle sel = self->opts.selected_style; /* cursor-row text style */
     bool sel_set = sc_style_set(sel);
+    /* Cursor-row background: selected_style.bg overrides the accent default. */
+    ScColor cursor_bg = sel.bg.index != 0 ? sel.bg : self->accent;
     // calloc(0, ...) is implementation-defined; with no visible rows the
     // loop below doesn't run, so skip the allocation entirely.
     size_t shown = (end > self->top) ? end - self->top : 0;
@@ -552,7 +555,7 @@ static ScRendered *render_table(ScFuzzy *self) {
             }
         }
         if (on_cursor) {
-            sc_table_add_row_bg(table, cells, cols, self->accent);
+            sc_table_add_row_bg(table, cells, cols, cursor_bg);
         } else {
             sc_table_add_row(table, cells, cols);
         }

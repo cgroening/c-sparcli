@@ -34,7 +34,8 @@ int main() {
 static void run_stepper() {
     if (auto quantity = number_input("Quantity",
             { .initial = 1, .min = 1, .max = 99, .step = 1,
-              .decimals = 0, .boxed = true, .width = 28 })) {
+              .decimals = 0,
+              .box = { .enabled = true, .width = 28 } })) {
         std::println("  -> {:.0f}", *quantity);
     }
 }

@@ -75,6 +75,16 @@ def apply_edges(dst, edges: "Edges") -> None:
     dst.left = edges.left
 
 
+def apply_box(dst, box: "BoxStyle") -> None:
+    """Copy a :class:`BoxStyle` into a live ``ScBoxStyle`` cdata view."""
+    dst.enabled = box.enabled
+    apply_border(dst.border, box.border)
+    apply_color(dst.bg, box.bg)
+    apply_edges(dst.padding, box.padding)
+    apply_edges(dst.margin, box.margin)
+    dst.width = box.width
+
+
 def apply_title(dst, title: "Title", arena: list) -> None:
     """Copy a :class:`Title` into a live ``ScTitle`` cdata view.
 

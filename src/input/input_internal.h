@@ -67,6 +67,68 @@ static inline ScHintPosition sc_hint_pos_resolved(ScHintPosition pos) {
 }
 
 
+/* ── Box framing (ScBoxStyle) ───────────────────────────────────────────── */
+
+/**
+ * Resolves a box's inner padding: an all-zero `ScEdges` selects the built-in
+ * default of one column left and right (so a zero-init box keeps the historic
+ * boxed look); any non-zero value is used verbatim.
+ */
+static inline ScEdges sc_box_padding(ScEdges padding) {
+    if (padding.top == 0 && padding.right == 0 &&
+        padding.bottom == 0 && padding.left == 0) {
+        return (ScEdges){ .left = 1, .right = 1 };
+    }
+    return padding;
+}
+
+/**
+ * Builds the `ScPanelOpts` that frame a widget per `box`: a NONE border
+ * defaults to rounded, padding falls back via `sc_box_padding`, and `width`
+ * chooses a fixed width or full terminal width. Shared so every widget frames
+ * its content identically. `title`/`subtitle` are left zero (callers that route
+ * a prompt into the frame fill them in afterwards).
+ */
+static inline ScPanelOpts sc_box_panel_opts(ScBoxStyle box) {
+    ScBorderStyle border = box.border;
+    if (border.type == SC_BORDER_NONE) {
+        border.type = SC_BORDER_ROUNDED;
+    }
+    ScPanelOpts opts = {
+        .border        = border,
+        .bg            = box.bg,
+        .padding       = sc_box_padding(box.padding),
+        .margin        = box.margin,
+        .content_align = SC_ALIGN_LEFT,
+    };
+    if (box.width > 0) {
+        opts.width = box.width;
+    } else {
+        opts.full_width = true;
+    }
+    return opts;
+}
+
+/**
+ * Frames an already-composed `body` per `box`, consuming `body` and returning
+ * the framed block (or `body` unchanged when the box is disabled / on failure).
+ * For widgets whose prompt stays inside the body (select, fuzzy, confirm,
+ * datepicker); the key-hint footer is composed around the result afterwards, so
+ * it sits outside the frame - matching the text-entry widgets.
+ */
+static inline ScRendered *sc_box_wrap(ScRendered *body, ScBoxStyle box) {
+    if (!box.enabled || !body) {
+        return body;
+    }
+    ScRendered *framed = sc_capture_panel_rendered(body, sc_box_panel_opts(box));
+    if (!framed) {
+        return body;
+    }
+    sc_rendered_free(body);
+    return framed;
+}
+
+
 /* ── Rich prompt resolver ────────────────────────────────────────────────── */
 /*
  * A widget prompt can be supplied three ways, in precedence order:
@@ -498,14 +560,9 @@ typedef struct ScTextEntryCfg {
     /** 0 = unlimited. */
     int max_chars;
 
-    /** Render inside a bordered panel. */
-    bool boxed;
-
-    /** Box border; zero-init type = rounded. */
-    ScBorderStyle border;
-
-    /** Field width; 0 = terminal width. */
-    int width;
+    /** Optional frame (border/bg/padding/margin) + field width via box.width
+        (0 = terminal width; boxed = panel width). Zero-init = inline. */
+    ScBoxStyle box;
 
     /** Key-hint footer; NULL = default. */
     const char *hint;

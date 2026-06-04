@@ -22,9 +22,7 @@ typedef struct TextState {
     ScTextStyle count_style;
     bool hide_char_count;
     int max_chars;
-    bool boxed;
-    ScBorderStyle border;
-    int width;
+    ScBoxStyle box;
     const char *hint;
     ScHintLayout hint_layout;
     ScHintPosition hint_pos;
@@ -135,9 +133,7 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
         .hide_summary    = opts.hide_summary,
         .hide_char_count = opts.hide_char_count,
         .max_chars       = opts.max_chars,
-        .boxed           = opts.boxed,
-        .border          = opts.border,
-        .width           = opts.width,
+        .box             = opts.box,
         .hint            = opts.hint,
         .hint_layout     = opts.hint_layout,
         .hint_pos        = opts.hint_pos,
@@ -233,9 +229,7 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
         .count_style     = cfg->count_style,
         .hide_char_count = cfg->hide_char_count,
         .max_chars       = cfg->max_chars,
-        .boxed           = cfg->boxed,
-        .border          = cfg->border,
-        .width           = cfg->width,
+        .box             = cfg->box,
         .hint            = cfg->hint,
         .hint_layout     = cfg->hint_layout,
         .hint_pos        = cfg->hint_pos,
@@ -260,7 +254,7 @@ static TextState state_from_cfg(const ScTextEntryCfg *cfg) {
 
 static ScRendered *text_render(void *state) {
     TextState *self = state;
-    return self->boxed ? render_boxed(self) : render_inline(self);
+    return self->box.enabled ? render_boxed(self) : render_inline(self);
 }
 
 /** Inline: "prompt value", optional ghost/dropdown, counter, error, footer. */
@@ -345,7 +339,7 @@ static void append_field_line(TextState *self, ScText *text) {
     sc_text_append(text, " ", (ScTextStyle){ 0 });
 
     // Visible value window = line width − prompt − the separating space.
-    int total = self->width > 0 ? self->width : sc_terminal_width();
+    int total = self->box.width > 0 ? self->box.width : sc_terminal_width();
     int prompt_w = sc_prompt_width(self->prompt, self->prompt_style,
                                    self->prompt_markup, self->prompt_text);
     int field = total - prompt_w - 1;
@@ -394,7 +388,7 @@ static ScRendered *capture_meta_lines(TextState *self) {
 static ScRendered *render_boxed(TextState *self) {
     // Clip the value to the panel interior so it stays a single line
     // (panel width − 2 borders − 2 padding).
-    int panel_width = self->width > 0 ? self->width : sc_terminal_width() - 2;
+    int panel_width = self->box.width > 0 ? self->box.width : sc_terminal_width() - 2;
     int field = panel_width - 4;
     if (field < 1) {
         field = 1;
@@ -452,18 +446,20 @@ static ScRendered *capture_boxed_panel(TextState *self, const ScText *inner) {
         self->prompt_markup, self->prompt_text
     );
     ScPanelOpts opts = {
-        .border = self->border,
+        .border = self->box.border,
+        .bg = self->box.bg,
         .title = { .text = self->prompt, .rich_text = title_text,
                    .style = self->prompt_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
-        .padding = { .left = 1, .right = 1 },
+        .padding = sc_box_padding(self->box.padding),
+        .margin = self->box.margin,
         .content_align = SC_ALIGN_LEFT,
     };
     if (opts.border.type == SC_BORDER_NONE) {
         opts.border.type = SC_BORDER_ROUNDED;
     }
-    if (self->width > 0) {
-        opts.width = self->width;
+    if (self->box.width > 0) {
+        opts.width = self->box.width;
     } else {
         opts.full_width = true;
     }
@@ -860,9 +856,9 @@ static ScRendered *capture_dropdown(TextState *self) {
             .content_align = SC_ALIGN_LEFT,
         };
         // Boxed fields align the dropdown frame with the box width.
-        if (self->boxed) {
-            if (self->width > 0) {
-                panel_opts.width = self->width;
+        if (self->box.enabled) {
+            if (self->box.width > 0) {
+                panel_opts.width = self->box.width;
             } else {
                 panel_opts.full_width = true;
             }

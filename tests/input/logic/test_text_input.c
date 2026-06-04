@@ -52,7 +52,7 @@ void test_text_input(void) {
     char *title = NULL;
     st = sc_text_input(
         "Title", &title,
-        (ScTextInputOpts){ .boxed = true, .width = 40, .max_chars = 32,
+        (ScTextInputOpts){ .box.enabled = true, .box.width = 40, .max_chars = 32,
                            .placeholder = "Enter a title…" }
     );
     if (st == SC_INPUT_OK) {

@@ -5,12 +5,12 @@ from __future__ import annotations
 import weakref
 from dataclasses import dataclass, field
 
-from ._ffi import apply_color, apply_style, cstr, ffi, lib
+from ._ffi import apply_box, apply_color, apply_style, cstr, ffi, lib
 from ._inputcommon import (fill_hint, fill_prompt_text, fill_shortcuts, result)
 from .color import Color
 from .enums import HintLayout, HintPos
 from .keys import Shortcuts
-from .style import Style
+from .style import BoxStyle, Style
 from .table import TableOpts
 from .text import Text
 
@@ -38,6 +38,7 @@ class SelectOpts:
     marker: str | None = None
     checkbox_on: str | None = None
     checkbox_off: str | None = None
+    box: BoxStyle = field(default_factory=BoxStyle)
     summary_style: Style = field(default_factory=Style)
     hide_summary: bool = False
     hint: str | None = None
@@ -59,6 +60,7 @@ class SelectOpts:
         c.marker = cstr(arena, self.marker)
         c.checkbox_on = cstr(arena, self.checkbox_on)
         c.checkbox_off = cstr(arena, self.checkbox_off)
+        apply_box(c.box, self.box)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
@@ -158,6 +160,7 @@ class FuzzyOpts:
     counter_style: Style = field(default_factory=Style)
     cursor_marker: str | None = None
     marker: str | None = None
+    box: BoxStyle = field(default_factory=BoxStyle)
     table_opts: TableOpts = field(default_factory=TableOpts)
     summary_style: Style = field(default_factory=Style)
     hide_summary: bool = False
@@ -187,6 +190,7 @@ class FuzzyOpts:
         apply_style(c.counter_style, self.counter_style)
         c.cursor_marker = cstr(arena, self.cursor_marker)
         c.marker = cstr(arena, self.marker)
+        apply_box(c.box, self.box)
         self.table_opts._fill(c.table_opts, arena)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary

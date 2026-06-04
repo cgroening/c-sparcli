@@ -54,6 +54,11 @@ typedef struct ScDatePickerOpts {
     /** Glyph right of the month; `NULL` = "›". */
     const char *header_next;
 
+    /** Optional frame: render the calendar inside a panel with a border,
+        content background, inner padding and outer margin. Zero-init = inline
+        (no frame). The key-hint footer sits below the frame. @see ScBoxStyle */
+    ScBoxStyle box;
+
     /** Style of the persistent summary line. */
     ScTextStyle summary_style;
 

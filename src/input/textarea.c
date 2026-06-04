@@ -152,7 +152,7 @@ static void ta_edit_set(void *state, const char *text) {
 
 static ScRendered *ta_render(void *state) {
     Textarea *self = state;
-    return self->opts.boxed ? render_boxed(self) : render_inline(self);
+    return self->opts.box.enabled ? render_boxed(self) : render_inline(self);
 }
 
 /** Inline: prompt line, content, footer. */
@@ -166,7 +166,8 @@ static ScRendered *render_inline(const Textarea *self) {
                          self->opts.prompt_markup, self->opts.prompt_text);
         sc_text_append(text, "\n", (ScTextStyle){ 0 });
     }
-    int width = self->opts.width > 0 ? self->opts.width : sc_terminal_width();
+    int width = self->opts.box.width > 0 ? self->opts.box.width
+                                         : sc_terminal_width();
     append_content(self, text, width);
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
@@ -180,8 +181,8 @@ static ScRendered *render_boxed(const Textarea *self) {
     if (!inner) {
         return NULL;
     }
-    int panel_width = self->opts.width > 0 ? self->opts.width
-                                           : sc_terminal_width() - 2;
+    int panel_width = self->opts.box.width > 0 ? self->opts.box.width
+                                               : sc_terminal_width() - 2;
     int field = panel_width - 4;   // interior minus borders + padding
     if (field < 1) {
         field = 1;
@@ -192,18 +193,20 @@ static ScRendered *render_boxed(const Textarea *self) {
                                          self->opts.prompt_markup,
                                          self->opts.prompt_text);
     ScPanelOpts opts = {
-        .border = self->opts.border,
+        .border = self->opts.box.border,
+        .bg = self->opts.box.bg,
         .title = { .text = self->prompt, .rich_text = title_text,
                    .style = self->opts.prompt_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
-        .padding = { .left = 1, .right = 1 },
+        .padding = sc_box_padding(self->opts.box.padding),
+        .margin = self->opts.box.margin,
         .content_align = SC_ALIGN_LEFT,
     };
     if (opts.border.type == SC_BORDER_NONE) {
         opts.border.type = SC_BORDER_ROUNDED;
     }
-    if (self->opts.width > 0) {
-        opts.width = self->opts.width;
+    if (self->opts.box.width > 0) {
+        opts.width = self->opts.box.width;
     } else {
         opts.full_width = true;
     }

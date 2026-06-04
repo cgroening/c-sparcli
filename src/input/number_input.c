@@ -215,8 +215,8 @@ static void submit_value(NumberState *self, const char *prompt, double *out,
 
 static ScRendered *number_render(void *state) {
     NumberState *self = state;
-    ScRendered *body = self->opts.boxed ? number_body_boxed(self)
-                                        : number_body_inline(self);
+    ScRendered *body = self->opts.box.enabled ? number_body_boxed(self)
+                                              : number_body_inline(self);
     body = stack_calc_error(self, body);
     body = stack_calc_warning(self, body);
     return sc_compose_hint(body, number_hint(self), self->opts.hint_layout,
@@ -281,8 +281,8 @@ static ScRendered *number_body_boxed(NumberState *self) {
     if (!inner) {
         return NULL;
     }
-    int panel_width = self->opts.width > 0 ? self->opts.width
-                                           : sc_terminal_width() - 2;
+    int panel_width = self->opts.box.width > 0 ? self->opts.box.width
+                                               : sc_terminal_width() - 2;
     int field = panel_width - 4;
     if (field < 1) {
         field = 1;
@@ -313,18 +313,20 @@ static ScRendered *number_body_boxed(NumberState *self) {
                                          self->opts.prompt_markup,
                                          self->opts.prompt_text);
     ScPanelOpts panel_opts = {
-        .border = self->opts.border,
+        .border = self->opts.box.border,
+        .bg = self->opts.box.bg,
         .title = { .text = self->prompt, .rich_text = title_text,
                    .style = self->opts.prompt_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
-        .padding = { .left = 1, .right = 1 },
+        .padding = sc_box_padding(self->opts.box.padding),
+        .margin = self->opts.box.margin,
         .content_align = SC_ALIGN_LEFT,
     };
     if (panel_opts.border.type == SC_BORDER_NONE) {
         panel_opts.border.type = SC_BORDER_ROUNDED;
     }
-    if (self->opts.width > 0) {
-        panel_opts.width = self->opts.width;
+    if (self->opts.box.width > 0) {
+        panel_opts.width = self->opts.box.width;
     } else {
         panel_opts.full_width = true;
     }

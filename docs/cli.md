@@ -447,7 +447,7 @@ Options shared by **all** input commands:
 | `--style ELEM=SPEC` | Style a named element (repeatable); see [Styling](#styling-with---style) |
 | `--no-markup` | Treat markup in the prompt as literal text |
 
-The boxed input commands (`input`, `password`, `number`, `textarea`) also share `--boxed`, `--border STYLE`, **`--border-color COLOR`**, **`--border-bg COLOR`** and `--width N`.
+**Box framing** is available on **every** interactive command (`confirm`, `input`, `password`, `number`, `textarea`, `select`, `fuzzy`, `date`): `--boxed` draws the widget inside a panel, with `--border STYLE`, `--border-color COLOR`, `--border-bg COLOR`, `--bg COLOR` (content background), `--padding EDGES`, `--margin EDGES` (CSS edge order: one value, or `T,R,B,L`) and `--width N`. The box flags take effect only together with `--boxed`. Example: `sparcli select --boxed --border double --bg blue --padding 1 a b c`.
 
 ### Styling with `--style`
 
@@ -613,10 +613,11 @@ Choose one item – or several with `--multi` (Space toggles) – from a list. I
 | `--checkbox-on STR` / `--checkbox-off STR` | Checkbox glyphs (multi-select) |
 | `--arrow-nav` | Right arrow selects (like Enter); Left arrow exits with code `3` (back). For multi-stage pickers (see [`examples/run.zsh`](../examples/run.zsh)). |
 
-`--style` elements: `prompt`, `selected`, `summary`, `hint`.
+`--style` elements: `prompt`, `selected`, `summary`, `hint`. The cursor-row colors come from `--style selected` (e.g. `--style selected='white on magenta'`). Box framing (`--boxed`, `--border`, `--bg`, `--padding`, `--margin`, `--width`) frames the whole list – see the [shared input options](#input-commands).
 
 ```sh
 flavor=$(sparcli select vanilla chocolate pistachio)
+boxed=$(sparcli select --boxed --border rounded --bg blue --padding 1 a b c)
 branch=$(git branch --format='%(refname:short)' | sparcli select --prompt "Branch:")
 toppings=(${(f)"$(sparcli select --multi cheese salami mushrooms)"})   # zsh array
 ```
@@ -642,7 +643,7 @@ With `--tsv` (or `--delim`) each line is split into columns and shown as a table
 | `--search-columns LIST` | Table columns to search, e.g. `1,3` (default: all) |
 | `--arrow-nav` | Right arrow selects the highlighted match (no-op with no match); Left arrow exits with code `3` (back). |
 
-`--style` elements: `prompt`, `selected`, `cursor`, `counter`, `summary`, `hint`.
+`--style` elements: `prompt`, `selected`, `cursor`, `counter`, `summary`, `hint`. `--style selected` sets the cursor-row colors; in the table view its **background** overrides the accent highlight. Box framing (`--boxed`, `--border`, `--bg`, `--padding`, `--margin`, `--width`) frames the whole finder.
 
 ```sh
 file=$(find . -name '*.c' | sparcli fuzzy --prompt "Open:")

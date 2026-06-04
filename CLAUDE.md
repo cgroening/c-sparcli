@@ -172,6 +172,33 @@ SC_BORDER_DOUBLE | SC_BORDER_ROUNDED | SC_BORDER_THICK
 
 Used by panels, tables, rules, and column separators.
 
+### ScBoxStyle
+
+Shared "framed box" styling embedded as the `box` field in **every** input
+widget's opts and in `ScInputTheme`. Zero-init = no frame (inline render).
+
+```c
+typedef struct {
+    bool          enabled;  /* render the widget inside a panel frame */
+    ScBorderStyle border;   /* type/color/bg; NONE type → rounded when enabled */
+    ScColor       bg;       /* content-area background; zero-init = none */
+    ScEdges       padding;  /* inner padding; all-zero = default (1 left/right) */
+    ScEdges       margin;   /* outer margin; zero-init = none */
+    int           width;    /* frame/field width; 0 = full terminal width */
+} ScBoxStyle;
+```
+
+Used by `sc_confirm`, `sc_text_input`, `sc_password_input`, `sc_number_input`,
+`sc_textarea`, `sc_select`, `sc_fuzzy`, `sc_datepicker` (each `Sc*Opts.box`).
+The text-entry widgets route the prompt to the panel **title** (counter/range
+on the bottom border); the list/choice widgets (`select`, `fuzzy`, `confirm`,
+`datepicker`) keep the prompt inside the frame. The key-hint footer always sits
+**outside** the frame. Implemented via `sc_box_wrap` + `sc_capture_panel_rendered`
+(input_internal.h); zero-init `padding` resolves to the historic `{1,1}` look via
+`sc_box_padding`. **Migration note:** this replaced the older flat `boxed` /
+`border` / `width` fields on the four text-entry widgets and the theme's flat
+`border`.
+
 ### ScTitle
 
 ```c
@@ -658,7 +685,7 @@ void       sc_history_free(ScHistory *h);        /* saves + frees */
 - **DatePicker** renders a month grid; arrows move day/week, PageUp/Down or `<`/`>` change month, Shift+PageUp/Down change year; zeroed `struct tm` seeds today. Month/year jumps keep the selected day, clamped to the target month's last valid day (e.g. Jan 31 → Feb 28). `week_start` is `ScWeekStart`.
 - **History** (`history.c` + `include/input/sparcli_history.h`): REPL-style input history for the text input. `ScHistory` is pure storage (handle pattern like `ScSelect`; opts strings copied); the ↑/↓ recall navigation lives in `text_input.c`. Attach via `ScTextInputOpts.history` (**borrowed** for the run, like `shortcuts`): ↑ recalls older entries (the in-progress line is preserved and restored by walking back down past the newest entry), typing/editing leaves the recall, the **dropdown keeps priority** over history on ↑/↓ while it shows matches. Submitted lines are **auto-added** unless `ScTextInputOpts.no_history_add` (per call) or `ScHistoryOpts.no_auto_add` (per handle) is set; empty lines and consecutive duplicates are always skipped (`keep_duplicates` opts them back in), the cap (`max_entries`, default 500) evicts oldest. Persistence: `.app` → `sc_path_file(SC_PATH_STATE, app, "history")`, `.file` = explicit path; plain text, one entry per line, sanitized on load (trust boundary); auto-load on new, auto-save on free. Tests: `tests/input/logic/test_history.c` (storage + sandboxed `$HOME` persistence), PTY cases `history-*` (recall/edit/restore/no-auto-add). Bindings: C++ `sparcli::History` (RAII, `apply(opts)`), Rust `sparcli::History` (Drop = save), Python `sc.History` (context manager, `len()`/`[i]`/`entries()`).
 - **Key-hint footer:** every widget shows a dim footer (e.g. `↑/↓ move · enter select · esc cancel`) by default; override the text with `hint`, restyle with `hint_style`, and choose its layout with `hint_layout` (`ScHintLayout`: `SC_HINT_INLINE` one `·`-separated line / `SC_HINT_STACKED` one hint per line / `SC_HINT_HIDDEN` none; zero-init `SC_HINT_LAYOUT_DEFAULT` inherits the theme, then inline). Stacked is rendered by splitting the hint on ` · `. Its placement is `hint_pos` (`ScHintPosition`: `SC_HINT_POS_TOP`/`_BOTTOM`(default)/ `_LEFT`/`_RIGHT`; left/right sit beside the widget, top-aligned), orthogonal to layout. `sc_compose_hint` (input_internal.h) builds the hint block and places it: vstack for top/bottom, a 2-column `ScColumns` for left/right.
-- **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults (accent, styles, markers, border, `hint_layout`) that every widget inherits for any zero-init option. Precedence: per-call opts > theme > built-in default. Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`). The theme struct **and its glyph strings are copied** by `sc_input_set_theme` (caller buffers may be temporary); the copies are owned by the library and released on the next set/reset.
+- **Theme:** `sc_input_set_theme(&(ScInputTheme){…})` sets process-wide defaults (accent, styles, markers, `box` framing, `hint_layout`) that every widget inherits for any zero-init option. The theme's `box` (`ScBoxStyle`) is merged **sub-field by sub-field** (`m_box` in `theme.c`), so a caller can override just the border and inherit the rest. Precedence: per-call opts > theme > built-in default. Applied via `sc_theme_apply_*` at each widget's entry (`theme.c`). The theme struct **and its glyph strings are copied** by `sc_input_set_theme` (caller buffers may be temporary); the copies are owned by the library and released on the next set/reset.
 - **Custom shortcuts** (`input/sparcli_shortcut.h`): every widget's `Sc*Opts` carries `shortcuts` / `n_shortcuts` (borrowed `ScShortcut[]`) and an optional `out_shortcut_id`. The **prompt engine** (`prompt.c`) matches them before `on_key` – so one implementation covers all widgets – after the reserved cancel keys (Esc / Ctrl-C can't be bound). Build chords with `sc_key_ctrl('e')` / `sc_key_fn(2)` / `sc_key_alt('e')`. `SC_SHORTCUT_RETURN` ends the prompt and writes the fired `id` to `*out_shortcut_id` (`-1` = normal submit); the widget still returns its value. `SC_SHORTCUT_CALLBACK` runs `on_fire(id, user)` in place and stays open unless it returns `false`; `sc_select_cursor` / `sc_fuzzy_cursor_index` expose the live selection to such callbacks, and `sc_select_remove` / `sc_fuzzy_remove` delete the highlighted item live (the emptied-list run tails are guarded). A callback can't open a second prompt (single-session), so the "edit an item" pattern is a RETURN shortcut + `sc_select_label` / `sc_select_set_label` + `sc_select_set_cursor` in a caller re-run loop (see `examples/c/input/shortcuts_theme.c`). A shortcut with a `hint_label` is shown in a dim footer the **engine** stacks under every frame (key name via `sc_key_chord_name`, e.g. `^X delete`), discoverable on any widget with no per-widget code. The key decoder now also yields `SC_KEY_F1..F12`, Alt via an `ESC`-prefix (`ScKey.mods & SC_MOD_ALT`), and generic Ctrl-letters as `SC_KEY_CHAR` + `SC_MOD_CTRL`. The C++ wrapper adds `sparcli::Shortcuts` (a builder with a `std::function` callback arena) + `key_ctrl/key_fn/key_alt`; `sc.apply(opts)` wires it and `sc.fired()` reads the result.
 
 ### Styling (all opts fields are zero-init-friendly)
@@ -670,8 +697,9 @@ Every visual element is configurable through the widget's `Sc*Opts`; a zero-init
 - **External editor** (`text_input`/`textarea` only): `external_editor` + optional `editor` command + `editor_key` (zero-init = Ctrl-G). The engine suspends raw mode (`sc_tty_end`), runs `sc_run_editor` (`editor.c`: `mkstemp` 0600 → `fork`/`execvp` **no shell** on `/dev/tty` → `waitpid` → read back → `unlink`), then `sc_tty_begin` + fresh repaint. Widgets expose `edit_get`/ `edit_set` vtable hooks; the engine owns suspend/resume. Non-zero exit keeps the old value; text_input collapses newlines to spaces (single-line). **Password excluded** (plaintext temp file). `ScPromptEditor` carries the config to `sc_prompt_run`; the editor key is matched before custom shortcuts (same chord → editor wins).
 - **Text styles:** `selected_style`/`unselected_style` (confirm), per-widget `cursor_style` (text/password/fuzzy editor cell; default black-on-white), `error_style` (text/password; default red), `count_style` (text/password character counter; default dim), `selected_style` (select/fuzzy cursor row), `counter_style` (fuzzy), `header_style`/`weekday_style`/`selected_style` (datepicker), and a `summary_style` on every widget.
 - **Glyphs:** `cursor_marker`/`marker` and `checkbox_on`/`checkbox_off` (select), `cursor_marker`/`marker` (fuzzy list), `header_prev`/`header_next` (datepicker).
+- **Box framing (`box`, every widget):** `ScBoxStyle box` frames the widget in a panel (border, content `bg`, inner `padding`, outer `margin`, `width`). See the `ScBoxStyle` Core Type. Inherits theme box defaults; the hint footer stays outside the frame.
 - **Summary line:** printed via `sc_println` over `sc_output_stream` (styled by `summary_style`); set `hide_summary = true` to suppress it entirely.
-- **Fuzzy table view:** `ScFuzzyOpts.table_opts` is passed through to the table renderer (border, header, padding, …); the cursor row is highlighted with `accent` regardless. Zero-init `table_opts` → single border + bold header.
+- **Fuzzy table view:** `ScFuzzyOpts.table_opts` is passed through to the table renderer (border, header, padding, …); the cursor row is highlighted with `accent` by default, overridable via `selected_style.bg` (and `.fg`). Zero-init `table_opts` → single border + bold header.
 - **Week start:** `ScDatePickerOpts.week_start` is an `ScWeekStart` enum (`SC_WEEK_START_DEFAULT`=Monday, `…_MONDAY`, `…_SUNDAY`) – a plain `0` cannot mean both "unset" and "Sunday", so Sunday is an explicit value.
 
 `accent` itself defaults per widget when zero-init (`index == 0`): green (confirm), cyan (select/fuzzy/datepicker).
@@ -815,11 +843,14 @@ ScRendered *sc_capture_kv         (const ScKV *kv);
 ScRendered *sc_capture_columns    (const ScColumns *cl);
 ScRendered *sc_capture_panel_str  (const char *content, ScPanelOpts opts);
 ScRendered *sc_capture_panel_text (const ScText *content, ScPanelOpts opts);
+ScRendered *sc_capture_panel_rendered(const ScRendered *content, ScPanelOpts opts);
 ScRendered *sc_capture_rule_str   (const char *title, ScRuleOpts opts);
 ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
 ```
 
 The same `ScRendered *` can be passed to multiple print functions (e.g. first `sc_pad_print`, then `sc_align_print`).
+
+`sc_capture_panel_rendered` frames an **already-captured** `ScRendered` inside a panel: the rendered lines (with their own ANSI styling) become the panel content verbatim - they are trusted, library-generated text and are **not** re-sanitized, so embedded colors survive. It is the primitive behind input-widget box framing (`sc_box_wrap`) and is reusable to put a border / background / padding around any captured widget.
 
 ### sc_vstack – stack widgets vertically in one column
 

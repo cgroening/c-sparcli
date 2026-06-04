@@ -67,6 +67,17 @@ static void run_table_finder(void) {
         .n_cols  = 3,
         .accent  = SC_ANSI_COLOR_BLUE,
         // .search_columns = 0x1,  // bitmask; 0 = search all columns
+        // Override the cursor-row highlight (default = accent background):
+        // white text on a blue row.
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_BLUE },
+        // Frame the whole finder (query + table) in a panel.
+        .box = {
+            .enabled = true,
+            .border  = { .type = SC_BORDER_ROUNDED,
+                         .color = SC_ANSI_COLOR_BLUE },
+            .padding = { .left = 1, .right = 1 },
+        },
         .table_opts = {
             .border = { .type = SC_BORDER_ROUNDED },
             .header = { .row = true, .style = {

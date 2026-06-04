@@ -266,6 +266,78 @@ impl BorderStyle {
     }
 }
 
+/// Frames an input widget inside a panel: an optional border, a content
+/// background, inner padding and an outer margin. The default is *no frame*
+/// (the widget renders inline); set [`BoxStyle::enabled`] (or use
+/// [`BoxStyle::new`]) to draw it.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct BoxStyle {
+    /// Render the widget inside a panel frame.
+    pub enabled: bool,
+    /// Frame border; a [`BorderType::None`] kind defaults to rounded.
+    pub border: BorderStyle,
+    /// Content-area background color.
+    pub bg: Color,
+    /// Inner padding; all-zero selects the default of one column left/right.
+    pub padding: Edges,
+    /// Outer margin around the frame.
+    pub margin: Edges,
+    /// Frame/field width in columns; `0` = full terminal width.
+    pub width: i32,
+}
+
+impl BoxStyle {
+    /// A box with the given border, enabled.
+    pub fn new(border: BorderStyle) -> Self {
+        BoxStyle {
+            enabled: true,
+            border,
+            ..Default::default()
+        }
+    }
+    /// Enable or disable the frame.
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.enabled = on;
+        self
+    }
+    /// Set the frame border (and enable the frame).
+    pub fn border(mut self, b: BorderStyle) -> Self {
+        self.border = b;
+        self.enabled = true;
+        self
+    }
+    /// Set the content-area background color.
+    pub fn bg(mut self, c: Color) -> Self {
+        self.bg = c;
+        self
+    }
+    /// Set the inner padding.
+    pub fn padding(mut self, e: Edges) -> Self {
+        self.padding = e;
+        self
+    }
+    /// Set the outer margin.
+    pub fn margin(mut self, e: Edges) -> Self {
+        self.margin = e;
+        self
+    }
+    /// Set the frame/field width (`0` = full terminal width).
+    pub fn width(mut self, w: i32) -> Self {
+        self.width = w;
+        self
+    }
+    pub(crate) fn raw(self) -> ffi::ScBoxStyle {
+        ffi::ScBoxStyle {
+            enabled: self.enabled,
+            border: self.border.raw(),
+            bg: self.bg.0,
+            padding: self.padding.raw(),
+            margin: self.margin.raw(),
+            width: self.width,
+        }
+    }
+}
+
 /// A growable arena of `CString`s that backs the borrowed `*const c_char`
 /// pointers handed to the C API for the duration of one call. Keep it alive
 /// until the C call returns.

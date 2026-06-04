@@ -85,4 +85,27 @@ void test_pad(void) {
         sc_pad_print(rendered, (ScPadOpts){ .left = 4 });
         sc_rendered_free(rendered);
     }
+
+    printf("\n");
+
+    /* ── 5. Frame an already-captured widget with sc_capture_panel_rendered ──
+     * The inner KV is captured first (keeping its own ANSI styling), then
+     * wrapped in a bordered panel without re-sanitizing the embedded escapes. */
+    printf("--- Pad 5. sc_capture_panel_rendered around a captured KV ---\n");
+    {
+        ScKV *kv = sc_kv_new((ScKVOpts){ .sep = ": ", .key_style = bold });
+        sc_kv_add(kv, "Status", "OK");
+        sc_kv_add(kv, "Port", "5432");
+        ScRendered *inner = sc_capture_kv(kv);
+
+        ScRendered *framed = sc_capture_panel_rendered(inner, (ScPanelOpts){
+            .border = { .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_CYAN },
+            .padding = { 0, 2, 0, 2 },
+            .width = 30,
+        });
+        sc_pad_print(framed, (ScPadOpts){ .left = 2 });
+        sc_rendered_free(framed);
+        sc_rendered_free(inner);
+        sc_kv_free(kv);
+    }
 }

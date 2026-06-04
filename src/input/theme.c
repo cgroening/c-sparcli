@@ -12,6 +12,7 @@ static void m_color(ScColor *dst, ScColor src);
 static void m_style(ScTextStyle *dst, ScTextStyle src);
 static void m_glyph(const char **dst, const char *src);
 static void m_border(ScBorderStyle *dst, ScBorderStyle src);
+static void m_box(ScBoxStyle *dst, ScBoxStyle src);
 
 
 void sc_input_set_theme(const ScInputTheme *theme) {
@@ -46,6 +47,7 @@ void sc_theme_apply_confirm(ScConfirmOpts *o) {
     m_style(&o->selected_style, t.selected_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -62,7 +64,7 @@ void sc_theme_apply_text(ScTextInputOpts *o) {
     m_style(&o->count_style, t.count_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
-    m_border(&o->border, t.border);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -79,7 +81,7 @@ void sc_theme_apply_password(ScPasswordOpts *o) {
     m_style(&o->count_style, t.count_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
-    m_border(&o->border, t.border);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -94,7 +96,7 @@ void sc_theme_apply_number(ScNumberOpts *o) {
     m_style(&o->cursor_style, t.cursor_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
-    m_border(&o->border, t.border);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -109,7 +111,7 @@ void sc_theme_apply_textarea(ScTextareaOpts *o) {
     m_style(&o->cursor_style, t.cursor_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
-    m_border(&o->border, t.border);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -129,6 +131,7 @@ void sc_theme_apply_select(ScSelectOpts *o) {
     m_glyph(&o->marker, t.marker);
     m_glyph(&o->checkbox_on, t.checkbox_on);
     m_glyph(&o->checkbox_off, t.checkbox_off);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -148,6 +151,7 @@ void sc_theme_apply_fuzzy(ScFuzzyOpts *o) {
     m_style(&o->hint_style, t.hint_style);
     m_glyph(&o->cursor_marker, t.cursor_marker);
     m_glyph(&o->marker, t.marker);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -163,6 +167,7 @@ void sc_theme_apply_datepicker(ScDatePickerOpts *o) {
     m_style(&o->selected_style, t.selected_style);
     m_style(&o->summary_style, t.summary_style);
     m_style(&o->hint_style, t.hint_style);
+    m_box(&o->box, t.box);
     if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
         o->hint_layout = t.hint_layout;
     }
@@ -196,4 +201,19 @@ static void m_border(ScBorderStyle *dst, ScBorderStyle src) {
     if (dst->type == SC_BORDER_NONE && src.type != SC_BORDER_NONE) {
         *dst = src;
     }
+}
+
+/** Merges box defaults sub-field by sub-field, so a caller can override any
+ *  single aspect (e.g. just the border) and inherit the rest from the theme. */
+static void m_box(ScBoxStyle *dst, ScBoxStyle src) {
+    if (!dst->enabled) { dst->enabled = src.enabled; }
+    m_border(&dst->border, src.border);
+    m_color(&dst->bg, src.bg);
+    bool padding_unset = dst->padding.top == 0 && dst->padding.right == 0 &&
+                         dst->padding.bottom == 0 && dst->padding.left == 0;
+    if (padding_unset) { dst->padding = src.padding; }
+    bool margin_unset = dst->margin.top == 0 && dst->margin.right == 0 &&
+                        dst->margin.bottom == 0 && dst->margin.left == 0;
+    if (margin_unset) { dst->margin = src.margin; }
+    if (dst->width == 0) { dst->width = src.width; }
 }

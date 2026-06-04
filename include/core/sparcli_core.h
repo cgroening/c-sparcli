@@ -193,6 +193,40 @@ typedef struct ScBorderStyle {
 } ScBorderStyle;
 
 /**
+ * Shared "framed box" styling used by the input widgets: render a widget
+ * inside a panel with an optional border, content background, inner padding
+ * and outer margin. Zero-init (`ScBoxStyle{0}`) means "no frame" - the widget
+ * renders inline as before.
+ *
+ * The same struct is embedded in every `Sc*Opts` of the input layer and in
+ * `ScInputTheme`, so box styling is configured uniformly across widgets and
+ * can be themed once for the whole process.
+ */
+typedef struct ScBoxStyle {
+    /** Render the widget inside a panel frame. */
+    bool enabled;
+
+    /** Frame border (type/color/bg); when `enabled` and `type` is
+        `SC_BORDER_NONE`, it defaults to `SC_BORDER_ROUNDED`. */
+    ScBorderStyle border;
+
+    /** Content-area background color; zero-init = none. */
+    ScColor bg;
+
+    /** Inner padding (top/right/bottom/left). An all-zero value selects the
+        built-in default of one column left and right; set any edge to override
+        it (use e.g. a non-default edge to opt out of the default entirely). */
+    ScEdges padding;
+
+    /** Outer margin around the frame; zero-init = none. */
+    ScEdges margin;
+
+    /** Frame width in columns; `0` = full terminal width. For text-entry
+        widgets this is also the field width in inline (non-boxed) mode. */
+    int width;
+} ScBoxStyle;
+
+/**
  * All visual properties of a component title: text, rendering, alignment,
  * padding and position. Used directly by ScRuleOpts (pos is ignored for
  * rules) and by panels/tables.

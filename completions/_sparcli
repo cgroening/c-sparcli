@@ -32,6 +32,17 @@ _sparcli() {
         '--hint=[Custom key-hint footer text]:text:'
         '--no-hint[Hide the key-hint footer]'
     )
+    # Box-framing options shared by every boxed input command.
+    local -a box_opts=(
+        '--boxed[Draw the widget inside a panel]'
+        "--border=[Box border style]:style:($borders)"
+        "--border-color=[Box border color]:color:_message '$color_msg'"
+        "--border-bg=[Box border background]:color:_message '$color_msg'"
+        "--bg=[Content background color]:color:_message '$color_msg'"
+        '--padding=[Inner padding (CSS edge order)]:edges:'
+        '--margin=[Outer margin (CSS edge order)]:edges:'
+        '--width=[Box/field width]:width:'
+    )
 
     local -a commands=(
         'print:Print markup-styled text'
@@ -212,6 +223,7 @@ _sparcli() {
                         '--yes=[Label of the Yes choice]:label:' \
                         '--no=[Label of the No choice]:label:' \
                         '--print[Print yes/no to stdout]' \
+                        $box_opts \
                         $input_opts \
                         '*:question:'
                     ;;
@@ -222,9 +234,7 @@ _sparcli() {
                         '--max=[Maximum number of characters]:count:' \
                         "--filter=[Character filter]:filter:($filters)" \
                         '*--suggest=[Autocomplete suggestion]:text:' \
-                        '--boxed[Draw the field inside a panel]' \
-                        "--border=[Box border style]:style:($borders)" \
-                        '--width=[Field width]:width:' \
+                        $box_opts \
                         $input_opts \
                         '*:prompt:'
                     ;;
@@ -232,9 +242,7 @@ _sparcli() {
                     _arguments \
                         '--mask=[Mask character]:char:' \
                         '--max=[Maximum number of characters]:count:' \
-                        '--boxed[Draw the field inside a panel]' \
-                        "--border=[Box border style]:style:($borders)" \
-                        '--width=[Field width]:width:' \
+                        $box_opts \
                         $input_opts \
                         '*:prompt:'
                     ;;
@@ -247,9 +255,7 @@ _sparcli() {
                         '--step=[Arrow step size]:number:' \
                         '--decimals=[Number of decimal places]:count:' \
                         '--decimal-sep=[Decimal separator]:char:(. ,)' \
-                        '--boxed[Draw the field inside a panel]' \
-                        "--border=[Box border style]:style:($borders)" \
-                        '--width=[Field width]:width:' \
+                        $box_opts \
                         $input_opts \
                         '*:prompt:'
                     ;;
@@ -259,9 +265,7 @@ _sparcli() {
                         '--placeholder=[Placeholder shown when empty]:text:' \
                         '--external-editor[Allow editing in $VISUAL/$EDITOR]' \
                         '--editor=[External editor command]:command:_command_names' \
-                        '--boxed[Draw the editor inside a panel]' \
-                        "--border=[Box border style]:style:($borders)" \
-                        '--width=[Editor width]:width:' \
+                        $box_opts \
                         $input_opts \
                         '*:prompt:'
                     ;;
@@ -270,6 +274,7 @@ _sparcli() {
                         '--prompt=[Heading shown above the list]:text:' \
                         '--multi[Multi-select with checkboxes]' \
                         '--max-visible=[Viewport height]:count:' \
+                        $box_opts \
                         $input_opts \
                         '*:item:'
                     ;;
@@ -280,6 +285,7 @@ _sparcli() {
                         '--tsv[Tab-separated table view]' \
                         '--delim=[Custom delimiter for the table view]:char:' \
                         '--header-row[First input line provides the headers]' \
+                        $box_opts \
                         $input_opts \
                         '*:item:'
                     ;;
@@ -289,6 +295,7 @@ _sparcli() {
                         '--format=[strftime output format]:format:' \
                         '--initial=[Initially selected date]:date (YYYY-MM-DD):' \
                         "--week-start=[First day of the week]:day:($week_starts)" \
+                        $box_opts \
                         $input_opts
                     ;;
             esac

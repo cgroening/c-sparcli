@@ -1165,6 +1165,7 @@ Yes/No question. Arrow keys / Tab / `h` / `l` move; `y`/`n` pick directly; Enter
 | `accent` | Highlight color of the selected option; zero-init = green |
 | `prompt_style` | Style for the question text |
 | `selected_style` / `unselected_style` | Option styles; zero-init = bold black-on-`accent` / dim |
+| `box` (`ScBoxStyle`) | Frame the question in a panel; zero-init = inline |
 | `summary_style` / `hide_summary` | Post-confirm summary line |
 | `hint` / `hint_layout` / `hint_style` | Key-hint footer |
 
@@ -1181,7 +1182,7 @@ Single-line entry over a shared line editor (UTF-8 cursor/insert/delete/word- ki
 | `error_style` | Validation error line; zero-init = red |
 | `max_chars` | Cap on input length; `0` = unlimited |
 | `hide_char_count` / `count_style` | Character counter (`count` or `count/max`); default shown, dim |
-| `boxed` / `border` / `width` | Render inside a panel; prompt = top title, counter = bottom-right; `width` 0 = full terminal width |
+| `box` (`ScBoxStyle`) | Frame the field in a panel: `box.enabled` on; `box.border`/`box.bg`/`box.padding`/`box.margin`/`box.width` (`0` = full terminal width). Prompt = top title, counter = bottom-right border |
 | `char_filter` / `char_filter_ctx` | Per-keystroke filter (built-ins `sc_filter_*`) |
 | `suggestions` / `n_suggestions` | Text only: autocomplete word list. Default presentation is a dim ghost (first prefix match; Tab accepts); see `suggest` for the dropdown |
 | `suggest` | `ScSuggestOpts` – presentation of `suggestions`: ghost text (zero-init) or a navigable dropdown list (see below) |
@@ -1237,7 +1238,7 @@ Numeric entry with a decimal filter; ↑/↓ adjust by `step`; value clamped to 
 | `decimal_sep` | Decimal separator for display and input; `0`/`'.'` = period, `','` = comma. Both `.` and `,` keystrokes are accepted and shown as the configured separator |
 | `out_text` | Optional `char **`: on `SC_INPUT_OK` receives the submitted value as a heap string – exact, never round-tripped through `double`. Always `'.'`-separated and reflecting clamping, so it can feed an arbitrary-precision decimal type. Caller frees |
 | `prompt_style` / `value_style` / `cursor_style` | Styles |
-| `boxed` / `border` / `width` | Panel mode (range shown on the bottom-right border) |
+| `box` (`ScBoxStyle`) | Frame in a panel (range shown on the bottom-right border); see `ScBoxStyle` |
 | `calculator` | Enable calculator mode: `=` starts an arithmetic expression (see below) |
 | `calc_store_rounded` / `calc_show_precise` | Calculator precision flags (see below) |
 | `error_style` | Style of the invalid-expression error line; zero-init = red |
@@ -1302,7 +1303,7 @@ Multi-line entry: Enter inserts a newline, Ctrl-D submits, arrows move across li
 | `initial` | Pre-filled multi-line value |
 | `placeholder` | Dim hint shown while empty |
 | `prompt_style` / `value_style` / `cursor_style` | Styles |
-| `boxed` / `border` / `width` | Render the editor inside a panel |
+| `box` (`ScBoxStyle`) | Frame the editor in a panel; see `ScBoxStyle` |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 `*out` (with embedded newlines) is heap-allocated on `SC_INPUT_OK`; free it.
@@ -1320,6 +1321,7 @@ Opaque handle (variable item count). `j/k` + arrows move; Space toggles in multi
 | `prompt_style` / `selected_style` | Heading + cursor-row styles |
 | `cursor_marker` / `marker` | Cursor / other-row prefixes; `NULL` = "‣ " / "  " |
 | `checkbox_on` / `checkbox_off` | Multi only; `NULL` = "[x] " / "[ ] " |
+| `box` (`ScBoxStyle`) | Frame the list in a panel (border / bg / padding / margin / width); zero-init = inline |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### sc_fuzzy
@@ -1333,7 +1335,8 @@ Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched charac
 | `accent` | Cursor-row highlight; zero-init = cyan |
 | `table` / `headers` / `n_cols` | Table view configuration |
 | `search_columns` | Bitmask of columns the query searches (bit `c` = column `c`); `0` = all (default). Table view only; a row matches when any selected column matches |
-| `table_opts` | Passed through to the table renderer (border, header, …) |
+| `table_opts` | Passed through to the table renderer (border, header, …); the cursor-row background defaults to `accent`, overridable via `selected_style.bg` |
+| `box` (`ScBoxStyle`) | Frame the finder (query + results) in a panel; zero-init = inline |
 | `prompt_style` / `selected_style` / `cursor_style` / `counter_style` | Styles |
 | `cursor_marker` / `marker` | List cursor / other-row prefixes |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
@@ -1349,6 +1352,7 @@ Month-grid calendar. Arrows move day/week; PageUp/PageDown (or `<`/`>`) change m
 | `accent` | Selected-day highlight; zero-init = cyan |
 | `prompt_style` / `header_style` / `weekday_style` / `selected_style` | Styles |
 | `header_prev` / `header_next` | Month-arrow glyphs; `NULL` = "‹" / "›" |
+| `box` (`ScBoxStyle`) | Frame the calendar in a panel; zero-init = inline |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |
 
 ### Input history (sc_history)

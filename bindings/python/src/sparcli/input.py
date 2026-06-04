@@ -12,14 +12,15 @@ import weakref
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from ._ffi import apply_border, apply_color, apply_style, cstr, ffi, lib
+from ._ffi import (apply_border, apply_box, apply_color, apply_style, cstr,
+                   ffi, lib)
 from ._inputcommon import (fill_char_filter, fill_hint, fill_prompt_text,
                            fill_shortcuts, fill_suggestions, fill_validate,
                            result, take_cstr)
 from .color import Color
 from .enums import HintLayout, HintPos, SuggestMatch, SuggestMode, WeekStart
 from .keys import KeyChord, Shortcuts
-from .style import BorderStyle, Style
+from .style import BorderStyle, BoxStyle, Style
 from .text import Text
 
 # Built-in character filters (pass as ``char_filter``).
@@ -47,6 +48,7 @@ class ConfirmOpts:
     accent: Color = Color.NONE
     selected_style: Style = field(default_factory=Style)
     unselected_style: Style = field(default_factory=Style)
+    box: BoxStyle = field(default_factory=BoxStyle)
     summary_style: Style = field(default_factory=Style)
     hide_summary: bool = False
     hint: str | None = None
@@ -65,6 +67,7 @@ class ConfirmOpts:
         apply_color(c.accent, self.accent)
         apply_style(c.selected_style, self.selected_style)
         apply_style(c.unselected_style, self.unselected_style)
+        apply_box(c.box, self.box)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
@@ -208,9 +211,7 @@ class TextInputOpts:
     max_chars: int = 0
     hide_char_count: bool = False
     count_style: Style = field(default_factory=Style)
-    boxed: bool = False
-    border: BorderStyle = field(default_factory=BorderStyle)
-    width: int = 0
+    box: BoxStyle = field(default_factory=BoxStyle)
     hint: str | None = None
     hint_layout: HintLayout = HintLayout.DEFAULT
     hint_pos: HintPos = HintPos.DEFAULT
@@ -240,9 +241,7 @@ class TextInputOpts:
         c.max_chars = self.max_chars
         c.hide_char_count = self.hide_char_count
         apply_style(c.count_style, self.count_style)
-        c.boxed = self.boxed
-        apply_border(c.border, self.border)
-        c.width = self.width
+        apply_box(c.box, self.box)
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
                   self.hint_style, arena)
         fill_char_filter(c, self.char_filter, arena)
@@ -287,9 +286,7 @@ class PasswordOpts:
     max_chars: int = 0
     hide_char_count: bool = False
     count_style: Style = field(default_factory=Style)
-    boxed: bool = False
-    border: BorderStyle = field(default_factory=BorderStyle)
-    width: int = 0
+    box: BoxStyle = field(default_factory=BoxStyle)
     hint: str | None = None
     hint_layout: HintLayout = HintLayout.DEFAULT
     hint_pos: HintPos = HintPos.DEFAULT
@@ -311,9 +308,7 @@ class PasswordOpts:
         c.max_chars = self.max_chars
         c.hide_char_count = self.hide_char_count
         apply_style(c.count_style, self.count_style)
-        c.boxed = self.boxed
-        apply_border(c.border, self.border)
-        c.width = self.width
+        apply_box(c.box, self.box)
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
                   self.hint_style, arena)
         fill_char_filter(c, self.char_filter, arena)
@@ -357,9 +352,7 @@ class NumberOpts:
     hint_layout: HintLayout = HintLayout.DEFAULT
     hint_pos: HintPos = HintPos.DEFAULT
     hint_style: Style = field(default_factory=Style)
-    boxed: bool = False
-    border: BorderStyle = field(default_factory=BorderStyle)
-    width: int = 0
+    box: BoxStyle = field(default_factory=BoxStyle)
     shortcuts: Shortcuts | None = None
     prompt_text: Text | None = None
     prompt_markup: bool = False
@@ -398,9 +391,7 @@ class NumberOpts:
         c.hide_summary = self.hide_summary
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
                   self.hint_style, arena)
-        c.boxed = self.boxed
-        apply_border(c.border, self.border)
-        c.width = self.width
+        apply_box(c.box, self.box)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
         c.calculator = self.calculator
@@ -470,9 +461,7 @@ class TextareaOpts:
     hint_layout: HintLayout = HintLayout.DEFAULT
     hint_pos: HintPos = HintPos.DEFAULT
     hint_style: Style = field(default_factory=Style)
-    boxed: bool = False
-    border: BorderStyle = field(default_factory=BorderStyle)
-    width: int = 0
+    box: BoxStyle = field(default_factory=BoxStyle)
     shortcuts: Shortcuts | None = None
     prompt_text: Text | None = None
     prompt_markup: bool = False
@@ -490,9 +479,7 @@ class TextareaOpts:
         c.hide_summary = self.hide_summary
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
                   self.hint_style, arena)
-        c.boxed = self.boxed
-        apply_border(c.border, self.border)
-        c.width = self.width
+        apply_box(c.box, self.box)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
         c.external_editor = self.external_editor
@@ -534,6 +521,7 @@ class DatePickerOpts:
     shortcuts: Shortcuts | None = None
     prompt_text: Text | None = None
     prompt_markup: bool = False
+    box: BoxStyle = field(default_factory=BoxStyle)
 
     def _fill(self, c, arena: list) -> None:
         c.prompt = cstr(arena, self.prompt)
@@ -545,6 +533,7 @@ class DatePickerOpts:
         apply_style(c.selected_style, self.selected_style)
         c.header_prev = cstr(arena, self.header_prev)
         c.header_next = cstr(arena, self.header_next)
+        apply_box(c.box, self.box)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,

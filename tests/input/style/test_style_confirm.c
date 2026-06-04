@@ -31,4 +31,13 @@ void style_confirm(void) {
         sc_confirm_frame("Save changes?", true, (ScConfirmOpts){
             .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLUE,
                               SC_ANSI_COLOR_NONE } }));
+
+    /* Boxed: rounded frame with content background + padding. */
+    style_show("boxed: rounded frame, yellow bg, padding 1/2",
+        sc_confirm_frame("Save changes?", true, (ScConfirmOpts){
+            .box = {
+                .enabled = true, .width = 34,
+                .bg = SC_ANSI_COLOR_YELLOW,
+                .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },
+            } }));
 }

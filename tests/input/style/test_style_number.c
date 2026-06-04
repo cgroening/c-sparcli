@@ -26,12 +26,13 @@ void style_number(void) {
     style_show("number: boxed (panel), range on bottom-right",
         sc_number_frame("Quantity", 42,
             (ScNumberOpts){
-                .min = 0, .max = 100, .boxed = true, .width = 28 }));
+                .min = 0, .max = 100, .box.enabled = true, .box.width = 28 }));
 
     style_show("number: boxed, double border + cyan prompt",
         sc_number_frame("Port", 8080,
-            (ScNumberOpts){ .min = 1, .max = 65535, .boxed = true, .width = 30,
-                .border = {
+            (ScNumberOpts){ .min = 1, .max = 65535, .box.enabled = true,
+                .box.width = 30,
+                .box.border = {
                     .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_BLUE
                 },
                 .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN,
@@ -58,7 +59,7 @@ void style_number(void) {
         sc_number_frame_calc("Amount",
             (ScNumberCalcFrame){ .expr = "=100/3" },
             (ScNumberOpts){ .decimals = 2, .decimal_sep = ',',
-                            .boxed = true, .width = 36 }));
+                            .box.enabled = true, .box.width = 36 }));
 
     style_show("calculator: hint advertises '= calc' when enabled",
         sc_number_frame("Amount", 5,
@@ -90,5 +91,5 @@ void style_number(void) {
             (ScNumberCalcFrame){
                 .expr = "3,33", .accepted = true, .value = 10.0 / 3.0 },
             (ScNumberOpts){ .decimals = 2, .decimal_sep = ',',
-                            .boxed = true, .width = 40 }));
+                            .box.enabled = true, .box.width = 40 }));
 }

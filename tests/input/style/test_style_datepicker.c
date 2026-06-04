@@ -81,4 +81,14 @@ void style_datepicker(void) {
         sc_datepicker_frame(&seed, (ScDatePickerOpts){
             .prompt = "Pick a date", .hint_pos = SC_HINT_POS_RIGHT,
             .hint_layout = SC_HINT_INLINE }));
+
+    style_show("boxed: double cyan border, content padding",
+        sc_datepicker_frame(&seed, (ScDatePickerOpts){
+            .prompt = "Pick a date",
+            .box = {
+                .enabled = true,
+                .border = { .type = SC_BORDER_DOUBLE,
+                            .color = SC_ANSI_COLOR_CYAN },
+                .padding = { .left = 1, .right = 1 },
+            } }));
 }

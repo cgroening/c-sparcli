@@ -79,8 +79,10 @@ static void run_rich_prompt() {
 static void run_boxed_input() {
     if (auto title = text_input("Title",
             { .placeholder = "Short and descriptive",
-              .max_chars = 32, .boxed = true,
-              .border = { .type = SC_BORDER_ROUNDED }, .width = 44 })) {
+              .max_chars = 32,
+              .box = { .enabled = true,
+                       .border = { .type = SC_BORDER_ROUNDED },
+                       .width = 44 } })) {
         std::println("  -> \"{}\"", *title);
     }
 }

@@ -72,23 +72,24 @@ void style_text(void) {
     style_show("boxed: fixed width 30, counter (count only)",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Name", .initial = "Ada Lovelace",
-            .boxed = true, .width = 30 }));
+            .box.enabled = true, .box.width = 30 }));
 
     style_show("boxed: fixed width 30, counter with max",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Tweet", .initial = "hello world", .max_chars = 40,
-            .boxed = true, .width = 30 }));
+            .box.enabled = true, .box.width = 30 }));
 
     style_show("boxed: counter hidden",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Note", .initial = "no counter", .hide_char_count = true,
-            .boxed = true, .width = 30 }));
+            .box.enabled = true, .box.width = 30 }));
 
     style_show("boxed: double border + cyan prompt",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Host", .initial = "localhost", .max_chars = 24,
-            .boxed = true, .width = 30,
-            .border = { .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_BLUE },
+            .box.enabled = true, .box.width = 30,
+            .box.border = { .type = SC_BORDER_DOUBLE,
+                            .color = SC_ANSI_COLOR_BLUE },
             .prompt_style = {
                 SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE,
             } }));
@@ -96,28 +97,28 @@ void style_text(void) {
     style_show("boxed: password, fixed width 30",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Password", .initial = "hunter2", .mask = "*",
-            .boxed = true, .width = 30 }));
+            .box.enabled = true, .box.width = 30 }));
 
     /* Full-width box spans the whole terminal, so it is printed flush-left
      * (indenting it would push the right border past the terminal edge). */
     style_show_flush("boxed: full width (default), flush-left",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Search", .initial = "query", .boxed = true }));
+            .prompt = "Search", .initial = "query", .box.enabled = true }));
 
     /* Hint layout on the boxed-footer path: stacked + hidden. */
     style_show("boxed: hint_layout stacked (footer one per line)",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
+            .prompt = "Name", .initial = "Ada", .box.enabled = true, .box.width = 30,
             .hint_layout = SC_HINT_STACKED }));
     style_show("boxed: hint_layout hidden (no footer)",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
+            .prompt = "Name", .initial = "Ada", .box.enabled = true, .box.width = 30,
             .hint_layout = SC_HINT_HIDDEN }));
 
     /* hint_pos right on a boxed field: hint stacked beside the panel. */
     style_show("boxed: hint_pos right (stacked beside the box)",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Name", .initial = "Ada", .boxed = true, .width = 30,
+            .prompt = "Name", .initial = "Ada", .box.enabled = true, .box.width = 30,
             .hint_pos = SC_HINT_POS_RIGHT, .hint_layout = SC_HINT_STACKED }));
 
     /* Autocomplete available: the default hint leads with "tab complete". */
@@ -196,7 +197,7 @@ void style_text(void) {
     /* Boxed field + bordered dropdown aligned to the box width. */
     style_show("dropdown: boxed field, dropdown frame matches box width",
         sc_text_entry_frame(&(ScTextEntryCfg){
-            .prompt = "Git command", .initial = "c", .boxed = true, .width = 30,
+            .prompt = "Git command", .initial = "c", .box.enabled = true, .box.width = 30,
             .suggestions = commands, .n_suggestions = 5,
             .suggest = {
                 .mode = SC_SUGGEST_DROPDOWN, .max_visible = 3,
@@ -212,5 +213,5 @@ void style_text(void) {
     style_show("rich prompt: boxed markup title (italic name)",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Rename [italic]Apple[/] to", .prompt_markup = true,
-            .initial = "Apple", .boxed = true, .width = 36 }));
+            .initial = "Apple", .box.enabled = true, .box.width = 36 }));
 }

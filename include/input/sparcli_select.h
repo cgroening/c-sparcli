@@ -50,6 +50,12 @@ typedef struct ScSelectOpts {
     /** Unchecked box (multi); `NULL` = "[ ] ". */
     const char *checkbox_off;
 
+    /** Optional frame: render the list inside a panel with a border, content
+        background, inner padding and outer margin. Zero-init = inline (no
+        frame). The prompt stays inside the frame; the key-hint footer sits
+        below it. @see ScBoxStyle */
+    ScBoxStyle box;
+
     /** Style of the persistent summary line. */
     ScTextStyle summary_style;
 

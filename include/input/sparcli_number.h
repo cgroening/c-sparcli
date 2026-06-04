@@ -65,14 +65,11 @@ typedef struct ScNumberOpts {
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
 
-    /** Render inside a panel (prompt = top title, range/footer below). */
-    bool boxed;
-
-    /** Box border (boxed mode); zero-init type = rounded. */
-    ScBorderStyle border;
-
-    /** Box width; `0` = full terminal width. */
-    int width;
+    /** Optional frame: render inside a panel (prompt = top title, range on the
+        bottom border) with a border, content background, inner padding and
+        outer margin. Zero-init = inline. `box.width` is the box width (`0` =
+        full terminal width). @see ScBoxStyle */
+    ScBoxStyle box;
 
     /** Custom key shortcuts; borrowed, must outlive the call.
         @see sparcli_shortcut.h */

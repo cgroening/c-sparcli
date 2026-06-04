@@ -23,8 +23,10 @@ typedef struct ScInputTheme {
     /** Default highlight color. */
     ScColor accent;
 
-    /** Default box border (text/password boxed mode). */
-    ScBorderStyle border;
+    /** Default box framing (border, content background, padding, margin, width)
+        for every widget's `box` field. Each sub-field is inherited only when
+        the per-call `box` leaves it zero-init. @see ScBoxStyle */
+    ScBoxStyle box;
 
     /** Default prompt/heading style. */
     ScTextStyle prompt_style;

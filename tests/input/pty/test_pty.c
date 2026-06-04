@@ -434,6 +434,44 @@ static int child_case(int c) {
             sc_history_free(h);
             return ok ? 0 : 1;
         }
+        case 30: {
+            /* Boxed select: a framed list with bg + padding still submits the
+               highlighted index (exercises sc_box_wrap under ASan/UBSan). */
+            ScSelect *sl = sc_select_new((ScSelectOpts){
+                .prompt = "Pick",
+                .box = {
+                    .enabled = true, .width = 30,
+                    .border = { .type = SC_BORDER_DOUBLE },
+                    .bg = SC_ANSI_COLOR_BLUE,
+                    .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },
+                    .margin = { .left = 1 },
+                } });
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            sc_select_add(sl, "c");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            int ok = (s == SC_INPUT_OK && idx[0] == 1);
+            sc_select_free(sl);
+            return ok ? 0 : 1;
+        }
+        case 31: {
+            /* Boxed fuzzy list: framed finder still narrows + picks. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .prompt = "Find",
+                .box = {
+                    .enabled = true,
+                    .border = { .type = SC_BORDER_ROUNDED },
+                    .padding = { .left = 1, .right = 1 },
+                } });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -477,6 +515,8 @@ static const Case CASES[] = {
     { "history-edit-recalled", "\x1b[A -a\r" },    /* up, then append " -a" */
     { "history-live-restore", "draft\x1b[A\x1b[B\r" },  /* up, down -> draft */
     { "history-no-auto-add", "new\r" },            /* submit is not recorded */
+    { "select-boxed", "\x1b[B\r" },                /* boxed list: down, enter */
+    { "fuzzy-boxed", "Ren\r" },                    /* boxed fuzzy: query, enter */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

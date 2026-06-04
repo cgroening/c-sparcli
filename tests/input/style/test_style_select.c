@@ -62,4 +62,27 @@ void style_select(void) {
     style_show("scroll indicator (max_visible 4, cursor on #6)",
                sc_select_frame(e));
     sc_select_free(e);
+
+    /* Boxed: rounded frame (default border), fixed width. */
+    ScSelect *f = build((ScSelectOpts){
+        .prompt = "Pick one",
+        .box = { .enabled = true, .width = 30 },
+    }, items, n);
+    style_show("boxed: default rounded frame, width 30", sc_select_frame(f));
+    sc_select_free(f);
+
+    /* Boxed: double border in cyan, blue content background, padding + margin. */
+    ScSelect *g = build((ScSelectOpts){
+        .prompt = "Pick one",
+        .box = {
+            .enabled = true, .width = 32,
+            .border = { .type = SC_BORDER_DOUBLE, .color = SC_ANSI_COLOR_CYAN },
+            .bg = SC_ANSI_COLOR_BLUE,
+            .padding = { .top = 1, .right = 2, .bottom = 1, .left = 2 },
+            .margin = { .left = 2 },
+        },
+    }, items, n);
+    style_show("boxed: double cyan border, blue bg, padding 1/2, margin l2",
+               sc_select_frame(g));
+    sc_select_free(g);
 }

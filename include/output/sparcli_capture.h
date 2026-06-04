@@ -50,6 +50,17 @@ ScRendered *sc_capture_panel_str(const char *content, ScPanelOpts opts);
 /** Captures a rich-text panel rendering. See `sc_capture_str`. */
 ScRendered *sc_capture_panel_text(const ScText *content, ScPanelOpts opts);
 
+/**
+ * Frames an already-captured `ScRendered` inside a panel. The rendered lines
+ * (which keep their own ANSI styling) become the panel content verbatim - they
+ * are treated as trusted, library-generated text and are NOT re-sanitized, so
+ * embedded colors survive. Use it to put a border / background / padding around
+ * any captured widget. See `sc_capture_str` for the return contract.
+ */
+ScRendered *sc_capture_panel_rendered(
+    const ScRendered *content, ScPanelOpts opts
+);
+
 /** Captures a horizontal rule with a plain-string title. */
 ScRendered *sc_capture_rule_str(const char *title, ScRuleOpts opts);
 

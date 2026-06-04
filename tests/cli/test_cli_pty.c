@@ -127,6 +127,11 @@ static const Case CASES[] = {
     { .name = "select-accent-flag", .args = { "select", "--accent",
                                               "magenta", "a", "b" },
       .keys = "\r", .want_stdout = "a\n", .want_exit = 0 },
+    /* boxed frame + content background + padding still returns the raw value */
+    { .name = "select-boxed-box",
+      .args = { "select", "--boxed", "--border", "double", "--bg", "blue",
+                "--padding", "1", "a", "b" },
+      .keys = "\x1b[B\r", .want_stdout = "b\n", .want_exit = 0 },
     /* --arrow-nav: Right submits like Enter, Left exits with code 3 (back) */
     { .name = "select-marker-style",
       .args = { "select", "--marker", "> ", "--style", "selected=bold green",
@@ -146,6 +151,10 @@ static const Case CASES[] = {
     { .name = "fuzzy-stdin-items", .args = { "fuzzy" },
       .stdin_data = "apple\nbanana\ncherry\n",
       .keys = "\r", .want_stdout = "apple\n", .want_exit = 0 },
+    /* boxed fuzzy with a content background still substitutes the raw value */
+    { .name = "fuzzy-boxed-bg",
+      .args = { "fuzzy", "--boxed", "--bg", "magenta", "Groceries", "Rent" },
+      .keys = "Ren\r", .want_stdout = "Rent\n", .want_exit = 0 },
     { .name = "fuzzy-tsv-table", .args = { "fuzzy", "--tsv", "--header-row" },
       .stdin_data = "Tool\tLang\nrich\tPython\ngum\tGo\nsparcli\tC\n",
       .keys = "gum\r", .want_stdout = "gum\n", .want_exit = 0 },

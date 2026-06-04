@@ -42,8 +42,8 @@ static void run_stepper(void) {
             .max      = 99,
             .step     = 1,
             .decimals = 0,
-            .boxed    = true,    // panel frame; range shown bottom-right
-            .width    = 28,
+            .box.enabled = true, // panel frame; range shown bottom-right
+            .box.width   = 28,
         });
 
     if (status == SC_INPUT_OK) {

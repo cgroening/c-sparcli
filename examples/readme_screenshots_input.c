@@ -152,27 +152,27 @@ static void hero_row_choices(void) {
 static void hero_row_fields(void) {
     ScRendered *r_text = sc_text_entry_frame(&(ScTextEntryCfg){
         .prompt = "Service", .initial = "api-gateway",
-        .boxed = true, .width = 22, .hint_layout = SC_HINT_STACKED });
+        .box.enabled = true, .box.width = 22, .hint_layout = SC_HINT_STACKED });
 
     ScRendered *r_password = sc_text_entry_frame(&(ScTextEntryCfg){
         .prompt = "Password", .initial = "hunter2", .mask = "*",
-        .boxed = true, .width = 18, .hint_layout = SC_HINT_STACKED });
+        .box.enabled = true, .box.width = 18, .hint_layout = SC_HINT_STACKED });
 
     ScRendered *r_number = sc_number_frame("Replicas", 3,
-        (ScNumberOpts){ .min = 1, .max = 10, .boxed = true, .width = 16,
+        (ScNumberOpts){ .min = 1, .max = 10, .box.enabled = true, .box.width = 16,
                         .hint_layout = SC_HINT_STACKED });
 
     // Empty field: shows the dim placeholder.
     ScRendered *r_email = sc_text_entry_frame(&(ScTextEntryCfg){
         .prompt = "Email", .placeholder = "you@example.com",
-        .boxed = true, .width = 24, .hint_layout = SC_HINT_STACKED });
+        .box.enabled = true, .box.width = 24, .hint_layout = SC_HINT_STACKED });
 
     // Typed prefix + a matching suggestion: shows the autocomplete ghost.
     const char *regions[] = { "eu-central-1" };
     ScRendered *r_region = sc_text_entry_frame(&(ScTextEntryCfg){
         .prompt = "Region", .initial = "eu-",
         .suggestions = regions, .n_suggestions = 1,
-        .boxed = true, .width = 24, .hint_layout = SC_HINT_STACKED });
+        .box.enabled = true, .box.width = 24, .hint_layout = SC_HINT_STACKED });
 
     ScColumns *cols = hero_columns();
     sc_columns_add_rendered(cols, r_text,     (ScColItem){ 0 });
@@ -197,8 +197,8 @@ static void hero_row_rich(void) {
     ScRendered *r_textarea = sc_textarea_frame("Notes",
         "first line\nsecond line\nthird line",
         (ScTextareaOpts){
-            .boxed = true, .width = 28,
-            .border = {
+            .box.enabled = true, .box.width = 28,
+            .box.border = {
                 .type = SC_BORDER_ROUNDED, .color = SC_ANSI_COLOR_GREEN
             },
             .prompt_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN,
@@ -277,7 +277,7 @@ static void gallery_number(void) {
 static void gallery_textarea(void) {
     show("textarea - multi-line, boxed",
         sc_textarea_frame("Notes", "first line\nsecond line\nthird line",
-            (ScTextareaOpts){ .boxed = true, .width = 36 }));
+            (ScTextareaOpts){ .box.enabled = true, .box.width = 36 }));
 }
 
 static void gallery_select(void) {

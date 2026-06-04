@@ -72,9 +72,16 @@ typedef struct ScFuzzyOpts {
     /** Other-row prefix; `NULL` = "  ". */
     const char *marker;
 
+    /** Optional frame: render the finder (query + results) inside a panel with
+        a border, content background, inner padding and outer margin. Zero-init
+        = inline (no frame). The key-hint footer sits below the frame.
+        @see ScBoxStyle */
+    ScBoxStyle box;
+
     /**
      * Table-view opts (table mode); zero-init = single border + bold header.
-     * The cursor row is highlighted with `accent` regardless.
+     * The cursor row is highlighted with `accent` by default; set
+     * `selected_style.bg` to override the cursor-row background.
      */
     ScTableOpts table_opts;
 

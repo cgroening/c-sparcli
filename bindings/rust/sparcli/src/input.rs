@@ -5,7 +5,9 @@
 //! a read error.
 
 use crate::error::{Error, Result};
-use crate::style::{cstring, BorderStyle, Color, HintLayout, HintPos, Style};
+use crate::style::{
+    cstring, BorderStyle, BoxStyle, Color, HintLayout, HintPos, Style,
+};
 use crate::text::Text;
 use sparcli_sys as ffi;
 
@@ -221,6 +223,7 @@ pub struct ConfirmOpts<'a> {
     pub no_label: Option<String>,
     pub accent: Color,
     pub prompt_style: Style,
+    pub box_: BoxStyle,
     pub hide_summary: bool,
     pub hint_layout: HintLayout,
     pub hint_pos: HintPos,
@@ -239,6 +242,11 @@ impl<'a> ConfirmOpts<'a> {
         self.accent = c;
         self
     }
+    /// Frame the question in a panel.
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
+        self
+    }
     pub fn shortcuts(mut self, s: &'a Shortcuts) -> Self {
         self.shortcuts = Some(s);
         self
@@ -254,6 +262,7 @@ pub fn confirm(question: &str, opts: ConfirmOpts) -> Result<Option<bool>> {
     o.yes_label = yes.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     o.no_label = no.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     o.accent = opts.accent.raw();
+    o.box_ = opts.box_.raw();
     o.prompt_style = opts.prompt_style.raw();
     o.hide_summary = opts.hide_summary;
     o.hint_layout = opts.hint_layout.raw();
@@ -528,9 +537,7 @@ pub struct TextInputOpts<'a> {
     pub hide_summary: bool,
     pub max_chars: i32,
     pub hide_char_count: bool,
-    pub boxed: bool,
-    pub border: BorderStyle,
-    pub width: i32,
+    pub box_: BoxStyle,
     pub char_filter: Option<CharFilter>,
     pub suggestions: Vec<String>,
     pub suggest: SuggestOpts,
@@ -562,9 +569,15 @@ impl<'a> TextInputOpts<'a> {
         self.max_chars = n;
         self
     }
+    /// Frame the field in a panel with the given width (`0` = terminal width).
     pub fn boxed(mut self, w: i32) -> Self {
-        self.boxed = true;
-        self.width = w;
+        self.box_.enabled = true;
+        self.box_.width = w;
+        self
+    }
+    /// Set the full box style (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
         self
     }
     pub fn char_filter(mut self, f: CharFilter) -> Self {
@@ -631,9 +644,7 @@ pub fn text_input(prompt: &str, opts: TextInputOpts) -> Result<Option<String>> {
     o.hide_summary = opts.hide_summary;
     o.max_chars = opts.max_chars;
     o.hide_char_count = opts.hide_char_count;
-    o.boxed = opts.boxed;
-    o.border = opts.border.raw();
-    o.width = opts.width;
+    o.box_ = opts.box_.raw();
     o.hint_layout = opts.hint_layout.raw();
     o.hint_pos = opts.hint_pos.raw();
     if let Some(f) = opts.char_filter {
@@ -683,8 +694,7 @@ pub struct PasswordOpts {
     pub hide_summary: bool,
     pub max_chars: i32,
     pub hide_char_count: bool,
-    pub boxed: bool,
-    pub width: i32,
+    pub box_: BoxStyle,
 }
 
 impl PasswordOpts {
@@ -693,6 +703,17 @@ impl PasswordOpts {
     }
     pub fn mask(mut self, m: impl Into<String>) -> Self {
         self.mask = Some(m.into());
+        self
+    }
+    /// Frame the field in a panel with the given width (`0` = terminal width).
+    pub fn boxed(mut self, w: i32) -> Self {
+        self.box_.enabled = true;
+        self.box_.width = w;
+        self
+    }
+    /// Set the full box style (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
         self
     }
 }
@@ -712,8 +733,7 @@ pub fn password_input(
     o.hide_summary = opts.hide_summary;
     o.max_chars = opts.max_chars;
     o.hide_char_count = opts.hide_char_count;
-    o.boxed = opts.boxed;
-    o.width = opts.width;
+    o.box_ = opts.box_.raw();
     let mut out: *mut c_char = std::ptr::null_mut();
     let st = unsafe {
         ffi::sc_password_input(cstring(prompt).as_ptr(), &mut out, o)
@@ -742,8 +762,7 @@ pub struct NumberOpts {
     pub step: f64,
     pub decimals: i32,
     pub hide_summary: bool,
-    pub boxed: bool,
-    pub width: i32,
+    pub box_: BoxStyle,
     /// Decimal separator shown and accepted while editing; `'\0'` or `'.'`
     /// = period (default), `','` = comma.
     pub decimal_sep: char,
@@ -791,6 +810,17 @@ impl NumberOpts {
         self.decimal_sep = sep;
         self
     }
+    /// Frame the field in a panel with the given width (`0` = terminal width).
+    pub fn boxed(mut self, w: i32) -> Self {
+        self.box_.enabled = true;
+        self.box_.width = w;
+        self
+    }
+    /// Set the full box style (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
+        self
+    }
     pub fn calculator(mut self, on: bool) -> Self {
         self.calculator = on;
         self
@@ -812,8 +842,7 @@ impl NumberOpts {
         o.step = self.step;
         o.decimals = self.decimals;
         o.hide_summary = self.hide_summary;
-        o.boxed = self.boxed;
-        o.width = self.width;
+        o.box_ = self.box_.raw();
         o.decimal_sep = if self.decimal_sep == '\0' {
             0
         } else {
@@ -868,8 +897,7 @@ pub fn number_input_text(
 pub struct TextareaOpts {
     pub initial: Option<String>,
     pub placeholder: Option<String>,
-    pub boxed: bool,
-    pub width: i32,
+    pub box_: BoxStyle,
     pub external_editor: bool,
     pub editor: Option<String>,
     pub editor_key: Option<Chord>,
@@ -883,9 +911,15 @@ impl TextareaOpts {
         self.initial = Some(s.into());
         self
     }
+    /// Frame the editor in a panel with the given width (`0` = terminal width).
     pub fn boxed(mut self, w: i32) -> Self {
-        self.boxed = true;
-        self.width = w;
+        self.box_.enabled = true;
+        self.box_.width = w;
+        self
+    }
+    /// Set the full box style (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
         self
     }
     pub fn external_editor(mut self, on: bool) -> Self {
@@ -908,8 +942,7 @@ pub fn textarea(prompt: &str, opts: TextareaOpts) -> Result<Option<String>> {
     o.placeholder = placeholder
         .as_ref()
         .map_or(std::ptr::null(), |c| c.as_ptr());
-    o.boxed = opts.boxed;
-    o.width = opts.width;
+    o.box_ = opts.box_.raw();
     o.external_editor = opts.external_editor;
     o.editor = editor.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     if let Some(k) = opts.editor_key {
@@ -936,6 +969,7 @@ pub struct SelectOpts {
     pub multi: bool,
     pub max_visible: i32,
     pub accent: Color,
+    pub box_: BoxStyle,
 }
 
 impl SelectOpts {
@@ -952,6 +986,15 @@ impl SelectOpts {
     }
     pub fn max_visible(mut self, n: i32) -> Self {
         self.max_visible = n;
+        self
+    }
+    pub fn accent(mut self, c: Color) -> Self {
+        self.accent = c;
+        self
+    }
+    /// Frame the list in a panel (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
         self
     }
 }
@@ -971,6 +1014,7 @@ impl Select {
         o.multi = opts.multi;
         o.max_visible = opts.max_visible;
         o.accent = opts.accent.raw();
+        o.box_ = opts.box_.raw();
         let ptr = unsafe { ffi::sc_select_new(o) };
         assert!(!ptr.is_null(), "sc_select_new: out of memory");
         Select {
@@ -1075,6 +1119,7 @@ pub struct FuzzyOpts {
     pub prompt: Option<String>,
     pub max_visible: i32,
     pub accent: Color,
+    pub box_: BoxStyle,
 }
 
 impl FuzzyOpts {
@@ -1083,6 +1128,15 @@ impl FuzzyOpts {
     }
     pub fn prompt(mut self, s: impl Into<String>) -> Self {
         self.prompt = Some(s.into());
+        self
+    }
+    pub fn accent(mut self, c: Color) -> Self {
+        self.accent = c;
+        self
+    }
+    /// Frame the finder in a panel (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
         self
     }
 }
@@ -1100,6 +1154,7 @@ impl Fuzzy {
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.max_visible = opts.max_visible;
         o.accent = opts.accent.raw();
+        o.box_ = opts.box_.raw();
         let ptr = unsafe { ffi::sc_fuzzy_new(o) };
         assert!(!ptr.is_null(), "sc_fuzzy_new: out of memory");
         Fuzzy {
@@ -1155,6 +1210,7 @@ pub struct DatePickerOpts {
     pub prompt: Option<String>,
     pub week_start: WeekStart,
     pub accent: Color,
+    pub box_: BoxStyle,
 }
 
 impl DatePickerOpts {
@@ -1169,6 +1225,15 @@ impl DatePickerOpts {
         self.week_start = w;
         self
     }
+    pub fn accent(mut self, c: Color) -> Self {
+        self.accent = c;
+        self
+    }
+    /// Frame the calendar in a panel (border, background, padding, margin).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
+        self
+    }
 }
 
 /// Month-grid date picker. `seed` defaults to today when `None`.
@@ -1181,6 +1246,7 @@ pub fn datepicker(
     o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     o.week_start = opts.week_start.raw();
     o.accent = opts.accent.raw();
+    o.box_ = opts.box_.raw();
 
     let mut tm: ffi::tm = unsafe { mem::zeroed() };
     if let Some(d) = seed {

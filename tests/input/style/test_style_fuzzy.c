@@ -72,4 +72,39 @@ void style_fuzzy(void) {
     style_show("fuzzy table: 'stat' highlights Static; cursor row black text",
                sc_fuzzy_frame(f, "stat"));
     sc_fuzzy_free(f);
+
+    /* Table view, cursor-row background overridden via selected_style.bg. */
+    ScFuzzy *g = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Language", .table = true,
+        .headers = lang_headers, .n_cols = 2,
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_MAGENTA } });
+    sc_fuzzy_add_row(g, (const char *[]){ "C",      "Static"  }, 2);
+    sc_fuzzy_add_row(g, (const char *[]){ "Rust",   "Static"  }, 2);
+    style_show("fuzzy table: cursor row white-on-magenta (selected_style.bg)",
+               sc_fuzzy_frame(g, ""));
+    sc_fuzzy_free(g);
+
+    /* Boxed list view: rounded frame, fixed width. */
+    ScFuzzy *h = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .box = { .enabled = true, .width = 30 } });
+    for (size_t i = 0; i < n; i++) { sc_fuzzy_add(h, cities[i]); }
+    style_show("fuzzy list: boxed rounded frame, width 30",
+               sc_fuzzy_frame(h, "to"));
+    sc_fuzzy_free(h);
+
+    /* Boxed table view: thick border + content background + padding. */
+    ScFuzzy *i = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Search", .table = true, .headers = headers, .n_cols = 3,
+        .box = {
+            .enabled = true,
+            .border = { .type = SC_BORDER_THICK, .color = SC_ANSI_COLOR_GREEN },
+            .bg = SC_ANSI_COLOR_BLACK,
+            .padding = { .left = 2, .right = 2 },
+        } });
+    sc_fuzzy_add_row(i, (const char *[]){ "Tokyo",  "Japan", "37.4" }, 3);
+    sc_fuzzy_add_row(i, (const char *[]){ "London", "UK",    "9.0"  }, 3);
+    style_show("fuzzy table: boxed thick green border, black bg, padding h2",
+               sc_fuzzy_frame(i, ""));
+    sc_fuzzy_free(i);
 }

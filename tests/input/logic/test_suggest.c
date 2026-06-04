@@ -155,7 +155,7 @@ static void check_dropdown_inactive_cases(void) {
 /** Boxed mode stacks the dropdown beneath the panel. */
 static void check_boxed_dropdown(void) {
     ScRendered *frame = sc_text_entry_frame(&(ScTextEntryCfg){
-        .prompt = "Cmd", .initial = "ch", .boxed = true, .width = 30,
+        .prompt = "Cmd", .initial = "ch", .box.enabled = true, .box.width = 30,
         .suggestions = COMMANDS, .n_suggestions = N_COMMANDS,
         .suggest = { .mode = SC_SUGGEST_DROPDOWN,
                      .border = { .type = SC_BORDER_ROUNDED } },

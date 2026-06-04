@@ -275,6 +275,34 @@ const _: () = {
         [::std::mem::offset_of!(ScBorderStyle, color) - 4usize];
     ["Offset of field: ScBorderStyle::bg"][::std::mem::offset_of!(ScBorderStyle, bg) - 12usize];
 };
+#[doc = " Shared \"framed box\" styling used by the input widgets: render a widget\n inside a panel with an optional border, content background, inner padding\n and outer margin. Zero-init (`ScBoxStyle{0}`) means \"no frame\" - the widget\n renders inline as before.\n\n The same struct is embedded in every `Sc*Opts` of the input layer and in\n `ScInputTheme`, so box styling is configured uniformly across widgets and\n can be themed once for the whole process."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScBoxStyle {
+    #[doc = " Render the widget inside a panel frame."]
+    pub enabled: bool,
+    #[doc = " Frame border (type/color/bg); when `enabled` and `type` is\n`SC_BORDER_NONE`, it defaults to `SC_BORDER_ROUNDED`."]
+    pub border: ScBorderStyle,
+    #[doc = " Content-area background color; zero-init = none."]
+    pub bg: ScColor,
+    #[doc = " Inner padding (top/right/bottom/left). An all-zero value selects the\nbuilt-in default of one column left and right; set any edge to override\nit (use e.g. a non-default edge to opt out of the default entirely)."]
+    pub padding: ScEdges,
+    #[doc = " Outer margin around the frame; zero-init = none."]
+    pub margin: ScEdges,
+    #[doc = " Frame width in columns; `0` = full terminal width. For text-entry\nwidgets this is also the field width in inline (non-boxed) mode."]
+    pub width: ::std::os::raw::c_int,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScBoxStyle"][::std::mem::size_of::<ScBoxStyle>() - 68usize];
+    ["Alignment of ScBoxStyle"][::std::mem::align_of::<ScBoxStyle>() - 4usize];
+    ["Offset of field: ScBoxStyle::enabled"][::std::mem::offset_of!(ScBoxStyle, enabled) - 0usize];
+    ["Offset of field: ScBoxStyle::border"][::std::mem::offset_of!(ScBoxStyle, border) - 4usize];
+    ["Offset of field: ScBoxStyle::bg"][::std::mem::offset_of!(ScBoxStyle, bg) - 24usize];
+    ["Offset of field: ScBoxStyle::padding"][::std::mem::offset_of!(ScBoxStyle, padding) - 32usize];
+    ["Offset of field: ScBoxStyle::margin"][::std::mem::offset_of!(ScBoxStyle, margin) - 48usize];
+    ["Offset of field: ScBoxStyle::width"][::std::mem::offset_of!(ScBoxStyle, width) - 64usize];
+};
 #[doc = " All visual properties of a component title: text, rendering, alignment,\n padding and position. Used directly by ScRuleOpts (pos is ignored for\n rules) and by panels/tables."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1614,6 +1642,13 @@ extern "C" {
     pub fn sc_capture_panel_text(content: *const ScText, opts: ScPanelOpts) -> *mut ScRendered;
 }
 extern "C" {
+    #[doc = " Frames an already-captured `ScRendered` inside a panel. The rendered lines\n (which keep their own ANSI styling) become the panel content verbatim - they\n are treated as trusted, library-generated text and are NOT re-sanitized, so\n embedded colors survive. Use it to put a border / background / padding around\n any captured widget. See `sc_capture_str` for the return contract."]
+    pub fn sc_capture_panel_rendered(
+        content: *const ScRendered,
+        opts: ScPanelOpts,
+    ) -> *mut ScRendered;
+}
+extern "C" {
     #[doc = " Captures a horizontal rule with a plain-string title."]
     pub fn sc_capture_rule_str(
         title: *const ::std::os::raw::c_char,
@@ -1969,7 +2004,7 @@ extern "C" {
     pub fn sc_key_alt(letter: ::std::os::raw::c_char) -> ScKeyChord;
 }
 extern "C" {
-    #[doc = " Builds a chord for a named (non-character) key, e.g. SC_KEY_LEFT."]
+    #[doc = " Builds a chord for a named (non-character) key, e.g.\n `sc_key_special(SC_KEY_LEFT)`. Use it to bind arrows, Enter, Tab, etc. - the\n letter builders above only cover Ctrl/Alt + character keys.\n\n @param key  The `ScKeyType` to match (`SC_KEY_LEFT`, `SC_KEY_ENTER`, …).\n @return     A chord with no modifiers that matches that key."]
     pub fn sc_key_special(key: ScKeyType) -> ScKeyChord;
 }
 extern "C" {
@@ -1990,8 +2025,8 @@ extern "C" {
 pub struct ScInputTheme {
     #[doc = " Default highlight color."]
     pub accent: ScColor,
-    #[doc = " Default box border (text/password boxed mode)."]
-    pub border: ScBorderStyle,
+    #[doc = " Default box framing (border, content background, padding, margin, width)\nfor every widget's `box` field. Each sub-field is inherited only when\nthe per-call `box` leaves it zero-init. @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Default prompt/heading style."]
     pub prompt_style: ScTextStyle,
     #[doc = " Default selected/cursor-row style."]
@@ -2021,38 +2056,37 @@ pub struct ScInputTheme {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScInputTheme"][::std::mem::size_of::<ScInputTheme>() - 208usize];
+    ["Size of ScInputTheme"][::std::mem::size_of::<ScInputTheme>() - 256usize];
     ["Alignment of ScInputTheme"][::std::mem::align_of::<ScInputTheme>() - 8usize];
     ["Offset of field: ScInputTheme::accent"]
         [::std::mem::offset_of!(ScInputTheme, accent) - 0usize];
-    ["Offset of field: ScInputTheme::border"]
-        [::std::mem::offset_of!(ScInputTheme, border) - 8usize];
+    ["Offset of field: ScInputTheme::box_"][::std::mem::offset_of!(ScInputTheme, box_) - 8usize];
     ["Offset of field: ScInputTheme::prompt_style"]
-        [::std::mem::offset_of!(ScInputTheme, prompt_style) - 28usize];
+        [::std::mem::offset_of!(ScInputTheme, prompt_style) - 76usize];
     ["Offset of field: ScInputTheme::selected_style"]
-        [::std::mem::offset_of!(ScInputTheme, selected_style) - 48usize];
+        [::std::mem::offset_of!(ScInputTheme, selected_style) - 96usize];
     ["Offset of field: ScInputTheme::cursor_style"]
-        [::std::mem::offset_of!(ScInputTheme, cursor_style) - 68usize];
+        [::std::mem::offset_of!(ScInputTheme, cursor_style) - 116usize];
     ["Offset of field: ScInputTheme::count_style"]
-        [::std::mem::offset_of!(ScInputTheme, count_style) - 88usize];
+        [::std::mem::offset_of!(ScInputTheme, count_style) - 136usize];
     ["Offset of field: ScInputTheme::summary_style"]
-        [::std::mem::offset_of!(ScInputTheme, summary_style) - 108usize];
+        [::std::mem::offset_of!(ScInputTheme, summary_style) - 156usize];
     ["Offset of field: ScInputTheme::error_style"]
-        [::std::mem::offset_of!(ScInputTheme, error_style) - 128usize];
+        [::std::mem::offset_of!(ScInputTheme, error_style) - 176usize];
     ["Offset of field: ScInputTheme::hint_style"]
-        [::std::mem::offset_of!(ScInputTheme, hint_style) - 148usize];
+        [::std::mem::offset_of!(ScInputTheme, hint_style) - 196usize];
     ["Offset of field: ScInputTheme::cursor_marker"]
-        [::std::mem::offset_of!(ScInputTheme, cursor_marker) - 168usize];
+        [::std::mem::offset_of!(ScInputTheme, cursor_marker) - 216usize];
     ["Offset of field: ScInputTheme::marker"]
-        [::std::mem::offset_of!(ScInputTheme, marker) - 176usize];
+        [::std::mem::offset_of!(ScInputTheme, marker) - 224usize];
     ["Offset of field: ScInputTheme::checkbox_on"]
-        [::std::mem::offset_of!(ScInputTheme, checkbox_on) - 184usize];
+        [::std::mem::offset_of!(ScInputTheme, checkbox_on) - 232usize];
     ["Offset of field: ScInputTheme::checkbox_off"]
-        [::std::mem::offset_of!(ScInputTheme, checkbox_off) - 192usize];
+        [::std::mem::offset_of!(ScInputTheme, checkbox_off) - 240usize];
     ["Offset of field: ScInputTheme::hint_layout"]
-        [::std::mem::offset_of!(ScInputTheme, hint_layout) - 200usize];
+        [::std::mem::offset_of!(ScInputTheme, hint_layout) - 248usize];
     ["Offset of field: ScInputTheme::hint_pos"]
-        [::std::mem::offset_of!(ScInputTheme, hint_pos) - 204usize];
+        [::std::mem::offset_of!(ScInputTheme, hint_pos) - 252usize];
 };
 extern "C" {
     #[doc = " Installs the process-wide input theme. The struct and its string fields\n (markers, checkbox glyphs) are copied, so the caller's buffers only need\n to live until this call returns. Pass `NULL` to clear it and revert to\n the built-in defaults. Not thread-safe."]
@@ -2142,6 +2176,8 @@ pub struct ScConfirmOpts {
     pub selected_style: ScTextStyle,
     #[doc = " Style of the unselected option; zero-init = dim."]
     pub unselected_style: ScTextStyle,
+    #[doc = " Optional frame: render the question inside a panel with a border,\ncontent background, inner padding and outer margin. Zero-init = inline\n(no frame). The key-hint footer sits below the frame. @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Style of the persistent summary line."]
     pub summary_style: ScTextStyle,
     #[doc = " Suppress the post-confirm summary line."]
@@ -2167,7 +2203,7 @@ pub struct ScConfirmOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScConfirmOpts"][::std::mem::size_of::<ScConfirmOpts>() - 200usize];
+    ["Size of ScConfirmOpts"][::std::mem::size_of::<ScConfirmOpts>() - 264usize];
     ["Alignment of ScConfirmOpts"][::std::mem::align_of::<ScConfirmOpts>() - 8usize];
     ["Offset of field: ScConfirmOpts::default_yes"]
         [::std::mem::offset_of!(ScConfirmOpts, default_yes) - 0usize];
@@ -2183,28 +2219,29 @@ const _: () = {
         [::std::mem::offset_of!(ScConfirmOpts, selected_style) - 52usize];
     ["Offset of field: ScConfirmOpts::unselected_style"]
         [::std::mem::offset_of!(ScConfirmOpts, unselected_style) - 72usize];
+    ["Offset of field: ScConfirmOpts::box_"][::std::mem::offset_of!(ScConfirmOpts, box_) - 92usize];
     ["Offset of field: ScConfirmOpts::summary_style"]
-        [::std::mem::offset_of!(ScConfirmOpts, summary_style) - 92usize];
+        [::std::mem::offset_of!(ScConfirmOpts, summary_style) - 160usize];
     ["Offset of field: ScConfirmOpts::hide_summary"]
-        [::std::mem::offset_of!(ScConfirmOpts, hide_summary) - 112usize];
+        [::std::mem::offset_of!(ScConfirmOpts, hide_summary) - 180usize];
     ["Offset of field: ScConfirmOpts::hint"]
-        [::std::mem::offset_of!(ScConfirmOpts, hint) - 120usize];
+        [::std::mem::offset_of!(ScConfirmOpts, hint) - 184usize];
     ["Offset of field: ScConfirmOpts::hint_layout"]
-        [::std::mem::offset_of!(ScConfirmOpts, hint_layout) - 128usize];
+        [::std::mem::offset_of!(ScConfirmOpts, hint_layout) - 192usize];
     ["Offset of field: ScConfirmOpts::hint_pos"]
-        [::std::mem::offset_of!(ScConfirmOpts, hint_pos) - 132usize];
+        [::std::mem::offset_of!(ScConfirmOpts, hint_pos) - 196usize];
     ["Offset of field: ScConfirmOpts::hint_style"]
-        [::std::mem::offset_of!(ScConfirmOpts, hint_style) - 136usize];
+        [::std::mem::offset_of!(ScConfirmOpts, hint_style) - 200usize];
     ["Offset of field: ScConfirmOpts::shortcuts"]
-        [::std::mem::offset_of!(ScConfirmOpts, shortcuts) - 160usize];
+        [::std::mem::offset_of!(ScConfirmOpts, shortcuts) - 224usize];
     ["Offset of field: ScConfirmOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScConfirmOpts, n_shortcuts) - 168usize];
+        [::std::mem::offset_of!(ScConfirmOpts, n_shortcuts) - 232usize];
     ["Offset of field: ScConfirmOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScConfirmOpts, out_shortcut_id) - 176usize];
+        [::std::mem::offset_of!(ScConfirmOpts, out_shortcut_id) - 240usize];
     ["Offset of field: ScConfirmOpts::prompt_text"]
-        [::std::mem::offset_of!(ScConfirmOpts, prompt_text) - 184usize];
+        [::std::mem::offset_of!(ScConfirmOpts, prompt_text) - 248usize];
     ["Offset of field: ScConfirmOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScConfirmOpts, prompt_markup) - 192usize];
+        [::std::mem::offset_of!(ScConfirmOpts, prompt_markup) - 256usize];
 };
 extern "C" {
     #[doc = " Prompts the user with a Yes/No question.\n\n Arrow keys / Tab / `h` / `l` move the selection; `y`/`n` pick directly;\n Enter confirms; Esc or Ctrl-C cancels.\n\n @param question  Prompt text. Must not be `NULL`.\n @param out       Receives the choice on `SC_INPUT_OK`; untouched otherwise.\n @param opts      Rendering options.\n @return          `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
@@ -2329,12 +2366,8 @@ pub struct ScTextInputOpts {
     pub hide_char_count: bool,
     #[doc = " Style of the character counter; zero-init = dim."]
     pub count_style: ScTextStyle,
-    #[doc = " Render the field inside a bordered panel: prompt as the top title,\n counter on the bottom-right border."]
-    pub boxed: bool,
-    #[doc = " Box border (boxed mode); zero-init type = rounded."]
-    pub border: ScBorderStyle,
-    #[doc = " Field width in columns; `0` = terminal width. Long values scroll\n horizontally. In boxed mode this is the panel width."]
-    pub width: ::std::os::raw::c_int,
+    #[doc = " Optional frame: render the field inside a bordered panel (prompt as the\n top title, counter on the bottom-right border) with a border, content\n background, inner padding and outer margin. Zero-init = inline (no frame).\n `box.width` is the field width in columns (`0` = terminal width); long\n values scroll horizontally, and in boxed mode it is the panel width.\n @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Key-hint footer; `NULL` = sensible default."]
     pub hint: *const ::std::os::raw::c_char,
     #[doc = " Key-hint footer layout: inline (default) / stacked / hidden."]
@@ -2380,7 +2413,7 @@ pub struct ScTextInputOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScTextInputOpts"][::std::mem::size_of::<ScTextInputOpts>() - 456usize];
+    ["Size of ScTextInputOpts"][::std::mem::size_of::<ScTextInputOpts>() - 496usize];
     ["Alignment of ScTextInputOpts"][::std::mem::align_of::<ScTextInputOpts>() - 8usize];
     ["Offset of field: ScTextInputOpts::initial"]
         [::std::mem::offset_of!(ScTextInputOpts, initial) - 0usize];
@@ -2404,54 +2437,50 @@ const _: () = {
         [::std::mem::offset_of!(ScTextInputOpts, hide_char_count) - 124usize];
     ["Offset of field: ScTextInputOpts::count_style"]
         [::std::mem::offset_of!(ScTextInputOpts, count_style) - 128usize];
-    ["Offset of field: ScTextInputOpts::boxed"]
-        [::std::mem::offset_of!(ScTextInputOpts, boxed) - 148usize];
-    ["Offset of field: ScTextInputOpts::border"]
-        [::std::mem::offset_of!(ScTextInputOpts, border) - 152usize];
-    ["Offset of field: ScTextInputOpts::width"]
-        [::std::mem::offset_of!(ScTextInputOpts, width) - 172usize];
+    ["Offset of field: ScTextInputOpts::box_"]
+        [::std::mem::offset_of!(ScTextInputOpts, box_) - 148usize];
     ["Offset of field: ScTextInputOpts::hint"]
-        [::std::mem::offset_of!(ScTextInputOpts, hint) - 176usize];
+        [::std::mem::offset_of!(ScTextInputOpts, hint) - 216usize];
     ["Offset of field: ScTextInputOpts::hint_layout"]
-        [::std::mem::offset_of!(ScTextInputOpts, hint_layout) - 184usize];
+        [::std::mem::offset_of!(ScTextInputOpts, hint_layout) - 224usize];
     ["Offset of field: ScTextInputOpts::hint_pos"]
-        [::std::mem::offset_of!(ScTextInputOpts, hint_pos) - 188usize];
+        [::std::mem::offset_of!(ScTextInputOpts, hint_pos) - 228usize];
     ["Offset of field: ScTextInputOpts::hint_style"]
-        [::std::mem::offset_of!(ScTextInputOpts, hint_style) - 192usize];
+        [::std::mem::offset_of!(ScTextInputOpts, hint_style) - 232usize];
     ["Offset of field: ScTextInputOpts::char_filter"]
-        [::std::mem::offset_of!(ScTextInputOpts, char_filter) - 216usize];
+        [::std::mem::offset_of!(ScTextInputOpts, char_filter) - 256usize];
     ["Offset of field: ScTextInputOpts::char_filter_ctx"]
-        [::std::mem::offset_of!(ScTextInputOpts, char_filter_ctx) - 224usize];
+        [::std::mem::offset_of!(ScTextInputOpts, char_filter_ctx) - 264usize];
     ["Offset of field: ScTextInputOpts::suggestions"]
-        [::std::mem::offset_of!(ScTextInputOpts, suggestions) - 232usize];
+        [::std::mem::offset_of!(ScTextInputOpts, suggestions) - 272usize];
     ["Offset of field: ScTextInputOpts::n_suggestions"]
-        [::std::mem::offset_of!(ScTextInputOpts, n_suggestions) - 240usize];
+        [::std::mem::offset_of!(ScTextInputOpts, n_suggestions) - 280usize];
     ["Offset of field: ScTextInputOpts::suggest"]
-        [::std::mem::offset_of!(ScTextInputOpts, suggest) - 248usize];
+        [::std::mem::offset_of!(ScTextInputOpts, suggest) - 288usize];
     ["Offset of field: ScTextInputOpts::validate"]
-        [::std::mem::offset_of!(ScTextInputOpts, validate) - 360usize];
+        [::std::mem::offset_of!(ScTextInputOpts, validate) - 400usize];
     ["Offset of field: ScTextInputOpts::validate_ctx"]
-        [::std::mem::offset_of!(ScTextInputOpts, validate_ctx) - 368usize];
+        [::std::mem::offset_of!(ScTextInputOpts, validate_ctx) - 408usize];
     ["Offset of field: ScTextInputOpts::shortcuts"]
-        [::std::mem::offset_of!(ScTextInputOpts, shortcuts) - 376usize];
+        [::std::mem::offset_of!(ScTextInputOpts, shortcuts) - 416usize];
     ["Offset of field: ScTextInputOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScTextInputOpts, n_shortcuts) - 384usize];
+        [::std::mem::offset_of!(ScTextInputOpts, n_shortcuts) - 424usize];
     ["Offset of field: ScTextInputOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScTextInputOpts, out_shortcut_id) - 392usize];
+        [::std::mem::offset_of!(ScTextInputOpts, out_shortcut_id) - 432usize];
     ["Offset of field: ScTextInputOpts::prompt_text"]
-        [::std::mem::offset_of!(ScTextInputOpts, prompt_text) - 400usize];
+        [::std::mem::offset_of!(ScTextInputOpts, prompt_text) - 440usize];
     ["Offset of field: ScTextInputOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScTextInputOpts, prompt_markup) - 408usize];
+        [::std::mem::offset_of!(ScTextInputOpts, prompt_markup) - 448usize];
     ["Offset of field: ScTextInputOpts::external_editor"]
-        [::std::mem::offset_of!(ScTextInputOpts, external_editor) - 409usize];
+        [::std::mem::offset_of!(ScTextInputOpts, external_editor) - 449usize];
     ["Offset of field: ScTextInputOpts::editor"]
-        [::std::mem::offset_of!(ScTextInputOpts, editor) - 416usize];
+        [::std::mem::offset_of!(ScTextInputOpts, editor) - 456usize];
     ["Offset of field: ScTextInputOpts::editor_key"]
-        [::std::mem::offset_of!(ScTextInputOpts, editor_key) - 424usize];
+        [::std::mem::offset_of!(ScTextInputOpts, editor_key) - 464usize];
     ["Offset of field: ScTextInputOpts::history"]
-        [::std::mem::offset_of!(ScTextInputOpts, history) - 440usize];
+        [::std::mem::offset_of!(ScTextInputOpts, history) - 480usize];
     ["Offset of field: ScTextInputOpts::no_history_add"]
-        [::std::mem::offset_of!(ScTextInputOpts, no_history_add) - 448usize];
+        [::std::mem::offset_of!(ScTextInputOpts, no_history_add) - 488usize];
 };
 extern "C" {
     #[doc = " Prompts for a single line of text.\n\n On `SC_INPUT_OK`, `*out` receives a heap-allocated string the caller must\n `free()`. `*out` is not modified on cancel/error.\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the entered string (heap; caller frees).\n @param opts    Rendering and validation options."]
@@ -2485,12 +2514,8 @@ pub struct ScPasswordOpts {
     pub hide_char_count: bool,
     #[doc = " Style of the character counter; zero-init = dim."]
     pub count_style: ScTextStyle,
-    #[doc = " Render the field inside a bordered panel."]
-    pub boxed: bool,
-    #[doc = " Box border (boxed mode); zero-init type = rounded."]
-    pub border: ScBorderStyle,
-    #[doc = " Field width; `0` = terminal width (boxed: panel width)."]
-    pub width: ::std::os::raw::c_int,
+    #[doc = " Optional frame: render the field inside a bordered panel with a border,\ncontent background, inner padding and outer margin. Zero-init = inline.\n`box.width` is the field width (`0` = terminal width; boxed = panel\nwidth). @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Key-hint footer; `NULL` = sensible default."]
     pub hint: *const ::std::os::raw::c_char,
     #[doc = " Key-hint footer layout: inline (default) / stacked / hidden."]
@@ -2520,7 +2545,7 @@ pub struct ScPasswordOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScPasswordOpts"][::std::mem::size_of::<ScPasswordOpts>() - 272usize];
+    ["Size of ScPasswordOpts"][::std::mem::size_of::<ScPasswordOpts>() - 312usize];
     ["Alignment of ScPasswordOpts"][::std::mem::align_of::<ScPasswordOpts>() - 8usize];
     ["Offset of field: ScPasswordOpts::placeholder"]
         [::std::mem::offset_of!(ScPasswordOpts, placeholder) - 0usize];
@@ -2542,38 +2567,34 @@ const _: () = {
         [::std::mem::offset_of!(ScPasswordOpts, hide_char_count) - 104usize];
     ["Offset of field: ScPasswordOpts::count_style"]
         [::std::mem::offset_of!(ScPasswordOpts, count_style) - 108usize];
-    ["Offset of field: ScPasswordOpts::boxed"]
-        [::std::mem::offset_of!(ScPasswordOpts, boxed) - 128usize];
-    ["Offset of field: ScPasswordOpts::border"]
-        [::std::mem::offset_of!(ScPasswordOpts, border) - 132usize];
-    ["Offset of field: ScPasswordOpts::width"]
-        [::std::mem::offset_of!(ScPasswordOpts, width) - 152usize];
+    ["Offset of field: ScPasswordOpts::box_"]
+        [::std::mem::offset_of!(ScPasswordOpts, box_) - 128usize];
     ["Offset of field: ScPasswordOpts::hint"]
-        [::std::mem::offset_of!(ScPasswordOpts, hint) - 160usize];
+        [::std::mem::offset_of!(ScPasswordOpts, hint) - 200usize];
     ["Offset of field: ScPasswordOpts::hint_layout"]
-        [::std::mem::offset_of!(ScPasswordOpts, hint_layout) - 168usize];
+        [::std::mem::offset_of!(ScPasswordOpts, hint_layout) - 208usize];
     ["Offset of field: ScPasswordOpts::hint_pos"]
-        [::std::mem::offset_of!(ScPasswordOpts, hint_pos) - 172usize];
+        [::std::mem::offset_of!(ScPasswordOpts, hint_pos) - 212usize];
     ["Offset of field: ScPasswordOpts::hint_style"]
-        [::std::mem::offset_of!(ScPasswordOpts, hint_style) - 176usize];
+        [::std::mem::offset_of!(ScPasswordOpts, hint_style) - 216usize];
     ["Offset of field: ScPasswordOpts::char_filter"]
-        [::std::mem::offset_of!(ScPasswordOpts, char_filter) - 200usize];
+        [::std::mem::offset_of!(ScPasswordOpts, char_filter) - 240usize];
     ["Offset of field: ScPasswordOpts::char_filter_ctx"]
-        [::std::mem::offset_of!(ScPasswordOpts, char_filter_ctx) - 208usize];
+        [::std::mem::offset_of!(ScPasswordOpts, char_filter_ctx) - 248usize];
     ["Offset of field: ScPasswordOpts::validate"]
-        [::std::mem::offset_of!(ScPasswordOpts, validate) - 216usize];
+        [::std::mem::offset_of!(ScPasswordOpts, validate) - 256usize];
     ["Offset of field: ScPasswordOpts::validate_ctx"]
-        [::std::mem::offset_of!(ScPasswordOpts, validate_ctx) - 224usize];
+        [::std::mem::offset_of!(ScPasswordOpts, validate_ctx) - 264usize];
     ["Offset of field: ScPasswordOpts::shortcuts"]
-        [::std::mem::offset_of!(ScPasswordOpts, shortcuts) - 232usize];
+        [::std::mem::offset_of!(ScPasswordOpts, shortcuts) - 272usize];
     ["Offset of field: ScPasswordOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScPasswordOpts, n_shortcuts) - 240usize];
+        [::std::mem::offset_of!(ScPasswordOpts, n_shortcuts) - 280usize];
     ["Offset of field: ScPasswordOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScPasswordOpts, out_shortcut_id) - 248usize];
+        [::std::mem::offset_of!(ScPasswordOpts, out_shortcut_id) - 288usize];
     ["Offset of field: ScPasswordOpts::prompt_text"]
-        [::std::mem::offset_of!(ScPasswordOpts, prompt_text) - 256usize];
+        [::std::mem::offset_of!(ScPasswordOpts, prompt_text) - 296usize];
     ["Offset of field: ScPasswordOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScPasswordOpts, prompt_markup) - 264usize];
+        [::std::mem::offset_of!(ScPasswordOpts, prompt_markup) - 304usize];
 };
 extern "C" {
     #[doc = " Prompts for a secret, rendering each character as a mask glyph.\n\n On `SC_INPUT_OK`, `*out` receives a heap-allocated string the caller must\n `free()`.\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the entered secret (heap; caller frees).\n @param opts    Rendering and validation options."]
@@ -2617,12 +2638,8 @@ pub struct ScNumberOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Render inside a panel (prompt = top title, range/footer below)."]
-    pub boxed: bool,
-    #[doc = " Box border (boxed mode); zero-init type = rounded."]
-    pub border: ScBorderStyle,
-    #[doc = " Box width; `0` = full terminal width."]
-    pub width: ::std::os::raw::c_int,
+    #[doc = " Optional frame: render inside a panel (prompt = top title, range on the\nbottom border) with a border, content background, inner padding and\nouter margin. Zero-init = inline. `box.width` is the box width (`0` =\nfull terminal width). @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
@@ -2652,7 +2669,7 @@ pub struct ScNumberOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 296usize];
+    ["Size of ScNumberOpts"][::std::mem::size_of::<ScNumberOpts>() - 336usize];
     ["Alignment of ScNumberOpts"][::std::mem::align_of::<ScNumberOpts>() - 8usize];
     ["Offset of field: ScNumberOpts::initial"]
         [::std::mem::offset_of!(ScNumberOpts, initial) - 0usize];
@@ -2680,38 +2697,33 @@ const _: () = {
         [::std::mem::offset_of!(ScNumberOpts, hint_pos) - 140usize];
     ["Offset of field: ScNumberOpts::hint_style"]
         [::std::mem::offset_of!(ScNumberOpts, hint_style) - 144usize];
-    ["Offset of field: ScNumberOpts::boxed"]
-        [::std::mem::offset_of!(ScNumberOpts, boxed) - 164usize];
-    ["Offset of field: ScNumberOpts::border"]
-        [::std::mem::offset_of!(ScNumberOpts, border) - 168usize];
-    ["Offset of field: ScNumberOpts::width"]
-        [::std::mem::offset_of!(ScNumberOpts, width) - 188usize];
+    ["Offset of field: ScNumberOpts::box_"][::std::mem::offset_of!(ScNumberOpts, box_) - 164usize];
     ["Offset of field: ScNumberOpts::shortcuts"]
-        [::std::mem::offset_of!(ScNumberOpts, shortcuts) - 192usize];
+        [::std::mem::offset_of!(ScNumberOpts, shortcuts) - 232usize];
     ["Offset of field: ScNumberOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScNumberOpts, n_shortcuts) - 200usize];
+        [::std::mem::offset_of!(ScNumberOpts, n_shortcuts) - 240usize];
     ["Offset of field: ScNumberOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScNumberOpts, out_shortcut_id) - 208usize];
+        [::std::mem::offset_of!(ScNumberOpts, out_shortcut_id) - 248usize];
     ["Offset of field: ScNumberOpts::prompt_text"]
-        [::std::mem::offset_of!(ScNumberOpts, prompt_text) - 216usize];
+        [::std::mem::offset_of!(ScNumberOpts, prompt_text) - 256usize];
     ["Offset of field: ScNumberOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScNumberOpts, prompt_markup) - 224usize];
+        [::std::mem::offset_of!(ScNumberOpts, prompt_markup) - 264usize];
     ["Offset of field: ScNumberOpts::decimal_sep"]
-        [::std::mem::offset_of!(ScNumberOpts, decimal_sep) - 225usize];
+        [::std::mem::offset_of!(ScNumberOpts, decimal_sep) - 265usize];
     ["Offset of field: ScNumberOpts::out_text"]
-        [::std::mem::offset_of!(ScNumberOpts, out_text) - 232usize];
+        [::std::mem::offset_of!(ScNumberOpts, out_text) - 272usize];
     ["Offset of field: ScNumberOpts::calculator"]
-        [::std::mem::offset_of!(ScNumberOpts, calculator) - 240usize];
+        [::std::mem::offset_of!(ScNumberOpts, calculator) - 280usize];
     ["Offset of field: ScNumberOpts::calc_store_rounded"]
-        [::std::mem::offset_of!(ScNumberOpts, calc_store_rounded) - 241usize];
+        [::std::mem::offset_of!(ScNumberOpts, calc_store_rounded) - 281usize];
     ["Offset of field: ScNumberOpts::calc_show_precise"]
-        [::std::mem::offset_of!(ScNumberOpts, calc_show_precise) - 242usize];
+        [::std::mem::offset_of!(ScNumberOpts, calc_show_precise) - 282usize];
     ["Offset of field: ScNumberOpts::error_style"]
-        [::std::mem::offset_of!(ScNumberOpts, error_style) - 244usize];
+        [::std::mem::offset_of!(ScNumberOpts, error_style) - 284usize];
     ["Offset of field: ScNumberOpts::calc_warn_text"]
-        [::std::mem::offset_of!(ScNumberOpts, calc_warn_text) - 264usize];
+        [::std::mem::offset_of!(ScNumberOpts, calc_warn_text) - 304usize];
     ["Offset of field: ScNumberOpts::calc_warn_style"]
-        [::std::mem::offset_of!(ScNumberOpts, calc_warn_style) - 272usize];
+        [::std::mem::offset_of!(ScNumberOpts, calc_warn_style) - 312usize];
 };
 extern "C" {
     #[doc = " Prompts for a number.\n\n Type digits/sign/decimal separator to edit; Up/Down adjust by `step`;\n Enter submits; Esc or Ctrl-C cancels. Enter on an empty field is ignored\n (clear the field with Ctrl-U, then Enter does nothing until a value is\n typed). On `SC_INPUT_OK`, `*out` receives the parsed value, clamped to\n `[min, max]` when bounded; when `opts.out_text` is set it additionally\n receives the exact value as a heap string (see `ScNumberOpts.out_text`).\n\n @param prompt  Label shown before the field. Must not be `NULL`.\n @param out     Receives the chosen value.\n @param opts    Rendering and range options."]
@@ -2751,12 +2763,8 @@ pub struct ScTextareaOpts {
     pub hint_pos: ScHintPosition,
     #[doc = " Style of the footer; zero-init = dim."]
     pub hint_style: ScTextStyle,
-    #[doc = " Render the editor inside a bordered panel (prompt = top title)."]
-    pub boxed: bool,
-    #[doc = " Box border (boxed mode); zero-init type = rounded."]
-    pub border: ScBorderStyle,
-    #[doc = " Box width; `0` = full terminal width."]
-    pub width: ::std::os::raw::c_int,
+    #[doc = " Optional frame: render the editor inside a bordered panel (prompt = top\ntitle) with a border, content background, inner padding and outer\nmargin. Zero-init = inline. `box.width` is the box width (`0` = full\nterminal width). @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Custom key shortcuts; borrowed, must outlive the call.\n@see sparcli_shortcut.h"]
     pub shortcuts: *const ScShortcut,
     #[doc = " Number of entries in `shortcuts`."]
@@ -2776,7 +2784,7 @@ pub struct ScTextareaOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScTextareaOpts"][::std::mem::size_of::<ScTextareaOpts>() - 232usize];
+    ["Size of ScTextareaOpts"][::std::mem::size_of::<ScTextareaOpts>() - 272usize];
     ["Alignment of ScTextareaOpts"][::std::mem::align_of::<ScTextareaOpts>() - 8usize];
     ["Offset of field: ScTextareaOpts::initial"]
         [::std::mem::offset_of!(ScTextareaOpts, initial) - 0usize];
@@ -2800,28 +2808,24 @@ const _: () = {
         [::std::mem::offset_of!(ScTextareaOpts, hint_pos) - 116usize];
     ["Offset of field: ScTextareaOpts::hint_style"]
         [::std::mem::offset_of!(ScTextareaOpts, hint_style) - 120usize];
-    ["Offset of field: ScTextareaOpts::boxed"]
-        [::std::mem::offset_of!(ScTextareaOpts, boxed) - 140usize];
-    ["Offset of field: ScTextareaOpts::border"]
-        [::std::mem::offset_of!(ScTextareaOpts, border) - 144usize];
-    ["Offset of field: ScTextareaOpts::width"]
-        [::std::mem::offset_of!(ScTextareaOpts, width) - 164usize];
+    ["Offset of field: ScTextareaOpts::box_"]
+        [::std::mem::offset_of!(ScTextareaOpts, box_) - 140usize];
     ["Offset of field: ScTextareaOpts::shortcuts"]
-        [::std::mem::offset_of!(ScTextareaOpts, shortcuts) - 168usize];
+        [::std::mem::offset_of!(ScTextareaOpts, shortcuts) - 208usize];
     ["Offset of field: ScTextareaOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScTextareaOpts, n_shortcuts) - 176usize];
+        [::std::mem::offset_of!(ScTextareaOpts, n_shortcuts) - 216usize];
     ["Offset of field: ScTextareaOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScTextareaOpts, out_shortcut_id) - 184usize];
+        [::std::mem::offset_of!(ScTextareaOpts, out_shortcut_id) - 224usize];
     ["Offset of field: ScTextareaOpts::prompt_text"]
-        [::std::mem::offset_of!(ScTextareaOpts, prompt_text) - 192usize];
+        [::std::mem::offset_of!(ScTextareaOpts, prompt_text) - 232usize];
     ["Offset of field: ScTextareaOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScTextareaOpts, prompt_markup) - 200usize];
+        [::std::mem::offset_of!(ScTextareaOpts, prompt_markup) - 240usize];
     ["Offset of field: ScTextareaOpts::external_editor"]
-        [::std::mem::offset_of!(ScTextareaOpts, external_editor) - 201usize];
+        [::std::mem::offset_of!(ScTextareaOpts, external_editor) - 241usize];
     ["Offset of field: ScTextareaOpts::editor"]
-        [::std::mem::offset_of!(ScTextareaOpts, editor) - 208usize];
+        [::std::mem::offset_of!(ScTextareaOpts, editor) - 248usize];
     ["Offset of field: ScTextareaOpts::editor_key"]
-        [::std::mem::offset_of!(ScTextareaOpts, editor_key) - 216usize];
+        [::std::mem::offset_of!(ScTextareaOpts, editor_key) - 256usize];
 };
 extern "C" {
     #[doc = " Prompts for multi-line text.\n\n On `SC_INPUT_OK`, `*out` receives a heap-allocated string (with embedded\n newlines) the caller must `free()`.\n\n @param prompt  Heading shown above the editor. Must not be `NULL`.\n @param out     Receives the entered text (heap; caller frees).\n @param opts    Rendering options."]
@@ -2855,6 +2859,8 @@ pub struct ScSelectOpts {
     pub checkbox_on: *const ::std::os::raw::c_char,
     #[doc = " Unchecked box (multi); `NULL` = \"[ ] \"."]
     pub checkbox_off: *const ::std::os::raw::c_char,
+    #[doc = " Optional frame: render the list inside a panel with a border, content\nbackground, inner padding and outer margin. Zero-init = inline (no\nframe). The prompt stays inside the frame; the key-hint footer sits\nbelow it. @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Style of the persistent summary line."]
     pub summary_style: ScTextStyle,
     #[doc = " Suppress the post-selection summary line."]
@@ -2880,7 +2886,7 @@ pub struct ScSelectOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScSelectOpts"][::std::mem::size_of::<ScSelectOpts>() - 200usize];
+    ["Size of ScSelectOpts"][::std::mem::size_of::<ScSelectOpts>() - 272usize];
     ["Alignment of ScSelectOpts"][::std::mem::align_of::<ScSelectOpts>() - 8usize];
     ["Offset of field: ScSelectOpts::prompt"]
         [::std::mem::offset_of!(ScSelectOpts, prompt) - 0usize];
@@ -2901,27 +2907,28 @@ const _: () = {
         [::std::mem::offset_of!(ScSelectOpts, checkbox_on) - 80usize];
     ["Offset of field: ScSelectOpts::checkbox_off"]
         [::std::mem::offset_of!(ScSelectOpts, checkbox_off) - 88usize];
+    ["Offset of field: ScSelectOpts::box_"][::std::mem::offset_of!(ScSelectOpts, box_) - 96usize];
     ["Offset of field: ScSelectOpts::summary_style"]
-        [::std::mem::offset_of!(ScSelectOpts, summary_style) - 96usize];
+        [::std::mem::offset_of!(ScSelectOpts, summary_style) - 164usize];
     ["Offset of field: ScSelectOpts::hide_summary"]
-        [::std::mem::offset_of!(ScSelectOpts, hide_summary) - 116usize];
-    ["Offset of field: ScSelectOpts::hint"][::std::mem::offset_of!(ScSelectOpts, hint) - 120usize];
+        [::std::mem::offset_of!(ScSelectOpts, hide_summary) - 184usize];
+    ["Offset of field: ScSelectOpts::hint"][::std::mem::offset_of!(ScSelectOpts, hint) - 192usize];
     ["Offset of field: ScSelectOpts::hint_layout"]
-        [::std::mem::offset_of!(ScSelectOpts, hint_layout) - 128usize];
+        [::std::mem::offset_of!(ScSelectOpts, hint_layout) - 200usize];
     ["Offset of field: ScSelectOpts::hint_pos"]
-        [::std::mem::offset_of!(ScSelectOpts, hint_pos) - 132usize];
+        [::std::mem::offset_of!(ScSelectOpts, hint_pos) - 204usize];
     ["Offset of field: ScSelectOpts::hint_style"]
-        [::std::mem::offset_of!(ScSelectOpts, hint_style) - 136usize];
+        [::std::mem::offset_of!(ScSelectOpts, hint_style) - 208usize];
     ["Offset of field: ScSelectOpts::shortcuts"]
-        [::std::mem::offset_of!(ScSelectOpts, shortcuts) - 160usize];
+        [::std::mem::offset_of!(ScSelectOpts, shortcuts) - 232usize];
     ["Offset of field: ScSelectOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScSelectOpts, n_shortcuts) - 168usize];
+        [::std::mem::offset_of!(ScSelectOpts, n_shortcuts) - 240usize];
     ["Offset of field: ScSelectOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScSelectOpts, out_shortcut_id) - 176usize];
+        [::std::mem::offset_of!(ScSelectOpts, out_shortcut_id) - 248usize];
     ["Offset of field: ScSelectOpts::prompt_text"]
-        [::std::mem::offset_of!(ScSelectOpts, prompt_text) - 184usize];
+        [::std::mem::offset_of!(ScSelectOpts, prompt_text) - 256usize];
     ["Offset of field: ScSelectOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScSelectOpts, prompt_markup) - 192usize];
+        [::std::mem::offset_of!(ScSelectOpts, prompt_markup) - 264usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3006,7 +3013,9 @@ pub struct ScFuzzyOpts {
     pub cursor_marker: *const ::std::os::raw::c_char,
     #[doc = " Other-row prefix; `NULL` = \"  \"."]
     pub marker: *const ::std::os::raw::c_char,
-    #[doc = " Table-view opts (table mode); zero-init = single border + bold header.\n The cursor row is highlighted with `accent` regardless."]
+    #[doc = " Optional frame: render the finder (query + results) inside a panel with\na border, content background, inner padding and outer margin. Zero-init\n= inline (no frame). The key-hint footer sits below the frame.\n@see ScBoxStyle"]
+    pub box_: ScBoxStyle,
+    #[doc = " Table-view opts (table mode); zero-init = single border + bold header.\n The cursor row is highlighted with `accent` by default; set\n `selected_style.bg` to override the cursor-row background."]
     pub table_opts: ScTableOpts,
     #[doc = " Style of the persistent summary line."]
     pub summary_style: ScTextStyle,
@@ -3033,7 +3042,7 @@ pub struct ScFuzzyOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 472usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 544usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
@@ -3057,29 +3066,30 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, cursor_marker) - 128usize];
     ["Offset of field: ScFuzzyOpts::marker"]
         [::std::mem::offset_of!(ScFuzzyOpts, marker) - 136usize];
+    ["Offset of field: ScFuzzyOpts::box_"][::std::mem::offset_of!(ScFuzzyOpts, box_) - 144usize];
     ["Offset of field: ScFuzzyOpts::table_opts"]
-        [::std::mem::offset_of!(ScFuzzyOpts, table_opts) - 144usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, table_opts) - 216usize];
     ["Offset of field: ScFuzzyOpts::summary_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, summary_style) - 368usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, summary_style) - 440usize];
     ["Offset of field: ScFuzzyOpts::hide_summary"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hide_summary) - 388usize];
-    ["Offset of field: ScFuzzyOpts::hint"][::std::mem::offset_of!(ScFuzzyOpts, hint) - 392usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hide_summary) - 460usize];
+    ["Offset of field: ScFuzzyOpts::hint"][::std::mem::offset_of!(ScFuzzyOpts, hint) - 464usize];
     ["Offset of field: ScFuzzyOpts::hint_layout"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hint_layout) - 400usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hint_layout) - 472usize];
     ["Offset of field: ScFuzzyOpts::hint_pos"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hint_pos) - 404usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hint_pos) - 476usize];
     ["Offset of field: ScFuzzyOpts::hint_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hint_style) - 408usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hint_style) - 480usize];
     ["Offset of field: ScFuzzyOpts::shortcuts"]
-        [::std::mem::offset_of!(ScFuzzyOpts, shortcuts) - 432usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, shortcuts) - 504usize];
     ["Offset of field: ScFuzzyOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScFuzzyOpts, n_shortcuts) - 440usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, n_shortcuts) - 512usize];
     ["Offset of field: ScFuzzyOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScFuzzyOpts, out_shortcut_id) - 448usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, out_shortcut_id) - 520usize];
     ["Offset of field: ScFuzzyOpts::prompt_text"]
-        [::std::mem::offset_of!(ScFuzzyOpts, prompt_text) - 456usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, prompt_text) - 528usize];
     ["Offset of field: ScFuzzyOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScFuzzyOpts, prompt_markup) - 464usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, prompt_markup) - 536usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3119,7 +3129,7 @@ extern "C" {
     pub fn sc_fuzzy_cursor_index(fuzzy: *const ScFuzzy) -> usize;
 }
 extern "C" {
-    #[doc = " Reports whether a row is currently matched (the highlighted selection is\n valid). `sc_fuzzy_cursor_index` returns 0 for both \"no match\" and row 0."]
+    #[doc = " Reports whether a row is currently matched (so the highlighted selection is\n valid). Because `sc_fuzzy_cursor_index` returns `0` both for \"no match\" and\n for the first row, a callback that must distinguish the two checks this\n first. Returns `false` when the filter excludes every row or `fuzzy` is\n `NULL`.\n\n @param fuzzy  Finder handle; may be `NULL`.\n @return       `true` when at least one row matches the current query."]
     pub fn sc_fuzzy_has_selection(fuzzy: *const ScFuzzy) -> bool;
 }
 extern "C" {
@@ -3189,6 +3199,8 @@ pub struct ScDatePickerOpts {
     pub header_prev: *const ::std::os::raw::c_char,
     #[doc = " Glyph right of the month; `NULL` = \"›\"."]
     pub header_next: *const ::std::os::raw::c_char,
+    #[doc = " Optional frame: render the calendar inside a panel with a border,\ncontent background, inner padding and outer margin. Zero-init = inline\n(no frame). The key-hint footer sits below the frame. @see ScBoxStyle"]
+    pub box_: ScBoxStyle,
     #[doc = " Style of the persistent summary line."]
     pub summary_style: ScTextStyle,
     #[doc = " Suppress the post-pick summary line."]
@@ -3214,7 +3226,7 @@ pub struct ScDatePickerOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScDatePickerOpts"][::std::mem::size_of::<ScDatePickerOpts>() - 224usize];
+    ["Size of ScDatePickerOpts"][::std::mem::size_of::<ScDatePickerOpts>() - 296usize];
     ["Alignment of ScDatePickerOpts"][::std::mem::align_of::<ScDatePickerOpts>() - 8usize];
     ["Offset of field: ScDatePickerOpts::prompt"]
         [::std::mem::offset_of!(ScDatePickerOpts, prompt) - 0usize];
@@ -3234,28 +3246,30 @@ const _: () = {
         [::std::mem::offset_of!(ScDatePickerOpts, header_prev) - 104usize];
     ["Offset of field: ScDatePickerOpts::header_next"]
         [::std::mem::offset_of!(ScDatePickerOpts, header_next) - 112usize];
+    ["Offset of field: ScDatePickerOpts::box_"]
+        [::std::mem::offset_of!(ScDatePickerOpts, box_) - 120usize];
     ["Offset of field: ScDatePickerOpts::summary_style"]
-        [::std::mem::offset_of!(ScDatePickerOpts, summary_style) - 120usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, summary_style) - 188usize];
     ["Offset of field: ScDatePickerOpts::hide_summary"]
-        [::std::mem::offset_of!(ScDatePickerOpts, hide_summary) - 140usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, hide_summary) - 208usize];
     ["Offset of field: ScDatePickerOpts::hint"]
-        [::std::mem::offset_of!(ScDatePickerOpts, hint) - 144usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, hint) - 216usize];
     ["Offset of field: ScDatePickerOpts::hint_layout"]
-        [::std::mem::offset_of!(ScDatePickerOpts, hint_layout) - 152usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, hint_layout) - 224usize];
     ["Offset of field: ScDatePickerOpts::hint_pos"]
-        [::std::mem::offset_of!(ScDatePickerOpts, hint_pos) - 156usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, hint_pos) - 228usize];
     ["Offset of field: ScDatePickerOpts::hint_style"]
-        [::std::mem::offset_of!(ScDatePickerOpts, hint_style) - 160usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, hint_style) - 232usize];
     ["Offset of field: ScDatePickerOpts::shortcuts"]
-        [::std::mem::offset_of!(ScDatePickerOpts, shortcuts) - 184usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, shortcuts) - 256usize];
     ["Offset of field: ScDatePickerOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScDatePickerOpts, n_shortcuts) - 192usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, n_shortcuts) - 264usize];
     ["Offset of field: ScDatePickerOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScDatePickerOpts, out_shortcut_id) - 200usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, out_shortcut_id) - 272usize];
     ["Offset of field: ScDatePickerOpts::prompt_text"]
-        [::std::mem::offset_of!(ScDatePickerOpts, prompt_text) - 208usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, prompt_text) - 280usize];
     ["Offset of field: ScDatePickerOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScDatePickerOpts, prompt_markup) - 216usize];
+        [::std::mem::offset_of!(ScDatePickerOpts, prompt_markup) - 288usize];
 };
 extern "C" {
     #[doc = " Prompts the user to pick a date from a month calendar.\n\n Arrow keys move by day/week; PageUp/PageDown (or `<`/`>`) change month;\n Shift+PageUp/PageDown change year; Enter selects; Esc or Ctrl-C cancels.\n Month/year jumps keep the selected day, clamped to the target month's last\n valid day (e.g. Jan 31 -> Feb 28).\n\n `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view\n (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten\n with the picked date (normalized via `mktime`).\n\n @param io    In: initial date. Out: picked date. Must not be `NULL`.\n @param opts  Rendering options.\n @return      `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]

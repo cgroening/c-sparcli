@@ -110,9 +110,9 @@ static void run_boxed_input(void) {
     char *title = NULL;
     ScInputStatus status = sc_text_input("Title", &title,
         (ScTextInputOpts){
-            .boxed       = true,
-            .border      = { .type = SC_BORDER_ROUNDED },
-            .width       = 44,
+            .box.enabled = true,
+            .box.border  = { .type = SC_BORDER_ROUNDED },
+            .box.width   = 44,
             .max_chars   = 32,    // also shown as "n/32" counter
             .placeholder = "Short and descriptive",
         });

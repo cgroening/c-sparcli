@@ -50,6 +50,9 @@ enum {
     SC_CLI_OPT_BORDER_COLOR = 922, /**< `--border-color` (boxed input) */
     SC_CLI_OPT_BORDER_BG   = 923,  /**< `--border-bg` (boxed input) */
     SC_CLI_OPT_WIDTH       = 924,  /**< `--width` (boxed input widgets) */
+    SC_CLI_OPT_BG          = 925,  /**< `--bg` (content background; boxed) */
+    SC_CLI_OPT_PADDING     = 926,  /**< `--padding` (inner padding; boxed) */
+    SC_CLI_OPT_MARGIN      = 927,  /**< `--margin` (outer margin; boxed) */
     SC_CLI_OPT_CMD_BASE    = 1000, /**< First command-specific option value. */
 };
 
@@ -95,15 +98,21 @@ enum {
     { "border",       required_argument, NULL, SC_CLI_OPT_BORDER },          \
     { "border-color", required_argument, NULL, SC_CLI_OPT_BORDER_COLOR },    \
     { "border-bg",    required_argument, NULL, SC_CLI_OPT_BORDER_BG },       \
+    { "bg",           required_argument, NULL, SC_CLI_OPT_BG },              \
+    { "padding",      required_argument, NULL, SC_CLI_OPT_PADDING },         \
+    { "margin",       required_argument, NULL, SC_CLI_OPT_MARGIN },          \
     { "width",        required_argument, NULL, SC_CLI_OPT_WIDTH }
 
 /** Usage-text lines for the boxed-widget block. */
 #define SC_CLI_BOX_USAGE                                                     \
-    "  --boxed                    Draw the field inside a panel\n"           \
+    "  --boxed                    Draw the widget inside a panel\n"          \
     "  --border STYLE             Box border style (with --boxed)\n"         \
     "  --border-color COLOR       Box border color (with --boxed)\n"         \
     "  --border-bg COLOR          Box border background (with --boxed)\n"    \
-    "  --width N                  Field width (0 = terminal width)\n"
+    "  --bg COLOR                 Content background color (with --boxed)\n" \
+    "  --padding EDGES            Inner padding, CSS order (with --boxed)\n" \
+    "  --margin EDGES             Outer margin, CSS order (with --boxed)\n"  \
+    "  --width N                  Box/field width (0 = terminal width)\n"
 
 /** Usage-text lines for the shared input options. */
 #define SC_CLI_INPUT_USAGE                                                  \
@@ -194,6 +203,23 @@ bool sc_cli_common_opt(ScCliCtx *ctx, int opt);
  * @return      `true` when the option was consumed.
  */
 bool sc_cli_input_opt(ScCliCtx *ctx, int opt, ScCliInputArgs *args);
+
+/**
+ * Handles a boxed-widget option value (`SC_CLI_OPT_BOXED` … `SC_CLI_OPT_MARGIN`)
+ * by writing it into `box`: `--boxed` enables the frame; the others set the
+ * border/background/padding/margin/width (they take effect only once the frame
+ * is enabled). On a bad value it reports the error via `sc_cli_error` and
+ * returns `false`. Shared by every boxed input command.
+ *
+ * @param ctx    CLI context (for error messages).
+ * @param opt    Option value returned by `getopt_long` (a box option).
+ * @param value  The option argument (`NULL` for `--boxed`).
+ * @param box    Box style to update.
+ * @return       `true` on success, `false` on a reported parse error.
+ */
+bool sc_cli_box_opt(
+    const ScCliCtx *ctx, int opt, const char *value, ScBoxStyle *box
+);
 
 /**
  * Records a `--style ELEMENT=SPEC` argument. Called from a command's option

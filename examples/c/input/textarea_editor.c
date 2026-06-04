@@ -37,9 +37,9 @@ static void run_textarea(void) {
         "Release notes (Ctrl-D submits)", &notes,
         (ScTextareaOpts){
             .placeholder = "What changed?",
-            .boxed       = true,
-            .border      = { .type = SC_BORDER_ROUNDED },
-            .width       = 52,
+            .box.enabled = true,
+            .box.border  = { .type = SC_BORDER_ROUNDED },
+            .box.width   = 52,
         });
 
     if (status == SC_INPUT_OK) {

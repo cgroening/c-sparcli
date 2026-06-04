@@ -84,9 +84,12 @@ static const char SELECT_USAGE[] =
     "  --checkbox-on STR          Checked box glyph (multi-select)\n"
     "  --checkbox-off STR         Unchecked box glyph (multi-select)\n"
     "  --arrow-nav                Left = back (exit 3), Right = select\n"
+    SC_CLI_BOX_USAGE
     SC_CLI_INPUT_USAGE
     "\n"
-    "--style elements: prompt, selected, summary, hint\n";
+    "--style elements: prompt, selected, summary, hint\n"
+    "Set the cursor-row colors with --style selected (e.g.\n"
+    "--style selected='white on magenta').\n";
 
 int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -108,6 +111,7 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
         { "checkbox-on",   required_argument, NULL, OPT_CHECKBOX_ON },
         { "checkbox-off",  required_argument, NULL, OPT_CHECKBOX_OFF },
         { "arrow-nav",     no_argument,       NULL, OPT_ARROW_NAV },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -141,6 +145,18 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
             break;
         case OPT_ARROW_NAV:
             args.arrow_nav = true;
+            break;
+        case SC_CLI_OPT_BOXED:
+        case SC_CLI_OPT_BORDER:
+        case SC_CLI_OPT_BORDER_COLOR:
+        case SC_CLI_OPT_BORDER_BG:
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_WIDTH:
+            if (!sc_cli_box_opt(ctx, opt, optarg, &args.opts.box)) {
+                return SC_CLI_EXIT_ERROR;
+            }
             break;
         case SC_CLI_OPT_STYLE:
             sc_cli_style_collect(&args.styles, optarg);
@@ -279,9 +295,13 @@ static const char FUZZY_USAGE[] =
     "  --cursor-marker STR        Marker before the cursor row\n"
     "  --search-columns LIST      Table columns to search (e.g. 1,3)\n"
     "  --arrow-nav                Left = back (exit 3), Right = select\n"
+    SC_CLI_BOX_USAGE
     SC_CLI_INPUT_USAGE
     "\n"
-    "--style elements: prompt, selected, cursor, counter, summary, hint\n";
+    "--style elements: prompt, selected, cursor, counter, summary, hint\n"
+    "Set the cursor-row colors with --style selected (e.g.\n"
+    "--style selected='white on magenta'); in table view selected's\n"
+    "background overrides the accent highlight.\n";
 
 int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
     enum {
@@ -305,6 +325,7 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         { "cursor-marker",  required_argument, NULL, OPT_CURSOR_MARKER },
         { "search-columns", required_argument, NULL, OPT_SEARCH_COLUMNS },
         { "arrow-nav",      no_argument,       NULL, OPT_ARROW_NAV },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -345,6 +366,18 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
             break;
         case OPT_ARROW_NAV:
             args.arrow_nav = true;
+            break;
+        case SC_CLI_OPT_BOXED:
+        case SC_CLI_OPT_BORDER:
+        case SC_CLI_OPT_BORDER_COLOR:
+        case SC_CLI_OPT_BORDER_BG:
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_WIDTH:
+            if (!sc_cli_box_opt(ctx, opt, optarg, &args.opts.box)) {
+                return SC_CLI_EXIT_ERROR;
+            }
             break;
         case SC_CLI_OPT_STYLE:
             sc_cli_style_collect(&args.styles, optarg);
@@ -560,6 +593,7 @@ static const char DATE_USAGE[] =
     "  --week-start monday|sunday First day of the week\n"
     "  --header-prev STR          Glyph for the previous-month control\n"
     "  --header-next STR          Glyph for the next-month control\n"
+    SC_CLI_BOX_USAGE
     SC_CLI_INPUT_USAGE
     "\n"
     "--style elements: prompt, header, weekday, selected, summary, hint\n";
@@ -580,6 +614,7 @@ int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
         { "week-start",  required_argument, NULL, OPT_WEEK_START },
         { "header-prev", required_argument, NULL, OPT_HEADER_PREV },
         { "header-next", required_argument, NULL, OPT_HEADER_NEXT },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -612,6 +647,18 @@ int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
             break;
         case OPT_HEADER_NEXT:
             opts.header_next = optarg;
+            break;
+        case SC_CLI_OPT_BOXED:
+        case SC_CLI_OPT_BORDER:
+        case SC_CLI_OPT_BORDER_COLOR:
+        case SC_CLI_OPT_BORDER_BG:
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_WIDTH:
+            if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
+                return SC_CLI_EXIT_ERROR;
+            }
             break;
         case SC_CLI_OPT_STYLE:
             sc_cli_style_collect(&styles, optarg);

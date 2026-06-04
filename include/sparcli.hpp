@@ -64,6 +64,7 @@ using TextAttribute   = ScTextAttribute;
 using Title           = ScTitle;
 using Edges           = ScEdges;
 using BorderStyle     = ScBorderStyle;
+using BoxStyle        = ScBoxStyle;
 using BorderType      = ScBorderType;
 using HAlign          = ScHAlign;
 using VAlign          = ScVAlign;

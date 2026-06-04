@@ -40,6 +40,7 @@ static const char CONFIRM_USAGE[] =
     "  --yes LABEL                Label of the Yes choice\n"
     "  --no LABEL                 Label of the No choice\n"
     "  --print                    Print 'yes' or 'no' to stdout\n"
+    SC_CLI_BOX_USAGE
     SC_CLI_INPUT_USAGE
     "\n"
     "--style elements: prompt, selected, unselected, summary, hint\n";
@@ -58,6 +59,7 @@ int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
         { "yes",         required_argument, NULL, OPT_YES },
         { "no",          required_argument, NULL, OPT_NO },
         { "print",       no_argument,       NULL, OPT_PRINT },
+        SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
     };
@@ -84,6 +86,18 @@ int sc_cli_cmd_confirm(ScCliCtx *ctx, int argc, char **argv) {
             break;
         case OPT_PRINT:
             print_reply = true;
+            break;
+        case SC_CLI_OPT_BOXED:
+        case SC_CLI_OPT_BORDER:
+        case SC_CLI_OPT_BORDER_COLOR:
+        case SC_CLI_OPT_BORDER_BG:
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
+        case SC_CLI_OPT_WIDTH:
+            if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
+                return SC_CLI_EXIT_ERROR;
+            }
             break;
         case SC_CLI_OPT_STYLE:
             sc_cli_style_collect(&styles, optarg);
@@ -264,26 +278,15 @@ int sc_cli_cmd_input(ScCliCtx *ctx, int argc, char **argv) {
             args.opts.external_editor = true;
             break;
         case SC_CLI_OPT_BOXED:
-            args.opts.boxed = true;
-            break;
         case SC_CLI_OPT_BORDER:
-            if (!sc_cli_parse_border(optarg, &args.opts.border.type)) {
-                return sc_cli_error(ctx, "invalid border '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_COLOR:
-            if (!sc_cli_parse_color(optarg, &args.opts.border.color)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_BG:
-            if (!sc_cli_parse_color(optarg, &args.opts.border.bg)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
         case SC_CLI_OPT_WIDTH:
-            if (!sc_cli_parse_int(optarg, &args.opts.width)) {
-                return sc_cli_error(ctx, "invalid width '%s'", optarg);
+            if (!sc_cli_box_opt(ctx, opt, optarg, &args.opts.box)) {
+                return SC_CLI_EXIT_ERROR;
             }
             break;
         case SC_CLI_OPT_STYLE:
@@ -408,26 +411,15 @@ int sc_cli_cmd_password(ScCliCtx *ctx, int argc, char **argv) {
             }
             break;
         case SC_CLI_OPT_BOXED:
-            opts.boxed = true;
-            break;
         case SC_CLI_OPT_BORDER:
-            if (!sc_cli_parse_border(optarg, &opts.border.type)) {
-                return sc_cli_error(ctx, "invalid border '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_COLOR:
-            if (!sc_cli_parse_color(optarg, &opts.border.color)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_BG:
-            if (!sc_cli_parse_color(optarg, &opts.border.bg)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
         case SC_CLI_OPT_WIDTH:
-            if (!sc_cli_parse_int(optarg, &opts.width)) {
-                return sc_cli_error(ctx, "invalid width '%s'", optarg);
+            if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
+                return SC_CLI_EXIT_ERROR;
             }
             break;
         case SC_CLI_OPT_STYLE:
@@ -592,26 +584,15 @@ int sc_cli_cmd_number(ScCliCtx *ctx, int argc, char **argv) {
             opts.calculator     = true;
             break;
         case SC_CLI_OPT_BOXED:
-            opts.boxed = true;
-            break;
         case SC_CLI_OPT_BORDER:
-            if (!sc_cli_parse_border(optarg, &opts.border.type)) {
-                return sc_cli_error(ctx, "invalid border '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_COLOR:
-            if (!sc_cli_parse_color(optarg, &opts.border.color)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_BG:
-            if (!sc_cli_parse_color(optarg, &opts.border.bg)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
         case SC_CLI_OPT_WIDTH:
-            if (!sc_cli_parse_int(optarg, &opts.width)) {
-                return sc_cli_error(ctx, "invalid width '%s'", optarg);
+            if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
+                return SC_CLI_EXIT_ERROR;
             }
             break;
         case SC_CLI_OPT_STYLE:
@@ -731,26 +712,15 @@ int sc_cli_cmd_textarea(ScCliCtx *ctx, int argc, char **argv) {
             opts.external_editor = true;
             break;
         case SC_CLI_OPT_BOXED:
-            opts.boxed = true;
-            break;
         case SC_CLI_OPT_BORDER:
-            if (!sc_cli_parse_border(optarg, &opts.border.type)) {
-                return sc_cli_error(ctx, "invalid border '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_COLOR:
-            if (!sc_cli_parse_color(optarg, &opts.border.color)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
         case SC_CLI_OPT_BORDER_BG:
-            if (!sc_cli_parse_color(optarg, &opts.border.bg)) {
-                return sc_cli_error(ctx, "invalid color '%s'", optarg);
-            }
-            break;
+        case SC_CLI_OPT_BG:
+        case SC_CLI_OPT_PADDING:
+        case SC_CLI_OPT_MARGIN:
         case SC_CLI_OPT_WIDTH:
-            if (!sc_cli_parse_int(optarg, &opts.width)) {
-                return sc_cli_error(ctx, "invalid width '%s'", optarg);
+            if (!sc_cli_box_opt(ctx, opt, optarg, &opts.box)) {
+                return SC_CLI_EXIT_ERROR;
             }
             break;
         case SC_CLI_OPT_STYLE:

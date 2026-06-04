@@ -60,6 +60,24 @@ class Edges:
 
 
 @dataclass
+class BoxStyle:
+    """Frames an input widget inside a panel.
+
+    Set ``enabled`` to draw the frame; ``border`` (a NONE type defaults to
+    rounded), ``bg`` (content background), ``padding`` (all-zero = one column
+    left/right), ``margin`` and ``width`` (``0`` = full terminal width) control
+    its appearance.
+    """
+
+    enabled: bool = False
+    border: BorderStyle = field(default_factory=BorderStyle)
+    bg: Color = Color.NONE
+    padding: Edges = field(default_factory=Edges)
+    margin: Edges = field(default_factory=Edges)
+    width: int = 0
+
+
+@dataclass
 class Title:
     """A component title: text (or rich :class:`~sparcli.text.Text`), style,
     alignment, padding and edge.

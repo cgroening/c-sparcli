@@ -1,5 +1,6 @@
 #include "sparcli.h"
 #include "internal.h"
+#include "core/text_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -558,6 +559,29 @@ ScRendered *sc_capture_panel_str(const char *content, ScPanelOpts opts) {
 ScRendered *sc_capture_panel_text(const ScText *content, ScPanelOpts opts) {
     CtxPanelText ctx = { content, opts };
     return capture_render(render_panel_text_ctx, &ctx);
+}
+
+ScRendered *sc_capture_panel_rendered(
+    const ScRendered *content, ScPanelOpts opts
+) {
+    if (!content) { return NULL; }
+    // Rebuild the captured lines as a single ScText, appending each line raw so
+    // the widget's own ANSI styling is preserved (this is trusted, library-
+    // generated content - the panel renderer would otherwise see the escape
+    // bytes as plain text). The panel's width math is ANSI-aware.
+    ScText *text = sc_text_new();
+    if (!text) { return NULL; }
+    static const ScTextStyle plain = {
+        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
+    };
+    for (size_t i = 0; i < content->line_count; i++) {
+        if (i > 0) { sc_text_append_raw(text, "\n", plain); }
+        sc_text_append_raw(text, content->lines[i] ? content->lines[i] : "",
+                           plain);
+    }
+    ScRendered *panel = sc_capture_panel_text(text, opts);
+    sc_text_free(text);
+    return panel;
 }
 
 ScRendered *sc_capture_rule_str(const char *title, ScRuleOpts opts) {

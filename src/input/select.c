@@ -269,6 +269,7 @@ static ScRendered *select_render(void *state) {
 
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
+    body = sc_box_wrap(body, self->opts.box);
     return sc_compose_hint(body, hint, self->opts.hint_layout,
                            self->opts.hint_pos, self->opts.hint_style);
 }

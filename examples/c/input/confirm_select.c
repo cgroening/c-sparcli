@@ -81,6 +81,14 @@ static void run_multi_select(void) {
         .multi       = true,
         .max_visible = 5,    // longer lists scroll inside a viewport
         .accent      = SC_ANSI_COLOR_MAGENTA,
+        // Frame the list in a panel: rounded magenta border + inner padding.
+        .box = {
+            .enabled = true,
+            .width   = 40,
+            .border  = { .type = SC_BORDER_ROUNDED,
+                         .color = SC_ANSI_COLOR_MAGENTA },
+            .padding = { .left = 1, .right = 1 },
+        },
     });
     for (size_t i = 0; i < LANGUAGE_COUNT; i++) {
         sc_select_add(select, LANGUAGES[i]);

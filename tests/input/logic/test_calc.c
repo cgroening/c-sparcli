@@ -153,7 +153,7 @@ static void check_preview_frames(void) {
     sc_rendered_free(precise);
 
     // Boxed mode: preview renders inside the panel.
-    ScNumberOpts boxed_opts = { .decimals = 1, .boxed = true, .width = 40 };
+    ScNumberOpts boxed_opts = { .decimals = 1, .box.enabled = true, .box.width = 40 };
     ScRendered *boxed = sc_number_frame_calc("Amount",
         (ScNumberCalcFrame){ .expr = "=2+3" }, boxed_opts);
     CHECK(frame_contains(boxed, "= 5"),
@@ -239,7 +239,7 @@ static void check_pending_frames(void) {
 
     // Boxed mode: the indicator renders inside the panel.
     ScNumberOpts boxed_opts = {
-        .decimals = 2, .decimal_sep = ',', .boxed = true, .width = 40,
+        .decimals = 2, .decimal_sep = ',', .box.enabled = true, .box.width = 40,
     };
     ScRendered *boxed_pending = sc_number_frame_calc("Amount",
         (ScNumberCalcFrame){

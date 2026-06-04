@@ -146,6 +146,14 @@ typedef struct { int index; uint8_t r, g, b; } ScColor;
 typedef struct { ScTextAttribute attr; ScColor fg; ScColor bg; } ScTextStyle;
 typedef struct { int top; int right; int bottom; int left; } ScEdges;
 typedef struct { ScBorderType type; ScColor color; ScColor bg; } ScBorderStyle;
+typedef struct {
+    bool enabled;
+    ScBorderStyle border;
+    ScColor bg;
+    ScEdges padding;
+    ScEdges margin;
+    int width;
+} ScBoxStyle;
 
 typedef struct ScText ScText;
 typedef struct {
@@ -626,7 +634,7 @@ bool sc_filter_no_space(uint32_t codepoint, void *ctx);
 /* ── Theme ─────────────────────────────────────────────────────────────── */
 typedef struct {
     ScColor accent;
-    ScBorderStyle border;
+    ScBoxStyle box;
     ScTextStyle prompt_style;
     ScTextStyle selected_style;
     ScTextStyle cursor_style;
@@ -654,6 +662,7 @@ typedef struct {
     ScColor accent;
     ScTextStyle selected_style;
     ScTextStyle unselected_style;
+    ScBoxStyle box;
     ScTextStyle summary_style;
     bool hide_summary;
     const char *hint;
@@ -713,9 +722,7 @@ typedef struct {
     int max_chars;
     bool hide_char_count;
     ScTextStyle count_style;
-    bool boxed;
-    ScBorderStyle border;
-    int width;
+    ScBoxStyle box;
     const char *hint;
     ScHintLayout hint_layout;
     ScHintPosition hint_pos;
@@ -752,9 +759,7 @@ typedef struct {
     int max_chars;
     bool hide_char_count;
     ScTextStyle count_style;
-    bool boxed;
-    ScBorderStyle border;
-    int width;
+    ScBoxStyle box;
     const char *hint;
     ScHintLayout hint_layout;
     ScHintPosition hint_pos;
@@ -789,9 +794,7 @@ typedef struct {
     ScHintLayout hint_layout;
     ScHintPosition hint_pos;
     ScTextStyle hint_style;
-    bool boxed;
-    ScBorderStyle border;
-    int width;
+    ScBoxStyle box;
     const ScShortcut *shortcuts;
     size_t n_shortcuts;
     int *out_shortcut_id;
@@ -823,9 +826,7 @@ typedef struct {
     ScHintLayout hint_layout;
     ScHintPosition hint_pos;
     ScTextStyle hint_style;
-    bool boxed;
-    ScBorderStyle border;
-    int width;
+    ScBoxStyle box;
     const ScShortcut *shortcuts;
     size_t n_shortcuts;
     int *out_shortcut_id;
@@ -850,6 +851,7 @@ typedef struct {
     const char *marker;
     const char *checkbox_on;
     const char *checkbox_off;
+    ScBoxStyle box;
     ScTextStyle summary_style;
     bool hide_summary;
     const char *hint;
@@ -890,6 +892,7 @@ typedef struct {
     ScTextStyle counter_style;
     const char *cursor_marker;
     const char *marker;
+    ScBoxStyle box;
     ScTableOpts table_opts;
     ScTextStyle summary_style;
     bool hide_summary;
@@ -930,6 +933,7 @@ typedef struct {
     ScTextStyle selected_style;
     const char *header_prev;
     const char *header_next;
+    ScBoxStyle box;
     ScTextStyle summary_style;
     bool hide_summary;
     const char *hint;

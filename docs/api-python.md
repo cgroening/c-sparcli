@@ -160,7 +160,8 @@ if sc.confirm("Proceed?", sc.ConfirmOpts(default_yes=True)):
 name = sc.text_input("Name", sc.TextInputOpts(placeholder="Ada"))
 pw   = sc.password_input("Password", sc.PasswordOpts(mask="•"))
 n    = sc.number_input("Qty", sc.NumberOpts(min=0, max=100, step=5))
-notes = sc.textarea("Notes", sc.TextareaOpts(boxed=True, width=48))
+notes = sc.textarea("Notes", sc.TextareaOpts(
+    box=sc.BoxStyle(enabled=True, width=48)))
 
 # Exact decimal.Decimal (never via float) – for money. decimal_sep="," lets
 # German users type "12,99"; the Decimal is built from the exact text.

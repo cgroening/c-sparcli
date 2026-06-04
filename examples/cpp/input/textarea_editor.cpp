@@ -32,8 +32,10 @@ int main() {
 // Boxed multi-line editor with soft-wrapped long lines.
 static void run_textarea() {
     if (auto notes = textarea("Release notes (Ctrl-D submits)",
-            { .placeholder = "What changed?", .boxed = true,
-              .border = { .type = SC_BORDER_ROUNDED }, .width = 52 })) {
+            { .placeholder = "What changed?",
+              .box = { .enabled = true,
+                       .border = { .type = SC_BORDER_ROUNDED },
+                       .width = 52 } })) {
         std::println("  -> {} bytes", notes->size());
     }
 }

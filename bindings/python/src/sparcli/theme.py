@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ._ffi import apply_border, apply_color, apply_style, cstr, ffi, lib
+from ._ffi import apply_box, apply_color, apply_style, cstr, ffi, lib
 from .color import Color
 from .enums import HintLayout, HintPos
-from .style import BorderStyle, Style
+from .style import BoxStyle, Style
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Theme:
     through to the built-in default; per-call options always win."""
 
     accent: Color = Color.NONE
-    border: BorderStyle = field(default_factory=BorderStyle)
+    box: BoxStyle = field(default_factory=BoxStyle)
     prompt_style: Style = field(default_factory=Style)
     selected_style: Style = field(default_factory=Style)
     cursor_style: Style = field(default_factory=Style)
@@ -43,7 +43,7 @@ def set_theme(theme: Theme | None) -> None:
     arena: list = []
     c = ffi.new("ScInputTheme *")
     apply_color(c.accent, theme.accent)
-    apply_border(c.border, theme.border)
+    apply_box(c.box, theme.box)
     apply_style(c.prompt_style, theme.prompt_style)
     apply_style(c.selected_style, theme.selected_style)
     apply_style(c.cursor_style, theme.cursor_style)

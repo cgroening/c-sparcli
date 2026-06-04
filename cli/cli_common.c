@@ -78,6 +78,53 @@ bool sc_cli_input_opt(ScCliCtx *ctx, int opt, ScCliInputArgs *args) {
     return sc_cli_common_opt(ctx, opt);
 }
 
+bool sc_cli_box_opt(
+    const ScCliCtx *ctx, int opt, const char *value, ScBoxStyle *box
+) {
+    switch (opt) {
+    case SC_CLI_OPT_BOXED:
+        box->enabled = true;
+        return true;
+    case SC_CLI_OPT_BORDER:
+        if (!sc_cli_parse_border(value, &box->border.type)) {
+            return sc_cli_error(ctx, "invalid border '%s'", value), false;
+        }
+        return true;
+    case SC_CLI_OPT_BORDER_COLOR:
+        if (!sc_cli_parse_color(value, &box->border.color)) {
+            return sc_cli_error(ctx, "invalid color '%s'", value), false;
+        }
+        return true;
+    case SC_CLI_OPT_BORDER_BG:
+        if (!sc_cli_parse_color(value, &box->border.bg)) {
+            return sc_cli_error(ctx, "invalid color '%s'", value), false;
+        }
+        return true;
+    case SC_CLI_OPT_BG:
+        if (!sc_cli_parse_color(value, &box->bg)) {
+            return sc_cli_error(ctx, "invalid color '%s'", value), false;
+        }
+        return true;
+    case SC_CLI_OPT_PADDING:
+        if (!sc_cli_parse_edges(value, &box->padding)) {
+            return sc_cli_error(ctx, "invalid padding '%s'", value), false;
+        }
+        return true;
+    case SC_CLI_OPT_MARGIN:
+        if (!sc_cli_parse_edges(value, &box->margin)) {
+            return sc_cli_error(ctx, "invalid margin '%s'", value), false;
+        }
+        return true;
+    case SC_CLI_OPT_WIDTH:
+        if (!sc_cli_parse_int(value, &box->width)) {
+            return sc_cli_error(ctx, "invalid width '%s'", value), false;
+        }
+        return true;
+    default:
+        return true;
+    }
+}
+
 void sc_cli_style_collect(ScCliStyleArgs *styles, const char *arg) {
     if (styles->count < sizeof styles->raw / sizeof styles->raw[0]) {
         styles->raw[styles->count] = arg;

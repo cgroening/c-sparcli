@@ -51,14 +51,11 @@ typedef struct ScTextareaOpts {
     /** Style of the footer; zero-init = dim. */
     ScTextStyle hint_style;
 
-    /** Render the editor inside a bordered panel (prompt = top title). */
-    bool boxed;
-
-    /** Box border (boxed mode); zero-init type = rounded. */
-    ScBorderStyle border;
-
-    /** Box width; `0` = full terminal width. */
-    int width;
+    /** Optional frame: render the editor inside a bordered panel (prompt = top
+        title) with a border, content background, inner padding and outer
+        margin. Zero-init = inline. `box.width` is the box width (`0` = full
+        terminal width). @see ScBoxStyle */
+    ScBoxStyle box;
 
     /** Custom key shortcuts; borrowed, must outlive the call.
         @see sparcli_shortcut.h */
