@@ -871,7 +871,7 @@ ScRendered *sc_capture_rule_text  (const ScText *title, ScRuleOpts opts);
 
 The same `ScRendered *` can be passed to multiple print functions (e.g. first `sc_pad_print`, then `sc_align_print`).
 
-`sc_capture_panel_rendered` frames an **already-captured** `ScRendered` inside a panel: the rendered lines (with their own ANSI styling) become the panel content verbatim - they are trusted, library-generated text and are **not** re-sanitized, so embedded colors survive. It is the primitive behind input-widget box framing (`sc_box_wrap`) and is reusable to put a border / background / padding around any captured widget.
+`sc_capture_panel_rendered` frames an **already-captured** `ScRendered` inside a panel: the rendered lines (with their own ANSI styling) become the panel content verbatim - they are trusted, library-generated text and are **not** re-sanitized, so embedded colors survive. It is the primitive behind input-widget box framing (`sc_box_wrap`) and is reusable to put a border / background / padding around any captured widget. **Background + embedded resets:** when `opts.bg` is set, each captured line is split at its `\033[0m` resets into one raw span per segment, because the panel re-applies its content bg only **after each span** (`print_line_spans`); without the split the embedded resets inside one big raw span would clear the bg and leave the text on the terminal default (only the padding filled). With no bg the line is appended whole.
 
 ### sc_vstack – stack widgets vertically in one column
 

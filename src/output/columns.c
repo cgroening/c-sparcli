@@ -574,10 +574,39 @@ ScRendered *sc_capture_panel_rendered(
     static const ScTextStyle plain = {
         SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
     };
+    // With a content background, split each line at its `\033[0m` resets into
+    // one raw span per segment. The panel re-applies its background after
+    // *every* span, so the background fills behind the whole line even though
+    // the captured content carries embedded resets that would otherwise clear
+    // it (one big raw span would only get the background re-applied once, after
+    // the final reset). Without a background there is nothing to bleed, so the
+    // line is appended whole (no extra resets).
+    bool fill_bg = opts.bg.index != 0;
+    static const char reset[] = "\033[0m";
+    const size_t reset_len = sizeof reset - 1;
     for (size_t i = 0; i < content->line_count; i++) {
         if (i > 0) { sc_text_append_raw(text, "\n", plain); }
-        sc_text_append_raw(text, content->lines[i] ? content->lines[i] : "",
-                           plain);
+        const char *seg = content->lines[i] ? content->lines[i] : "";
+        if (!fill_bg) {
+            sc_text_append_raw(text, seg, plain);
+            continue;
+        }
+        for (;;) {
+            const char *hit = strstr(seg, reset);
+            if (!hit) {
+                if (*seg) { sc_text_append_raw(text, seg, plain); }
+                break;
+            }
+            size_t len = (size_t)(hit - seg) + reset_len;  /* include reset */
+            char *piece = malloc(len + 1);
+            if (piece) {
+                memcpy(piece, seg, len);
+                piece[len] = '\0';
+                sc_text_append_raw(text, piece, plain);
+                free(piece);
+            }
+            seg = hit + reset_len;
+        }
     }
     ScRendered *panel = sc_capture_panel_text(text, opts);
     sc_text_free(text);

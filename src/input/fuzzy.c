@@ -48,6 +48,8 @@ static ScRendered *fuzzy_render(void *state);
         static void append_highlighted(
             ScText *text, const char *label, const char *query,
             ScTextStyle base_style, ScColor accent);
+            static void append_run(ScText *text, const char *start,
+                                   const char *end, ScTextStyle style);
     static ScRendered *render_table(ScFuzzy *self);
         static ScTableData *fuzzy_table_columns(ScFuzzy *self);
         static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self);
@@ -529,29 +531,56 @@ static ScRendered *render_list(ScFuzzy *self, int interior_w, bool fill) {
  * (greedy, case-insensitive) query subsequence matches - same order as
  * `sc_fuzzy_match`.
  */
+/** Appends the byte range `[start, end)` as one styled span. */
+static void append_run(ScText *text, const char *start, const char *end,
+                       ScTextStyle style) {
+    size_t n = (size_t)(end - start);
+    char *buf = malloc(n + 1);
+    if (!buf) {
+        return;
+    }
+    memcpy(buf, start, n);
+    buf[n] = '\0';
+    sc_text_append(text, buf, style);
+    free(buf);
+}
+
 static void append_highlighted(ScText *text, const char *label,
                                const char *query, ScTextStyle base_style,
                                ScColor accent) {
+    ScTextStyle hit_style = base_style;
+    hit_style.attr |= SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER;
+    if (base_style.fg.index == 0) {
+        hit_style.fg = accent;
+    }
+
+    /* Coalesce consecutive characters with the same match state into one span
+     * (fewer escape sequences, esp. once a background fills behind every span). */
     const char *pattern = (query && query[0]) ? query : NULL;
     const char *s = label;
+    const char *run = s;
+    bool run_hit = false;
+    bool have = false;
     while (*s) {
         size_t len = cp_len((unsigned char)*s);
-        char glyph[8];
-        memcpy(glyph, s, len);
-        glyph[len] = '\0';
-
         bool hit = pattern && *pattern
             && tolower((unsigned char)*pattern) == tolower((unsigned char)*s);
-        ScTextStyle style = base_style;
         if (hit) {
-            style.attr |= SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER;
-            if (base_style.fg.index == 0) {
-                style.fg = accent;
-            }
             pattern++;
         }
-        sc_text_append(text, glyph, style);
+        if (!have) {
+            run = s;
+            run_hit = hit;
+            have = true;
+        } else if (hit != run_hit) {
+            append_run(text, run, s, run_hit ? hit_style : base_style);
+            run = s;
+            run_hit = hit;
+        }
         s += len;
+    }
+    if (have) {
+        append_run(text, run, s, run_hit ? hit_style : base_style);
     }
 }
 
