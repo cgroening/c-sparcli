@@ -734,7 +734,7 @@ static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         case SC_KEY_BACKTAB:
             if (self->cursor > 0) {
                 self->cursor--;
-            } else if (self->opts.wrap && self->match_n > 0) {
+            } else if (!self->opts.no_wrap && self->match_n > 0) {
                 self->cursor = self->match_n - 1;
             }
             break;
@@ -742,7 +742,7 @@ static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         case SC_KEY_TAB:
             if (self->cursor + 1 < self->match_n) {
                 self->cursor++;
-            } else if (self->opts.wrap && self->match_n > 0) {
+            } else if (!self->opts.no_wrap && self->match_n > 0) {
                 self->cursor = 0;
             }
             break;

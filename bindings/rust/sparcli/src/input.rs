@@ -967,7 +967,7 @@ pub fn textarea(prompt: &str, opts: TextareaOpts) -> Result<Option<String>> {
 pub struct SelectOpts {
     pub prompt: Option<String>,
     pub multi: bool,
-    pub wrap: bool,
+    pub no_wrap: bool,
     pub max_visible: i32,
     pub accent: Color,
     pub selected_style: Style,
@@ -986,9 +986,10 @@ impl SelectOpts {
         self.multi = on;
         self
     }
-    /// Wrap the cursor around the ends (Up on the first row -> last, and back).
-    pub fn wrap(mut self, on: bool) -> Self {
-        self.wrap = on;
+    /// Stop the cursor at the list ends instead of wrapping (wrap is the
+    /// default: Up on the first row jumps to the last, and back).
+    pub fn no_wrap(mut self) -> Self {
+        self.no_wrap = true;
         self
     }
     pub fn max_visible(mut self, n: i32) -> Self {
@@ -1025,7 +1026,7 @@ impl Select {
         let mut o: ffi::ScSelectOpts = unsafe { mem::zeroed() };
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.multi = opts.multi;
-        o.wrap = opts.wrap;
+        o.no_wrap = opts.no_wrap;
         o.max_visible = opts.max_visible;
         o.accent = opts.accent.raw();
         o.selected_style = opts.selected_style.raw();
@@ -1133,7 +1134,7 @@ pub fn fuzzy_match(pattern: &str, s: &str) -> (bool, i32) {
 pub struct FuzzyOpts {
     pub prompt: Option<String>,
     pub max_visible: i32,
-    pub wrap: bool,
+    pub no_wrap: bool,
     pub accent: Color,
     pub selected_style: Style,
     pub box_: BoxStyle,
@@ -1147,9 +1148,10 @@ impl FuzzyOpts {
         self.prompt = Some(s.into());
         self
     }
-    /// Wrap the cursor around the ends of the result list.
-    pub fn wrap(mut self, on: bool) -> Self {
-        self.wrap = on;
+    /// Stop the cursor at the result-list ends instead of wrapping (wrap is
+    /// the default).
+    pub fn no_wrap(mut self) -> Self {
+        self.no_wrap = true;
         self
     }
     pub fn accent(mut self, c: Color) -> Self {
@@ -1182,7 +1184,7 @@ impl Fuzzy {
         let mut o: ffi::ScFuzzyOpts = unsafe { mem::zeroed() };
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.max_visible = opts.max_visible;
-        o.wrap = opts.wrap;
+        o.no_wrap = opts.no_wrap;
         o.accent = opts.accent.raw();
         o.selected_style = opts.selected_style.raw();
         o.box_ = opts.box_.raw();

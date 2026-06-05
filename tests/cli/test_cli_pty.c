@@ -137,10 +137,14 @@ static const Case CASES[] = {
       .args = { "select", "--bg", "blue", "--width", "content",
                 "--min-width", "20", "a", "b" },
       .keys = "\x1b[B\r", .want_stdout = "b\n", .want_exit = 0 },
-    /* --wrap: Up on the first row jumps to the last */
-    { .name = "select-wrap",
-      .args = { "select", "--wrap", "a", "b", "c" },
+    /* default wraps: Up on the first row jumps to the last */
+    { .name = "select-wrap-default",
+      .args = { "select", "a", "b", "c" },
       .keys = "\x1b[A\r", .want_stdout = "c\n", .want_exit = 0 },
+    /* --no-wrap: Up on the first row stays on the first */
+    { .name = "select-no-wrap",
+      .args = { "select", "--no-wrap", "a", "b", "c" },
+      .keys = "\x1b[A\r", .want_stdout = "a\n", .want_exit = 0 },
     /* --arrow-nav: Right submits like Enter, Left exits with code 3 (back) */
     { .name = "select-marker-style",
       .args = { "select", "--marker", "> ", "--style", "selected=bold green",

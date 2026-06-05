@@ -609,7 +609,7 @@ Choose one item – or several with `--multi` (Space toggles) – from a list. I
 | `--prompt TEXT` | Heading shown above the list |
 | `--multi` | Multi-select with checkboxes |
 | `--max-visible N` | Viewport height (default 10, scrolls beyond) |
-| `--wrap` | Cursor wraps around the list ends (Up on the first row jumps to the last, and back) |
+| `--no-wrap` | Stop the cursor at the list ends (it wraps around by default: Up on the first row jumps to the last, and back) |
 | `--marker STR` / `--cursor-marker STR` | Row / cursor-row markers |
 | `--checkbox-on STR` / `--checkbox-off STR` | Checkbox glyphs (multi-select) |
 | `--arrow-nav` | Right arrow selects (like Enter); Left arrow exits with code `3` (back). For multi-stage pickers (see [`examples/run.zsh`](../examples/run.zsh)). |
@@ -637,7 +637,7 @@ With `--tsv` (or `--delim`) each line is split into columns and shown as a table
 |--------|-------------|
 | `--prompt TEXT` | Search field label |
 | `--max-visible N` | Viewport height (default 10) |
-| `--wrap` | Cursor wraps around the result-list ends |
+| `--no-wrap` | Stop the cursor at the result-list ends (wraps around by default) |
 | `--tsv` | Tab-separated table view |
 | `--delim CHAR` | Custom delimiter for the table view |
 | `--header-row` | First input line provides the table headers |

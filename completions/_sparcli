@@ -277,7 +277,7 @@ _sparcli() {
                         '--prompt=[Heading shown above the list]:text:' \
                         '--multi[Multi-select with checkboxes]' \
                         '--max-visible=[Viewport height]:count:' \
-                        '--wrap[Cursor wraps around the list ends]' \
+                        '--no-wrap[Stop at the list ends (default wraps)]' \
                         $box_opts \
                         $input_opts \
                         '*:item:'
@@ -289,7 +289,7 @@ _sparcli() {
                         '--tsv[Tab-separated table view]' \
                         '--delim=[Custom delimiter for the table view]:char:' \
                         '--header-row[First input line provides the headers]' \
-                        '--wrap[Cursor wraps around the result list ends]' \
+                        '--no-wrap[Stop at the result-list ends (default wraps)]' \
                         $box_opts \
                         $input_opts \
                         '*:item:'
