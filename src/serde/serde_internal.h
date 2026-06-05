@@ -47,6 +47,9 @@ char *sc_serde_buf_finish(ScSerdeBuf *buf);
 /** Releases the buffer's storage and resets it to empty. */
 void sc_serde_buf_free(ScSerdeBuf *buf);
 
+/** Encodes one Unicode code point as UTF-8 and appends it to `buf`. */
+bool sc_serde_append_utf8(ScSerdeBuf *buf, uint32_t codepoint);
+
 
 /* ── Concrete value representation ─────────────────────────────────────── */
 

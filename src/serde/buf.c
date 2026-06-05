@@ -108,3 +108,28 @@ void sc_serde_buf_free(ScSerdeBuf *buf) {
     buf->cap = 0;
     buf->failed = false;
 }
+
+bool sc_serde_append_utf8(ScSerdeBuf *buf, uint32_t codepoint) {
+    char bytes[4];
+    size_t count;
+    if (codepoint <= 0x7f) {
+        bytes[0] = (char)codepoint;
+        count = 1;
+    } else if (codepoint <= 0x7ff) {
+        bytes[0] = (char)(0xc0 | (codepoint >> 6));
+        bytes[1] = (char)(0x80 | (codepoint & 0x3f));
+        count = 2;
+    } else if (codepoint <= 0xffff) {
+        bytes[0] = (char)(0xe0 | (codepoint >> 12));
+        bytes[1] = (char)(0x80 | ((codepoint >> 6) & 0x3f));
+        bytes[2] = (char)(0x80 | (codepoint & 0x3f));
+        count = 3;
+    } else {
+        bytes[0] = (char)(0xf0 | (codepoint >> 18));
+        bytes[1] = (char)(0x80 | ((codepoint >> 12) & 0x3f));
+        bytes[2] = (char)(0x80 | ((codepoint >> 6) & 0x3f));
+        bytes[3] = (char)(0x80 | (codepoint & 0x3f));
+        count = 4;
+    }
+    return sc_serde_buf_append(buf, bytes, count);
+}

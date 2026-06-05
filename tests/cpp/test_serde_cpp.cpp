@@ -95,6 +95,17 @@ static void check_csv() {
           "csv: writer quotes only when needed");
 }
 
+static void check_toml() {
+    Value root = toml::parse("name = \"sparcli\"\n[server]\nport = 8080\n");
+    auto port = root.view().get("server").get("port").as_int();
+    CHECK(port.has_value() && *port == 8080, "toml: parse + nested lookup");
+
+    Value doc = Value::object();
+    doc.set("title", Value::string("hi"));
+    CHECK(toml::write(doc) == "title = \"hi\"\n",
+          "toml: write a scalar key");
+}
+
 static void check_move_semantics() {
     // Moving must not double-free: the moved-from object is left empty and its
     // destructor is a no-op. ASan/UBSan would flag a violation here.
@@ -110,6 +121,7 @@ int main() {
     check_round_trip();
     check_parse_error();
     check_csv();
+    check_toml();
     check_move_semantics();
 
     if (g_failures > 0) {

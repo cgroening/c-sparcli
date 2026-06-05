@@ -32,3 +32,4 @@ extern int g_serde_failures;
 void test_serde_value(void);
 void test_serde_json(void);
 void test_serde_csv(void);
+void test_serde_toml(void);

@@ -45,6 +45,9 @@ using JsonWriteOpts = ScJsonWriteOpts;
 /** CSV dialect options, reusing the C struct verbatim. */
 using CsvOpts = ScCsvOpts;
 
+/** TOML writer options, reusing the C struct verbatim. */
+using TomlWriteOpts = ScTomlWriteOpts;
+
 
 /** Thrown by the parsers on malformed input; carries the source location. */
 class ParseError : public std::runtime_error {
@@ -235,6 +238,35 @@ namespace json {
 }
 
 }  // namespace json
+
+
+namespace toml {
+
+/** Parses a TOML document; throws `ParseError` on malformed input. */
+[[nodiscard]] inline Value parse(std::string_view src) {
+    ScParseError error{};
+    ScValue *root = sc_toml_parse(src.data(), src.size(), &error);
+    if (!root) { throw ParseError(error); }
+    return Value::adopt(root);
+}
+
+/** Serializes a tree view to a TOML string. */
+[[nodiscard]] inline std::string write(View value, TomlWriteOpts opts = {}) {
+    char *out = sc_toml_write(value.get(), opts);
+    if (!out) { throw std::bad_alloc(); }
+    std::string result(out);
+    std::free(out);
+    return result;
+}
+
+/** Serializes an owned tree to a TOML string. */
+[[nodiscard]] inline std::string write(
+    const Value &value, TomlWriteOpts opts = {}
+) {
+    return write(value.view(), opts);
+}
+
+}  // namespace toml
 
 
 /** RAII owner of a CSV document (move-only); reader and writer in one type. */
