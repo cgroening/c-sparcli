@@ -93,8 +93,9 @@ src/log/      logging: leveled terminal + plain-text file sinks
 src/args/     argument parser: builder, parse loop, typed values, help,
               did-you-mean, zsh completion generation, line tokenizer (split)
 src/serde/    structured read/write parsers: value (shared ScValue tree), buf
-              (growable buffer), parse_error, json, csv, toml (data-only layer;
-              depends on core + app/error, NOT in the sparcli.h umbrella)
+              (growable buffer), parse_error, json, csv, toml, markdown
+              (front-matter split + section tree). Data-only layer; depends on
+              core + app/error, NOT in the sparcli.h umbrella
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/    include/app/
@@ -103,7 +104,7 @@ include/serde/   (serde umbrella sparcli_serde.h + .hpp; not in sparcli.h)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
 tests/app/       framework suite (paths, pager, errors, logging)
 tests/args/      argument-parser suite (parse, errors, help, completion)
-tests/serde/     serde suite (value, json, csv, toml; `make test-serde`)
+tests/serde/     serde suite (value, json, csv, toml, markdown; `make test-serde`)
 tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 

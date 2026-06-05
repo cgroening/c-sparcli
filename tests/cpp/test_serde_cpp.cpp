@@ -106,6 +106,24 @@ static void check_toml() {
           "toml: write a scalar key");
 }
 
+static void check_markdown() {
+    Markdown md = Markdown::parse(
+        "+++\ntitle = \"Doc\"\n+++\n# Intro\nHi.\n## Sub\nDeep.\n");
+    CHECK(md.frontmatter_format() == SC_MD_FRONTMATTER_TOML
+              && md.frontmatter().has_value(),
+          "markdown: TOML front matter parsed");
+
+    Section sub = md.root().find("Intro/Sub");
+    CHECK(static_cast<bool>(sub) && sub.body() == "Deep.",
+          "markdown: find nested section + body");
+
+    Markdown built = Markdown::create();
+    Section intro = built.root().add(1, "Title");
+    intro.set_body("Body.");
+    CHECK(built.write() == "# Title\n\nBody.\n",
+          "markdown: build and write a section");
+}
+
 static void check_move_semantics() {
     // Moving must not double-free: the moved-from object is left empty and its
     // destructor is a no-op. ASan/UBSan would flag a violation here.
@@ -122,6 +140,7 @@ int main() {
     check_parse_error();
     check_csv();
     check_toml();
+    check_markdown();
     check_move_semantics();
 
     if (g_failures > 0) {

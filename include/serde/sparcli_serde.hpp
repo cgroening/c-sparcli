@@ -48,6 +48,9 @@ using CsvOpts = ScCsvOpts;
 /** TOML writer options, reusing the C struct verbatim. */
 using TomlWriteOpts = ScTomlWriteOpts;
 
+/** Markdown front-matter syntax, reusing the C enum verbatim. */
+using MdFrontmatter = ScMdFrontmatter;
+
 
 /** Thrown by the parsers on malformed input; carries the source location. */
 class ParseError : public std::runtime_error {
@@ -350,6 +353,129 @@ private:
     explicit Csv(ScCsv *doc) noexcept : doc_(doc) {}
 
     ScCsv *doc_;
+};
+
+
+/**
+ * Non-owning handle to a Markdown section. Valid while the owning `Markdown`
+ * is alive; supports reading and in-place editing of the section tree.
+ */
+class Section {
+public:
+    explicit Section(ScMdSection *node) noexcept : node_(node) {}
+
+    [[nodiscard]] int level() const noexcept {
+        return sc_md_section_level(node_);
+    }
+    [[nodiscard]] std::string_view title() const noexcept {
+        return sc_md_section_title(node_);
+    }
+    [[nodiscard]] std::string_view body() const noexcept {
+        return sc_md_section_body(node_);
+    }
+    [[nodiscard]] std::size_t child_count() const noexcept {
+        return sc_md_section_child_count(node_);
+    }
+    [[nodiscard]] Section child(std::size_t index) const noexcept {
+        return Section(sc_md_section_child(node_, index));
+    }
+    /** Finds a descendant by `/`-separated heading path (null handle if not
+     *  found). */
+    [[nodiscard]] Section find(std::string_view path) const {
+        return Section(sc_md_section_find(node_, std::string(path).c_str()));
+    }
+
+    void set_body(std::string_view text) {
+        sc_md_section_set_body(node_, std::string(text).c_str());
+    }
+    /** Appends a child heading; throws `std::bad_alloc` on failure. */
+    Section add(int level, std::string_view title) {
+        ScMdSection *child =
+            sc_md_section_add(node_, level, std::string(title).c_str());
+        if (!child) { throw std::bad_alloc(); }
+        return Section(child);
+    }
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        return node_ != nullptr;
+    }
+    [[nodiscard]] ScMdSection *get() const noexcept { return node_; }
+
+private:
+    ScMdSection *node_;
+};
+
+
+/** RAII owner of a Markdown document (move-only): front matter + section tree. */
+class Markdown {
+public:
+    Markdown(const Markdown &) = delete;
+    Markdown &operator=(const Markdown &) = delete;
+
+    Markdown(Markdown &&other) noexcept
+        : doc_(std::exchange(other.doc_, nullptr)) {}
+    Markdown &operator=(Markdown &&other) noexcept {
+        if (this != &other) {
+            sc_markdown_free(doc_);
+            doc_ = std::exchange(other.doc_, nullptr);
+        }
+        return *this;
+    }
+    ~Markdown() { sc_markdown_free(doc_); }
+
+    /** Parses a Markdown document; throws `ParseError` on allocation failure. */
+    [[nodiscard]] static Markdown parse(std::string_view src) {
+        ScParseError error{};
+        ScMarkdown *doc = sc_markdown_parse(src.data(), src.size(), &error);
+        if (!doc) { throw ParseError(error); }
+        return Markdown(doc);
+    }
+
+    /** Creates an empty document for building output. */
+    [[nodiscard]] static Markdown create() {
+        ScMarkdown *doc = sc_markdown_new();
+        if (!doc) { throw std::bad_alloc(); }
+        return Markdown(doc);
+    }
+
+    [[nodiscard]] MdFrontmatter frontmatter_format() const noexcept {
+        return sc_markdown_frontmatter_format(doc_);
+    }
+    [[nodiscard]] std::string_view frontmatter_raw() const noexcept {
+        return sc_markdown_frontmatter_raw(doc_);
+    }
+    /** Parsed front matter as a borrowed `View` (empty when none/unparsed). */
+    [[nodiscard]] std::optional<View> frontmatter() const noexcept {
+        const ScValue *value = sc_markdown_frontmatter(doc_);
+        if (value) { return View(value); }
+        return std::nullopt;
+    }
+    [[nodiscard]] std::string_view body() const noexcept {
+        return sc_markdown_body(doc_);
+    }
+    [[nodiscard]] Section root() noexcept {
+        return Section(sc_markdown_root(doc_));
+    }
+
+    void set_frontmatter_raw(MdFrontmatter format, std::string_view raw) {
+        sc_markdown_set_frontmatter_raw(
+            doc_, format, std::string(raw).c_str()
+        );
+    }
+    [[nodiscard]] std::string write() const {
+        char *out = sc_markdown_write(doc_);
+        if (!out) { throw std::bad_alloc(); }
+        std::string result(out);
+        std::free(out);
+        return result;
+    }
+
+    [[nodiscard]] const ScMarkdown *get() const noexcept { return doc_; }
+
+private:
+    explicit Markdown(ScMarkdown *doc) noexcept : doc_(doc) {}
+
+    ScMarkdown *doc_;
 };
 
 }  // namespace sparcli::serde
