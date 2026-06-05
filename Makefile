@@ -98,7 +98,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
 # Validate it with `make serde-qa`.
 SERDE_SRC = src/serde/value.c src/serde/buf.c src/serde/parse_error.c \
             src/serde/json.c src/serde/csv.c src/serde/toml.c \
-            src/serde/markdown.c
+            src/serde/markdown.c src/serde/yaml.c
 SRC      += $(SERDE_SRC)
 
 BUILDDIR          = build.nosync
@@ -251,6 +251,7 @@ SERDE_TEST_SRC          = tests/serde/test_serde_main.c \
                           tests/serde/test_json.c \
                           tests/serde/test_csv.c \
                           tests/serde/test_toml.c \
+                          tests/serde/test_yaml.c \
                           tests/serde/test_markdown.c
 SERDE_TEST_BIN          = tests/serde/test_serde_main
 SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize
@@ -499,10 +500,13 @@ serde-fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_toml
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_markdown.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_markdown
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_yaml.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_yaml
 	./$(BUILDDIR)/fuzz/fuzz_json $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_csv $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_toml $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_markdown $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_yaml $(FUZZ_ITERS) $(FUZZ_SEED)
 
 # Serde C++ wrapper gate (header-only, include/serde/sparcli_serde.hpp): builds
 # the assertion suite under ASan/UBSan and runs it (RAII/move-safety + C parity).

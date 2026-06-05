@@ -31,6 +31,7 @@ int main(void) {
         { "JSON read/write", test_serde_json },
         { "CSV read/write", test_serde_csv },
         { "TOML read/write", test_serde_toml },
+        { "YAML read/write", test_serde_yaml },
         { "Markdown sections", test_serde_markdown },
     };
     size_t count = sizeof tests / sizeof tests[0];

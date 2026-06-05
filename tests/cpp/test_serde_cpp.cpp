@@ -106,6 +106,18 @@ static void check_toml() {
           "toml: write a scalar key");
 }
 
+static void check_yaml() {
+    Value root = yaml::parse("name: sparcli\nport: 8080\ntags:\n  - a\n  - b\n");
+    auto port = root.view().get("port").as_int();
+    auto tag = root.view().get("tags").at(1).as_string();
+    CHECK(port.has_value() && *port == 8080 && tag.has_value() && *tag == "b",
+          "yaml: parse mapping + sequence");
+
+    Value doc = Value::object();
+    doc.set("k", Value::string("v"));
+    CHECK(yaml::write(doc) == "k: v\n", "yaml: write a scalar key");
+}
+
 static void check_markdown() {
     Markdown md = Markdown::parse(
         "+++\ntitle = \"Doc\"\n+++\n# Intro\nHi.\n## Sub\nDeep.\n");
@@ -140,6 +152,7 @@ int main() {
     check_parse_error();
     check_csv();
     check_toml();
+    check_yaml();
     check_markdown();
     check_move_semantics();
 

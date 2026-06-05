@@ -48,6 +48,9 @@ using CsvOpts = ScCsvOpts;
 /** TOML writer options, reusing the C struct verbatim. */
 using TomlWriteOpts = ScTomlWriteOpts;
 
+/** YAML writer options, reusing the C struct verbatim. */
+using YamlWriteOpts = ScYamlWriteOpts;
+
 /** Markdown front-matter syntax, reusing the C enum verbatim. */
 using MdFrontmatter = ScMdFrontmatter;
 
@@ -270,6 +273,35 @@ namespace toml {
 }
 
 }  // namespace toml
+
+
+namespace yaml {
+
+/** Parses a YAML (subset) document; throws `ParseError` on malformed input. */
+[[nodiscard]] inline Value parse(std::string_view src) {
+    ScParseError error{};
+    ScValue *root = sc_yaml_parse(src.data(), src.size(), &error);
+    if (!root) { throw ParseError(error); }
+    return Value::adopt(root);
+}
+
+/** Serializes a tree view to YAML. */
+[[nodiscard]] inline std::string write(View value, YamlWriteOpts opts = {}) {
+    char *out = sc_yaml_write(value.get(), opts);
+    if (!out) { throw std::bad_alloc(); }
+    std::string result(out);
+    std::free(out);
+    return result;
+}
+
+/** Serializes an owned tree to YAML. */
+[[nodiscard]] inline std::string write(
+    const Value &value, YamlWriteOpts opts = {}
+) {
+    return write(value.view(), opts);
+}
+
+}  // namespace yaml
 
 
 /** RAII owner of a CSV document (move-only); reader and writer in one type. */

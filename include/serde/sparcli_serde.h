@@ -8,8 +8,8 @@
  * (which stays a terminal-output/input library). Include this header to pull
  * in the data model and the format readers/writers.
  *
- * It exposes the `ScValue` model, the parse-error type, JSON, CSV, TOML and
- * Markdown; the YAML reader is added here once it lands.
+ * It exposes the `ScValue` model, the parse-error type, and the JSON, CSV,
+ * TOML, YAML and Markdown formats.
  */
 
 #include "serde/sparcli_value.h"
@@ -17,4 +17,5 @@
 #include "serde/sparcli_json.h"
 #include "serde/sparcli_csv.h"
 #include "serde/sparcli_toml.h"
+#include "serde/sparcli_yaml.h"
 #include "serde/sparcli_markdown.h"

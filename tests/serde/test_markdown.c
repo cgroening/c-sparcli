@@ -62,8 +62,11 @@ static void check_frontmatter_yaml_raw(void) {
           "frontmatter: --- detected as YAML");
     CHECK(strcmp(sc_markdown_frontmatter_raw(md), "title: Post") == 0,
           "frontmatter: YAML raw block captured");
-    CHECK(sc_markdown_frontmatter(md) == NULL,
-          "frontmatter: YAML not parsed yet (raw only)");
+    const ScValue *fm = sc_markdown_frontmatter(md);
+    CHECK(fm != NULL
+              && strcmp(sc_value_as_string(sc_value_get(fm, "title")), "Post")
+                     == 0,
+          "frontmatter: YAML parsed into ScValue");
 
     sc_markdown_free(md);
 }

@@ -1,6 +1,7 @@
 #include "serde_internal.h"
 #include "serde/sparcli_markdown.h"
 #include "serde/sparcli_toml.h"
+#include "serde/sparcli_yaml.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +47,7 @@ struct ScMarkdown {
 static const char *extract_frontmatter(
     const char *text, const char *end, ScMdFrontmatter *format, char **raw
 );
+static ScValue *parse_frontmatter(ScMdFrontmatter format, const char *raw);
 static bool build_sections(ScMdSection *root, const char *body);
     static bool parse_heading(
         const char *line, size_t len, int *level, const char **title,
@@ -96,10 +98,8 @@ ScMarkdown *sc_markdown_parse(const char *src, size_t len, ScParseError *err) {
     if (!md->frontmatter_raw) {
         md->frontmatter_raw = dup_n("", 0);
     }
-    if (md->fm_format == SC_MD_FRONTMATTER_TOML) {
-        md->frontmatter = sc_toml_parse(
-            md->frontmatter_raw, strlen(md->frontmatter_raw), NULL
-        );
+    if (md->frontmatter_raw) {
+        md->frontmatter = parse_frontmatter(md->fm_format, md->frontmatter_raw);
     }
 
     md->body = dup_n(body_start, (size_t)(copy + len - body_start));
@@ -444,10 +444,19 @@ void sc_markdown_set_frontmatter_raw(
     md->fm_format = raw ? format : SC_MD_FRONTMATTER_NONE;
 
     sc_value_free(md->frontmatter);
-    md->frontmatter = NULL;
-    if (md->fm_format == SC_MD_FRONTMATTER_TOML) {
-        md->frontmatter = sc_toml_parse(copy, strlen(copy), NULL);
+    md->frontmatter = parse_frontmatter(md->fm_format, copy);
+}
+
+/** Parses the raw front matter into an `ScValue` for the known formats. */
+static ScValue *parse_frontmatter(ScMdFrontmatter format, const char *raw) {
+    size_t len = strlen(raw);
+    if (format == SC_MD_FRONTMATTER_TOML) {
+        return sc_toml_parse(raw, len, NULL);
     }
+    if (format == SC_MD_FRONTMATTER_YAML) {
+        return sc_yaml_parse(raw, len, NULL);
+    }
+    return NULL;
 }
 
 void sc_md_section_set_body(ScMdSection *section, const char *text) {
