@@ -91,6 +91,15 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/args/args.c src/args/args_value.c src/args/args_suggest.c \
           src/args/args_parse.c src/args/args_help.c src/args/args_complete.c \
           src/args/args_split.c
+
+# ── Serde layer (structured read/write parsers) ───────────────────────────
+# Compiled into libsparcli.a (depends only on core + app/error), but its test
+# suite has its own targets and is deliberately NOT part of `make test`/`qa`.
+# Validate it with `make serde-qa`.
+SERDE_SRC = src/serde/value.c src/serde/buf.c src/serde/parse_error.c \
+            src/serde/json.c
+SRC      += $(SERDE_SRC)
+
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
 DEP               = $(OBJ:.o=.d)
@@ -233,6 +242,16 @@ ARGS_TEST_SRC = tests/args/test_args_main.c \
                 tests/args/test_args_split.c
 ARGS_TEST_BIN = tests/args/test_args_main
 
+# ── Serde suite (tests/serde/) - non-interactive; outside `make test`/`qa` ─
+# Data-model + format round-trip tests. Run via `make test-serde`; the
+# sanitized + fuzzed variants and the aggregate gate live under `make serde-qa`.
+SERDE_TEST_SRC          = tests/serde/test_serde_main.c \
+                          tests/serde/test_value.c \
+                          tests/serde/test_json.c
+SERDE_TEST_BIN          = tests/serde/test_serde_main
+SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize
+SERDE_CPP_TEST_SRC      = tests/cpp/test_serde_cpp.cpp
+
 # Example programs (see docs/examples.md). The tree is grouped by language:
 # examples/c/ and examples/cpp/ compile to binaries in EXAMPLES_BUILDDIR
 # (mirroring the directory structure), examples/rust/ builds through cargo
@@ -248,7 +267,7 @@ EXAMPLES_CPP_BIN  = $(patsubst examples/%.cpp,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all test-serde serde-sanitize serde-fuzz serde-cpp serde-qa
 
 # `make` must build the C library + CLI (as documented), not the first target
 # that happens to be defined above (the rust/python binding helpers).
@@ -451,6 +470,44 @@ test-app: $(LIB)
 test-args: $(LIB)
 	$(CC) $(CFLAGS) $(ARGS_TEST_SRC) $(LIB) $(LDFLAGS) -o $(ARGS_TEST_BIN)
 	./$(ARGS_TEST_BIN)
+
+# Serde data-model + format round-trip suite. Headless, deterministic; kept out
+# of `make test`/`qa` (the parsers have their own gate, `make serde-qa`).
+test-serde: $(LIB)
+	$(CC) $(CFLAGS) $(SERDE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(SERDE_TEST_BIN)
+	./$(SERDE_TEST_BIN)
+
+# The serde suite under AddressSanitizer + UBSan (own .a, like `make sanitize`).
+serde-sanitize: $(SANITIZE_LIB)
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) $(SERDE_TEST_SRC) $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(SERDE_SANITIZE_TEST_BIN)
+	./$(SERDE_SANITIZE_TEST_BIN)
+
+# Random-input fuzzing of the serde parsers under ASan/UBSan (same driver as
+# `make fuzz`; FUZZ_ITERS / FUZZ_SEED overridable).
+serde-fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)/fuzz
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_json.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_json
+	./$(BUILDDIR)/fuzz/fuzz_json $(FUZZ_ITERS) $(FUZZ_SEED)
+
+# Serde C++ wrapper gate (header-only, include/serde/sparcli_serde.hpp): builds
+# the assertion suite under ASan/UBSan and runs it (RAII/move-safety + C parity).
+serde-cpp: $(SANITIZE_LIB) | $(EXAMPLES_BUILDDIR)
+	$(CXX) $(CXXFLAGS) $(SANITIZE_FLAGS) $(SERDE_CPP_TEST_SRC) \
+	    $(SANITIZE_LIB) $(LDFLAGS) $(SANITIZE_FLAGS) \
+	    -o $(EXAMPLES_BUILDDIR)/test_serde_cpp
+	./$(EXAMPLES_BUILDDIR)/test_serde_cpp
+
+# Complete serde gate: tests (warnings as errors), sanitized run, fuzzing and
+# the C++ wrapper. The parser-layer counterpart to `make qa`; run after any
+# serde change.
+serde-qa:
+	$(MAKE) test-serde EXTRA_CFLAGS=-Werror
+	$(MAKE) serde-sanitize
+	$(MAKE) serde-fuzz
+	$(MAKE) serde-cpp
+	@echo "\033[32m✔ All serde QA gates passed.\033[0m"
 
 # Golden-file regression test for the input style snapshots. Non-interactive
 # (the frame builders render without a TTY), so the bytes are deterministic.
