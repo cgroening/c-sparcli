@@ -387,6 +387,73 @@ impl BoxStyle {
     }
 }
 
+/// Named RGB palette: the C `SC_COLOR_*` constants as truecolor [`Color`]s,
+/// additional to the eight ANSI [`Color`] constants. Use as
+/// `sparcli::palette::ACCENT`.
+pub mod palette {
+    use super::Color;
+    // Standard colors
+    pub const RED: Color = Color::rgb(243, 139, 139);
+    pub const ORANGE: Color = Color::rgb(248, 178, 136);
+    pub const YELLOW: Color = Color::rgb(249, 230, 175);
+    pub const GREEN: Color = Color::rgb(165, 227, 164);
+    pub const CYAN: Color = Color::rgb(148, 225, 239);
+    pub const BLUE: Color = Color::rgb(186, 213, 255);
+    pub const PURPLE: Color = Color::rgb(207, 173, 247);
+    pub const MAGENTA: Color = Color::rgb(245, 159, 224);
+    pub const BLACK: Color = Color::rgb(0, 0, 0);
+    pub const WHITE: Color = Color::rgb(255, 255, 255);
+    // Vivid variants
+    pub const RED_VIVID: Color = Color::rgb(255, 69, 87);
+    pub const ORANGE_VIVID: Color = Color::rgb(255, 140, 58);
+    pub const YELLOW_VIVID: Color = Color::rgb(255, 213, 81);
+    pub const GREEN_VIVID: Color = Color::rgb(0, 227, 53);
+    pub const CYAN_VIVID: Color = Color::rgb(64, 230, 255);
+    pub const BLUE_VIVID: Color = Color::rgb(108, 165, 255);
+    pub const PURPLE_VIVID: Color = Color::rgb(175, 77, 255);
+    pub const MAGENTA_VIVID: Color = Color::rgb(255, 81, 223);
+    // Dark variants
+    pub const RED_DARK: Color = Color::rgb(65, 11, 16);
+    pub const ORANGE_DARK: Color = Color::rgb(63, 30, 7);
+    pub const YELLOW_DARK: Color = Color::rgb(60, 48, 12);
+    pub const GREEN_DARK: Color = Color::rgb(0, 49, 5);
+    pub const CYAN_DARK: Color = Color::rgb(8, 54, 61);
+    pub const BLUE_DARK: Color = Color::rgb(21, 38, 64);
+    pub const PURPLE_DARK: Color = Color::rgb(43, 13, 67);
+    pub const MAGENTA_DARK: Color = Color::rgb(64, 14, 55);
+    // Background / foreground
+    pub const BG: Color = Color::rgb(21, 21, 21);
+    pub const BG_DARKEN_1: Color = Color::rgb(17, 17, 17);
+    pub const BG_DARKEN_2: Color = Color::rgb(12, 12, 12);
+    pub const BG_LIGHTEN_1: Color = Color::rgb(26, 26, 26);
+    pub const BG_LIGHTEN_2: Color = Color::rgb(37, 37, 37);
+    pub const BG_LIGHTEN_3: Color = Color::rgb(43, 43, 43);
+    pub const BG_SELECTED: Color = Color::rgb(3, 101, 198);
+    pub const FG: Color = Color::rgb(212, 212, 212);
+    pub const FG_DARKEN_1: Color = Color::rgb(204, 204, 204);
+    pub const FG_DARKEN_2: Color = Color::rgb(187, 187, 187);
+    pub const FG_DARKEN_3: Color = Color::rgb(170, 170, 170);
+    pub const FG_LIGHTEN_1: Color = Color::rgb(238, 238, 238);
+    pub const FG_LIGHTEN_2: Color = Color::rgb(253, 253, 253);
+    // Accent colors
+    pub const ACCENT: Color = Color::rgb(140, 210, 204);
+    pub const ACCENT_DIM: Color = Color::rgb(113, 162, 157);
+    pub const ACCENT_DARKER: Color = Color::rgb(79, 114, 111);
+    pub const ACCENT_DARK: Color = Color::rgb(49, 73, 71);
+    pub const ACCENT_IMPORTANT: Color = Color::rgb(255, 236, 150);
+    // Status colors
+    pub const ENABLED: Color = Color::rgb(112, 223, 129);
+    pub const DISABLED: Color = Color::rgb(224, 108, 117);
+    pub const DISABLED_DIM: Color = Color::rgb(128, 128, 128);
+    // Diagnostics
+    pub const ERROR: Color = Color::rgb(244, 135, 113);
+    pub const WARNING: Color = Color::rgb(255, 185, 84);
+    pub const SUCCESS: Color = Color::rgb(166, 227, 161);
+    pub const INFO: Color = Color::rgb(148, 225, 239);
+    pub const HINT: Color = Color::rgb(170, 170, 170);
+    pub const UNUSED: Color = Color::rgb(98, 98, 98);
+}
+
 /// A growable arena of `CString`s that backs the borrowed `*const c_char`
 /// pointers handed to the C API for the duration of one call. Keep it alive
 /// until the C call returns.

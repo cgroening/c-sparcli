@@ -131,6 +131,16 @@ ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);  // index = -1
 
 Named macros: `SC_ANSI_COLOR_NONE`, `SC_ANSI_COLOR_BLACK`, `SC_ANSI_COLOR_RED`, `SC_ANSI_COLOR_GREEN`, `SC_ANSI_COLOR_YELLOW`, `SC_ANSI_COLOR_BLUE`, `SC_ANSI_COLOR_MAGENTA`, `SC_ANSI_COLOR_CYAN`, `SC_ANSI_COLOR_WHITE`.
 
+### Named RGB palette (`SC_COLOR_*`)
+
+`include/core/sparcli_palette.h` (in the `sparcli.h` umbrella) defines a curated 24-bit **RGB** palette as `SC_COLOR_*` compound-literal macros (`index == -1`), **additional to** and distinct from the terminal-palette `SC_ANSI_COLOR_*`. Zero-init is still `SC_ANSI_COLOR_NONE`; these are explicit values you opt into.
+
+Groups (53 colors): standard hues (`SC_COLOR_RED`, `_ORANGE`, `_YELLOW`, `_GREEN`, `_CYAN`, `_BLUE`, `_PURPLE`, `_MAGENTA`, `_BLACK`, `_WHITE`), `_VIVID` and `_DARK` variants of each hue, backgrounds/foregrounds (`SC_COLOR_BG`, `_BG_DARKEN_1/2`, `_BG_LIGHTEN_1/2/3`, `_BG_SELECTED`, `SC_COLOR_FG`, `_FG_DARKEN_1/2/3`, `_FG_LIGHTEN_1/2`), accents (`SC_COLOR_ACCENT`, `_ACCENT_DIM`, `_ACCENT_DARKER`, `_ACCENT_DARK`, `_ACCENT_IMPORTANT`), status (`SC_COLOR_ENABLED`, `_DISABLED`, `_DISABLED_DIM`) and diagnostics (`SC_COLOR_ERROR`, `_WARNING`, `_SUCCESS`, `_INFO`, `_HINT`, `_UNUSED`). Each macro carries its source `#rrggbb` as a comment.
+
+**By name in strings** — `sc_color_by_name(name, &out)` / `sc_color_by_name_n(name, len, &out)` (in `core/sparcli_core.h`) is the single canonical name→`ScColor` resolver, shared by **markup** (`[accent]`, `[error]`, `[orange]` …), the **CLI** (`--color accent`, etc.) and the **args parser** (`SC_ARG_COLOR`). It resolves the eight ANSI names *and* the palette. The eight plain hue names (`red`, `green`, `blue`, `yellow`, `cyan`, `magenta`, `black`, `white`) always resolve to the **ANSI** colors; the palette's own soft hues are not reachable by bare name — use `#rrggbb` or the `SC_COLOR_*` macro. All other palette names (`orange`, `purple`, the `*_vivid`/`*_dark` variants, `bg*`, `fg*`, `accent*`, `enabled`, `disabled*`, `error`, `warning`, `success`, `info`, `hint`, `unused`) are string-addressable.
+
+**Bindings:** C++ `sparcli::palette::accent()` (functions, since the C macros are compound literals); Rust `sparcli::palette::ACCENT` (`pub const Color`); Python `sc.Palette.ACCENT` (RGB `Color`). The bindings expose all 53 colors (including the soft hues, namespaced so they don't shadow the ANSI ones). The canonical hex list lives in `include/core/sparcli_palette.h`; all language copies are generated from it — keep them in sync when editing.
+
 ### ScTextAttribute
 
 Bitmask – combine with `|`:

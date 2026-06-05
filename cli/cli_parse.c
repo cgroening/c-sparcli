@@ -92,18 +92,6 @@ static const ScCliName STYLE_ATTR_NAMES[] = {
     { .name = "underline", .value = SC_TEXT_ATTR_UNDER },
 };
 
-/* ANSI color names; values are the ScColor.index of each named color. */
-static const ScCliName COLOR_NAMES[] = {
-    { .name = "black",   .value = 1 },
-    { .name = "red",     .value = 2 },
-    { .name = "green",   .value = 3 },
-    { .name = "yellow",  .value = 4 },
-    { .name = "blue",    .value = 5 },
-    { .name = "magenta", .value = 6 },
-    { .name = "cyan",    .value = 7 },
-    { .name = "white",   .value = 8 },
-};
-
 /** Name-to-function mapping for input character filters. */
 typedef struct ScCliFilterName {
     const char  *name;
@@ -221,10 +209,8 @@ bool sc_cli_parse_filter(const char *name, ScCharFilter *out) {
 }
 
 bool sc_cli_parse_color(const char *spec, ScColor *out) {
-    int index = 0;
-    if (lookup_value(COLOR_NAMES, SC_CLI_TABLE_SIZE(COLOR_NAMES),
-                     spec, &index)) {
-        *out = (ScColor){ .index = index };
+    /* ANSI names + named RGB palette (orange, accent, error, …). */
+    if (sc_color_by_name(spec, out)) {
         return true;
     }
     if (spec[0] == '#') {

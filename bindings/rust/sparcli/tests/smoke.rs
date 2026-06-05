@@ -501,3 +501,17 @@ fn ansi_injection_protection() {
     sparcli::set_allow_ansi(false);
     assert!(!sparcli::allow_ansi());
 }
+
+#[test]
+fn palette_border_emits_rgb_escape() {
+    // sparcli::palette::ACCENT is #8cd2cc = rgb(140,210,204); a panel border in
+    // that color must emit the 24-bit ANSI sequence for it.
+    let border = sparcli::BorderStyle::new(sparcli::BorderType::Single)
+        .color(sparcli::palette::ACCENT);
+    let r = capture::panel("x", PanelOpts::new().border(border));
+    assert!(
+        r.lines().iter().any(|l| l.contains("38;2;140;210;204")),
+        "expected accent rgb escape in: {:?}",
+        r.lines()
+    );
+}

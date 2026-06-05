@@ -24,6 +24,99 @@ ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 
+/* ── Color-name resolution (shared by markup, CLI and the args parser) ──── */
+
+/**
+ * Canonical name -> color table. The eight plain hue names map to the ANSI
+ * colors (terminal palette); every other entry is a named RGB palette color
+ * (`SC_COLOR_*`). NULL-terminated.
+ */
+static const struct {
+    const char *name;
+    ScColor     color;
+} sc_named_colors[] = {
+    /* ANSI colors (terminal palette) */
+    { "black",   SC_ANSI_COLOR_BLACK   },
+    { "red",     SC_ANSI_COLOR_RED     },
+    { "green",   SC_ANSI_COLOR_GREEN   },
+    { "yellow",  SC_ANSI_COLOR_YELLOW  },
+    { "blue",    SC_ANSI_COLOR_BLUE    },
+    { "magenta", SC_ANSI_COLOR_MAGENTA },
+    { "cyan",    SC_ANSI_COLOR_CYAN    },
+    { "white",   SC_ANSI_COLOR_WHITE   },
+    /* Named RGB palette (SC_COLOR_*) */
+    { "orange",            SC_COLOR_ORANGE },
+    { "purple",            SC_COLOR_PURPLE },
+    { "red_vivid",         SC_COLOR_RED_VIVID },
+    { "orange_vivid",      SC_COLOR_ORANGE_VIVID },
+    { "yellow_vivid",      SC_COLOR_YELLOW_VIVID },
+    { "green_vivid",       SC_COLOR_GREEN_VIVID },
+    { "cyan_vivid",        SC_COLOR_CYAN_VIVID },
+    { "blue_vivid",        SC_COLOR_BLUE_VIVID },
+    { "purple_vivid",      SC_COLOR_PURPLE_VIVID },
+    { "magenta_vivid",     SC_COLOR_MAGENTA_VIVID },
+    { "red_dark",          SC_COLOR_RED_DARK },
+    { "orange_dark",       SC_COLOR_ORANGE_DARK },
+    { "yellow_dark",       SC_COLOR_YELLOW_DARK },
+    { "green_dark",        SC_COLOR_GREEN_DARK },
+    { "cyan_dark",         SC_COLOR_CYAN_DARK },
+    { "blue_dark",         SC_COLOR_BLUE_DARK },
+    { "purple_dark",       SC_COLOR_PURPLE_DARK },
+    { "magenta_dark",      SC_COLOR_MAGENTA_DARK },
+    { "bg",                SC_COLOR_BG },
+    { "bg_darken_1",       SC_COLOR_BG_DARKEN_1 },
+    { "bg_darken_2",       SC_COLOR_BG_DARKEN_2 },
+    { "bg_lighten_1",      SC_COLOR_BG_LIGHTEN_1 },
+    { "bg_lighten_2",      SC_COLOR_BG_LIGHTEN_2 },
+    { "bg_lighten_3",      SC_COLOR_BG_LIGHTEN_3 },
+    { "bg_selected",       SC_COLOR_BG_SELECTED },
+    { "fg",                SC_COLOR_FG },
+    { "fg_darken_1",       SC_COLOR_FG_DARKEN_1 },
+    { "fg_darken_2",       SC_COLOR_FG_DARKEN_2 },
+    { "fg_darken_3",       SC_COLOR_FG_DARKEN_3 },
+    { "fg_lighten_1",      SC_COLOR_FG_LIGHTEN_1 },
+    { "fg_lighten_2",      SC_COLOR_FG_LIGHTEN_2 },
+    { "accent",            SC_COLOR_ACCENT },
+    { "accent_dim",        SC_COLOR_ACCENT_DIM },
+    { "accent_darker",     SC_COLOR_ACCENT_DARKER },
+    { "accent_dark",       SC_COLOR_ACCENT_DARK },
+    { "accent_important",  SC_COLOR_ACCENT_IMPORTANT },
+    { "enabled",           SC_COLOR_ENABLED },
+    { "disabled",          SC_COLOR_DISABLED },
+    { "disabled_dim",      SC_COLOR_DISABLED_DIM },
+    { "error",             SC_COLOR_ERROR },
+    { "warning",           SC_COLOR_WARNING },
+    { "success",           SC_COLOR_SUCCESS },
+    { "info",              SC_COLOR_INFO },
+    { "hint",              SC_COLOR_HINT },
+    { "unused",            SC_COLOR_UNUSED },
+    { NULL,                SC_ANSI_COLOR_NONE },
+};
+
+/** Length-delimited name lookup; see header for the resolution rules. */
+bool sc_color_by_name_n(const char *name, size_t length, ScColor *out) {
+    if (name == NULL || out == NULL) {
+        return false;
+    }
+    for (int i = 0; sc_named_colors[i].name; i++) {
+        if (strlen(sc_named_colors[i].name) == length
+            && memcmp(name, sc_named_colors[i].name, length) == 0) {
+            *out = sc_named_colors[i].color;
+            return true;
+        }
+    }
+    return false;
+}
+
+/** NUL-terminated name lookup; delegates to @ref sc_color_by_name_n. */
+bool sc_color_by_name(const char *name, ScColor *out) {
+    if (name == NULL) {
+        return false;
+    }
+    return sc_color_by_name_n(name, strlen(name), out);
+}
+
+
 /* ── Functional variants of the SC_ANSI_COLOR_* macros ──────────────────── */
 
 /**

@@ -93,6 +93,7 @@ Non-interactive; safe to run anywhere.
 |------|---------------|
 | `output/text_styles` | Colors and attributes, rich multi-span `Text`, OSC-8 links, badges, `strip_ansi`/`truncate`, and the ANSI-sanitization opt-out (per-widget `ansi` / `set_allow_ansi`). |
 | `output/color_grid` | Every color model `ScColor` renders: the 8 named ANSI colors (as text and backgrounds), text attributes, and 24-bit `sc_color_from_rgb` gradients (hue spectrum, per-channel ramps, grayscale).² |
+| `output/palette` | The curated named RGB palette (`SC_COLOR_*`): hue / `_VIVID` / accent / diagnostic swatches, palette names in markup and panels, and `sc_color_by_name`.² |
 | `output/markup` | Rich-style markup tags, nesting, literal brackets, inline code spans, link tags, `strip_unknown`/`code_style`. |
 | `output/panel_alert` | Bordered panels (titles, subtitles, padding, alignment, full width) and the five alert presets. |
 | `output/table_basic` | Columns, header/footer rows, alignment, border styles, per-column style. |

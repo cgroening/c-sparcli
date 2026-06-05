@@ -6,6 +6,7 @@
 
 #include "core/sparcli_export.h"       // IWYU pragma: export
 #include "core/sparcli_core.h"         // IWYU pragma: export
+#include "core/sparcli_palette.h"      // IWYU pragma: export
 #include "core/sparcli_text.h"         // IWYU pragma: export
 #include "output/sparcli_markup.h"       // IWYU pragma: export
 #include "core/sparcli_rendered.h"     // IWYU pragma: export

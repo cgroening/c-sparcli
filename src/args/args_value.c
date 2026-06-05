@@ -16,25 +16,6 @@
 #define COLOR_HEX_DIGITS 6
 
 
-/** Named ANSI colors accepted by `SC_ARG_COLOR` values. */
-static const struct {
-    const char *name;
-    int         index;
-} COLOR_NAMES[] = {
-    { "black",   1 },
-    { "red",     2 },
-    { "green",   3 },
-    { "yellow",  4 },
-    { "blue",    5 },
-    { "magenta", 6 },
-    { "cyan",    7 },
-    { "white",   8 },
-};
-
-/** Number of entries in `COLOR_NAMES`. */
-#define COLOR_NAME_COUNT (sizeof COLOR_NAMES / sizeof COLOR_NAMES[0])
-
-
 // Forward declarations indented to reflect call hierarchy
 static bool parse_hex_color(const char *text, ScColor *out);
 static bool parse_rgb_color(const char *text, ScColor *out);
@@ -66,11 +47,9 @@ bool sc_args_parse_double(const char *text, double *out) {
 bool sc_args_parse_color(const char *text, ScColor *out) {
     if (!text || text[0] == '\0') { return false; }
 
-    for (size_t i = 0; i < COLOR_NAME_COUNT; i++) {
-        if (strcmp(COLOR_NAMES[i].name, text) == 0) {
-            *out = (ScColor){ .index = COLOR_NAMES[i].index };
-            return true;
-        }
+    /* ANSI names + named RGB palette (orange, accent, error, …). */
+    if (sc_color_by_name(text, out)) {
+        return true;
     }
     if (text[0] == '#') {
         return parse_hex_color(text, out);

@@ -84,6 +84,17 @@ Color c2 = rgb(120, 200, 255);    // magenta/cyan/white, plus rgb(r,g,b)
 TextStyle s = style(SC_TEXT_ATTR_BOLD, green());   // attr, fg, bg
 ```
 
+**Named RGB palette** — the C `SC_COLOR_*` set is exposed as functions under `sparcli::palette` (the C macros are compound literals, unusable in standard C++). All 53 colors are available; each returns a 24-bit RGB `Color`:
+
+```cpp
+using namespace sparcli;
+panel_str("hi", PanelOpts{ .border = { SC_BORDER_ROUNDED, palette::accent() },
+                           .bg = palette::bg_darken_1() });
+alert_text(SC_ALERT_ERROR, *markup::parse("[error]disk full[/]"));   // markup names too
+```
+
+Names mirror the macros lower-cased: `palette::accent()`, `palette::error()`, `palette::orange()`, `palette::red_vivid()`, `palette::bg_selected()`, … In string contexts (markup tags) the eight plain hue names stay ANSI; see `docs/api-c.md`.
+
 All `ScColor`/`ScTextStyle` enum/macro constants (`SC_TEXT_ATTR_*`, `SC_BORDER_*`, `SC_ALIGN_*`, …) are plain enums and work as-is.
 
 ## RAII handles

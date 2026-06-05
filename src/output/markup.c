@@ -30,21 +30,6 @@
 #define LINK_PREFIX_LENGTH 5
 
 
-/** Named ANSI color lookup table; terminated by a `NULL` name. */
-static const struct {
-    const char *name;
-    ScColor color;
-} color_map[] = {
-    { "black",   SC_ANSI_COLOR_BLACK   },
-    { "red",     SC_ANSI_COLOR_RED     },
-    { "green",   SC_ANSI_COLOR_GREEN   },
-    { "yellow",  SC_ANSI_COLOR_YELLOW  },
-    { "blue",    SC_ANSI_COLOR_BLUE    },
-    { "magenta", SC_ANSI_COLOR_MAGENTA },
-    { "cyan",    SC_ANSI_COLOR_CYAN    },
-    { "white",   SC_ANSI_COLOR_WHITE   },
-    { NULL,      SC_ANSI_COLOR_NONE    },
-};
 
 
 /** State carried through one parse pass. */
@@ -501,18 +486,14 @@ static bool is_recognized_close_name(const char *name, size_t length) {
 /**
  * Returns `true` and writes the matching `ScColor` into `*out` when
  * `(name, length)` equals a known color name; returns `false` otherwise.
+ *
+ * Resolves both the ANSI color names and the named RGB palette via the shared
+ * @ref sc_color_by_name_n, so markup tags like `[accent]` or `[error]` work.
  */
 static bool lookup_color_name(
     const char *name, size_t length, ScColor *out
 ) {
-    for (int i = 0; color_map[i].name; i++) {
-        if (strlen(color_map[i].name) == length
-            && memcmp(name, color_map[i].name, length) == 0) {
-            *out = color_map[i].color;
-            return true;
-        }
-    }
-    return false;
+    return sc_color_by_name_n(name, length, out);
 }
 
 /**

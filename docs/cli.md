@@ -70,13 +70,16 @@ Backtick `` `inline code` `` spans render in magenta with the backticks removed;
 
 ### Colors
 
-Wherever a command takes a `COLOR` value, three forms are accepted:
+Wherever a command takes a `COLOR` value, four forms are accepted:
 
 | Form | Example |
 |------|---------|
 | Named ANSI color | `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `black` |
+| Named RGB palette | `accent`, `error`, `warning`, `success`, `info`, `orange`, `purple`, `bg`, `fg`, the `*_vivid`/`*_dark` hue variants, `bg_*`/`fg_*` shades, … |
 | Hex RGB | `#ff8800` |
 | Decimal RGB | `255,136,0` |
+
+The **named RGB palette** is sparcli's curated 24-bit color set (`SC_COLOR_*`), also usable in markup as `[accent]`, `[error]`, `[orange]`, … The eight plain hue names above always mean the **ANSI** colors; the palette's own soft hues (its red/green/…) are reached via `#rrggbb` instead. See the palette reference in `docs/api-c.md`.
 
 `--no-color` (or a non-empty [`NO_COLOR`](https://no-color.org) environment variable) strips every ANSI escape sequence from the output – including colors that come from markup tags.
 

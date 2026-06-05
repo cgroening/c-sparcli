@@ -42,8 +42,9 @@ pub use input::*;
 pub use logging::{log, LogLevel, Logger, LoggerOpts};
 pub use output::*;
 pub use style::{
-    Align, AnsiMode, Attr, BgExtent, BorderStyle, BorderType, BoxStyle, Color,
-    Edges, HintLayout, HintPos, Position, Style, VAlign, WidthMode,
+    palette, Align, AnsiMode, Attr, BgExtent, BorderStyle, BorderType,
+    BoxStyle, Color, Edges, HintLayout, HintPos, Position, Style, VAlign,
+    WidthMode,
 };
 pub use text::{markup, MarkupOpts, Text};
 

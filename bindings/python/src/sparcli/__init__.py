@@ -26,7 +26,7 @@ from .app import (ErrorReport, Pager, app_dir, app_file, cache_dir,
                   config_dir, data_dir, state_dir)
 from .capture import (Live, PadOpts, Rendered, align_str, align_text, capture,
                       pad_str, pad_text, vstack)
-from .color import Color
+from .color import Color, Palette
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BgExtent, BorderType,
                     HintLayout, HintPos, ListMarker, LogLevel, PathKind,
@@ -64,8 +64,8 @@ __all__ = [
     # raw FFI
     "sys",
     # core values
-    "Color", "Style", "Attr", "BorderStyle", "BoxStyle", "Edges", "Title",
-    "Text",
+    "Color", "Palette", "Style", "Attr", "BorderStyle", "BoxStyle", "Edges",
+    "Title", "Text",
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",

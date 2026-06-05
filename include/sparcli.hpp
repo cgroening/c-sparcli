@@ -121,6 +121,71 @@ inline TextStyle style(TextAttribute attr, Color fg = {}, Color bg = {}) {
     return sc_text_style(attr, fg, bg);
 }
 
+// ── Named RGB palette (the C `SC_COLOR_*` macros) ────────────────────────
+// Additional to the eight ANSI colors above; each returns a 24-bit RGB Color.
+namespace palette {
+    // Standard colors
+    inline Color red() { return rgb(243, 139, 139); }
+    inline Color orange() { return rgb(248, 178, 136); }
+    inline Color yellow() { return rgb(249, 230, 175); }
+    inline Color green() { return rgb(165, 227, 164); }
+    inline Color cyan() { return rgb(148, 225, 239); }
+    inline Color blue() { return rgb(186, 213, 255); }
+    inline Color purple() { return rgb(207, 173, 247); }
+    inline Color magenta() { return rgb(245, 159, 224); }
+    inline Color black() { return rgb(0, 0, 0); }
+    inline Color white() { return rgb(255, 255, 255); }
+    // Vivid variants
+    inline Color red_vivid() { return rgb(255, 69, 87); }
+    inline Color orange_vivid() { return rgb(255, 140, 58); }
+    inline Color yellow_vivid() { return rgb(255, 213, 81); }
+    inline Color green_vivid() { return rgb(0, 227, 53); }
+    inline Color cyan_vivid() { return rgb(64, 230, 255); }
+    inline Color blue_vivid() { return rgb(108, 165, 255); }
+    inline Color purple_vivid() { return rgb(175, 77, 255); }
+    inline Color magenta_vivid() { return rgb(255, 81, 223); }
+    // Dark variants
+    inline Color red_dark() { return rgb(65, 11, 16); }
+    inline Color orange_dark() { return rgb(63, 30, 7); }
+    inline Color yellow_dark() { return rgb(60, 48, 12); }
+    inline Color green_dark() { return rgb(0, 49, 5); }
+    inline Color cyan_dark() { return rgb(8, 54, 61); }
+    inline Color blue_dark() { return rgb(21, 38, 64); }
+    inline Color purple_dark() { return rgb(43, 13, 67); }
+    inline Color magenta_dark() { return rgb(64, 14, 55); }
+    // Background / foreground
+    inline Color bg() { return rgb(21, 21, 21); }
+    inline Color bg_darken_1() { return rgb(17, 17, 17); }
+    inline Color bg_darken_2() { return rgb(12, 12, 12); }
+    inline Color bg_lighten_1() { return rgb(26, 26, 26); }
+    inline Color bg_lighten_2() { return rgb(37, 37, 37); }
+    inline Color bg_lighten_3() { return rgb(43, 43, 43); }
+    inline Color bg_selected() { return rgb(3, 101, 198); }
+    inline Color fg() { return rgb(212, 212, 212); }
+    inline Color fg_darken_1() { return rgb(204, 204, 204); }
+    inline Color fg_darken_2() { return rgb(187, 187, 187); }
+    inline Color fg_darken_3() { return rgb(170, 170, 170); }
+    inline Color fg_lighten_1() { return rgb(238, 238, 238); }
+    inline Color fg_lighten_2() { return rgb(253, 253, 253); }
+    // Accent colors
+    inline Color accent() { return rgb(140, 210, 204); }
+    inline Color accent_dim() { return rgb(113, 162, 157); }
+    inline Color accent_darker() { return rgb(79, 114, 111); }
+    inline Color accent_dark() { return rgb(49, 73, 71); }
+    inline Color accent_important() { return rgb(255, 236, 150); }
+    // Status colors
+    inline Color enabled() { return rgb(112, 223, 129); }
+    inline Color disabled() { return rgb(224, 108, 117); }
+    inline Color disabled_dim() { return rgb(128, 128, 128); }
+    // Diagnostics
+    inline Color error() { return rgb(244, 135, 113); }
+    inline Color warning() { return rgb(255, 185, 84); }
+    inline Color success() { return rgb(166, 227, 161); }
+    inline Color info() { return rgb(148, 225, 239); }
+    inline Color hint() { return rgb(170, 170, 170); }
+    inline Color unused() { return rgb(98, 98, 98); }
+}  // namespace palette
+
 namespace detail {
 // A NUL-terminated copy of a string_view, kept alive for a full expression.
 // (string_view is not guaranteed NUL-terminated, so we materialize.)

@@ -3,6 +3,7 @@
 #include "core/sparcli_export.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 
@@ -364,6 +365,29 @@ SPARCLI_EXPORT bool sc_allow_ansi(void);
  * @return   An `ScColor` with `index = -1` and the given RGB values.
  */
 SPARCLI_EXPORT ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
+
+/**
+ * Resolves a color name to an `ScColor`.
+ *
+ * Recognizes the eight ANSI color names (`"black"`, `"red"`, …, `"white"`)
+ * and the named RGB palette (`SC_COLOR_*`, e.g. `"orange"`, `"accent"`,
+ * `"error"`, `"bg_darken_1"`). The eight plain hue names always resolve to
+ * the ANSI colors; the palette's own soft hues (`SC_COLOR_RED` etc.) are not
+ * reachable by bare name here — use `#RRGGBB` or the `SC_COLOR_*` macro.
+ *
+ * @param name  Color name (case-sensitive); must not be `NULL`.
+ * @param out   Receives the resolved color on success; must not be `NULL`.
+ * @return      `true` when `name` matched, `false` otherwise (`*out` unset).
+ */
+SPARCLI_EXPORT bool sc_color_by_name(const char *name, ScColor *out);
+
+/**
+ * Length-delimited variant of @ref sc_color_by_name for non-terminated spans
+ * (e.g. the markup parser). `name` need not be NUL-terminated.
+ */
+SPARCLI_EXPORT bool sc_color_by_name_n(
+    const char *name, size_t length, ScColor *out
+);
 
 
 /* ── Functional variants of the SC_ANSI_COLOR_* macros (FFI-friendly) ── */

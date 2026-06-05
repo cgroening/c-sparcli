@@ -61,7 +61,7 @@ The full reference for every output component lives in [`docs/api-c.md`](docs/ap
 - **Live display & dashboards**: re-render a composed frame in place (`sc_live_*`) – build dashboards from any widgets that update continuously, in-place or on the fullscreen alternate screen ([docs](docs/api-c.md#live-display)).
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`, `[rgb(120,200,255)]…[/]` – same syntax as [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual). See [Rich-compatible markup](#rich-compatible-markup).
 - **Clickable hyperlinks (OSC-8)**: `[link=https://…]text[/link]` markup or `sc_text_append_link()` – Cmd/Ctrl+click opens the URL in supporting terminals, plain text everywhere else ([docs](docs/api-c.md#hyperlinks-osc-8)).
-- **Truecolor + 8-color ANSI**, with graceful sentinels for "no color".
+- **Truecolor + 8-color ANSI**, with graceful sentinels for "no color". Plus a curated **named RGB palette** (`SC_COLOR_ACCENT`, `SC_COLOR_ERROR`, … / `sparcli::palette::accent()` / `palette::ACCENT` / `sc.Palette.ACCENT`) usable in code and in markup (`[accent]`, `[error]`, `[orange]`) and the CLI (`--color accent`) ([docs](docs/api-c.md#named-rgb-palette-sc_color_)).
 - **Composable**: capture any widget into a buffer, then pad, align, stack (`sc_vstack`), or place it inside a columns layout ([docs](docs/api-c.md#capture-api)).
 
 ### Input
