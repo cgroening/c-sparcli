@@ -349,29 +349,43 @@ static int format_scroll_hint(char *buf, size_t size, size_t top, size_t end,
     return (int)sc_utf8_string_length(buf, strlen(buf));
 }
 
+/** Moves the cursor up one row, wrapping to the last row when enabled. */
+static void cursor_up(ScSelect *self) {
+    if (self->cursor > 0) {
+        self->cursor--;
+    } else if (self->opts.wrap && self->count > 0) {
+        self->cursor = self->count - 1;
+    }
+}
+
+/** Moves the cursor down one row, wrapping to the first row when enabled. */
+static void cursor_down(ScSelect *self) {
+    if (self->cursor + 1 < self->count) {
+        self->cursor++;
+    } else if (self->opts.wrap && self->count > 0) {
+        self->cursor = 0;
+    }
+}
+
 static void select_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     (void)cancel;
     ScSelect *self = state;
     switch (key.type) {
         case SC_KEY_UP:
-            if (self->cursor > 0) {
-                self->cursor--;
-            }
+            cursor_up(self);
             break;
         case SC_KEY_DOWN:
-            if (self->cursor + 1 < self->count) {
-                self->cursor++;
-            }
+            cursor_down(self);
             break;
         case SC_KEY_ENTER:
             *done = true;
             return;
         case SC_KEY_CHAR:
             if (key.mods != 0) { return; }   // Ctrl/Alt + char isn't j/k/space
-            if (key.bytes[0] == 'k' && self->cursor > 0) {
-                self->cursor--;
-            } else if (key.bytes[0] == 'j' && self->cursor + 1 < self->count) {
-                self->cursor++;
+            if (key.bytes[0] == 'k') {
+                cursor_up(self);
+            } else if (key.bytes[0] == 'j') {
+                cursor_down(self);
             } else if (key.bytes[0] == ' ' && self->opts.multi) {
                 self->checked[self->cursor] = !self->checked[self->cursor];
             }

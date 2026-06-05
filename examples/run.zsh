@@ -68,7 +68,8 @@ pick_and_run() {
     local lang=$1 group=$2 prompt=$3 example choice
     # --arrow-nav: → runs the highlighted example, ← exits 3 (back).
     example=$(leaves_of $lang $group \
-        | "$bin" fuzzy --prompt "$prompt" --accent cyan --arrow-nav) || return 1
+        | "$bin" fuzzy --prompt "$prompt" --accent cyan --arrow-nav --wrap) \
+        || return 1
     [[ -z $example ]] && return 1
 
     if [[ $lang == cli ]]; then
@@ -91,7 +92,7 @@ pick_and_run() {
 # Navigate with the arrow keys (--arrow-nav): → goes forward / selects, ← goes
 # back one level. Esc behaves like ← (and exits at the language menu).
 while true; do
-    lang=$("$bin" select --prompt "Language?" --accent cyan --arrow-nav \
+    lang=$("$bin" select --prompt "Language?" --accent cyan --arrow-nav --wrap \
         $languages) || { "$bin" alert info "Bye."; exit 0; }
 
     if [[ $lang == cli ]]; then
@@ -101,7 +102,7 @@ while true; do
         typeset -a groups=(${(f)"$(groups_of $lang)"})
         while true; do
             group=$("$bin" select --prompt "$lang group?" --accent cyan \
-                --arrow-nav $groups) || break        # ← / Esc -> languages
+                --arrow-nav --wrap $groups) || break  # ← / Esc -> languages
             pick_and_run $lang $group "$lang/$group example?" || continue
         done
     fi

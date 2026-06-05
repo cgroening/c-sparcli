@@ -29,6 +29,10 @@ typedef struct ScFuzzyOpts {
     /** Max result rows shown; `0` = 10. */
     int max_visible;
 
+    /** Wrap the cursor around the ends of the result list: Up on the first
+        match jumps to the last and Down on the last jumps to the first. */
+    bool wrap;
+
     /** Highlight color for the cursor row. */
     ScColor accent;
 

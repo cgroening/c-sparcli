@@ -2875,6 +2875,8 @@ pub struct ScSelectOpts {
     pub prompt: *const ::std::os::raw::c_char,
     #[doc = " `true` = multi-select with checkboxes."]
     pub multi: bool,
+    #[doc = " Wrap the cursor around the ends: Up on the first row jumps to the last\nand Down on the last jumps to the first."]
+    pub wrap: bool,
     #[doc = " Max rows shown at once; `0` = 10."]
     pub max_visible: ::std::os::raw::c_int,
     #[doc = " Style for the heading."]
@@ -2923,6 +2925,7 @@ const _: () = {
     ["Offset of field: ScSelectOpts::prompt"]
         [::std::mem::offset_of!(ScSelectOpts, prompt) - 0usize];
     ["Offset of field: ScSelectOpts::multi"][::std::mem::offset_of!(ScSelectOpts, multi) - 8usize];
+    ["Offset of field: ScSelectOpts::wrap"][::std::mem::offset_of!(ScSelectOpts, wrap) - 9usize];
     ["Offset of field: ScSelectOpts::max_visible"]
         [::std::mem::offset_of!(ScSelectOpts, max_visible) - 12usize];
     ["Offset of field: ScSelectOpts::prompt_style"]
@@ -3023,6 +3026,8 @@ pub struct ScFuzzyOpts {
     pub prompt: *const ::std::os::raw::c_char,
     #[doc = " Max result rows shown; `0` = 10."]
     pub max_visible: ::std::os::raw::c_int,
+    #[doc = " Wrap the cursor around the ends of the result list: Up on the first\nmatch jumps to the last and Down on the last jumps to the first."]
+    pub wrap: bool,
     #[doc = " Highlight color for the cursor row."]
     pub accent: ScColor,
     #[doc = " Render results as a table."]
@@ -3074,54 +3079,55 @@ pub struct ScFuzzyOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 560usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 568usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
         [::std::mem::offset_of!(ScFuzzyOpts, max_visible) - 8usize];
-    ["Offset of field: ScFuzzyOpts::accent"][::std::mem::offset_of!(ScFuzzyOpts, accent) - 12usize];
-    ["Offset of field: ScFuzzyOpts::table"][::std::mem::offset_of!(ScFuzzyOpts, table) - 20usize];
+    ["Offset of field: ScFuzzyOpts::wrap"][::std::mem::offset_of!(ScFuzzyOpts, wrap) - 12usize];
+    ["Offset of field: ScFuzzyOpts::accent"][::std::mem::offset_of!(ScFuzzyOpts, accent) - 16usize];
+    ["Offset of field: ScFuzzyOpts::table"][::std::mem::offset_of!(ScFuzzyOpts, table) - 24usize];
     ["Offset of field: ScFuzzyOpts::headers"]
-        [::std::mem::offset_of!(ScFuzzyOpts, headers) - 24usize];
-    ["Offset of field: ScFuzzyOpts::n_cols"][::std::mem::offset_of!(ScFuzzyOpts, n_cols) - 32usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, headers) - 32usize];
+    ["Offset of field: ScFuzzyOpts::n_cols"][::std::mem::offset_of!(ScFuzzyOpts, n_cols) - 40usize];
     ["Offset of field: ScFuzzyOpts::search_columns"]
-        [::std::mem::offset_of!(ScFuzzyOpts, search_columns) - 40usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, search_columns) - 48usize];
     ["Offset of field: ScFuzzyOpts::prompt_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, prompt_style) - 48usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, prompt_style) - 56usize];
     ["Offset of field: ScFuzzyOpts::selected_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, selected_style) - 68usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, selected_style) - 76usize];
     ["Offset of field: ScFuzzyOpts::cursor_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, cursor_style) - 88usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, cursor_style) - 96usize];
     ["Offset of field: ScFuzzyOpts::counter_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, counter_style) - 108usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, counter_style) - 116usize];
     ["Offset of field: ScFuzzyOpts::cursor_marker"]
-        [::std::mem::offset_of!(ScFuzzyOpts, cursor_marker) - 128usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, cursor_marker) - 136usize];
     ["Offset of field: ScFuzzyOpts::marker"]
-        [::std::mem::offset_of!(ScFuzzyOpts, marker) - 136usize];
-    ["Offset of field: ScFuzzyOpts::box_"][::std::mem::offset_of!(ScFuzzyOpts, box_) - 144usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, marker) - 144usize];
+    ["Offset of field: ScFuzzyOpts::box_"][::std::mem::offset_of!(ScFuzzyOpts, box_) - 152usize];
     ["Offset of field: ScFuzzyOpts::table_opts"]
-        [::std::mem::offset_of!(ScFuzzyOpts, table_opts) - 232usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, table_opts) - 240usize];
     ["Offset of field: ScFuzzyOpts::summary_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, summary_style) - 456usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, summary_style) - 464usize];
     ["Offset of field: ScFuzzyOpts::hide_summary"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hide_summary) - 476usize];
-    ["Offset of field: ScFuzzyOpts::hint"][::std::mem::offset_of!(ScFuzzyOpts, hint) - 480usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hide_summary) - 484usize];
+    ["Offset of field: ScFuzzyOpts::hint"][::std::mem::offset_of!(ScFuzzyOpts, hint) - 488usize];
     ["Offset of field: ScFuzzyOpts::hint_layout"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hint_layout) - 488usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hint_layout) - 496usize];
     ["Offset of field: ScFuzzyOpts::hint_pos"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hint_pos) - 492usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hint_pos) - 500usize];
     ["Offset of field: ScFuzzyOpts::hint_style"]
-        [::std::mem::offset_of!(ScFuzzyOpts, hint_style) - 496usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, hint_style) - 504usize];
     ["Offset of field: ScFuzzyOpts::shortcuts"]
-        [::std::mem::offset_of!(ScFuzzyOpts, shortcuts) - 520usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, shortcuts) - 528usize];
     ["Offset of field: ScFuzzyOpts::n_shortcuts"]
-        [::std::mem::offset_of!(ScFuzzyOpts, n_shortcuts) - 528usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, n_shortcuts) - 536usize];
     ["Offset of field: ScFuzzyOpts::out_shortcut_id"]
-        [::std::mem::offset_of!(ScFuzzyOpts, out_shortcut_id) - 536usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, out_shortcut_id) - 544usize];
     ["Offset of field: ScFuzzyOpts::prompt_text"]
-        [::std::mem::offset_of!(ScFuzzyOpts, prompt_text) - 544usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, prompt_text) - 552usize];
     ["Offset of field: ScFuzzyOpts::prompt_markup"]
-        [::std::mem::offset_of!(ScFuzzyOpts, prompt_markup) - 552usize];
+        [::std::mem::offset_of!(ScFuzzyOpts, prompt_markup) - 560usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

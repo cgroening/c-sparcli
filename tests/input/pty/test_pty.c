@@ -506,6 +506,29 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 34: {
+            /* wrap: Up on the first row jumps to the last (index 2). */
+            ScSelect *sl = sc_select_new((ScSelectOpts){ .wrap = true });
+            sc_select_add(sl, "a");
+            sc_select_add(sl, "b");
+            sc_select_add(sl, "c");
+            size_t idx[1] = { 0 }, n = 1;
+            ScInputStatus s = sc_select_run(sl, idx, &n);
+            int ok = (s == SC_INPUT_OK && idx[0] == 2);
+            sc_select_free(sl);
+            return ok ? 0 : 1;
+        }
+        case 35: {
+            /* wrap: Up on the first match jumps to the last (Rent). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .wrap = true });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -553,6 +576,8 @@ static const Case CASES[] = {
     { "fuzzy-boxed", "Ren\r" },                    /* boxed fuzzy: query, enter */
     { "select-bg-bar", "\x1b[B\r" },               /* widget bg + cursor bar */
     { "fuzzy-bg-extent-text", "Ren\r" },           /* bg_extent=text + fixed */
+    { "select-wrap-up", "\x1b[A\r" },              /* Up on first -> last */
+    { "fuzzy-wrap-up", "\x1b[A\r" },               /* Up on first -> last */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 
