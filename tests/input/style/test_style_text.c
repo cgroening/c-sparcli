@@ -84,6 +84,14 @@ void style_text(void) {
             .prompt = "Note", .initial = "no counter", .hide_char_count = true,
             .box.enabled = true, .box.width = 30 }));
 
+    /* Box background: the title prompt and the bottom-right counter must
+     * inherit box.bg (border captions on the widget bg, not terminal default). */
+    style_show("boxed: bg fills title + counter captions",
+        sc_text_entry_frame(&(ScTextEntryCfg){
+            .prompt = "Name", .initial = "Ada", .max_chars = 24,
+            .box.enabled = true, .box.width = 30,
+            .box.bg = { .index = -1, .r = 40, .g = 44, .b = 60 } }));
+
     style_show("boxed: double border + cyan prompt",
         sc_text_entry_frame(&(ScTextEntryCfg){
             .prompt = "Host", .initial = "localhost", .max_chars = 24,

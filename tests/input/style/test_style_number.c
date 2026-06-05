@@ -28,6 +28,12 @@ void style_number(void) {
             (ScNumberOpts){
                 .min = 0, .max = 100, .box.enabled = true, .box.width = 28 }));
 
+    style_show("number: boxed, bg fills title + range captions",
+        sc_number_frame("Quantity", 42,
+            (ScNumberOpts){
+                .min = 0, .max = 100, .box.enabled = true, .box.width = 28,
+                .box.bg = { .index = -1, .r = 40, .g = 44, .b = 60 } }));
+
     style_show("number: boxed, double border + cyan prompt",
         sc_number_frame("Port", 8080,
             (ScNumberOpts){ .min = 1, .max = 65535, .box.enabled = true,

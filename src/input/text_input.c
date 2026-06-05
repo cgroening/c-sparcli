@@ -441,15 +441,21 @@ static ScText *render_boxed_inner(TextState *self, int field) {
  */
 static ScRendered *capture_boxed_panel(TextState *self, const ScText *inner) {
     char counter[48];
-    ScText *title_text = sc_prompt_build(
+    ScText *title_text = sc_prompt_build_bg(
         self->prompt, self->prompt_style,
-        self->prompt_markup, self->prompt_text
+        self->prompt_markup, self->prompt_text, self->box.bg
     );
+    // Fill the title pad spaces (and counter below) with the box bg so the
+    // border caption inherits the widget background, not the terminal default.
+    ScTextStyle title_style = self->prompt_style;
+    if (self->box.bg.index != 0 && title_style.bg.index == 0) {
+        title_style.bg = self->box.bg;
+    }
     ScPanelOpts opts = {
         .border = self->box.border,
         .bg = self->box.bg,
         .title = { .text = self->prompt, .rich_text = title_text,
-                   .style = self->prompt_style,
+                   .style = title_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = sc_box_padding(self->box.padding),
         .margin = self->box.margin,
@@ -465,8 +471,12 @@ static ScRendered *capture_boxed_panel(TextState *self, const ScText *inner) {
     }
     if (!self->hide_char_count) {
         counter_str(counter, sizeof counter, self, true);
+        ScTextStyle count_style = resolve_count_style(self);
+        if (self->box.bg.index != 0 && count_style.bg.index == 0) {
+            count_style.bg = self->box.bg;
+        }
         opts.subtitle = (ScTitle){ .text = counter,
-            .style = resolve_count_style(self), .halign = SC_ALIGN_RIGHT,
+            .style = count_style, .halign = SC_ALIGN_RIGHT,
             .pad = 1, .pos = SC_POSITION_BOTTOM };
     }
     ScRendered *panel = sc_capture_panel_text(inner, opts);

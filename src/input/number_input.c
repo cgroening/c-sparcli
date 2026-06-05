@@ -309,14 +309,22 @@ static ScRendered *number_body_boxed(NumberState *self) {
 
     char range[80];
     range_str(self, range, sizeof range);
-    ScText *title_text = sc_prompt_build(self->prompt, self->opts.prompt_style,
-                                         self->opts.prompt_markup,
-                                         self->opts.prompt_text);
+    ScText *title_text = sc_prompt_build_bg(self->prompt,
+                                            self->opts.prompt_style,
+                                            self->opts.prompt_markup,
+                                            self->opts.prompt_text,
+                                            self->opts.box.bg);
+    // Fill the title pad spaces (and range caption below) with the box bg so
+    // the border captions inherit the widget background, not the terminal one.
+    ScTextStyle title_style = self->opts.prompt_style;
+    if (self->opts.box.bg.index != 0 && title_style.bg.index == 0) {
+        title_style.bg = self->opts.box.bg;
+    }
     ScPanelOpts panel_opts = {
         .border = self->opts.box.border,
         .bg = self->opts.box.bg,
         .title = { .text = self->prompt, .rich_text = title_text,
-                   .style = self->opts.prompt_style,
+                   .style = title_style,
                    .halign = SC_ALIGN_LEFT, .pad = 1, .pos = SC_POSITION_TOP },
         .padding = sc_box_padding(self->opts.box.padding),
         .margin = self->opts.box.margin,
@@ -331,11 +339,11 @@ static ScRendered *number_body_boxed(NumberState *self) {
         panel_opts.full_width = true;
     }
     if (range[0]) {
+        ScColor range_bg = self->opts.box.bg.index != 0
+            ? self->opts.box.bg : SC_ANSI_COLOR_NONE;
         panel_opts.subtitle = (ScTitle){
             .text = range,
-            .style = {
-                SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-            },
+            .style = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, range_bg },
             .halign = SC_ALIGN_RIGHT, .pad = 1, .pos = SC_POSITION_BOTTOM,
         };
     }

@@ -266,6 +266,32 @@ static inline ScText *sc_prompt_build(
     return text;
 }
 
+/**
+ * Like `sc_prompt_build`, but fills each span's background with `bg` when the
+ * span carries none, so a boxed prompt/title rendered on the panel border
+ * inherits the box background instead of showing on the terminal default.
+ * Returns the plain build unchanged when `bg` is inactive (index == 0).
+ */
+static inline ScText *sc_prompt_build_bg(
+    const char *plain, ScTextStyle style, bool markup, const ScText *rich,
+    ScColor bg
+) {
+    ScText *src = sc_prompt_build(plain, style, markup, rich);
+    if (!src || bg.index == 0) { return src; }
+    ScText *out = sc_text_new();
+    if (!out) { return src; }
+    size_t n = sc_text_span_count(src);
+    for (size_t i = 0; i < n; i++) {
+        ScSpan span = sc_text_span(src, i);
+        if (!span.raw_str) { continue; }
+        ScTextStyle s = span.style;
+        if (s.bg.index == 0) { s.bg = bg; }
+        sc_text_append(out, span.raw_str, s);
+    }
+    sc_text_free(src);
+    return out;
+}
+
 /** Visible column width of the resolved prompt. */
 static inline int sc_prompt_width(
     const char *plain, ScTextStyle style, bool markup, const ScText *rich
