@@ -349,20 +349,20 @@ static int format_scroll_hint(char *buf, size_t size, size_t top, size_t end,
     return (int)sc_utf8_string_length(buf, strlen(buf));
 }
 
-/** Moves the cursor up one row, wrapping to the last row (unless no_wrap). */
+/** Moves the cursor up one row, cycling to the last row (unless no_cycle). */
 static void cursor_up(ScSelect *self) {
     if (self->cursor > 0) {
         self->cursor--;
-    } else if (!self->opts.no_wrap && self->count > 0) {
+    } else if (!self->opts.no_cycle && self->count > 0) {
         self->cursor = self->count - 1;
     }
 }
 
-/** Moves the cursor down one row, wrapping to the first row (unless no_wrap). */
+/** Moves the cursor down one row, cycling to the first row (unless no_cycle). */
 static void cursor_down(ScSelect *self) {
     if (self->cursor + 1 < self->count) {
         self->cursor++;
-    } else if (!self->opts.no_wrap && self->count > 0) {
+    } else if (!self->opts.no_cycle && self->count > 0) {
         self->cursor = 0;
     }
 }

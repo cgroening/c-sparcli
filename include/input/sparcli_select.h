@@ -26,10 +26,10 @@ typedef struct ScSelectOpts {
     /** `true` = multi-select with checkboxes. */
     bool multi;
 
-    /** Disable cursor wrap-around. By default the cursor wraps: Up on the first
-        row jumps to the last and Down on the last jumps to the first; set this
-        to stop at the ends instead. */
-    bool no_wrap;
+    /** Disable cursor cycling. By default the cursor cycles around the ends: Up
+        on the first row jumps to the last and Down on the last jumps to the
+        first; set this to stop at the ends instead. */
+    bool no_cycle;
 
     /** Max rows shown at once; `0` = 10. */
     int max_visible;

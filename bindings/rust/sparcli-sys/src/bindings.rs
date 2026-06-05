@@ -2876,7 +2876,7 @@ pub struct ScSelectOpts {
     #[doc = " `true` = multi-select with checkboxes."]
     pub multi: bool,
     #[doc = " Disable cursor wrap-around. By default the cursor wraps: Up on the first\nrow jumps to the last and Down on the last jumps to the first; set this\nto stop at the ends instead."]
-    pub no_wrap: bool,
+    pub no_cycle: bool,
     #[doc = " Max rows shown at once; `0` = 10."]
     pub max_visible: ::std::os::raw::c_int,
     #[doc = " Style for the heading."]
@@ -2925,8 +2925,8 @@ const _: () = {
     ["Offset of field: ScSelectOpts::prompt"]
         [::std::mem::offset_of!(ScSelectOpts, prompt) - 0usize];
     ["Offset of field: ScSelectOpts::multi"][::std::mem::offset_of!(ScSelectOpts, multi) - 8usize];
-    ["Offset of field: ScSelectOpts::no_wrap"]
-        [::std::mem::offset_of!(ScSelectOpts, no_wrap) - 9usize];
+    ["Offset of field: ScSelectOpts::no_cycle"]
+        [::std::mem::offset_of!(ScSelectOpts, no_cycle) - 9usize];
     ["Offset of field: ScSelectOpts::max_visible"]
         [::std::mem::offset_of!(ScSelectOpts, max_visible) - 12usize];
     ["Offset of field: ScSelectOpts::prompt_style"]
@@ -3028,7 +3028,7 @@ pub struct ScFuzzyOpts {
     #[doc = " Max result rows shown; `0` = 10."]
     pub max_visible: ::std::os::raw::c_int,
     #[doc = " Disable cursor wrap-around. By default the cursor wraps around the ends\nof the result list (Up on the first match jumps to the last, and back);\nset this to stop at the ends instead."]
-    pub no_wrap: bool,
+    pub no_cycle: bool,
     #[doc = " Highlight color for the cursor row."]
     pub accent: ScColor,
     #[doc = " Render results as a table."]
@@ -3085,8 +3085,8 @@ const _: () = {
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
         [::std::mem::offset_of!(ScFuzzyOpts, max_visible) - 8usize];
-    ["Offset of field: ScFuzzyOpts::no_wrap"]
-        [::std::mem::offset_of!(ScFuzzyOpts, no_wrap) - 12usize];
+    ["Offset of field: ScFuzzyOpts::no_cycle"]
+        [::std::mem::offset_of!(ScFuzzyOpts, no_cycle) - 12usize];
     ["Offset of field: ScFuzzyOpts::accent"][::std::mem::offset_of!(ScFuzzyOpts, accent) - 16usize];
     ["Offset of field: ScFuzzyOpts::table"][::std::mem::offset_of!(ScFuzzyOpts, table) - 24usize];
     ["Offset of field: ScFuzzyOpts::headers"]

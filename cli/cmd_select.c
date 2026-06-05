@@ -84,7 +84,7 @@ static const char SELECT_USAGE[] =
     "  --checkbox-on STR          Checked box glyph (multi-select)\n"
     "  --checkbox-off STR         Unchecked box glyph (multi-select)\n"
     "  --arrow-nav                Left = back (exit 3), Right = select\n"
-    "  --no-wrap                  Stop at the list ends (default wraps)\n"
+    "  --no-cycle                 Stop at the list ends (default cycles)\n"
     SC_CLI_BOX_USAGE
     SC_CLI_INPUT_USAGE
     "\n"
@@ -102,7 +102,7 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
         OPT_CHECKBOX_ON,
         OPT_CHECKBOX_OFF,
         OPT_ARROW_NAV,
-        OPT_NO_WRAP,
+        OPT_NO_CYCLE,
     };
     static const struct option longopts[] = {
         { "prompt",        required_argument, NULL, OPT_PROMPT },
@@ -113,7 +113,7 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
         { "checkbox-on",   required_argument, NULL, OPT_CHECKBOX_ON },
         { "checkbox-off",  required_argument, NULL, OPT_CHECKBOX_OFF },
         { "arrow-nav",     no_argument,       NULL, OPT_ARROW_NAV },
-        { "no-wrap",       no_argument,       NULL, OPT_NO_WRAP },
+        { "no-cycle",      no_argument,       NULL, OPT_NO_CYCLE },
         SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
@@ -149,8 +149,8 @@ int sc_cli_cmd_select(ScCliCtx *ctx, int argc, char **argv) {
         case OPT_ARROW_NAV:
             args.arrow_nav = true;
             break;
-        case OPT_NO_WRAP:
-            args.opts.no_wrap = true;
+        case OPT_NO_CYCLE:
+            args.opts.no_cycle = true;
             break;
         case SC_CLI_OPT_BOXED:
         case SC_CLI_OPT_BORDER:
@@ -304,7 +304,7 @@ static const char FUZZY_USAGE[] =
     "  --cursor-marker STR        Marker before the cursor row\n"
     "  --search-columns LIST      Table columns to search (e.g. 1,3)\n"
     "  --arrow-nav                Left = back (exit 3), Right = select\n"
-    "  --no-wrap                  Stop at the result-list ends (default wraps)\n"
+    "  --no-cycle                 Stop at the result-list ends (default cycles)\n"
     SC_CLI_BOX_USAGE
     SC_CLI_INPUT_USAGE
     "\n"
@@ -324,7 +324,7 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         OPT_CURSOR_MARKER,
         OPT_SEARCH_COLUMNS,
         OPT_ARROW_NAV,
-        OPT_NO_WRAP,
+        OPT_NO_CYCLE,
     };
     static const struct option longopts[] = {
         { "prompt",         required_argument, NULL, OPT_PROMPT },
@@ -336,7 +336,7 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         { "cursor-marker",  required_argument, NULL, OPT_CURSOR_MARKER },
         { "search-columns", required_argument, NULL, OPT_SEARCH_COLUMNS },
         { "arrow-nav",      no_argument,       NULL, OPT_ARROW_NAV },
-        { "no-wrap",        no_argument,       NULL, OPT_NO_WRAP },
+        { "no-cycle",       no_argument,       NULL, OPT_NO_CYCLE },
         SC_CLI_BOX_LONGOPTS,
         SC_CLI_INPUT_LONGOPTS,
         { 0 },
@@ -379,8 +379,8 @@ int sc_cli_cmd_fuzzy(ScCliCtx *ctx, int argc, char **argv) {
         case OPT_ARROW_NAV:
             args.arrow_nav = true;
             break;
-        case OPT_NO_WRAP:
-            args.opts.no_wrap = true;
+        case OPT_NO_CYCLE:
+            args.opts.no_cycle = true;
             break;
         case SC_CLI_OPT_BOXED:
         case SC_CLI_OPT_BORDER:

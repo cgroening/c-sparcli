@@ -850,7 +850,7 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts);
 typedef struct {
     const char *prompt;
     bool multi;
-    bool no_wrap;
+    bool no_cycle;
     int max_visible;
     ScTextStyle prompt_style;
     ScColor accent;
@@ -889,7 +889,7 @@ void sc_select_free(ScSelect *select);
 typedef struct {
     const char *prompt;
     int max_visible;
-    bool no_wrap;
+    bool no_cycle;
     ScColor accent;
     bool table;
     const char *const *headers;

@@ -507,7 +507,7 @@ static int child_case(int c) {
             return ok ? 0 : 1;
         }
         case 34: {
-            /* Default wraps: Up on the first row jumps to the last (index 2). */
+            /* Default cycles: Up on the first row jumps to the last (index 2). */
             ScSelect *sl = sc_select_new((ScSelectOpts){ 0 });
             sc_select_add(sl, "a");
             sc_select_add(sl, "b");
@@ -519,7 +519,7 @@ static int child_case(int c) {
             return ok ? 0 : 1;
         }
         case 35: {
-            /* Default wraps: Up on the first match jumps to the last (Rent). */
+            /* Default cycles: Up on the first match jumps to the last (Rent). */
             ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ 0 });
             sc_fuzzy_add(fz, "Groceries");
             sc_fuzzy_add(fz, "Rent");
@@ -530,8 +530,8 @@ static int child_case(int c) {
             return ok ? 0 : 1;
         }
         case 36: {
-            /* no_wrap: Up on the first row stays put (index 0). */
-            ScSelect *sl = sc_select_new((ScSelectOpts){ .no_wrap = true });
+            /* no_cycle: Up on the first row stays put (index 0). */
+            ScSelect *sl = sc_select_new((ScSelectOpts){ .no_cycle = true });
             sc_select_add(sl, "a");
             sc_select_add(sl, "b");
             sc_select_add(sl, "c");
@@ -588,9 +588,9 @@ static const Case CASES[] = {
     { "fuzzy-boxed", "Ren\r" },                    /* boxed fuzzy: query, enter */
     { "select-bg-bar", "\x1b[B\r" },               /* widget bg + cursor bar */
     { "fuzzy-bg-extent-text", "Ren\r" },           /* bg_extent=text + fixed */
-    { "select-wrap-up", "\x1b[A\r" },              /* default: Up first -> last */
-    { "fuzzy-wrap-up", "\x1b[A\r" },               /* default: Up first -> last */
-    { "select-no-wrap-up", "\x1b[A\r" },           /* no_wrap: Up first stays */
+    { "select-cycle-up", "\x1b[A\r" },             /* default: Up first -> last */
+    { "fuzzy-cycle-up", "\x1b[A\r" },              /* default: Up first -> last */
+    { "select-no-cycle-up", "\x1b[A\r" },          /* no_cycle: Up first stays */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

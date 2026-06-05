@@ -30,7 +30,7 @@ class SelectOpts:
 
     prompt: str | None = None
     multi: bool = False
-    no_wrap: bool = False
+    no_cycle: bool = False
     max_visible: int = 0
     prompt_style: Style = field(default_factory=Style)
     accent: Color = Color.NONE
@@ -53,7 +53,7 @@ class SelectOpts:
     def _fill(self, c, arena: list) -> None:
         c.prompt = cstr(arena, self.prompt)
         c.multi = self.multi
-        c.no_wrap = self.no_wrap
+        c.no_cycle = self.no_cycle
         c.max_visible = self.max_visible
         apply_style(c.prompt_style, self.prompt_style)
         apply_color(c.accent, self.accent)
@@ -152,7 +152,7 @@ class FuzzyOpts:
 
     prompt: str | None = None
     max_visible: int = 0
-    no_wrap: bool = False
+    no_cycle: bool = False
     accent: Color = Color.NONE
     table: bool = False
     headers: list[str] | None = None
@@ -178,7 +178,7 @@ class FuzzyOpts:
     def _fill(self, c, arena: list) -> None:
         c.prompt = cstr(arena, self.prompt)
         c.max_visible = self.max_visible
-        c.no_wrap = self.no_wrap
+        c.no_cycle = self.no_cycle
         apply_color(c.accent, self.accent)
         c.table = self.table
         if self.headers:

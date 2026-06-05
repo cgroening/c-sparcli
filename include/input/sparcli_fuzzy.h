@@ -29,10 +29,10 @@ typedef struct ScFuzzyOpts {
     /** Max result rows shown; `0` = 10. */
     int max_visible;
 
-    /** Disable cursor wrap-around. By default the cursor wraps around the ends
-        of the result list (Up on the first match jumps to the last, and back);
+    /** Disable cursor cycling. By default the cursor cycles around the ends of
+        the result list (Up on the first match jumps to the last, and back);
         set this to stop at the ends instead. */
-    bool no_wrap;
+    bool no_cycle;
 
     /** Highlight color for the cursor row. */
     ScColor accent;

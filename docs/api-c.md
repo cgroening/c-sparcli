@@ -1316,7 +1316,7 @@ Opaque handle (variable item count). `j/k` + arrows move; Space toggles in multi
 |-------|-------------|
 | `prompt` | Heading above the list |
 | `multi` | `true` = checkbox multi-select |
-| `no_wrap` | Stop at the list ends; the cursor wraps around by default (Up on first → last) |
+| `no_cycle` | Stop at the list ends; the cursor cycles around by default (Up on first → last) |
 | `max_visible` | Rows shown at once; `0` = 10 |
 | `accent` | Cursor-row highlight; zero-init = cyan |
 | `prompt_style` / `selected_style` | Heading + cursor-row styles |
@@ -1333,7 +1333,7 @@ Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched charac
 |-------|-------------|
 | `prompt` | Search-field label; `NULL` = "Search" |
 | `max_visible` | Result rows shown; `0` = 10 |
-| `no_wrap` | Stop at the result-list ends (wraps around by default) |
+| `no_cycle` | Stop at the result-list ends (cycles around by default) |
 | `accent` | Cursor-row highlight; zero-init = cyan |
 | `table` / `headers` / `n_cols` | Table view configuration |
 | `search_columns` | Bitmask of columns the query searches (bit `c` = column `c`); `0` = all (default). Table view only; a row matches when any selected column matches |
