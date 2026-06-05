@@ -909,6 +909,32 @@ char *sc_toml_write(const ScValue *value, ScTomlWriteOpts opts) {
 }
 
 
+/* ── File convenience ──────────────────────────────────────────────────── */
+
+ScValue *sc_toml_parse_file(const char *path, ScParseError *err) {
+    size_t len = 0;
+    char *data = sc_serde_read_file(path, &len, err);
+    if (!data) {
+        return NULL;
+    }
+    ScValue *root = sc_toml_parse(data, len, err);
+    free(data);
+    return root;
+}
+
+bool sc_toml_write_file(
+    const ScValue *value, const char *path, ScTomlWriteOpts opts
+) {
+    char *text = sc_toml_write(value, opts);
+    if (!text) {
+        return false;
+    }
+    bool ok = sc_serde_write_file(path, text);
+    free(text);
+    return ok;
+}
+
+
 /* ── Writer internals ──────────────────────────────────────────────────── */
 
 /** Emits a table: scalar keys first, then nested tables / arrays of tables. */

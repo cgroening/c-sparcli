@@ -168,6 +168,17 @@ SPARCLI_EXPORT ScMdSection *sc_md_section_add(
  */
 SPARCLI_EXPORT char *sc_markdown_write(const ScMarkdown *md);
 
+/** Reads and parses a Markdown file; `NULL` on a read error (`err` filled).
+ *  Free the result with `sc_markdown_free`. */
+SPARCLI_EXPORT ScMarkdown *sc_markdown_parse_file(
+    const char *path, ScParseError *err
+);
+
+/** Serializes `md` and writes it to `path`; `false` on a write error. */
+SPARCLI_EXPORT bool sc_markdown_write_file(
+    const ScMarkdown *md, const char *path
+);
+
 /** Frees a document and its whole section tree; safe to pass `NULL`. */
 SPARCLI_EXPORT void sc_markdown_free(ScMarkdown *md);
 

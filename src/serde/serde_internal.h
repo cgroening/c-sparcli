@@ -1,6 +1,7 @@
 #pragma once
 
 #include "serde/sparcli_value.h"
+#include "serde/sparcli_parse_error.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -49,6 +50,21 @@ void sc_serde_buf_free(ScSerdeBuf *buf);
 
 /** Encodes one Unicode code point as UTF-8 and appends it to `buf`. */
 bool sc_serde_append_utf8(ScSerdeBuf *buf, uint32_t codepoint);
+
+
+/* ── File I/O (backs the per-format `*_parse_file` / `*_write_file`) ────── */
+
+/**
+ * Reads a whole file into a heap, NUL-terminated buffer. On failure fills
+ * `err` (when non-NULL) with a message and returns `NULL`.
+ *
+ * @param out_len  Receives the byte length (excluding the NUL); set to 0 on
+ *                 failure.
+ */
+char *sc_serde_read_file(const char *path, size_t *out_len, ScParseError *err);
+
+/** Writes a NUL-terminated string to `path`; returns false on any I/O error. */
+bool sc_serde_write_file(const char *path, const char *data);
 
 
 /* ── Concrete value representation ─────────────────────────────────────── */

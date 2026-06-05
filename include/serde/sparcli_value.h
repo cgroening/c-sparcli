@@ -180,6 +180,89 @@ SPARCLI_EXPORT bool sc_value_set(
     ScValue *object, const char *key, ScValue *child
 );
 
+/**
+ * Removes (and frees) the object member stored under `key`; remaining members
+ * keep their order.
+ *
+ * @param object  Object value.
+ * @param key     Member key.
+ * @return        `true` when a member was removed; `false` when `object` is
+ *                not an object or the key is absent.
+ */
+SPARCLI_EXPORT bool sc_value_remove(ScValue *object, const char *key);
+
+/**
+ * Removes (and frees) the array element at `index`; later elements shift down.
+ *
+ * @param array  Array value.
+ * @param index  Zero-based element index.
+ * @return       `true` when an element was removed; `false` when `array` is
+ *               not an array or `index` is out of range.
+ */
+SPARCLI_EXPORT bool sc_value_remove_at(ScValue *array, size_t index);
+
+
+/* ── Convenience accessors ─────────────────────────────────────────────── */
+
+/**
+ * Returns the boolean member `key`, or `fallback` when it is absent or not a
+ * boolean. (`sc_value_get(object, key)` + `sc_value_as_bool` in one call.)
+ */
+SPARCLI_EXPORT bool sc_value_get_bool_or(
+    const ScValue *object, const char *key, bool fallback
+);
+
+/** Returns the integer member `key`, or `fallback` when absent / not an int. */
+SPARCLI_EXPORT int64_t sc_value_get_int_or(
+    const ScValue *object, const char *key, int64_t fallback
+);
+
+/** Returns the numeric member `key` as a double, or `fallback` when absent /
+ *  not numeric. */
+SPARCLI_EXPORT double sc_value_get_float_or(
+    const ScValue *object, const char *key, double fallback
+);
+
+/** Returns the string member `key`, or `fallback` when absent / not a string
+ *  (the returned pointer is borrowed from the tree). */
+SPARCLI_EXPORT const char *sc_value_get_string_or(
+    const ScValue *object, const char *key, const char *fallback
+);
+
+/**
+ * Resolves a dotted path from `root`, e.g. `"server.tls.enabled"`. Object
+ * segments index by key; array segments index by a non-negative integer
+ * (`"hosts.0.name"`). An empty path returns `root`.
+ *
+ * @return  Borrowed node, or `NULL` when any segment does not resolve.
+ */
+SPARCLI_EXPORT ScValue *sc_value_path(const ScValue *root, const char *path);
+
+
+/* ── Copying / merging ─────────────────────────────────────────────────── */
+
+/**
+ * Deep-copies a value tree.
+ *
+ * @param value  Tree to copy (borrowed); `NULL` yields `NULL`.
+ * @return       An independent heap copy (free with `sc_value_free`), or
+ *               `NULL` on allocation failure.
+ */
+SPARCLI_EXPORT ScValue *sc_value_clone(const ScValue *value);
+
+/**
+ * Deep-merges `overlay` into `base` (both must be objects): a key present in
+ * both whose values are objects is merged recursively; otherwise the overlay
+ * value replaces the base value (a deep copy is taken; `overlay` is unchanged).
+ * Arrays are replaced, not concatenated.
+ *
+ * @param base     Object mutated in place.
+ * @param overlay  Object whose members are merged in (borrowed).
+ * @return         `true` on success; `false` when either is not an object or
+ *                 on allocation failure.
+ */
+SPARCLI_EXPORT bool sc_value_merge(ScValue *base, const ScValue *overlay);
+
 
 /**
  * Recursively frees `value` and every child it owns.

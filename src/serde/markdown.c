@@ -536,6 +536,27 @@ char *sc_markdown_write(const ScMarkdown *md) {
     return sc_serde_buf_finish(&buf);
 }
 
+ScMarkdown *sc_markdown_parse_file(const char *path, ScParseError *err) {
+    size_t len = 0;
+    char *data = sc_serde_read_file(path, &len, err);
+    if (!data) {
+        return NULL;
+    }
+    ScMarkdown *md = sc_markdown_parse(data, len, err);
+    free(data);
+    return md;
+}
+
+bool sc_markdown_write_file(const ScMarkdown *md, const char *path) {
+    char *text = sc_markdown_write(md);
+    if (!text) {
+        return false;
+    }
+    bool ok = sc_serde_write_file(path, text);
+    free(text);
+    return ok;
+}
+
 void sc_markdown_free(ScMarkdown *md) {
     if (!md) {
         return;

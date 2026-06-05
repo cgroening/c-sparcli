@@ -35,3 +35,4 @@ void test_serde_csv(void);
 void test_serde_toml(void);
 void test_serde_yaml(void);
 void test_serde_markdown(void);
+void test_serde_file(void);

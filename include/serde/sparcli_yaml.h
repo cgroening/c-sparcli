@@ -58,4 +58,13 @@ SPARCLI_EXPORT ScValue *sc_yaml_parse(
  */
 SPARCLI_EXPORT char *sc_yaml_write(const ScValue *value, ScYamlWriteOpts opts);
 
+/** Reads and parses a YAML file; `NULL` on a read or parse error (`err`
+ *  filled). Free the result with `sc_value_free`. */
+SPARCLI_EXPORT ScValue *sc_yaml_parse_file(const char *path, ScParseError *err);
+
+/** Serializes `value` and writes it to `path`; `false` on a write error. */
+SPARCLI_EXPORT bool sc_yaml_write_file(
+    const ScValue *value, const char *path, ScYamlWriteOpts opts
+);
+
 SPARCLI_END_DECLS

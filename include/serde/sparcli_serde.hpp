@@ -132,6 +132,11 @@ public:
         const char *key = sc_value_key_at(node_, index);
         return key ? std::string_view(key) : std::string_view();
     }
+    /** Resolves a dotted path (`"server.tls.enabled"`); null handle if it does
+     *  not resolve. Array segments index by number (`"hosts.0.name"`). */
+    [[nodiscard]] View path(std::string_view dotted) const {
+        return View(sc_value_path(node_, std::string(dotted).c_str()));
+    }
 
     /** True when this view points at a real node. */
     [[nodiscard]] explicit operator bool() const noexcept {
@@ -194,9 +199,28 @@ public:
             throw std::bad_alloc();
         }
     }
+    /** Removes object member `key`; true when one was removed. */
+    bool remove(std::string_view key) {
+        return sc_value_remove(node_, std::string(key).c_str());
+    }
+    /** Removes the array element at `index`; true when one was removed. */
+    bool remove_at(std::size_t index) {
+        return sc_value_remove_at(node_, index);
+    }
+    /** Deep-merges `overlay` into this object (both must be objects). */
+    bool merge(const Value &overlay) {
+        return sc_value_merge(node_, overlay.node_);
+    }
+
+    /** Deep-copies the tree into an independent owner. */
+    [[nodiscard]] Value clone() const { return Value::adopt(sc_value_clone(node_)); }
 
     // ── Inspection (forwarded to a View) ─────────────────────────────────
     [[nodiscard]] View view() const noexcept { return View(node_); }
+    /** Resolves a dotted path from this node (see `View::path`). */
+    [[nodiscard]] View path(std::string_view dotted) const {
+        return View(node_).path(dotted);
+    }
     [[nodiscard]] Type type() const noexcept { return sc_value_type(node_); }
     [[nodiscard]] std::size_t size() const noexcept {
         return sc_value_len(node_);
@@ -243,6 +267,21 @@ namespace json {
     return write(value.view(), opts);
 }
 
+/** Reads and parses a JSON file; throws `ParseError` on a read/parse error. */
+[[nodiscard]] inline Value parse_file(std::string_view path) {
+    ScParseError error{};
+    ScValue *root = sc_json_parse_file(std::string(path).c_str(), &error);
+    if (!root) { throw ParseError(error); }
+    return Value::adopt(root);
+}
+
+/** Serializes a tree and writes it to a file; false on a write error. */
+inline bool write_file(
+    const Value &value, std::string_view path, JsonWriteOpts opts = {}
+) {
+    return sc_json_write_file(value.get(), std::string(path).c_str(), opts);
+}
+
 }  // namespace json
 
 
@@ -272,6 +311,21 @@ namespace toml {
     return write(value.view(), opts);
 }
 
+/** Reads and parses a TOML file; throws `ParseError` on a read/parse error. */
+[[nodiscard]] inline Value parse_file(std::string_view path) {
+    ScParseError error{};
+    ScValue *root = sc_toml_parse_file(std::string(path).c_str(), &error);
+    if (!root) { throw ParseError(error); }
+    return Value::adopt(root);
+}
+
+/** Serializes a tree and writes it to a file; false on a write error. */
+inline bool write_file(
+    const Value &value, std::string_view path, TomlWriteOpts opts = {}
+) {
+    return sc_toml_write_file(value.get(), std::string(path).c_str(), opts);
+}
+
 }  // namespace toml
 
 
@@ -299,6 +353,21 @@ namespace yaml {
     const Value &value, YamlWriteOpts opts = {}
 ) {
     return write(value.view(), opts);
+}
+
+/** Reads and parses a YAML file; throws `ParseError` on a read/parse error. */
+[[nodiscard]] inline Value parse_file(std::string_view path) {
+    ScParseError error{};
+    ScValue *root = sc_yaml_parse_file(std::string(path).c_str(), &error);
+    if (!root) { throw ParseError(error); }
+    return Value::adopt(root);
+}
+
+/** Serializes a tree and writes it to a file; false on a write error. */
+inline bool write_file(
+    const Value &value, std::string_view path, YamlWriteOpts opts = {}
+) {
+    return sc_yaml_write_file(value.get(), std::string(path).c_str(), opts);
 }
 
 }  // namespace yaml
@@ -332,6 +401,16 @@ public:
     [[nodiscard]] static Csv create(CsvOpts opts = {}) {
         ScCsv *doc = sc_csv_new(opts);
         if (!doc) { throw std::bad_alloc(); }
+        return Csv(doc);
+    }
+
+    /** Reads and parses a CSV/TSV file; throws `ParseError` on error. */
+    [[nodiscard]] static Csv parse_file(
+        std::string_view path, CsvOpts opts = {}
+    ) {
+        ScParseError error{};
+        ScCsv *doc = sc_csv_parse_file(std::string(path).c_str(), opts, &error);
+        if (!doc) { throw ParseError(error); }
         return Csv(doc);
     }
 
@@ -376,6 +455,10 @@ public:
         std::string result(out);
         std::free(out);
         return result;
+    }
+    /** Serializes and writes to a file; false on a write error. */
+    bool write_file(std::string_view path) const {
+        return sc_csv_write_file(doc_, std::string(path).c_str());
     }
 
     /** Borrowed C handle (escape hatch); ownership stays with this object. */
@@ -470,6 +553,15 @@ public:
         return Markdown(doc);
     }
 
+    /** Reads and parses a Markdown file; throws `ParseError` on a read error. */
+    [[nodiscard]] static Markdown parse_file(std::string_view path) {
+        ScParseError error{};
+        ScMarkdown *doc =
+            sc_markdown_parse_file(std::string(path).c_str(), &error);
+        if (!doc) { throw ParseError(error); }
+        return Markdown(doc);
+    }
+
     [[nodiscard]] MdFrontmatter frontmatter_format() const noexcept {
         return sc_markdown_frontmatter_format(doc_);
     }
@@ -507,6 +599,10 @@ public:
         std::string result(out);
         std::free(out);
         return result;
+    }
+    /** Serializes and writes to a file; false on a write error. */
+    bool write_file(std::string_view path) const {
+        return sc_markdown_write_file(doc_, std::string(path).c_str());
     }
 
     [[nodiscard]] const ScMarkdown *get() const noexcept { return doc_; }

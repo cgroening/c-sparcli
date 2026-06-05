@@ -64,4 +64,22 @@ SPARCLI_EXPORT ScValue *sc_json_parse(
  */
 SPARCLI_EXPORT char *sc_json_write(const ScValue *value, ScJsonWriteOpts opts);
 
+/**
+ * Reads and parses a JSON file.
+ *
+ * @param path  File path.
+ * @param err   Optional; filled on a read or parse error.
+ * @return      Heap value tree (free with `sc_value_free`), or `NULL`.
+ */
+SPARCLI_EXPORT ScValue *sc_json_parse_file(const char *path, ScParseError *err);
+
+/**
+ * Serializes `value` and writes it to `path` (overwriting it).
+ *
+ * @return  `true` on success, `false` on a serialization or I/O error.
+ */
+SPARCLI_EXPORT bool sc_json_write_file(
+    const ScValue *value, const char *path, ScJsonWriteOpts opts
+);
+
 SPARCLI_END_DECLS

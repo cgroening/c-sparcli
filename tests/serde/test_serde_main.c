@@ -33,6 +33,7 @@ int main(void) {
         { "TOML read/write", test_serde_toml },
         { "YAML read/write", test_serde_yaml },
         { "Markdown sections", test_serde_markdown },
+        { "File I/O", test_serde_file },
     };
     size_t count = sizeof tests / sizeof tests[0];
 

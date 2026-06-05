@@ -150,6 +150,7 @@ Non-interactive; safe to run anywhere. These use the opt-in `serde/` layer
 | `data/toml_config` | Parse a TOML config, read typed values, present them as a key/value list. | C |
 | `data/yaml_convert` | Parse YAML and emit JSON – conversion is "parse one, write the other" over the shared model. | C |
 | `data/markdown_outline` | Split front matter, walk the heading outline, then edit the front matter from a value tree and re-serialize. | C, C++ |
+| `data/config_merge` | A config workflow over the `ScValue` ergonomics: deep-merge defaults + overlay, read via a dotted `path` and typed getters, drop a key, and round-trip through a file (`*_write_file`/`*_parse_file`). | C, C++ |
 
 The full serde reference is in [`docs/api-serde.md`](api-serde.md).
 

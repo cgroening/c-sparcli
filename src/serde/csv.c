@@ -327,6 +327,29 @@ char *sc_csv_write(const ScCsv *csv) {
     return sc_serde_buf_finish(&buf);
 }
 
+ScCsv *sc_csv_parse_file(
+    const char *path, ScCsvOpts opts, ScParseError *err
+) {
+    size_t len = 0;
+    char *data = sc_serde_read_file(path, &len, err);
+    if (!data) {
+        return NULL;
+    }
+    ScCsv *csv = sc_csv_parse(data, len, opts, err);
+    free(data);
+    return csv;
+}
+
+bool sc_csv_write_file(const ScCsv *csv, const char *path) {
+    char *text = sc_csv_write(csv);
+    if (!text) {
+        return false;
+    }
+    bool ok = sc_serde_write_file(path, text);
+    free(text);
+    return ok;
+}
+
 void sc_csv_free(ScCsv *csv) {
     if (!csv) {
         return;

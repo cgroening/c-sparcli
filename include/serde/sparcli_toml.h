@@ -52,4 +52,13 @@ SPARCLI_EXPORT ScValue *sc_toml_parse(
  */
 SPARCLI_EXPORT char *sc_toml_write(const ScValue *value, ScTomlWriteOpts opts);
 
+/** Reads and parses a TOML file; `NULL` on a read or parse error (`err`
+ *  filled). Free the result with `sc_value_free`. */
+SPARCLI_EXPORT ScValue *sc_toml_parse_file(const char *path, ScParseError *err);
+
+/** Serializes `value` and writes it to `path`; `false` on a write error. */
+SPARCLI_EXPORT bool sc_toml_write_file(
+    const ScValue *value, const char *path, ScTomlWriteOpts opts
+);
+
 SPARCLI_END_DECLS

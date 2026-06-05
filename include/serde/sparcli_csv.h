@@ -128,6 +128,15 @@ SPARCLI_EXPORT bool sc_csv_add_row(
  */
 SPARCLI_EXPORT char *sc_csv_write(const ScCsv *csv);
 
+/** Reads and parses a CSV/TSV file; `NULL` on a read or parse error (`err`
+ *  filled). Free the result with `sc_csv_free`. */
+SPARCLI_EXPORT ScCsv *sc_csv_parse_file(
+    const char *path, ScCsvOpts opts, ScParseError *err
+);
+
+/** Serializes `csv` and writes it to `path`; `false` on a write error. */
+SPARCLI_EXPORT bool sc_csv_write_file(const ScCsv *csv, const char *path);
+
 /** Frees a CSV document and its owned fields; safe to pass `NULL`. */
 SPARCLI_EXPORT void sc_csv_free(ScCsv *csv);
 

@@ -9,9 +9,12 @@
 #include <serde/sparcli_serde.hpp>
 
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <unistd.h>
 
 using namespace sparcli::serde;
 
@@ -145,6 +148,66 @@ static void check_markdown() {
           "markdown: set_frontmatter from a value re-parses");
 }
 
+static void check_value_ops() {
+    Value root = Value::object();
+    root.set("a", Value::integer(1));
+    root.set("b", Value::integer(2));
+    CHECK(root.remove("a") && root.size() == 1, "value: remove member");
+
+    Value list = Value::array();
+    list.push(Value::integer(10));
+    list.push(Value::integer(20));
+    CHECK(list.remove_at(0) && list.size() == 1
+              && list.view().at(0).as_int().value_or(0) == 20,
+          "value: remove_at element");
+
+    // path on a parsed tree.
+    Value parsed = json::parse(R"({"server":{"hosts":["x","y"]},"n":7})");
+    CHECK(parsed.path("server.hosts.1").as_string().value_or("") == "y",
+          "value: path() resolves object + array segments");
+
+    // clone independence: free source by reassigning, copy stays valid.
+    Value copy = parsed.clone();
+    parsed = Value::null();
+    CHECK(copy.path("n").as_int().value_or(0) == 7,
+          "value: clone is independent of the source");
+
+    // deep merge.
+    Value base = json::parse(R"({"tls":{"on":false,"port":443}})");
+    Value overlay = json::parse(R"({"tls":{"on":true},"extra":1})");
+    base.merge(overlay);
+    CHECK(base.path("tls.on").as_bool().value_or(false)
+              && base.path("tls.port").as_int().value_or(0) == 443
+              && base.path("extra").as_int().value_or(0) == 1,
+          "value: merge overrides, preserves and adds");
+}
+
+static void check_file_io() {
+    char path[] = "/tmp/sparcli_serde_cpp_XXXXXX";
+    int fd = mkstemp(path);
+    if (fd < 0) {
+        CHECK(false, "file io: mkstemp failed");
+        return;
+    }
+    close(fd);
+
+    Value value = json::parse(R"({"k":42})");
+    bool wrote = json::write_file(value, path);
+    Value back = json::parse_file(path);
+    CHECK(wrote && back.view().get("k").as_int().value_or(0) == 42,
+          "file io: write_file -> parse_file round-trips");
+    unlink(path);
+
+    bool threw = false;
+    try {
+        Value missing = json::parse_file("/nonexistent/sparcli/zzz.json");
+        (void)missing;
+    } catch (const ParseError &) {
+        threw = true;
+    }
+    CHECK(threw, "file io: a missing file throws ParseError");
+}
+
 static void check_move_semantics() {
     // Moving must not double-free: the moved-from object is left empty and its
     // destructor is a no-op. ASan/UBSan would flag a violation here.
@@ -163,6 +226,8 @@ int main() {
     check_toml();
     check_yaml();
     check_markdown();
+    check_value_ops();
+    check_file_io();
     check_move_semantics();
 
     if (g_failures > 0) {

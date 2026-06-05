@@ -82,12 +82,52 @@ missing key, an out-of-range index, or a wrong container type.
 ```c
 bool sc_value_push(ScValue *array, ScValue *child);                 // append
 bool sc_value_set(ScValue *object, const char *key, ScValue *child);// add/replace
+bool sc_value_remove(ScValue *object, const char *key);             // delete member
+bool sc_value_remove_at(ScValue *array, size_t index);              // delete element
 ```
 
 On success the container **owns** `child` (no deep copy). On failure (wrong
 type, `NULL` arg, or OOM) the call returns `false` and ownership stays with the
 caller. `sc_value_set` replaces an existing key in place (freeing the old value)
-and keeps its position; objects preserve insertion order.
+and keeps its position; objects preserve insertion order. `sc_value_remove` /
+`sc_value_remove_at` free the removed value and keep the rest in order; they
+return `true` when something was removed.
+
+### Convenience accessors
+
+Typed getters with a fallback (object + key in one call), and a dotted-path
+accessor:
+
+```c
+bool        sc_value_get_bool_or(const ScValue *obj, const char *key, bool fallback);
+int64_t     sc_value_get_int_or(const ScValue *obj, const char *key, int64_t fallback);
+double      sc_value_get_float_or(const ScValue *obj, const char *key, double fallback);
+const char *sc_value_get_string_or(const ScValue *obj, const char *key, const char *fallback);
+
+ScValue    *sc_value_path(const ScValue *root, const char *path);   // "server.tls.enabled"
+```
+
+`sc_value_path` walks a `.`-separated path: object segments index by key, array
+segments by a non-negative integer (`"hosts.0.name"`); it returns the borrowed
+node or `NULL` if any segment does not resolve (an empty path returns `root`).
+
+```c
+int64_t port = sc_value_get_int_or(server, "port", 8080);
+bool    tls  = sc_value_as_bool(sc_value_path(cfg, "server.tls.enabled"), &out) ...
+```
+
+### Copying / merging
+
+```c
+ScValue *sc_value_clone(const ScValue *value);          // deep copy; NULL = NULL
+bool     sc_value_merge(ScValue *base, const ScValue *overlay);  // deep overlay
+```
+
+`sc_value_clone` returns an independent copy (so you can keep a subtree after
+freeing the document it came from). `sc_value_merge` deep-merges one object into
+another (recursing where both sides are objects, otherwise the overlay value, a
+deep copy, replaces the base; arrays are replaced, not concatenated) – the
+config-overlay pattern of defaults + user settings.
 
 ```c
 void sc_value_free(ScValue *value);   // recursively frees the tree; NULL-safe
@@ -343,6 +383,33 @@ sc_markdown_free(md);
 
 ---
 
+## File I/O
+
+Each format has `*_parse_file` / `*_write_file` convenience wrappers that read
+or write a path, so the common config-file workflow needs no manual `fopen` /
+`fread` / `free`:
+
+```c
+ScValue *sc_json_parse_file(const char *path, ScParseError *err);
+bool     sc_json_write_file(const ScValue *value, const char *path, ScJsonWriteOpts opts);
+// …and sc_toml_parse_file/_write_file, sc_yaml_parse_file/_write_file,
+//      sc_csv_parse_file(path, opts, err)/sc_csv_write_file(csv, path),
+//      sc_markdown_parse_file(path, err)/sc_markdown_write_file(md, path).
+```
+
+`*_parse_file` returns `NULL` and fills `err` on a read **or** parse error (the
+message includes the path, e.g. `"cannot open file: …"`); `*_write_file` returns
+`false` on a serialization or I/O error.
+
+```c
+ScParseError err = { 0 };
+ScValue *cfg = sc_toml_parse_file("~/.config/app/config.toml", &err);
+if (!cfg) { sc_die(sc_parse_error_to_error(&err)); }
+sc_value_set(cfg, "updated", sc_value_bool(true));
+sc_toml_write_file(cfg, "~/.config/app/config.toml", (ScTomlWriteOpts){ 0 });
+sc_value_free(cfg);
+```
+
 ## Limitations / non-goals
 
 These are deliberate, not bugs:
@@ -392,9 +459,10 @@ doc.push(...);                               //   number/string/array/object
 ```
 
 `Value`: `null/boolean/integer/number/string/array/object` factories, `set`/
-`push` (move the child in), `view()`, `type()`, `size()`, `get()` (raw handle),
-`release()`. `View`: `type()`, `size()`, `as_bool/as_int/as_double/as_string`
-(→ `std::optional`), `at(i)`, `get(key)`, `key_at(i)`, `operator bool`.
+`push` (move the child in), `remove`/`remove_at`, `merge`, `clone`, `path`,
+`view()`, `type()`, `size()`, `get()` (raw handle), `release()`. `View`:
+`type()`, `size()`, `as_bool/as_int/as_double/as_string` (→ `std::optional`),
+`at(i)`, `get(key)`, `key_at(i)`, `path(dotted)`, `operator bool`.
 
 ### Format namespaces
 
@@ -405,7 +473,10 @@ Value y = yaml::parse(text);   std::string w = yaml::write(y);
 ```
 
 Each `parse` throws `serde::ParseError` (derived from `std::runtime_error`,
-carrying `.line()` / `.column()`); each `write` returns a `std::string`.
+carrying `.line()` / `.column()`); each `write` returns a `std::string`. The
+file wrappers `json::parse_file(path)` (throws `ParseError`) and
+`json::write_file(value, path, opts)` (returns `bool`) mirror the C ones, in
+all three namespaces.
 
 ### `Csv`
 
@@ -418,7 +489,8 @@ std::string out = built.write();
 ```
 
 `rows/cols/row_cols/at/has_header/header/data_rows/get` (reading) and
-`add_row/write` (building); move-only RAII.
+`add_row/write` (building); plus `Csv::parse_file(path, opts)` / `write_file(path)`;
+move-only RAII.
 
 ### `Markdown` and `Section`
 
@@ -439,7 +511,8 @@ std::string out = doc.write();
 
 `Markdown` (move-only RAII): `parse/create`, `frontmatter_format/_raw`,
 `frontmatter()` (→ `std::optional<View>`), `body()`, `root()`,
-`set_frontmatter_raw/set_frontmatter`, `write()`. `Section` (non-owning handle):
+`set_frontmatter_raw/set_frontmatter`, `write()`, and `Markdown::parse_file(path)`
+/ `write_file(path)`. `Section` (non-owning handle):
 `level/title/body/child_count/child/find` and the editing `set_body/add`.
 
 ---

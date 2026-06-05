@@ -97,8 +97,8 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
 # suite has its own targets and is deliberately NOT part of `make test`/`qa`.
 # Validate it with `make serde-qa`.
 SERDE_SRC = src/serde/value.c src/serde/buf.c src/serde/parse_error.c \
-            src/serde/json.c src/serde/csv.c src/serde/toml.c \
-            src/serde/markdown.c src/serde/yaml.c
+            src/serde/file.c src/serde/json.c src/serde/csv.c \
+            src/serde/toml.c src/serde/markdown.c src/serde/yaml.c
 SRC      += $(SERDE_SRC)
 
 BUILDDIR          = build.nosync
@@ -252,7 +252,8 @@ SERDE_TEST_SRC          = tests/serde/test_serde_main.c \
                           tests/serde/test_csv.c \
                           tests/serde/test_toml.c \
                           tests/serde/test_yaml.c \
-                          tests/serde/test_markdown.c
+                          tests/serde/test_markdown.c \
+                          tests/serde/test_file.c
 SERDE_TEST_BIN          = tests/serde/test_serde_main
 SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize
 SERDE_CPP_TEST_SRC      = tests/cpp/test_serde_cpp.cpp

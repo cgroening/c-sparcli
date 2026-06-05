@@ -7,6 +7,11 @@ static void check_array(void);
 static void check_object(void);
 static void check_object_replace_keeps_order(void);
 static void check_type_mismatches(void);
+static void check_remove(void);
+static void check_convenience_getters(void);
+static void check_path(void);
+static void check_clone(void);
+static void check_merge(void);
 
 
 /** Exercises the data model: scalars, containers, ownership and accessors. */
@@ -16,6 +21,11 @@ void test_serde_value(void) {
     check_object();
     check_object_replace_keeps_order();
     check_type_mismatches();
+    check_remove();
+    check_convenience_getters();
+    check_path();
+    check_clone();
+    check_merge();
 }
 
 
@@ -138,4 +148,136 @@ static void check_type_mismatches(void) {
     CHECK(!sc_value_as_bool(integer, &flag), "as_bool rejects an int");
 
     sc_value_free(integer);
+}
+
+
+/* ── Removal ─────────────────────────────────────────────────────────────── */
+
+static void check_remove(void) {
+    ScValue *object = sc_value_object();
+    sc_value_set(object, "a", sc_value_int(1));
+    sc_value_set(object, "b", sc_value_int(2));
+    sc_value_set(object, "c", sc_value_int(3));
+
+    CHECK(sc_value_remove(object, "b") && sc_value_len(object) == 2,
+          "remove: deletes a member");
+    CHECK(sc_value_get(object, "b") == NULL,
+          "remove: the member is gone");
+    CHECK(strcmp(sc_value_key_at(object, 1), "c") == 0,
+          "remove: remaining members keep order");
+    CHECK(!sc_value_remove(object, "missing"),
+          "remove: absent key returns false");
+    sc_value_free(object);
+
+    ScValue *array = sc_value_array();
+    for (int i = 0; i < 4; i++) {
+        sc_value_push(array, sc_value_int(i));
+    }
+    int64_t value = 0;
+    CHECK(sc_value_remove_at(array, 1) && sc_value_len(array) == 3,
+          "remove_at: deletes an element");
+    CHECK(sc_value_as_int(sc_value_at(array, 1), &value) && value == 2,
+          "remove_at: later elements shift down");
+    CHECK(!sc_value_remove_at(array, 99),
+          "remove_at: out-of-range returns false");
+    sc_value_free(array);
+}
+
+
+/* ── Convenience getters / path ──────────────────────────────────────────── */
+
+static void check_convenience_getters(void) {
+    ScValue *object = sc_value_object();
+    sc_value_set(object, "port", sc_value_int(8080));
+    sc_value_set(object, "tls", sc_value_bool(true));
+    sc_value_set(object, "name", sc_value_string("sparcli"));
+
+    CHECK(sc_value_get_int_or(object, "port", 0) == 8080,
+          "get_int_or: returns the value when present");
+    CHECK(sc_value_get_int_or(object, "missing", 42) == 42,
+          "get_int_or: returns the fallback when absent");
+    CHECK(sc_value_get_bool_or(object, "tls", false),
+          "get_bool_or: returns the boolean");
+    CHECK(!sc_value_get_bool_or(object, "name", false),
+          "get_bool_or: type mismatch falls back");
+    CHECK(strcmp(sc_value_get_string_or(object, "name", "?"), "sparcli") == 0,
+          "get_string_or: returns the string");
+    CHECK(strcmp(sc_value_get_string_or(object, "missing", "def"), "def") == 0,
+          "get_string_or: fallback when absent");
+
+    sc_value_free(object);
+}
+
+static void check_path(void) {
+    const char *json = "{\"server\":{\"tls\":{\"enabled\":true},"
+                       "\"hosts\":[\"a\",\"b\"]}}";
+    ScValue *root = sc_json_parse(json, strlen(json), NULL);
+
+    bool enabled = false;
+    CHECK(sc_value_as_bool(
+              sc_value_path(root, "server.tls.enabled"), &enabled) && enabled,
+          "path: dotted object path resolves");
+    CHECK(strcmp(sc_value_as_string(sc_value_path(root, "server.hosts.1")),
+                 "b") == 0,
+          "path: array index segment resolves");
+    CHECK(sc_value_path(root, "server.missing.x") == NULL,
+          "path: unknown segment returns NULL");
+    CHECK(sc_value_path(root, "server.hosts.9") == NULL,
+          "path: out-of-range index returns NULL");
+    CHECK(sc_value_path(root, "") == root,
+          "path: empty path returns the root");
+
+    sc_value_free(root);
+}
+
+
+/* ── Clone / merge ───────────────────────────────────────────────────────── */
+
+static void check_clone(void) {
+    const char *json = "{\"a\":[1,2,{\"b\":true}],\"c\":\"x\"}";
+    ScValue *original = sc_json_parse(json, strlen(json), NULL);
+    ScValue *copy = sc_value_clone(original);
+
+    // The copy must be independent: free the original, then read the copy.
+    sc_value_free(original);
+
+    bool inner = false;
+    CHECK(copy != NULL
+              && sc_value_as_bool(
+                     sc_value_path(copy, "a.2.b"), &inner) && inner,
+          "clone: deep copy survives freeing the original");
+    CHECK(strcmp(sc_value_as_string(sc_value_get(copy, "c")), "x") == 0,
+          "clone: scalar members are copied");
+    sc_value_free(copy);
+}
+
+static void check_merge(void) {
+    // base: defaults; overlay: user config that adds, overrides and deep-merges.
+    ScValue *base = sc_json_parse(
+        "{\"host\":\"localhost\",\"tls\":{\"on\":false,\"port\":443}}",
+        strlen("{\"host\":\"localhost\",\"tls\":{\"on\":false,\"port\":443}}"),
+        NULL);
+    ScValue *overlay = sc_json_parse(
+        "{\"tls\":{\"on\":true},\"extra\":1}",
+        strlen("{\"tls\":{\"on\":true},\"extra\":1}"), NULL);
+
+    bool ok = sc_value_merge(base, overlay);
+
+    bool on = false;
+    int64_t port = 0;
+    int64_t extra = 0;
+    CHECK(ok, "merge: succeeds for two objects");
+    CHECK(sc_value_as_bool(sc_value_path(base, "tls.on"), &on) && on,
+          "merge: overlay overrides a nested scalar");
+    CHECK(sc_value_as_int(sc_value_path(base, "tls.port"), &port)
+              && port == 443,
+          "merge: untouched nested keys are preserved (deep merge)");
+    CHECK(sc_value_as_int(sc_value_get(base, "extra"), &extra) && extra == 1,
+          "merge: overlay adds new keys");
+    CHECK(strcmp(sc_value_as_string(sc_value_get(base, "host")), "localhost")
+              == 0,
+          "merge: base-only keys remain");
+
+    sc_value_free(base);
+    sc_value_free(overlay);
 }

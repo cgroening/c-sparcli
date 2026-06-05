@@ -950,6 +950,32 @@ char *sc_yaml_write(const ScValue *value, ScYamlWriteOpts opts) {
 }
 
 
+/* ── File convenience ──────────────────────────────────────────────────── */
+
+ScValue *sc_yaml_parse_file(const char *path, ScParseError *err) {
+    size_t len = 0;
+    char *data = sc_serde_read_file(path, &len, err);
+    if (!data) {
+        return NULL;
+    }
+    ScValue *root = sc_yaml_parse(data, len, err);
+    free(data);
+    return root;
+}
+
+bool sc_yaml_write_file(
+    const ScValue *value, const char *path, ScYamlWriteOpts opts
+) {
+    char *text = sc_yaml_write(value, opts);
+    if (!text) {
+        return false;
+    }
+    bool ok = sc_serde_write_file(path, text);
+    free(text);
+    return ok;
+}
+
+
 /* ── Writer internals ──────────────────────────────────────────────────── */
 
 /** Writes a mapping or sequence in block style at `indent`. */

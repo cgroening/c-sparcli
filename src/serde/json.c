@@ -598,6 +598,32 @@ char *sc_json_write(const ScValue *value, ScJsonWriteOpts opts) {
 }
 
 
+/* ── File convenience ──────────────────────────────────────────────────── */
+
+ScValue *sc_json_parse_file(const char *path, ScParseError *err) {
+    size_t len = 0;
+    char *data = sc_serde_read_file(path, &len, err);
+    if (!data) {
+        return NULL;
+    }
+    ScValue *root = sc_json_parse(data, len, err);
+    free(data);
+    return root;
+}
+
+bool sc_json_write_file(
+    const ScValue *value, const char *path, ScJsonWriteOpts opts
+) {
+    char *text = sc_json_write(value, opts);
+    if (!text) {
+        return false;
+    }
+    bool ok = sc_serde_write_file(path, text);
+    free(text);
+    return ok;
+}
+
+
 /* ── Writer internals ──────────────────────────────────────────────────── */
 
 /** Serializes one value (dispatching on its type). */
