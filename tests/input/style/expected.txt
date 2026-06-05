@@ -568,6 +568,14 @@
     [0mShip release[0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
+[2mfuzzy list: colored section bar (bold white on blue)[0m
+  [1m[36mTasks[0m [0m[30m[47m [0m[2m  (2/2)[0m
+  [1m[37m[44mMonday[0m[1m[37m[44m (1)[0m[1m[37m[44m    [0m
+  [1m[36m‣ [0m[1m[36mBuy milk[0m
+  [1m[37m[44mTuesday[0m[1m[37m[44m (1)[0m[1m[37m[44m   [0m
+    [0mShip release[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
 [2mfuzzy list: second row disabled (greyed)[0m
   [1m[36mTasks[0m [0m[30m[47m [0m[2m  (1/1)[0m
   [1m[36m‣ [0m[1m[36mActive task[0m

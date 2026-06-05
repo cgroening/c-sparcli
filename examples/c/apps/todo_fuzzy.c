@@ -60,6 +60,16 @@ static ScFuzzy *build_finder(int *out_action) {
         .section_counts  = true,
         .order           = SC_FUZZY_ORDER_COLUMN,  /* chronological per day */
         .order_column    = COL_TIME,
+        /* Hover (cursor row): black text on the accent background. On the
+         * cursor row this fg overrides each cell's own color (merge_style),
+         * keeping the highlighted row readable. */
+        .selected_style  = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                             SC_ANSI_COLOR_NONE },
+        /* Day headers get their own look: bold white on a filled slate bar
+         * (a section_style.bg spans the whole row). Any ScTextStyle works -
+         * attributes, foreground and background are all honored. */
+        .section_style   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                             sc_color_from_rgb(58, 64, 92) },
         .toggle_all_key     = sc_key_ctrl('a'),
         .toggle_section_key = sc_key_ctrl('s'),
         .empty_text      = "No matching tasks",

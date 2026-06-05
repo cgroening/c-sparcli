@@ -142,6 +142,20 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(s1, ""));
     sc_fuzzy_free(s1);
 
+    /* Sections with a custom section_style: bold white on a filled bar; the
+     * background spans the whole row width. */
+    ScFuzzy *s1b = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Tasks", .section_counts = true,
+        .section_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                           SC_ANSI_COLOR_BLUE } });
+    sc_fuzzy_add_section(s1b, "Monday");
+    sc_fuzzy_add(s1b, "Buy milk");
+    sc_fuzzy_add_section(s1b, "Tuesday");
+    sc_fuzzy_add(s1b, "Ship release");
+    style_show("fuzzy list: colored section bar (bold white on blue)",
+               sc_fuzzy_frame(s1b, ""));
+    sc_fuzzy_free(s1b);
+
     /* Disabled (greyed, non-selectable) row. */
     ScFuzzy *s2 = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
     sc_fuzzy_add(s2, "Active task");
