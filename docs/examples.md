@@ -107,7 +107,7 @@ Non-interactive; safe to run anywhere.
 | `output/columns_layout` | Side-by-side columns with separators, capture + `vstack` composition, pad/align, and redirecting the output stream into a buffer/file. |
 | `output/progress_spinner` | Animated progress bars (block + threshold-colored line), a spinner with a changing label, and `clear_line` for a transient status. |
 | `output/live` | Live in-place dashboard re-rendered from a captured + vstacked frame, plus the fullscreen alternate-screen (`alt_screen`) variant. |
-| `output/multiprogress` · `output/diff` | Several progress bars updated together in place; a colored unified diff (hunks, `-`/`+`, framed via capture). Both in C, C++, Rust and Python; the C++ `output/diff` also shows `humanize::*`. |
+| `output/multiprogress` · `output/diff` | Several progress bars updated together in place; a colored unified diff (hunks, `-`/`+`, framed via capture). Both in C, C++, Rust and Python; the C++ `output/diff` also shows `humanize::*` and the C++ `data/markdown_render` shows `view::value_render`. |
 | `output/pager` | Routing long output through `$PAGER` / `less -R` (no-op off a terminal). |
 
 ¹ Word-wrap and `max_rows` are demonstrated in the C and Python variants; the
