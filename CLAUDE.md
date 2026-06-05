@@ -1262,3 +1262,27 @@ sc_args_reset(args);                       /* explicit clear without reparsing *
 | Examples | `examples/c/app/args.c`, `examples/c/apps/repl_demo.c` (REPL: split + implicit reset + history), `examples/c/apps/repl_minimal.c`, `examples/c/apps/repl_dashboard.c` |
 
 The fuzzer found (and led to the fix of) a pre-existing out-of-bounds read in `sc_utf8_trim_to_cols`/`sc_utf8_string_length` (`src/internal.h`): truncated UTF-8 sequences at the end of a string are now advanced bounds-safely.
+
+---
+
+## Serde (`src/serde/`)
+
+Structured **read+write** parsers (JSON, CSV, TOML, YAML, Markdown) over one shared model. Data-only layer: no terminal output/input. Depends on `core` (+ `app/error` for the pretty-error bridge), compiles into `libsparcli.a`, but is **opt-in** (`#include <serde/sparcli_serde.h>` / `.hpp`, **not** in the `sparcli.h` umbrella) and has **own gates outside `make qa`** (`make serde-qa`). **C + C++ only** (the C sources still compile into the Rust/Python libs, but those bindings don't wrap serde - they have `serde`/`argparse`/etc.). Full reference: `docs/api-serde.md`.
+
+- **Shared `ScValue` tree** (`sparcli_value.h`): `SC_VALUE_NULL/BOOL/INT(int64)/FLOAT(double)/STRING/ARRAY/OBJECT/DATETIME`. Constructors `sc_value_*`, accessors `sc_value_as_*`/`_get`/`_at`/`_key_at` (return false/NULL on type mismatch - null-tolerant navigation), mutators `sc_value_push`/`_set` **transfer ownership** of the child (no deep copy; set replaces in place, objects keep insertion order), `sc_value_free` frees recursively. JSON/TOML/YAML all parse into / write from it - **format conversion = parse-one/write-the-other**. CSV and Markdown have their own models.
+- **`ScParseError`** (`sparcli_parse_error.h`): caller-stack struct (line/column/message[]/snippet[], no alloc - like `sc_args_split`'s err). Every `sc_<fmt>_parse(src, len, ScParseError *err)` returns NULL + fills `err`. Bridge `sc_parse_error_to_error()` → `ScError` (exit 2) for `sc_die`.
+- **Writers**: `char *sc_<fmt>_write(value, opts)` (heap). Opts structs zero-init-friendly: `ScJsonWriteOpts{indent,sort_keys,trailing_newline}`, `ScTomlWriteOpts{sort_keys}`, `ScYamlWriteOpts{indent,sort_keys}`. JSON/TOML/YAML emit round-trippable output (whole floats keep `.0`; YAML quotes strings that would re-parse as non-strings).
+- **CSV** (`sparcli_csv.h`, tabular `ScCsv`): `ScCsvOpts{delim,quote,has_header}`; `sc_csv_parse`/`_rows`/`_cols`/`_row_cols`/`_at` (returns `""` not NULL for ragged cells), header lookup `_header`/`_data_rows`/`_get`; writer `sc_csv_new`/`_add_row`/`_write`. **The `sparcli table` CLI uses this** (`cli/cmd_table.c`); promoted from the old `cli/cli_csv.c`.
+- **TOML** (`sparcli_toml.h`): near-complete TOML 1.0 (tables, `[[array of tables]]`, dotted keys, all scalar types, arrays, inline tables, multiline/literal strings, comments). **Datetimes kept verbatim as `SC_VALUE_DATETIME` strings** (not interpreted).
+- **YAML** (`sparcli_yaml.h`): **documented subset** - block maps/seqs (incl. inline `- key: value`), flow `[]`/`{}`, plain/quoted scalars, `|`/`>` block scalars (basic), comments, leading `---`, null/bool/int/float inference. **NOT**: anchors/aliases/tags/multi-doc/explicit-keys.
+- **Markdown** (`sparcli_markdown.h`): front-matter split (`---`=YAML / `+++`=TOML → raw + parsed `ScValue` via the yaml/toml reader) + ATX-heading section tree (`ScMdSection`: level/title/body/children, root = level 0 holding the preamble, fenced-code-aware). `sc_markdown_find("A/B/C")`, `set_body`/`add`, and `sc_markdown_set_frontmatter(md, fmt, ScValue*)` re-serializes edited front matter via the toml/yaml writer; `sc_markdown_write` emits front matter + tree.
+- **Shared infra**: `ScSerdeBuf` (`buf.c`, growable sticky-fail buffer, `sc_serde_append_utf8`) backs every writer/string decoder.
+- **C++** (`sparcli::serde`, `sparcli_serde.hpp`): RAII `Value` + non-owning `View` (`std::optional` accessors); `json`/`toml`/`yaml` namespaces (`parse` throws `ParseError`, `write` → `std::string`); `Csv`, `Markdown` + `Section` handle. C++20.
+
+| Aspect | Detail |
+|--------|--------|
+| Source layout | `value.c`, `buf.c`, `parse_error.c`, `json.c`, `csv.c`, `toml.c`, `yaml.c`, `markdown.c`; appended to `SRC` via `SERDE_SRC` |
+| Gates (NOT in `make test`/`qa`) | `make test-serde` (logic), `serde-sanitize` (ASan/UBSan), `serde-fuzz` (all 5 parsers, libFuzzer-compatible), `serde-cpp` (C++ under sanitizers), aggregated by **`make serde-qa`**. Run after any `src/serde/` change |
+| Robustness | All parsers depth-limited + fuzzed 200k clean (the YAML fuzzer caught a flow-sequence non-advancing infinite-loop/OOM - fixed with a cursor-progress guard). `make lint` (clang-tidy, part of `qa`) now covers serde: use `calloc` for string-dup helpers + keep stack pops provably in-bounds |
+| Limitations (deliberate) | numbers `double`/`int64` only (no lossless decimal lexeme); TOML datetimes as strings; YAML subset; Markdown = structure only |
+| Tests / examples | `tests/serde/` (`test_{value,json,csv,toml,yaml,markdown}.c`), `tests/cpp/test_serde_cpp.cpp`, `tests/fuzz/fuzz_{json,csv,toml,yaml,markdown}.c`; `examples/c/data/`, `examples/cpp/data/` |

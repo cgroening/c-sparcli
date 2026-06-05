@@ -447,6 +447,31 @@ void sc_markdown_set_frontmatter_raw(
     md->frontmatter = parse_frontmatter(md->fm_format, copy);
 }
 
+bool sc_markdown_set_frontmatter(
+    ScMarkdown *md, ScMdFrontmatter format, const ScValue *value
+) {
+    if (!md || !value) {
+        return false;
+    }
+
+    char *serialized = NULL;
+    if (format == SC_MD_FRONTMATTER_TOML) {
+        serialized = sc_toml_write(value, (ScTomlWriteOpts){ 0 });
+    } else if (format == SC_MD_FRONTMATTER_YAML) {
+        serialized = sc_yaml_write(value, (ScYamlWriteOpts){ 0 });
+    } else {
+        return false; // no writer for SC_MD_FRONTMATTER_NONE
+    }
+    if (!serialized) {
+        return false;
+    }
+
+    // Reuse the raw setter (it copies the block and re-parses md->frontmatter).
+    sc_markdown_set_frontmatter_raw(md, format, serialized);
+    free(serialized);
+    return true;
+}
+
 /** Parses the raw front matter into an `ScValue` for the known formats. */
 static ScValue *parse_frontmatter(ScMdFrontmatter format, const char *raw) {
     size_t len = strlen(raw);

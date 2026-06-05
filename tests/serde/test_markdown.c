@@ -9,6 +9,7 @@ static void check_section_tree(void);
 static void check_find_and_body(void);
 static void check_code_fence_not_heading(void);
 static void check_build_and_write(void);
+static void check_set_frontmatter(void);
 static void check_round_trip(void);
 
 
@@ -21,6 +22,7 @@ void test_serde_markdown(void) {
     check_find_and_body();
     check_code_fence_not_heading();
     check_build_and_write();
+    check_set_frontmatter();
     check_round_trip();
 }
 
@@ -172,6 +174,33 @@ static void check_build_and_write(void) {
     CHECK(out != NULL && strcmp(out, expected) == 0,
           "write: heading + body + nested heading layout");
     free(out);
+    sc_markdown_free(md);
+}
+
+static void check_set_frontmatter(void) {
+    // Build a document, set its front matter from a value tree, and confirm
+    // the serialized block is emitted and re-parses.
+    ScMarkdown *md = sc_markdown_new();
+    sc_md_section_set_body(sc_markdown_root(md), "Body text.");
+
+    ScValue *meta = sc_value_object();
+    sc_value_set(meta, "title", sc_value_string("Generated"));
+    sc_value_set(meta, "draft", sc_value_bool(false));
+    bool ok = sc_markdown_set_frontmatter(md, SC_MD_FRONTMATTER_TOML, meta);
+    sc_value_free(meta);
+
+    char *out = sc_markdown_write(md);
+    ScMarkdown *again = sc_markdown_parse(out, strlen(out), NULL);
+    const ScValue *fm = sc_markdown_frontmatter(again);
+    CHECK(ok && fm != NULL
+              && strcmp(sc_value_as_string(sc_value_get(fm, "title")),
+                        "Generated") == 0,
+          "set_frontmatter: value tree is serialized and re-parses on write");
+    CHECK(strncmp(out, "+++\n", 4) == 0,
+          "set_frontmatter: TOML front matter is fenced with +++");
+
+    free(out);
+    sc_markdown_free(again);
     sc_markdown_free(md);
 }
 

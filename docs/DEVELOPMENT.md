@@ -256,12 +256,23 @@ make lint
 
 ### `make fuzz` – random-input fuzzing of the parsers (ASan/UBSan)
 
-Feeds the external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`), the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`), and the argument parser/line splitter (`sc_args_parse` / `sc_args_split`) plus the calculator (`sc_calc_eval`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer). The serde-layer parsers (JSON, CSV) are fuzzed separately by `make serde-fuzz` (part of `make serde-qa`, not `make fuzz`/`qa`).
+Feeds the external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`), the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`), and the argument parser/line splitter (`sc_args_parse` / `sc_args_split`) plus the calculator (`sc_calc_eval`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer). The serde-layer parsers (JSON, CSV, TOML, YAML, Markdown) are fuzzed separately by `make serde-fuzz` (part of `make serde-qa`, not `make fuzz`/`qa`).
 
 ```sh
 make fuzz                              # 200k inputs per parser, seed 1
 make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42
 ```
+
+### The serde suite (`make serde-qa`)
+
+The serde layer (`src/serde/` – the JSON/CSV/TOML/YAML/Markdown read+write parsers over `ScValue`) has its **own** test gates, deliberately kept out of `make test`/`make qa` so the data-parser work is validated independently of the terminal library. Run `make serde-qa` after any `src/serde/` change; it chains:
+
+- `make test-serde` – the data-model + format round-trip logic suite (`tests/serde/`, headless, built `-Werror`),
+- `make serde-sanitize` – the same suite under AddressSanitizer + UBSan,
+- `make serde-fuzz` – random-input fuzzing of all five parsers (libFuzzer-compatible, `FUZZ_ITERS`/`FUZZ_SEED` as above),
+- `make serde-cpp` – the C++ wrapper assertion suite (`tests/cpp/test_serde_cpp.cpp`) under the sanitizers.
+
+`make lint` (part of `make qa`) does cover `src/serde/`, so still run it on serde changes. The serde suite uses logic + round-trip assertions (no golden files), and the `examples/{c,cpp}/data/` examples double as a secondary check (`make examples`). Full API: [`api-serde.md`](api-serde.md).
 
 ### Golden-file workflow
 
@@ -281,6 +292,11 @@ Copy-paste block to validate a change.
 #    make sanitize, make tsan, make lint, make fuzz, make rust-test,
 #    make rust-lint, make python-test, make python-test-debug.
 make qa
+
+# 1b. If you touched the serde layer (src/serde/), run its separate gate. It is
+#     deliberately NOT part of `make qa`: test-serde (-Werror) + serde-sanitize
+#     (ASan/UBSan) + serde-fuzz (all five parsers) + serde-cpp (C++ wrapper).
+make serde-qa
 
 # 2. If you changed rendering on purpose, regenerate + review + commit the golden:
 make test-output-golden

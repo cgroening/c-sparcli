@@ -494,6 +494,13 @@ public:
             doc_, format, std::string(raw).c_str()
         );
     }
+    /** Sets the front matter from a value tree (serialized via the TOML/YAML
+     *  writer); throws `std::bad_alloc` on failure. */
+    void set_frontmatter(MdFrontmatter format, const Value &value) {
+        if (!sc_markdown_set_frontmatter(doc_, format, value.get())) {
+            throw std::bad_alloc();
+        }
+    }
     [[nodiscard]] std::string write() const {
         char *out = sc_markdown_write(doc_);
         if (!out) { throw std::bad_alloc(); }

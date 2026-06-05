@@ -11,12 +11,16 @@ The examples live under `examples/`, grouped by language and then by area:
 
 ```
 examples/
-  c/output/     c/input/     c/app/     c/apps/   (+ readme_screenshots_*.c)
-  cpp/output/   cpp/input/   cpp/app/
+  c/output/     c/input/     c/app/     c/data/   c/apps/   (+ readme_screenshots_*.c)
+  cpp/output/   cpp/input/   cpp/app/   cpp/data/
   rust/output/  rust/input/  rust/app/
   python/output/ python/input/ python/app/
   cli/
 ```
+
+The `data/` group covers the **serde** layer (structured read/write parsers) and
+is C and C++ only – Rust uses `serde`/`toml`/`serde_yaml` and Python its own
+ecosystem, so those bindings deliberately don't wrap it.
 
 ## Interactive launcher
 
@@ -134,6 +138,21 @@ Interactive; need a real terminal. Each falls back to a notice without one.
 | `app/args` | Declarative argument parser: subcommands, typed options, choices, help/version, did-you-mean. | C, C++ |
 | `app/args_repl` | Reusing one parser tree per input line (tokenizer + implicit reset) – the building block for a REPL. | C, C++ |
 
+## Data parsers (serde)
+
+Non-interactive; safe to run anywhere. These use the opt-in `serde/` layer
+(`#include <serde/sparcli_serde.h>` / `.hpp`, not pulled in by `sparcli.h`).
+
+| File | What it shows | Languages |
+|------|---------------|-----------|
+| `data/json_roundtrip` | Parse JSON into the `ScValue` tree, navigate it, pretty-print it back. | C, C++ |
+| `data/csv_to_table` | Read CSV with a header row and render it as a sparcli table (serde feeding the output renderer). | C, C++ |
+| `data/toml_config` | Parse a TOML config, read typed values, present them as a key/value list. | C |
+| `data/yaml_convert` | Parse YAML and emit JSON – conversion is "parse one, write the other" over the shared model. | C |
+| `data/markdown_outline` | Split front matter, walk the heading outline, then edit the front matter from a value tree and re-serialize. | C, C++ |
+
+The full serde reference is in [`docs/api-serde.md`](api-serde.md).
+
 ## Full applications (C)
 
 Larger end-to-end programs that combine many widgets:
@@ -174,5 +193,6 @@ tutorial examples – they are kept for regenerating the images.
 
 For the per-language API details each example builds on, see
 [`docs/api-c.md`](api-c.md), [`docs/api-cpp.md`](api-cpp.md),
-[`docs/api-rust.md`](api-rust.md), [`docs/api-python.md`](api-python.md) and
-[`docs/api-framework.md`](api-framework.md).
+[`docs/api-rust.md`](api-rust.md), [`docs/api-python.md`](api-python.md),
+[`docs/api-framework.md`](api-framework.md) and
+[`docs/api-serde.md`](api-serde.md).

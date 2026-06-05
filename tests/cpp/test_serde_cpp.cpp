@@ -134,6 +134,15 @@ static void check_markdown() {
     intro.set_body("Body.");
     CHECK(built.write() == "# Title\n\nBody.\n",
           "markdown: build and write a section");
+
+    // Front matter set from a value tree is serialized and re-parses.
+    Value meta = Value::object();
+    meta.set("title", Value::string("Doc"));
+    built.set_frontmatter(SC_MD_FRONTMATTER_TOML, meta);
+    Markdown again = Markdown::parse(built.write());
+    CHECK(again.frontmatter().has_value()
+              && again.frontmatter()->get("title").as_string() == "Doc",
+          "markdown: set_frontmatter from a value re-parses");
 }
 
 static void check_move_semantics() {

@@ -126,6 +126,22 @@ SPARCLI_EXPORT void sc_markdown_set_frontmatter_raw(
     ScMarkdown *md, ScMdFrontmatter format, const char *raw
 );
 
+/**
+ * Sets the front matter from an `ScValue`, serializing it with the writer for
+ * `format` (TOML or YAML) and storing the result as the raw block, so edited
+ * front matter is reflected by `sc_markdown_write`.
+ *
+ * @param md      Target document.
+ * @param format  `SC_MD_FRONTMATTER_TOML` or `SC_MD_FRONTMATTER_YAML`.
+ * @param value   Value tree to serialize (typically an object); borrowed.
+ * @return        `true` on success; `false` for `SC_MD_FRONTMATTER_NONE`, a
+ *                `NULL` value, or on a serialization/allocation failure. To
+ *                clear the front matter use `sc_markdown_set_frontmatter_raw`.
+ */
+SPARCLI_EXPORT bool sc_markdown_set_frontmatter(
+    ScMarkdown *md, ScMdFrontmatter format, const ScValue *value
+);
+
 /** Replaces a section's body text (copied; `NULL` clears it). */
 SPARCLI_EXPORT void sc_md_section_set_body(
     ScMdSection *section, const char *text
