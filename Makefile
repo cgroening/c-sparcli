@@ -437,7 +437,7 @@ test:
 # (warnings as errors), the memory/thread sanitizers, static analysis (C +
 # Rust clippy), parser fuzzing, and both language bindings including the
 # poisoned-memory FFI gate.
-# See docs/DEVELOPMENT.md "After a change - run these".
+# See docs/development.md "After a change - run these".
 qa:
 	$(MAKE) test EXTRA_CFLAGS=-Werror
 	$(MAKE) sanitize

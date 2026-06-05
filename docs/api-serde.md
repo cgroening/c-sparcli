@@ -578,5 +578,5 @@ make serde-qa        # all of the above – the parser-layer counterpart to `mak
 ```
 
 Run `make serde-qa` after any change under `src/serde/`. See
-[`docs/DEVELOPMENT.md`](DEVELOPMENT.md) for the full workflow and
+[`docs/development.md`](development.md) for the full workflow and
 [`docs/examples.md`](examples.md) for the runnable `data/` examples.

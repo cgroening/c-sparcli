@@ -1,6 +1,6 @@
 # sparcli – Developer Guide
 
-Build, test, and install workflow for working on sparcli itself. For the public API see [`API.md`](API.md) (the hub linking the [C](api-c.md) and [C++](api-cpp.md) references); for the command-line tool see [`cli.md`](cli.md); for architecture and house conventions see [`../CLAUDE.md`](../CLAUDE.md).
+Build, test, and install workflow for working on sparcli itself. For the public API see [`api.md`](api.md) (the hub linking the [C](api-c.md) and [C++](api-cpp.md) references); for the command-line tool see [`cli.md`](cli.md); for architecture and house conventions see [`../CLAUDE.md`](../CLAUDE.md).
 
 **Requirements:** a C11 compiler (`cc`, clang, or gcc), `make`, and a POSIX system. The interactive PTY test suite uses `forkpty`.
 

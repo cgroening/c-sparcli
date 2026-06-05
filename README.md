@@ -502,7 +502,7 @@ tests/cli/                     CLI golden-file + PTY suites
 docs/                          API reference and developer guide
 ```
 
-See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** for the full build/test/ install workflow: every `make` target, what each test suite covers and how to run it, the golden-file workflow, and the pre-commit checklist.
+See **[`docs/development.md`](docs/development.md)** for the full build/test/ install workflow: every `make` target, what each test suite covers and how to run it, the golden-file workflow, and the pre-commit checklist.
 
 ---
 
@@ -526,7 +526,7 @@ I picked up C to understand what higher-level languages do under the hood – an
 
 sparcli is my attempt to close that gap: a single dependency-free library that gives plain C programs styled output, interactive prompts, an argument parser, logging – the plumbing a modern CLI needs. This project is inspired by the wonderful Rich and Textual projects by Will McGugan and the Textualize team.
 
-To move faster, sparcli is developed with the help of Claude Code (Anthropic's Opus model) under strict requirements and review: every feature ships with tests, and every change has to pass the full QA gate – sanitizers, ThreadSanitizer, fuzzing, golden-file and PTY suites (see [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)).
+To move faster, sparcli is developed with the help of Claude Code (Anthropic's Opus model) under strict requirements and review: every feature ships with tests, and every change has to pass the full QA gate – sanitizers, ThreadSanitizer, fuzzing, golden-file and PTY suites (see [`docs/development.md`](docs/development.md)).
 
 ---
 
