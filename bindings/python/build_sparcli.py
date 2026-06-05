@@ -175,6 +175,7 @@ typedef struct {
 
 ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 ScColor sc_color_none(void);
+bool sc_color_by_name(const char *name, ScColor *out);
 void sc_print(const char *raw_str, ScTextStyle style);
 void sc_println(const char *raw_str, ScTextStyle style);
 void sc_version(int *major, int *minor, int *patch);
@@ -553,11 +554,14 @@ typedef struct {
     bool show_cursor;
     bool transient;
     bool always;
+    int prompt_rows;
     ...;
 } ScLiveOpts;
 ScLive *sc_live_begin(ScLiveOpts opts);
 void sc_live_update(ScLive *live, const ScRendered *frame);
 void sc_live_update_str(ScLive *live, const char *str);
+void sc_live_update_text(ScLive *live, const ScText *text);
+void sc_live_update_table(ScLive *live, const ScTableData *table, ScTableOpts opts);
 void sc_live_end(ScLive *live);
 
 typedef enum {

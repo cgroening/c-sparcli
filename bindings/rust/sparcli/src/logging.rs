@@ -2,6 +2,7 @@
 
 use crate::style::{cstring, AnsiMode};
 use sparcli_sys as ffi;
+use std::os::fd::AsRawFd;
 
 repr_enum!(
     /// Log severity, ordered from most to least verbose.
@@ -67,21 +68,26 @@ impl LoggerOpts {
     }
 }
 
-/// A handle-based logger with its own file sinks - for a subsystem that
-/// must not touch the process-wide logger.
+/// A handle-based logger with its own sinks - for a subsystem that must not
+/// touch the process-wide logger.
 ///
-/// Terminal output is the global logger's job (see [`log`]); handle-based
-/// loggers write to plain-text files. Messages are always passed as data,
-/// never as a printf format string.
+/// Sinks are colored terminal streams ([`add_terminal`](Logger::add_terminal),
+/// [`add_stderr`](Logger::add_stderr)) and/or plain-text files
+/// ([`add_file`](Logger::add_file)). Messages are always passed as data, never
+/// as a printf format string.
 ///
 /// ```no_run
 /// use sparcli::{Logger, LoggerOpts, LogLevel};
 /// let logger = Logger::new(LoggerOpts::new().hide_timestamps())
+///     .add_stderr(LogLevel::Info)
 ///     .add_file("subsystem.log", LogLevel::Debug);
 /// logger.info("subsystem started");
 /// ```
 pub struct Logger {
     ptr: *mut ffi::ScLogger,
+    /// `fdopen`ed streams we own for terminal sinks; the C side only borrows
+    /// them, so we close them ourselves after the logger is freed.
+    terminals: Vec<*mut ffi::FILE>,
 }
 
 impl Logger {
@@ -89,7 +95,53 @@ impl Logger {
     pub fn new(opts: LoggerOpts) -> Logger {
         let ptr = unsafe { ffi::sc_logger_new(opts.raw()) };
         assert!(!ptr.is_null(), "sc_logger_new: out of memory");
-        Logger { ptr }
+        Logger {
+            ptr,
+            terminals: Vec::new(),
+        }
+    }
+
+    /// Adds a colored terminal sink writing to `target`'s file descriptor
+    /// (e.g. [`std::io::stderr`], [`std::io::stdout`], or an open [`File`]).
+    ///
+    /// The descriptor is duplicated, so the original stays open; the duplicate
+    /// is closed when the logger is dropped. See [`add_stderr`](Self::add_stderr)
+    /// / [`add_stdout`](Self::add_stdout) for the common cases.
+    ///
+    /// [`File`]: std::fs::File
+    pub fn add_terminal<F: AsRawFd>(
+        mut self,
+        target: F,
+        min_level: LogLevel,
+    ) -> Self {
+        let fd = unsafe { libc::dup(target.as_raw_fd()) };
+        if fd >= 0 {
+            let stream = unsafe { libc::fdopen(fd, c"w".as_ptr()) };
+            if stream.is_null() {
+                unsafe { libc::close(fd) };
+            } else {
+                let stream = stream.cast::<ffi::FILE>();
+                self.terminals.push(stream);
+                unsafe {
+                    ffi::sc_logger_add_terminal(
+                        self.ptr,
+                        stream,
+                        min_level.raw(),
+                    )
+                };
+            }
+        }
+        self
+    }
+
+    /// Adds a colored terminal sink on standard error.
+    pub fn add_stderr(self, min_level: LogLevel) -> Self {
+        self.add_terminal(std::io::stderr(), min_level)
+    }
+
+    /// Adds a colored terminal sink on standard output.
+    pub fn add_stdout(self, min_level: LogLevel) -> Self {
+        self.add_terminal(std::io::stdout(), min_level)
     }
 
     /// Adds a plain-text file sink (append mode; closed on drop).
@@ -148,7 +200,12 @@ impl Logger {
 
 impl Drop for Logger {
     fn drop(&mut self) {
+        // Free the logger first (flushes its sinks), then close the streams
+        // we opened for terminal sinks - the C side only borrowed them.
         unsafe { ffi::sc_logger_free(self.ptr) };
+        for &stream in &self.terminals {
+            unsafe { libc::fclose(stream.cast()) };
+        }
     }
 }
 

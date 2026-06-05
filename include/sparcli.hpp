@@ -120,6 +120,28 @@ inline Color rgb(std::uint8_t r, std::uint8_t g, std::uint8_t b) {
 inline TextStyle style(TextAttribute attr, Color fg = {}, Color bg = {}) {
     return sc_text_style(attr, fg, bg);
 }
+/** Resolves a color *name* - one of the eight ANSI names (`"red"`, …) or a
+    palette name (`"accent"`, `"orange"`, `"error"`, the `*_vivid`/`*_dark`
+    variants, …) - into a Color, or `std::nullopt` for an unknown name. The
+    same resolver markup (`[accent]`) and the CLI use. Hex (`#rrggbb`) is not a
+    name; use rgb(). @see sc_color_by_name */
+inline std::optional<Color> color_by_name(std::string_view name) {
+    Color out{};
+    if (sc_color_by_name(std::string(name).c_str(), &out)) { return out; }
+    return std::nullopt;
+}
+
+// ── Library version ──────────────────────────────────────────────────────────
+/** Runtime library version components. @see sc_version */
+struct Version { int major; int minor; int patch; };
+/** The runtime library version. @see sc_version */
+inline Version version() {
+    int a = 0, b = 0, c = 0;
+    sc_version(&a, &b, &c);
+    return { a, b, c };
+}
+/** The runtime library version string, e.g. `"0.1.0"`. @see sc_version_string */
+inline std::string version_string() { return sc_version_string(); }
 
 // ── Named RGB palette (the C `SC_COLOR_*` macros) ────────────────────────
 // Additional to the eight ANSI colors above; each returns a 24-bit RGB Color.
@@ -1076,6 +1098,16 @@ public:
     void update(std::string_view s) {
         if (l_) { sc_live_update_str(l_, detail::z(s).c_str()); }
     }
+    /** Redraws the live region with rich text (capture + update in one call).
+        @see sc_live_update_text */
+    void update(const Text& t) {
+        if (l_) { sc_live_update_text(l_, t.get()); }
+    }
+    /** Redraws the live region with a table (capture + update in one call).
+        @see sc_live_update_table */
+    void update(const Table& t, TableOpts opts = {}) {
+        if (l_) { sc_live_update_table(l_, t.get(), opts); }
+    }
     /** Ends the session early: restores the terminal and, off-terminal,
         prints the buffered final frame. */
     void end() {
@@ -1649,6 +1681,18 @@ private:
 
 /** True when an interactive prompt can run (a TTY is present). */
 inline bool input_available() { return sc_input_available(); }
+
+/** Built-in per-character input filters. Assign one to
+    `TextInputOpts.char_filter` (or the number widget's) to reject disallowed
+    keystrokes, e.g. `text_input("PIN", { .char_filter = filters::digits })`.
+    @see sc_filter_digits */
+namespace filters {
+    inline constexpr ScCharFilter digits   = sc_filter_digits;
+    inline constexpr ScCharFilter decimal  = sc_filter_decimal;
+    inline constexpr ScCharFilter alpha    = sc_filter_alpha;
+    inline constexpr ScCharFilter alnum    = sc_filter_alnum;
+    inline constexpr ScCharFilter no_space = sc_filter_no_space;
+}  // namespace filters
 
 /** Yes/No prompt. @return the choice, or `std::nullopt` on cancel/no-TTY. */
 inline std::optional<bool> confirm(std::string_view question,

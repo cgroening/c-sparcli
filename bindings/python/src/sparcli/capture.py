@@ -181,28 +181,49 @@ class Live:
         Erase the live region on end instead of leaving the final frame.
     always
         Emit redraw escape codes even when output is not a terminal.
+    prompt_rows
+        Rows reserved below the frame for an interactive prompt (REPL
+        dashboards); the cursor parks there after each update. 0 = classic.
     """
 
     __slots__ = ("_live",)
 
     def __init__(self, alt_screen: bool = False, show_cursor: bool = False,
-                 transient: bool = False, always: bool = False) -> None:
+                 transient: bool = False, always: bool = False,
+                 prompt_rows: int = 0) -> None:
         opts = ffi.new("ScLiveOpts *")
         opts.alt_screen = alt_screen
         opts.show_cursor = show_cursor
         opts.transient = transient
         opts.always = always
+        opts.prompt_rows = prompt_rows
         self._live = lib.sc_live_begin(opts[0])
 
-    def update(self, frame: Rendered | str) -> None:
-        """Redraw the live region with a captured frame or a plain string."""
+    def update(self, frame: "Rendered | str | Text | Table") -> None:
+        """Redraw the live region with a captured frame, plain string, rich
+        :class:`~sparcli.text.Text`, or :class:`~sparcli.table.Table`.
+
+        For a table with custom :class:`TableOpts`, use :meth:`update_table`.
+        """
         if self._live is None:
             return
         if isinstance(frame, str):
             arena: list = []
             lib.sc_live_update_str(self._live, cstr(arena, frame))
+        elif isinstance(frame, Text):
+            lib.sc_live_update_text(self._live, frame._ptr)
+        elif isinstance(frame, Table):
+            self.update_table(frame)
         else:
             lib.sc_live_update(self._live, frame._ptr)
+
+    def update_table(self, table: Table, opts: TableOpts | None = None) -> None:
+        """Redraw the live region with a table (capture + update in one call)."""
+        if self._live is None:
+            return
+        arena: list = []
+        c = _opts_to_c(opts if opts is not None else TableOpts(), arena)
+        lib.sc_live_update_table(self._live, table._ptr, c[0])
 
     def end(self) -> None:
         """End the session (idempotent): restore the terminal and, when the

@@ -81,7 +81,7 @@ pub fn key_tab() -> Chord {
 impl Chord {
     /// A short display name, e.g. `"F2"`, `"^E"`, `"M-e"`.
     pub fn name(&self) -> String {
-        let mut buf = [0i8; 16];
+        let mut buf = [0 as c_char; 16];
         unsafe { ffi::sc_key_chord_name(self.0, buf.as_mut_ptr(), buf.len()) };
         unsafe {
             std::ffi::CStr::from_ptr(buf.as_ptr())
@@ -89,6 +89,159 @@ impl Chord {
                 .into_owned()
         }
     }
+
+    /// Whether `key` matches this chord (raw decoder helper).
+    pub fn matches(&self, key: &Key) -> bool {
+        unsafe { ffi::sc_key_chord_matches(key.0, self.0) }
+    }
+}
+
+/* ── Raw key decoding ────────────────────────────────────────────────────── */
+
+repr_enum!(
+    /// Logical identity of a decoded [`Key`]. `None` means no key could be
+    /// decoded (EOF, or an incomplete escape/UTF-8 prefix needing more bytes).
+    KeyType {
+        None = ffi::ScKeyType_SC_KEY_NONE,
+        Char = ffi::ScKeyType_SC_KEY_CHAR,
+        Enter = ffi::ScKeyType_SC_KEY_ENTER,
+        Esc = ffi::ScKeyType_SC_KEY_ESC,
+        Tab = ffi::ScKeyType_SC_KEY_TAB,
+        BackTab = ffi::ScKeyType_SC_KEY_BACKTAB,
+        Backspace = ffi::ScKeyType_SC_KEY_BACKSPACE,
+        Delete = ffi::ScKeyType_SC_KEY_DELETE,
+        Up = ffi::ScKeyType_SC_KEY_UP,
+        Down = ffi::ScKeyType_SC_KEY_DOWN,
+        Left = ffi::ScKeyType_SC_KEY_LEFT,
+        Right = ffi::ScKeyType_SC_KEY_RIGHT,
+        Home = ffi::ScKeyType_SC_KEY_HOME,
+        End = ffi::ScKeyType_SC_KEY_END,
+        PageUp = ffi::ScKeyType_SC_KEY_PAGEUP,
+        PageDown = ffi::ScKeyType_SC_KEY_PAGEDOWN,
+        ShiftPageUp = ffi::ScKeyType_SC_KEY_SHIFT_PAGEUP,
+        ShiftPageDown = ffi::ScKeyType_SC_KEY_SHIFT_PAGEDOWN,
+        CtrlA = ffi::ScKeyType_SC_KEY_CTRL_A,
+        CtrlC = ffi::ScKeyType_SC_KEY_CTRL_C,
+        CtrlD = ffi::ScKeyType_SC_KEY_CTRL_D,
+        CtrlE = ffi::ScKeyType_SC_KEY_CTRL_E,
+        CtrlK = ffi::ScKeyType_SC_KEY_CTRL_K,
+        CtrlU = ffi::ScKeyType_SC_KEY_CTRL_U,
+        CtrlW = ffi::ScKeyType_SC_KEY_CTRL_W,
+        F1 = ffi::ScKeyType_SC_KEY_F1,
+        F2 = ffi::ScKeyType_SC_KEY_F2,
+        F3 = ffi::ScKeyType_SC_KEY_F3,
+        F4 = ffi::ScKeyType_SC_KEY_F4,
+        F5 = ffi::ScKeyType_SC_KEY_F5,
+        F6 = ffi::ScKeyType_SC_KEY_F6,
+        F7 = ffi::ScKeyType_SC_KEY_F7,
+        F8 = ffi::ScKeyType_SC_KEY_F8,
+        F9 = ffi::ScKeyType_SC_KEY_F9,
+        F10 = ffi::ScKeyType_SC_KEY_F10,
+        F11 = ffi::ScKeyType_SC_KEY_F11,
+        F12 = ffi::ScKeyType_SC_KEY_F12,
+        PasteStart = ffi::ScKeyType_SC_KEY_PASTE_START,
+        PasteEnd = ffi::ScKeyType_SC_KEY_PASTE_END,
+        Resize = ffi::ScKeyType_SC_KEY_RESIZE,
+    } default None
+);
+
+impl KeyType {
+    fn from_raw(raw: ffi::ScKeyType) -> KeyType {
+        // SAFETY: KeyType is `#[repr(u32)]` and covers every ScKeyType value;
+        // an out-of-range value cannot occur because the decoder only ever
+        // produces these. Fall back to `None` defensively all the same.
+        match raw {
+            ffi::ScKeyType_SC_KEY_CHAR => KeyType::Char,
+            ffi::ScKeyType_SC_KEY_ENTER => KeyType::Enter,
+            ffi::ScKeyType_SC_KEY_ESC => KeyType::Esc,
+            ffi::ScKeyType_SC_KEY_TAB => KeyType::Tab,
+            ffi::ScKeyType_SC_KEY_BACKTAB => KeyType::BackTab,
+            ffi::ScKeyType_SC_KEY_BACKSPACE => KeyType::Backspace,
+            ffi::ScKeyType_SC_KEY_DELETE => KeyType::Delete,
+            ffi::ScKeyType_SC_KEY_UP => KeyType::Up,
+            ffi::ScKeyType_SC_KEY_DOWN => KeyType::Down,
+            ffi::ScKeyType_SC_KEY_LEFT => KeyType::Left,
+            ffi::ScKeyType_SC_KEY_RIGHT => KeyType::Right,
+            ffi::ScKeyType_SC_KEY_HOME => KeyType::Home,
+            ffi::ScKeyType_SC_KEY_END => KeyType::End,
+            ffi::ScKeyType_SC_KEY_PAGEUP => KeyType::PageUp,
+            ffi::ScKeyType_SC_KEY_PAGEDOWN => KeyType::PageDown,
+            ffi::ScKeyType_SC_KEY_SHIFT_PAGEUP => KeyType::ShiftPageUp,
+            ffi::ScKeyType_SC_KEY_SHIFT_PAGEDOWN => KeyType::ShiftPageDown,
+            ffi::ScKeyType_SC_KEY_CTRL_A => KeyType::CtrlA,
+            ffi::ScKeyType_SC_KEY_CTRL_C => KeyType::CtrlC,
+            ffi::ScKeyType_SC_KEY_CTRL_D => KeyType::CtrlD,
+            ffi::ScKeyType_SC_KEY_CTRL_E => KeyType::CtrlE,
+            ffi::ScKeyType_SC_KEY_CTRL_K => KeyType::CtrlK,
+            ffi::ScKeyType_SC_KEY_CTRL_U => KeyType::CtrlU,
+            ffi::ScKeyType_SC_KEY_CTRL_W => KeyType::CtrlW,
+            ffi::ScKeyType_SC_KEY_F1 => KeyType::F1,
+            ffi::ScKeyType_SC_KEY_F2 => KeyType::F2,
+            ffi::ScKeyType_SC_KEY_F3 => KeyType::F3,
+            ffi::ScKeyType_SC_KEY_F4 => KeyType::F4,
+            ffi::ScKeyType_SC_KEY_F5 => KeyType::F5,
+            ffi::ScKeyType_SC_KEY_F6 => KeyType::F6,
+            ffi::ScKeyType_SC_KEY_F7 => KeyType::F7,
+            ffi::ScKeyType_SC_KEY_F8 => KeyType::F8,
+            ffi::ScKeyType_SC_KEY_F9 => KeyType::F9,
+            ffi::ScKeyType_SC_KEY_F10 => KeyType::F10,
+            ffi::ScKeyType_SC_KEY_F11 => KeyType::F11,
+            ffi::ScKeyType_SC_KEY_F12 => KeyType::F12,
+            ffi::ScKeyType_SC_KEY_PASTE_START => KeyType::PasteStart,
+            ffi::ScKeyType_SC_KEY_PASTE_END => KeyType::PasteEnd,
+            ffi::ScKeyType_SC_KEY_RESIZE => KeyType::Resize,
+            _ => KeyType::None,
+        }
+    }
+}
+
+/// A decoded key event from [`decode_key`]: a logical [`KeyType`], the Unicode
+/// codepoint (for `Char`) and a modifier bitmask (Ctrl / Alt / pasted).
+#[derive(Clone, Copy)]
+pub struct Key(ffi::ScKey);
+
+impl Key {
+    /// The logical key identity.
+    pub fn kind(&self) -> KeyType {
+        KeyType::from_raw(self.0.type_)
+    }
+    /// The character for a [`KeyType::Char`] key, if any.
+    pub fn char_value(&self) -> Option<char> {
+        if self.0.type_ == ffi::ScKeyType_SC_KEY_CHAR {
+            char::from_u32(self.0.codepoint)
+        } else {
+            None
+        }
+    }
+    /// The raw modifier bitmask.
+    pub fn mods(&self) -> u8 {
+        self.0.mods
+    }
+    /// Ctrl held (a Ctrl-letter not mapped to a named editing key).
+    pub fn is_ctrl(&self) -> bool {
+        self.0.mods & ffi::ScKeyMods_SC_MOD_CTRL as u8 != 0
+    }
+    /// Alt/Meta held (an `ESC` prefix preceded the key).
+    pub fn is_alt(&self) -> bool {
+        self.0.mods & ffi::ScKeyMods_SC_MOD_ALT as u8 != 0
+    }
+    /// Delivered as part of a bracketed paste.
+    pub fn is_pasted(&self) -> bool {
+        self.0.mods & ffi::ScKeyMods_SC_MOD_PASTED as u8 != 0
+    }
+}
+
+/// Decodes a single key event from the front of `buf` (pure, no terminal).
+///
+/// Returns the decoded [`Key`] and the number of bytes consumed. A consumed
+/// count of `0` with [`KeyType::None`] means `buf` holds only the prefix of an
+/// incomplete sequence (a lone ESC or partial UTF-8/CSI) - read more and retry.
+pub fn decode_key(buf: &[u8]) -> (Key, usize) {
+    let mut key: ffi::ScKey = unsafe { mem::zeroed() };
+    let n = unsafe {
+        ffi::sc_key_decode(buf.as_ptr() as *const c_char, buf.len(), &mut key)
+    };
+    (Key(key), n)
 }
 
 type ShortcutFn = Box<dyn FnMut(i32) -> bool>;
@@ -185,6 +338,20 @@ impl Shortcuts {
         self.fired.get()
     }
 
+    /// The index of the first registered shortcut whose chord matches `key`,
+    /// or `None`. Mirrors the prompt engine's own dispatch (`sc_shortcut_find`)
+    /// for callers driving the raw [`decode_key`] loop themselves.
+    pub fn find(&self, key: &Key) -> Option<usize> {
+        let base = self.items.as_ptr();
+        let hit =
+            unsafe { ffi::sc_shortcut_find(key.0, base, self.items.len()) };
+        if hit.is_null() {
+            None
+        } else {
+            Some(unsafe { hit.offset_from(base) } as usize)
+        }
+    }
+
     fn apply(
         &self,
         ptr: *mut *const ffi::ScShortcut,
@@ -211,6 +378,158 @@ impl Drop for Shortcuts {
             unsafe { drop(Box::from_raw(u as *mut ShortcutFn)) };
         }
     }
+}
+
+/* ── Theme ───────────────────────────────────────────────────────────────── */
+
+/// Process-wide default styling for every input widget.
+///
+/// Install a theme once and each widget inherits it for any option the caller
+/// leaves at its default; per-call options always win, and the theme in turn
+/// wins over the built-in defaults. The `box` framing is merged sub-field by
+/// sub-field, so a theme can set just a border and leave the rest per-widget.
+///
+/// ```no_run
+/// use sparcli::{Color, Theme};
+/// Theme::new().accent(Color::MAGENTA).marker("➜ ").apply();
+/// // … every select/fuzzy/confirm now defaults to a magenta accent …
+/// sparcli::reset_theme();   // back to built-in defaults
+/// ```
+#[derive(Clone, Debug, Default)]
+pub struct Theme {
+    pub accent: Color,
+    /// Default box framing for every widget's `box` field.
+    pub box_: BoxStyle,
+    pub prompt_style: Style,
+    pub selected_style: Style,
+    pub cursor_style: Style,
+    pub count_style: Style,
+    pub summary_style: Style,
+    pub error_style: Style,
+    pub hint_style: Style,
+    pub cursor_marker: Option<String>,
+    pub marker: Option<String>,
+    pub checkbox_on: Option<String>,
+    pub checkbox_off: Option<String>,
+    pub hint_layout: HintLayout,
+    pub hint_pos: HintPos,
+}
+
+impl Theme {
+    pub fn new() -> Self {
+        Theme::default()
+    }
+    pub fn accent(mut self, c: Color) -> Self {
+        self.accent = c;
+        self
+    }
+    /// Default box framing (border, background, padding, margin, width).
+    pub fn box_style(mut self, b: BoxStyle) -> Self {
+        self.box_ = b;
+        self
+    }
+    pub fn prompt_style(mut self, s: Style) -> Self {
+        self.prompt_style = s;
+        self
+    }
+    pub fn selected_style(mut self, s: Style) -> Self {
+        self.selected_style = s;
+        self
+    }
+    pub fn cursor_style(mut self, s: Style) -> Self {
+        self.cursor_style = s;
+        self
+    }
+    pub fn count_style(mut self, s: Style) -> Self {
+        self.count_style = s;
+        self
+    }
+    pub fn summary_style(mut self, s: Style) -> Self {
+        self.summary_style = s;
+        self
+    }
+    pub fn error_style(mut self, s: Style) -> Self {
+        self.error_style = s;
+        self
+    }
+    pub fn hint_style(mut self, s: Style) -> Self {
+        self.hint_style = s;
+        self
+    }
+    pub fn cursor_marker(mut self, s: impl Into<String>) -> Self {
+        self.cursor_marker = Some(s.into());
+        self
+    }
+    pub fn marker(mut self, s: impl Into<String>) -> Self {
+        self.marker = Some(s.into());
+        self
+    }
+    pub fn checkbox_on(mut self, s: impl Into<String>) -> Self {
+        self.checkbox_on = Some(s.into());
+        self
+    }
+    pub fn checkbox_off(mut self, s: impl Into<String>) -> Self {
+        self.checkbox_off = Some(s.into());
+        self
+    }
+    pub fn hint_layout(mut self, l: HintLayout) -> Self {
+        self.hint_layout = l;
+        self
+    }
+    pub fn hint_pos(mut self, p: HintPos) -> Self {
+        self.hint_pos = p;
+        self
+    }
+
+    /// Installs this theme as the process-wide default (copies all fields).
+    pub fn apply(&self) {
+        set_theme(Some(self));
+    }
+}
+
+/// Installs `theme` as the process-wide input default, or clears it (`None`).
+///
+/// The struct and its glyph strings are copied by the C side, so the `Theme`
+/// need not outlive the call. Not thread-safe: set it once before spawning
+/// threads.
+pub fn set_theme(theme: Option<&Theme>) {
+    let Some(t) = theme else {
+        unsafe { ffi::sc_input_set_theme(std::ptr::null()) };
+        return;
+    };
+    let cursor_marker = t.cursor_marker.as_deref().map(cstring);
+    let marker = t.marker.as_deref().map(cstring);
+    let checkbox_on = t.checkbox_on.as_deref().map(cstring);
+    let checkbox_off = t.checkbox_off.as_deref().map(cstring);
+    let raw = ffi::ScInputTheme {
+        accent: t.accent.raw(),
+        box_: t.box_.raw(),
+        prompt_style: t.prompt_style.raw(),
+        selected_style: t.selected_style.raw(),
+        cursor_style: t.cursor_style.raw(),
+        count_style: t.count_style.raw(),
+        summary_style: t.summary_style.raw(),
+        error_style: t.error_style.raw(),
+        hint_style: t.hint_style.raw(),
+        cursor_marker: cursor_marker
+            .as_ref()
+            .map_or(std::ptr::null(), |c| c.as_ptr()),
+        marker: marker.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+        checkbox_on: checkbox_on
+            .as_ref()
+            .map_or(std::ptr::null(), |c| c.as_ptr()),
+        checkbox_off: checkbox_off
+            .as_ref()
+            .map_or(std::ptr::null(), |c| c.as_ptr()),
+        hint_layout: t.hint_layout.raw(),
+        hint_pos: t.hint_pos.raw(),
+    };
+    unsafe { ffi::sc_input_set_theme(&raw) };
+}
+
+/// Clears the process-wide input theme, reverting to the built-in defaults.
+pub fn reset_theme() {
+    unsafe { ffi::sc_input_set_theme(std::ptr::null()) };
 }
 
 /* ── Confirm ─────────────────────────────────────────────────────────────── */
@@ -1138,6 +1457,16 @@ pub struct FuzzyOpts {
     pub accent: Color,
     pub selected_style: Style,
     pub box_: BoxStyle,
+    /// Render results as a table. Set headers with [`FuzzyOpts::table`] and
+    /// add rows with [`Fuzzy::add_row`].
+    pub table: bool,
+    /// Column headers for the table view.
+    pub headers: Vec<String>,
+    /// Bitmask of columns the query searches (bit `c` = column `c`); `0`
+    /// (default) searches all columns. Table view only.
+    pub search_columns: u64,
+    /// Table-view rendering options (border, header style, padding, …).
+    pub table_opts: crate::output::TableOpts,
 }
 
 impl FuzzyOpts {
@@ -1146,6 +1475,27 @@ impl FuzzyOpts {
     }
     pub fn prompt(mut self, s: impl Into<String>) -> Self {
         self.prompt = Some(s.into());
+        self
+    }
+    /// Switches to the table view with the given column headers (add rows with
+    /// [`Fuzzy::add_row`]).
+    pub fn table<I, S>(mut self, headers: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.table = true;
+        self.headers = headers.into_iter().map(Into::into).collect();
+        self
+    }
+    /// Sets which columns the query searches (bitmask; `0` = all).
+    pub fn search_columns(mut self, mask: u64) -> Self {
+        self.search_columns = mask;
+        self
+    }
+    /// Sets the table-view rendering options.
+    pub fn table_opts(mut self, opts: crate::output::TableOpts) -> Self {
+        self.table_opts = opts;
         self
     }
     /// Stop the cursor at the result-list ends instead of cycling (cycling is
@@ -1181,6 +1531,11 @@ pub struct Fuzzy {
 impl Fuzzy {
     pub fn new(opts: FuzzyOpts) -> Fuzzy {
         let prompt = opts.prompt.as_deref().map(cstring);
+        let headers: Vec<CString> =
+            opts.headers.iter().map(|h| cstring(h)).collect();
+        let header_ptrs: Vec<*const c_char> =
+            headers.iter().map(|c| c.as_ptr()).collect();
+        let mut arena = crate::style::Arena::new();
         let mut o: ffi::ScFuzzyOpts = unsafe { mem::zeroed() };
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.max_visible = opts.max_visible;
@@ -1188,6 +1543,13 @@ impl Fuzzy {
         o.accent = opts.accent.raw();
         o.selected_style = opts.selected_style.raw();
         o.box_ = opts.box_.raw();
+        o.table = opts.table;
+        if !header_ptrs.is_empty() {
+            o.headers = header_ptrs.as_ptr();
+            o.n_cols = header_ptrs.len();
+        }
+        o.search_columns = opts.search_columns;
+        o.table_opts = opts.table_opts.raw(&mut arena);
         let ptr = unsafe { ffi::sc_fuzzy_new(o) };
         assert!(!ptr.is_null(), "sc_fuzzy_new: out of memory");
         Fuzzy {
@@ -1195,8 +1557,22 @@ impl Fuzzy {
             _prompt: prompt,
         }
     }
+    /// Adds a single-column item (list view).
     pub fn add(&mut self, label: &str) -> &mut Self {
         unsafe { ffi::sc_fuzzy_add(self.ptr, cstring(label).as_ptr()) };
+        self
+    }
+    /// Adds a multi-column row (table view). The query searches the columns
+    /// selected by [`FuzzyOpts::search_columns`].
+    pub fn add_row<I, S>(&mut self, fields: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let cs: Vec<CString> =
+            fields.into_iter().map(|f| cstring(f.as_ref())).collect();
+        let ptrs: Vec<*const c_char> = cs.iter().map(|c| c.as_ptr()).collect();
+        unsafe { ffi::sc_fuzzy_add_row(self.ptr, ptrs.as_ptr(), ptrs.len()) };
         self
     }
     pub fn cursor_index(&self) -> usize {

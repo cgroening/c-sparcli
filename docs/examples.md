@@ -78,8 +78,8 @@ have no Rust example because the safe wrapper does not surface them yet:
 |---------|:-:|:---:|:----:|:------:|
 | Output widgets, capture/compose, live, pager | ✓ | ✓ | ✓ | ✓ |
 | Argument parser (`args`) | ✓ | ✓ | – (use `clap`) | – (use `argparse`) |
-| Input theme | ✓ | ✓ | – | ✓ |
-| Fuzzy table view | ✓ | ✓ | – (list only) | ✓ |
+| Input theme | ✓ | ✓ | ✓ | ✓ |
+| Fuzzy table view | ✓ | ✓ | ✓ | ✓ |
 | Text-input validation callback | ✓ | ✓ | – | ✓ |
 | Exact decimal input | via `out_text` | via `number_input_text` | via `number_input_text` | `decimal_input` |
 
@@ -120,12 +120,12 @@ Interactive; need a real terminal. Each falls back to a notice without one.
 | `input/text_password` | Text input (placeholder, validation¹, char filter, autocomplete dropdown, boxed, rich `prompt_markup` prompt) and masked password input. |
 | `input/number_calc` | Stepping/clamping numeric input, calculator mode (exact value), and the pure `calc_eval`. |
 | `input/textarea_editor` | Multi-line textarea and the external-`$EDITOR` hook (Ctrl-G). |
-| `input/fuzzy` | Fuzzy finder over a list (all languages) and a table² (C/C++/Python), plus the pure `fuzzy_match`. |
+| `input/fuzzy` | Fuzzy finder over a list and a table (all languages), plus the pure `fuzzy_match`. |
 | `input/datepicker` | Month-grid date picker, today-seeded and pre-seeded, with week-start choice. |
 | `input/history` | Up/Down input history with XDG-file persistence across runs. |
-| `input/shortcuts_theme` (C/C++/Python) · `input/shortcuts` (Rust) | Custom RETURN/CALLBACK key shortcuts; the C/C++/Python files also set the process-wide input theme. |
+| `input/shortcuts_theme` (C/C++/Python) · `input/shortcuts` (Rust) | Custom RETURN/CALLBACK key shortcuts; all files also set the process-wide input theme. |
 
-¹ Validation callback: C/C++/Python only. ² Table view: C/C++/Python only.
+¹ Validation callback: C/C++/Python only.
 
 ## Application framework
 

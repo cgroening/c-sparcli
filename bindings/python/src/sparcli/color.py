@@ -51,6 +51,24 @@ Color.CYAN = Color(7)
 Color.WHITE = Color(8)
 
 
+def color_by_name(name: str) -> Color | None:
+    """Resolve a color *name* into a :class:`Color`, or ``None`` if unknown.
+
+    Accepts the eight ANSI names (``"red"``, ``"green"``, …) and the
+    :class:`Palette` names (``"accent"``, ``"orange"``, ``"error"``, the
+    ``*_vivid``/``*_dark`` variants, …). This is the same name resolver markup
+    (``[accent]``) and the CLI (``--color accent``) use. Hex strings
+    (``#rrggbb``) are not names; build those with :meth:`Color.rgb`.
+    """
+    from ._ffi import cstr, ffi, lib  # local import: keep FFI out of module load
+
+    arena: list = []
+    out = ffi.new("ScColor *")
+    if lib.sc_color_by_name(cstr(arena, name), out):
+        return Color(out.index, out.r, out.g, out.b)
+    return None
+
+
 class Palette:
     """Named 24-bit RGB palette (the C ``SC_COLOR_*`` constants).
 

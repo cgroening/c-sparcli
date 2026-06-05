@@ -342,7 +342,7 @@ pub struct ScTitle {
     #[doc = " Title string; `NULL` = no title."]
     pub text: *const ::std::os::raw::c_char,
     #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
-    pub rich_text: *mut ScText,
+    pub rich_text: *const ScText,
     #[doc = " Text style (bold, color, …) applied to the title."]
     pub style: ScTextStyle,
     #[doc = " Horizontal placement of the title."]
@@ -382,6 +382,18 @@ extern "C" {
 extern "C" {
     #[doc = " Creates an `ScColor` from 24-bit RGB values.\n\n The returned color has `index = -1`, which selects RGB mode when passed to\n any function that accepts @ref ScColor.\n\n @param r  Red channel (0-255).\n @param g  Green channel (0-255).\n @param b  Blue channel (0-255).\n @return   An `ScColor` with `index = -1` and the given RGB values."]
     pub fn sc_color_from_rgb(r: u8, g: u8, b: u8) -> ScColor;
+}
+extern "C" {
+    #[doc = " Resolves a color name to an `ScColor`.\n\n Recognizes the eight ANSI color names (`\"black\"`, `\"red\"`, …, `\"white\"`)\n and the named RGB palette (`SC_COLOR_*`, e.g. `\"orange\"`, `\"accent\"`,\n `\"error\"`, `\"bg_darken_1\"`). The eight plain hue names always resolve to\n the ANSI colors; the palette's own soft hues (`SC_COLOR_RED` etc.) are not\n reachable by bare name here — use `#RRGGBB` or the `SC_COLOR_*` macro.\n\n @param name  Color name (case-sensitive); must not be `NULL`.\n @param out   Receives the resolved color on success; must not be `NULL`.\n @return      `true` when `name` matched, `false` otherwise (`*out` unset)."]
+    pub fn sc_color_by_name(name: *const ::std::os::raw::c_char, out: *mut ScColor) -> bool;
+}
+extern "C" {
+    #[doc = " Length-delimited variant of @ref sc_color_by_name for non-terminated spans\n (e.g. the markup parser). `name` need not be NUL-terminated."]
+    pub fn sc_color_by_name_n(
+        name: *const ::std::os::raw::c_char,
+        length: usize,
+        out: *mut ScColor,
+    ) -> bool;
 }
 extern "C" {
     #[doc = " These eight functions return the predefined ANSI color constants as\n regular function calls. Use them from bindings that cannot consume\n the `SC_ANSI_COLOR_*` compound-literal macros (Python via ctypes/cffi,\n Rust via bindgen for the macro values, etc.).\n\n The C-side macros remain available for native callers; they are\n equivalent."]
@@ -2875,7 +2887,7 @@ pub struct ScSelectOpts {
     pub prompt: *const ::std::os::raw::c_char,
     #[doc = " `true` = multi-select with checkboxes."]
     pub multi: bool,
-    #[doc = " Disable cursor wrap-around. By default the cursor wraps: Up on the first\nrow jumps to the last and Down on the last jumps to the first; set this\nto stop at the ends instead."]
+    #[doc = " Disable cursor cycling. By default the cursor cycles around the ends: Up\non the first row jumps to the last and Down on the last jumps to the\nfirst; set this to stop at the ends instead."]
     pub no_cycle: bool,
     #[doc = " Max rows shown at once; `0` = 10."]
     pub max_visible: ::std::os::raw::c_int,
@@ -3027,7 +3039,7 @@ pub struct ScFuzzyOpts {
     pub prompt: *const ::std::os::raw::c_char,
     #[doc = " Max result rows shown; `0` = 10."]
     pub max_visible: ::std::os::raw::c_int,
-    #[doc = " Disable cursor wrap-around. By default the cursor wraps around the ends\nof the result list (Up on the first match jumps to the last, and back);\nset this to stop at the ends instead."]
+    #[doc = " Disable cursor cycling. By default the cursor cycles around the ends of\nthe result list (Up on the first match jumps to the last, and back);\nset this to stop at the ends instead."]
     pub no_cycle: bool,
     #[doc = " Highlight color for the cursor row."]
     pub accent: ScColor,

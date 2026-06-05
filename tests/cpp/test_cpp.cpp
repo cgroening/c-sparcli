@@ -456,6 +456,50 @@ static void test_history() {
     CHECK(moved.count() == 2, "history: handle survives a move");
 }
 
+// version(), color_by_name(), the char-filter aliases and the rich-text Live
+// overloads added for full C-API parity.
+static void test_parity_helpers() {
+    // version() mirrors sc_version_string().
+    CHECK(version_string() == std::string(sc_version_string()),
+          "version: string matches the C accessor");
+    CHECK(version().major >= 0, "version: components are populated");
+
+    // color_by_name resolves ANSI + palette names, rejects unknowns/hex.
+    auto c_red = color_by_name("red");
+    CHECK(c_red.has_value() && c_red->index == sparcli::red().index,
+          "color_by_name: 'red' is the ANSI red");
+    auto accent = color_by_name("accent");
+    CHECK(accent.has_value() && accent->index == -1,
+          "color_by_name: 'accent' is a 24-bit palette color");
+    CHECK(!color_by_name("#ff0000").has_value(),
+          "color_by_name: hex is not a name");
+    CHECK(!color_by_name("nope").has_value(),
+          "color_by_name: unknown name -> nullopt");
+
+    // The char-filter aliases point at the C built-ins.
+    CHECK(filters::digits == sc_filter_digits,
+          "filters: digits aliases sc_filter_digits");
+    CHECK(filters::decimal == sc_filter_decimal &&
+          filters::no_space == sc_filter_no_space,
+          "filters: decimal/no_space alias the C built-ins");
+
+    // Live overloads for rich text and tables: only the final frame prints
+    // off-terminal.
+    std::string out = render([] {
+        Live live;
+        live.update(Text("text frame"));
+        Table t;
+        t.add_column("C");
+        t.add_row({ "final cell" });
+        live.update(t);
+        live.end();
+    });
+    CHECK(!contains(out, "text frame"),
+          "live: superseded rich-text frame is dropped");
+    CHECK(contains(out, "final cell"),
+          "live: final table frame is printed");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -476,6 +520,7 @@ int main() {
     test_args_parser();
     test_args_repl_helpers();
     test_history();
+    test_parity_helpers();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

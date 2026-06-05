@@ -82,6 +82,8 @@ Colors use functions, not the `SC_ANSI_COLOR_*` compound-literal macros (which a
 Color c1 = red();                 // none/black/red/green/yellow/blue/
 Color c2 = rgb(120, 200, 255);    // magenta/cyan/white, plus rgb(r,g,b)
 TextStyle s = style(SC_TEXT_ATTR_BOLD, green());   // attr, fg, bg
+std::optional<Color> c3 = color_by_name("accent"); // ANSI or palette names
+Version v = version();            // {major,minor,patch}; or version_string()
 ```
 
 **Named RGB palette** — the C `SC_COLOR_*` set is exposed as functions under `sparcli::palette` (the C macros are compound literals, unusable in standard C++). All 53 colors are available; each returns a 24-bit RGB `Color`:
@@ -265,6 +267,8 @@ auto log = paths::file(SC_PATH_STATE, "myapp", "logs/run.log");
     for (int i = 0; i <= 100; i += 10) {
         live.update(capture::str("progress: " + std::to_string(i) + "%"));
     }
+    // update() is overloaded for a Rendered, a string, a Text, and a Table:
+    // live.update(my_text);  live.update(my_table, TableOpts{ ... });
 }                                      // destructor restores the terminal
 
 // Pretty errors: message + causes + hint + exit code as a red panel
@@ -367,7 +371,7 @@ for (;;) {
 // Args::parse_line(line) tokenizes + parses it in one call (see api-framework.md)
 ```
 
-Text/number input constraints reuse the C filter functions via the opts (`.char_filter = sc_filter_digits`, etc.; see [api-c.md](api-c.md#input-widgets)).
+Text/number input constraints reuse the built-in filters via the opts; the `filters` namespace aliases them: `text_input("PIN", { .char_filter = filters::digits })` (also `decimal`/`alpha`/`alnum`/`no_space`; see [api-c.md](api-c.md#input-widgets)).
 
 The key-hint footer is configured through the opts like any other field: `.hint_layout` (`SC_HINT_INLINE` / `SC_HINT_STACKED` / `SC_HINT_HIDDEN`) and `.hint_pos` (`SC_HINT_POS_TOP` / `_BOTTOM` / `_LEFT` / `_RIGHT`), e.g. `confirm("Deploy?", { .hint_pos = SC_HINT_POS_RIGHT })`. Both also work via the `InputTheme`. See [api-c.md](api-c.md#input-widgets).
 

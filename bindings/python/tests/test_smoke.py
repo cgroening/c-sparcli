@@ -66,6 +66,16 @@ def test_attr_flags_combine():
     assert int(combined) == 1 | 4
 
 
+def test_color_by_name():
+    # ANSI names resolve to the named colors; palette names to RGB.
+    assert sc.color_by_name("red") == sc.Color.RED
+    accent = sc.color_by_name("accent")
+    assert accent is not None and accent == sc.Palette.ACCENT
+    # Hex is not a name, and unknown names return None.
+    assert sc.color_by_name("#ff0000") is None
+    assert sc.color_by_name("definitely-not-a-color") is None
+
+
 # ── render & capture ──────────────────────────────────────────────
 def _plain(rendered: sc.Rendered) -> list[str]:
     return [sc.strip_ansi(line) for line in rendered.lines]
@@ -450,6 +460,22 @@ def test_live_transient_prints_nothing(tmp_path):
         with sc.Live(transient=True) as live:
             live.update("never shown")
     assert "never shown" not in path.read_text()
+
+
+def test_live_update_text_and_table(tmp_path):
+    # The Text/Table overloads of update() (and update_table) capture and
+    # redraw; off-terminal only the final frame is printed.
+    path = tmp_path / "live.txt"
+    with open(path, "w") as f, sc.ScopedOutput(f):
+        with sc.Live(prompt_rows=0) as live:
+            live.update(sc.Text.from_str("text frame"))
+            t = sc.Table()
+            t.column("C")
+            t.row(["final cell"])
+            live.update_table(t, sc.TableOpts(header_row=True))
+    out = sc.strip_ansi(path.read_text())
+    assert "text frame" not in out
+    assert "final cell" in out
 
 
 # ── output redirection ────────────────────────────────────────────

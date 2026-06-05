@@ -32,6 +32,12 @@ rule(RuleOpts::new().kind(BorderType::Double).title("section"));
 badge("NEW", BadgeOpts::new().style(Style::bold().bg(Color::GREEN)));
 alert::success("done");
 
+// Color by name (ANSI or palette names; same resolver as markup `[accent]`):
+let accent = Color::by_name("accent").unwrap();   // None for unknown names
+
+// Rich-text variants of the str widgets: alert::text(kind, &t), rule_text(&t,
+// opts), pad_text(&t, opts), align_text(&t, align, width); Text::append_badge.
+
 let mut t = Table::new();
 t.column("Name", ColOpts::new().style(Style::bold().fg(Color::CYAN)))   // per-column style
     .column("Age", ColOpts::new().align(Align::Right));
@@ -152,11 +158,19 @@ sparcli::log::set_level(sparcli::LogLevel::Debug);
 sparcli::log::add_file("app.log", sparcli::LogLevel::Debug);
 sparcli::log::info("server started");      // message is data, never a format
 
-// ... or an independent handle-based logger (file sinks; closed on drop)
+// ... or an independent handle-based logger with its own sinks: colored
+// terminal streams (.add_stderr/.add_stdout/.add_terminal(fd, …); the fd is
+// duplicated and closed on drop) and/or plain-text files (closed on drop)
 let logger = sparcli::Logger::new(sparcli::LoggerOpts::new().hide_timestamps())
+    .add_stderr(sparcli::LogLevel::Info)
     .add_file("subsystem.log", sparcli::LogLevel::Debug);
 logger.warn("low disk space");
+
+// One-shot pretty error + exit (message + optional hint), no builder needed:
+// sparcli::die_msg(2, "config not found", Some("run 'app init'"));
 ```
+
+The `Live` session also has `.update_text(&text)` and `.update_table(&table, opts)` (rich-text / table frames captured in one call) alongside `.update(&rendered)` / `.update_str(…)`.
 
 ## Input
 
@@ -211,6 +225,19 @@ let mut fz = Fuzzy::new(FuzzyOpts::new().prompt("Find"));
 fz.add("Tokyo").add("London");
 if let Some(i) = fz.run()? { /* add-order index */ }
 
+// Fuzzy table view: column headers + multi-column rows; the query searches the
+// columns selected by .search_columns(mask) (0 = all) and highlights matches.
+let mut grid = Fuzzy::new(FuzzyOpts::new()
+    .prompt("Pick")
+    .table(["Name", "Role"])
+    .table_opts(TableOpts::new().header_row(true)));
+grid.add_row(["Ada", "Engineer"]).add_row(["Alan", "Founder"]);
+if let Some(i) = grid.run()? { /* add-order index */ }
+
+// Process-wide defaults every widget inherits (per-call opts still win):
+Theme::new().accent(Color::MAGENTA).marker("➜ ").apply();   // reset_theme() clears
+
+
 // Input history (REPLs): Up/Down recall + auto-add on submit + persistence.
 // Dropping the handle saves the configured file.
 let history = History::new(HistoryOpts::new().app("myapp"));
@@ -244,6 +271,8 @@ if sc.fired() == 1 { /* F2 pressed */ }
 ```
 
 Besides `key_ctrl`/`key_fn`/`key_alt`, the named keys `key_left/right/up/down/enter/tab()` build chords for arrows/Enter/Tab - e.g. for Left = back / Right = forward navigation.
+
+For driving the decode loop yourself, `decode_key(&bytes) -> (Key, usize)` is the pure key decoder (`Key::kind()` is a `KeyType`, `.char_value()`, `.is_ctrl/alt/pasted()`); `Chord::matches(&key)` and `Shortcuts::find(&key)` mirror the prompt engine's own dispatch.
 
 Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`, `fuzzy.cursor_index()`, `fuzzy.remove(i)`; `fuzzy.has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter).
 

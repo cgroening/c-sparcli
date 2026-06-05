@@ -503,6 +503,185 @@ fn ansi_injection_protection() {
 }
 
 #[test]
+fn color_by_name_resolves_ansi_palette_and_hex() {
+    // ANSI name -> the named color (index 1..8).
+    let red = Color::by_name("red").expect("red resolves");
+    let raw = capture::panel(
+        "x",
+        PanelOpts::new().border(
+            sparcli::BorderStyle::new(sparcli::BorderType::Single).color(red),
+        ),
+    );
+    assert!(raw.lines().iter().any(|l| l.contains("\x1b[31m")));
+
+    // Palette name -> a 24-bit RGB color (accent = #8cd2cc).
+    let accent = Color::by_name("accent").expect("accent resolves");
+    let raw = capture::panel(
+        "x",
+        PanelOpts::new().border(
+            sparcli::BorderStyle::new(sparcli::BorderType::Single)
+                .color(accent),
+        ),
+    );
+    assert!(raw.lines().iter().any(|l| l.contains("38;2;140;210;204")));
+
+    // Unknown names (incl. hex, which is not a name) resolve to None.
+    assert!(Color::by_name("#ff0000").is_none());
+    assert!(Color::by_name("definitely-not-a-color").is_none());
+}
+
+#[test]
+fn theme_apply_and_reset() {
+    use sparcli::{Style, Theme};
+    // Installing a theme must cross the FFI cleanly (copies markers/strings);
+    // reset reverts to the built-in defaults. No TTY needed.
+    Theme::new()
+        .accent(Color::MAGENTA)
+        .marker("> ")
+        .checkbox_on("[x]")
+        .prompt_style(Style::bold())
+        .apply();
+    sparcli::reset_theme();
+    sparcli::set_theme(None); // idempotent clear
+}
+
+#[test]
+fn rich_text_alert_rule_pad_align_capture() {
+    // The ScText output variants render the rich content through the normal
+    // stack; capture::output keeps the C prints out of the harness output.
+    let rendered = capture::output(|| {
+        let t = Text::markup("[bold]title[/]");
+        sparcli::rule_text(&t, sparcli::RuleOpts::new());
+        sparcli::alert::text(sparcli::AlertType::Info, &t);
+        sparcli::pad_text(&t, sparcli::PadOpts { left: 4, ..Default::default() });
+        sparcli::align_text(&t, sparcli::Align::Center, 40);
+    });
+    assert!(rendered.contains("title"));
+}
+
+#[test]
+fn text_append_badge_adds_span() {
+    let mut t = Text::new();
+    t.append("status ", Style::default())
+        .append_badge("OK", sparcli::BadgeOpts::new());
+    assert_eq!(t.span_count(), 2);
+    let r = capture::text(&t);
+    let raw = r.lines().join("\n");
+    assert!(raw.contains("OK"));
+    assert!(raw.contains('['));
+}
+
+#[test]
+fn columns_panel_text_and_nested() {
+    use sparcli::{ColItem, Columns, ColumnsOpts};
+    let inner_text = Text::markup("[green]left[/]");
+    let mut inner = Columns::new(ColumnsOpts::new());
+    inner.add_str("a", ColItem::new()).add_str("b", ColItem::new());
+
+    let mut cols = Columns::new(ColumnsOpts::new().gap(2));
+    cols.add_panel_text(&inner_text, PanelOpts::new().single(), ColItem::new())
+        .add_columns(&inner, ColItem::new());
+    let r = capture::columns(&cols);
+    let raw = r.lines().join("\n");
+    assert!(raw.contains("left"));
+    assert!(raw.contains('a') && raw.contains('b'));
+}
+
+#[test]
+fn live_update_text_and_table_off_terminal() {
+    let rendered = capture::output(|| {
+        let live = sparcli::Live::begin(sparcli::LiveOpts::new());
+        let t = Text::from_text("text frame");
+        live.update_text(&t);
+        let mut tbl = Table::new();
+        tbl.column("C", Default::default());
+        tbl.row(["final cell"]);
+        live.update_table(&tbl, TableOpts::new());
+        live.end();
+    });
+    // Only the final (table) frame is printed off-terminal.
+    assert!(rendered.contains("final cell"));
+    assert!(!rendered.contains("text frame"));
+}
+
+#[test]
+fn fuzzy_table_view_builds() {
+    // Table-view opts (headers, search columns, table_opts) must cross the FFI
+    // boundary in sc_fuzzy_new without crashing; add_row populates columns.
+    let mut fz = Fuzzy::new(
+        FuzzyOpts::new()
+            .prompt("Find")
+            .table(["Name", "Role"])
+            .search_columns(0)
+            .table_opts(TableOpts::new().header_row(true)),
+    );
+    fz.add_row(["Ada", "Engineer"]).add_row(["Alan", "Founder"]);
+    assert!(!fz.has_selection());
+}
+
+#[test]
+fn decode_key_and_chord_matching() {
+    use sparcli::{decode_key, KeyType};
+    // A plain character.
+    let (key, n) = decode_key(b"a");
+    assert_eq!(n, 1);
+    assert_eq!(key.kind(), KeyType::Char);
+    assert_eq!(key.char_value(), Some('a'));
+
+    // An up-arrow CSI sequence.
+    let (key, n) = decode_key(b"\x1b[A");
+    assert_eq!(n, 3);
+    assert_eq!(key.kind(), KeyType::Up);
+
+    // A Ctrl-E control byte, and a chord that matches it.
+    let (key, _) = decode_key(&[0x05]);
+    assert_eq!(key.kind(), KeyType::CtrlE);
+    assert!(key_ctrl('e').matches(&key));
+    assert!(!key_fn(2).matches(&key));
+
+    // A lone ESC needs more bytes: 0 consumed, KeyType::None.
+    let (_, n) = decode_key(b"\x1b");
+    assert_eq!(n, 0);
+}
+
+#[test]
+fn shortcuts_find_matches_registered_chord() {
+    use sparcli::{decode_key, Shortcuts};
+    let sc = Shortcuts::new()
+        .on_return(key_fn(2), 1, Some("save"))
+        .on_return(key_ctrl('e'), 2, None);
+    let (key, _) = decode_key(&[0x05]); // Ctrl-E -> second shortcut (index 1)
+    assert_eq!(sc.find(&key), Some(1));
+    let (other, _) = decode_key(b"a");
+    assert_eq!(sc.find(&other), None);
+}
+
+#[test]
+fn logger_terminal_sink_writes_to_stream() {
+    use std::io::Read;
+    // add_terminal duplicates the fd and the C sink writes colored records to
+    // it; the duplicate is closed on drop, flushing the file.
+    let path = std::env::temp_dir()
+        .join(format!("sparcli-rust-term-{}.log", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    {
+        let file = std::fs::File::create(&path).unwrap();
+        let logger = sparcli::Logger::new(
+            sparcli::LoggerOpts::new().hide_timestamps(),
+        )
+        .add_terminal(file, sparcli::LogLevel::Debug);
+        logger.info("terminal record");
+    }
+    let mut content = String::new();
+    std::fs::File::open(&path)
+        .unwrap()
+        .read_to_string(&mut content)
+        .unwrap();
+    let _ = std::fs::remove_file(&path);
+    assert!(content.contains("terminal record"));
+}
+
+#[test]
 fn palette_border_emits_rgb_escape() {
     // sparcli::palette::ACCENT is #8cd2cc = rgb(140,210,204); a panel border in
     // that color must emit the 24-bit ANSI sequence for it.

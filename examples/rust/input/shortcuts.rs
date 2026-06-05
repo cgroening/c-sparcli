@@ -3,9 +3,9 @@
 //!   cargo run -p sparcli --example input_shortcuts
 //!
 //! A RETURN-mode shortcut ends the prompt and is reported via `fired()`; a
-//! CALLBACK-mode shortcut runs a closure and keeps the prompt open. (In the
-//! Rust wrapper shortcuts attach to confirm / text_input opts; the input
-//! theme is C/C++ only.)
+//! CALLBACK-mode shortcut runs a closure and keeps the prompt open. Shortcuts
+//! attach to confirm / text_input opts. This example also installs a
+//! process-wide `Theme` so the widget inherits an accent and marker.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -19,6 +19,13 @@ fn main() -> sparcli::Result<()> {
         alert::warning("Run this example in a real terminal (not piped).");
         return Ok(());
     }
+
+    // Process-wide input defaults inherited by every widget below (a per-call
+    // opt would still win). reset_theme() would revert to the built-ins.
+    Theme::new()
+        .accent(Color::MAGENTA)
+        .prompt_style(Style::bold().fg(Color::MAGENTA))
+        .apply();
 
     // The callback must be 'static, so shared state goes through an Rc.
     let reloads = Rc::new(Cell::new(0));

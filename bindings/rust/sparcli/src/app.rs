@@ -158,6 +158,21 @@ impl Drop for Pager {
     }
 }
 
+/// Renders a one-shot error (message + optional hint) to stderr and exits the
+/// process with `code`. Convenience for the common single-message case; use
+/// [`ErrorReport`] when you need a cause chain.
+///
+/// ```no_run
+/// sparcli::die_msg(2, "config not found", Some("run 'app init'"));
+/// ```
+pub fn die_msg(code: i32, message: &str, hint: Option<&str>) -> ! {
+    let msg = cstring(message);
+    let hint = hint.map(cstring);
+    let hint_ptr = hint.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+    unsafe { ffi::sc_die_msg(code, msg.as_ptr(), hint_ptr) };
+    unreachable!("sc_die_msg never returns");
+}
+
 /// A structured error report rendered as a red alert panel: message,
 /// cause chain, hint, and exit code.
 ///

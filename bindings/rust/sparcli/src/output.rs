@@ -268,6 +268,14 @@ pub fn rule(opts: RuleOpts) {
     unsafe { ffi::sc_rule_str(std::ptr::null(), o) };
 }
 
+/// Draws a horizontal rule with a rich-text `title`. The opts' string title
+/// is ignored in favor of `title`.
+pub fn rule_text(title: &Text, opts: RuleOpts) {
+    let mut a = Arena::new();
+    let o = opts.raw(&mut a);
+    unsafe { ffi::sc_rule_text(title.as_ptr(), o) };
+}
+
 /* ── Badge ───────────────────────────────────────────────────────────────── */
 
 /// Options for [`badge`].
@@ -327,6 +335,18 @@ pub fn badge(text: &str, opts: BadgeOpts) {
     unsafe { ffi::sc_print_badge(t, o) };
 }
 
+impl Text {
+    /// Appends `text` rendered as an inline badge (caps + padding) as a single
+    /// span to this rich text.
+    pub fn append_badge(&mut self, text: &str, opts: BadgeOpts) -> &mut Self {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        let t = a.cstr(text);
+        unsafe { ffi::sc_text_append_badge(self.as_mut_ptr(), t, o) };
+        self
+    }
+}
+
 /* ── Alerts ──────────────────────────────────────────────────────────────── */
 
 /// Preset alert boxes.
@@ -335,6 +355,10 @@ pub mod alert {
 
     pub fn show(kind: AlertType, content: &str) {
         unsafe { ffi::sc_alert_str(kind.raw(), cstring(content).as_ptr()) };
+    }
+    /// Like [`show`] but with rich-text content.
+    pub fn text(kind: AlertType, content: &Text) {
+        unsafe { ffi::sc_alert_text(kind.raw(), content.as_ptr()) };
     }
     pub fn info(content: &str) {
         unsafe { ffi::sc_alert_info(cstring(content).as_ptr()) };
@@ -1192,6 +1216,36 @@ impl Columns {
         unsafe { ffi::sc_columns_add_panel_str(self.ptr, c, o, item.raw()) };
         self
     }
+    /// Adds a rich-text panel column.
+    pub fn add_panel_text(
+        &mut self,
+        content: &Text,
+        opts: PanelOpts,
+        item: ColItem,
+    ) -> &mut Self {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        unsafe {
+            ffi::sc_columns_add_panel_text(
+                self.ptr,
+                content.as_ptr(),
+                o,
+                item.raw(),
+            )
+        };
+        self
+    }
+    /// Adds a nested [`Columns`] layout as a single column (captured eagerly).
+    pub fn add_columns(
+        &mut self,
+        nested: &Columns,
+        item: ColItem,
+    ) -> &mut Self {
+        unsafe {
+            ffi::sc_columns_add_columns(self.ptr, nested.as_ptr(), item.raw())
+        };
+        self
+    }
     pub fn add_list(&mut self, l: &List, item: ColItem) -> &mut Self {
         unsafe { ffi::sc_columns_add_list(self.ptr, l.as_ptr(), item.raw()) };
         self
@@ -1592,6 +1646,16 @@ pub fn align_str(s: &str, align: Align, width: i32) {
     unsafe { ffi::sc_align_str(cstring(s).as_ptr(), align.raw(), width) };
 }
 
+/// Prints rich text with padding (capture + print in one step).
+pub fn pad_text(t: &Text, opts: PadOpts) {
+    unsafe { ffi::sc_pad_text(t.as_ptr(), opts.raw()) };
+}
+
+/// Prints rich text aligned within `width` columns (`0` = terminal width).
+pub fn align_text(t: &Text, align: Align, width: i32) {
+    unsafe { ffi::sc_align_text(t.as_ptr(), align.raw(), width) };
+}
+
 /* ── Live display ───────────────────────────────────────────────────────── */
 
 /// Options for [`Live::begin`].
@@ -1692,6 +1756,23 @@ impl Live {
         }
         let c = cstring(content);
         unsafe { ffi::sc_live_update_str(self.ptr, c.as_ptr()) };
+    }
+
+    /// Redraws the live region with rich text (capture + update in one call).
+    pub fn update_text(&self, text: &Text) {
+        if !self.ptr.is_null() {
+            unsafe { ffi::sc_live_update_text(self.ptr, text.as_ptr()) };
+        }
+    }
+
+    /// Redraws the live region with a table (capture + update in one call).
+    pub fn update_table(&self, table: &Table, opts: TableOpts) {
+        if self.ptr.is_null() {
+            return;
+        }
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        unsafe { ffi::sc_live_update_table(self.ptr, table.as_ptr(), o) };
     }
 
     /// Ends the session: restores the terminal and, off-terminal, prints

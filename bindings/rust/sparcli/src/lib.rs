@@ -36,7 +36,7 @@ mod logging;
 mod output;
 mod text;
 
-pub use app::{paths, ErrorReport, Pager, PagerOpts};
+pub use app::{die_msg, paths, ErrorReport, Pager, PagerOpts};
 pub use error::{Error, Result};
 pub use input::*;
 pub use logging::{log, LogLevel, Logger, LoggerOpts};

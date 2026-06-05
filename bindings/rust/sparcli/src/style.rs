@@ -44,6 +44,21 @@ impl Color {
         Color(ffi::ScColor { index: -1, r, g, b })
     }
 
+    /// Resolves a color *name* - the eight ANSI names (`"red"`, `"green"`, …)
+    /// or the [`palette`] names (`"accent"`, `"orange"`, `"error"`, the
+    /// `*_vivid`/`*_dark` variants, …) - into a [`Color`]. Returns `None` for
+    /// an unknown name.
+    ///
+    /// This is the same name resolver markup (`[accent]`) and the CLI
+    /// (`--color accent`) use. Hex strings (`#rrggbb`) are not names; build
+    /// those with [`Color::rgb`].
+    pub fn by_name(name: &str) -> Option<Color> {
+        let mut out: ffi::ScColor = unsafe { std::mem::zeroed() };
+        let ok =
+            unsafe { ffi::sc_color_by_name(cstring(name).as_ptr(), &mut out) };
+        ok.then_some(Color(out))
+    }
+
     pub(crate) fn raw(self) -> ffi::ScColor {
         self.0
     }
@@ -122,7 +137,10 @@ macro_rules! repr_enum {
         #[repr(u32)]
         pub enum $name { $($variant = $val as u32),+ }
         impl Default for $name { fn default() -> Self { $name::$def } }
-        impl $name { pub(crate) fn raw(self) -> u32 { self as u32 } }
+        impl $name {
+            #[allow(dead_code)]
+            pub(crate) fn raw(self) -> u32 { self as u32 }
+        }
     };
 }
 
