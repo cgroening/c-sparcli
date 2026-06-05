@@ -17,4 +17,5 @@ log/
 
 # Build
 /target
+/target.nosync
 

@@ -1,5 +1,8 @@
 # Virtualenvs
+# .venv may be a symlink -> .venv.nosync (iCloud-excluded real dir)
 .venv/
+.venv
+.venv.nosync/
 venv/
 
 # Build artifacts
