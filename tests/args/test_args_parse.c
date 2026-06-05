@@ -13,6 +13,7 @@ static void check_double_dash(void);
 static void check_opts_are_copied(void);
 static void check_reset(void);
 static void check_reparse_is_clean(void);
+static void check_userdata(void);
 
 
 /** Parse loop, value binding, getters, defaults and the opts-copy rule. */
@@ -28,6 +29,7 @@ void test_args_parse(void) {
     check_opts_are_copied();
     check_reset();
     check_reparse_is_clean();
+    check_userdata();
 }
 
 
@@ -350,5 +352,41 @@ static void check_reparse_is_clean(void) {
     sc_args_get_many(args, "EXTRA", &count);
     CHECK(count == 0,
           "reparse: variadic positionals from the previous run are gone");
+    sc_args_free(args);
+}
+
+
+/* ── Per-command user_data (dispatch registry) ───────────────────────────── */
+
+static void check_userdata(void) {
+    int build_marker = 0;
+    int clean_marker = 0;
+
+    ScArgs *args = sc_args_new((ScArgsOpts){ .prog = "demo", .about = "" });
+    ScArgsCmd *root = sc_args_root(args);
+    ScArgsCmd *build = sc_args_subcommand(root, "build", "Build");
+    ScArgsCmd *clean = sc_args_subcommand(root, "clean", "Clean");
+    sc_args_cmd_set_userdata(build, &build_marker);
+    sc_args_cmd_set_userdata(clean, &clean_marker);
+
+    CHECK(sc_args_cmd_userdata(clean) == &clean_marker
+              && sc_args_cmd_userdata(build) == &build_marker,
+          "userdata: pointers are stored per-node, read back verbatim");
+
+    char *argv[] = { "demo", "build" };
+    ScArgsStatus status;
+    const ScArgsCmd *matched = sc_args_parse(args, 2, argv, &status);
+    CHECK(matched != NULL && sc_args_cmd_userdata(matched) == &build_marker,
+          "userdata: the matched node carries its own pointer");
+
+    // Default (never set) and NULL safety
+    ScArgsCmd *plain = sc_args_subcommand(root, "plain", "No userdata");
+    CHECK(sc_args_cmd_userdata(plain) == NULL,
+          "userdata: a node without a set pointer reads as NULL");
+    CHECK(sc_args_cmd_userdata(NULL) == NULL,
+          "userdata: sc_args_cmd_userdata(NULL) is a safe NULL");
+    sc_args_cmd_set_userdata(NULL, &build_marker);
+    CHECK(true, "userdata: sc_args_cmd_set_userdata(NULL, ...) is a safe no-op");
+
     sc_args_free(args);
 }

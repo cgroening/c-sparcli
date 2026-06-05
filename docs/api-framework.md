@@ -309,6 +309,7 @@ What the user gets for free:
 | `sc_args_opt_choices(cmd, "name", choices)` | Restrict to fixed values (NULL-terminated array) |
 | `sc_args_opt_required(cmd, "name")` | Parse fails when absent |
 | `sc_args_positional(cmd, "NAME", type, help, required, variadic)` | Positional slot |
+| `sc_args_cmd_set_userdata(cmd, ptr)` / `sc_args_cmd_userdata(cmd)` | Attach/read a borrowed pointer on a node (dispatch registry) |
 
 Value types: `SC_ARG_STR` (default), `SC_ARG_INT`, `SC_ARG_DOUBLE`, `SC_ARG_COLOR` (color name, `#RRGGBB` or `R,G,B`). "Enums" are `SC_ARG_STR` + `sc_args_opt_choices`.
 
@@ -333,6 +334,37 @@ const char *leaf = sc_args_selected_command(args);
 ```
 
 Getters search the matched command **and its ancestors**, so global flags (`--verbose` on the root) are visible after a subcommand matched. Returned strings are borrowed and stay valid until `sc_args_free`.
+
+### Dispatch: attaching an action to each command
+
+Instead of a name-compare switch after `sc_args_parse`, give each command node a pointer with `sc_args_cmd_set_userdata` — the matched node *is* the dispatch table. The pointer is **borrowed** (sparcli stores it verbatim, never frees or dereferences it); its lifetime is entirely yours.
+
+```c
+sc_args_cmd_set_userdata(build, &build_command);   /* e.g. a struct or fn ptr */
+
+const ScArgsCmd *matched = sc_args_parse(args, argc, argv, &status);
+if (status == SC_ARGS_MATCHED) {
+    MyCommand *cmd = sc_args_cmd_userdata(matched);  /* NULL when none set */
+    if (cmd) { return cmd->run(args); }
+}
+```
+
+In **C++** the wrapper builds on this with a handler arena: attach a `std::function<int(const Args&)>` directly to a subcommand with `ArgsCmd::handler(...)`, then run the matched one with `Args::dispatch(...)` (the clap/cobra model — command and action live in one place):
+
+```cpp
+args.root().subcommand("build", "Build the project")
+    .positional("TARGET", ArgType::Str, "Build target", true)
+    .handler([](const Args& a) { return run_build(a); });   // int(const Args&)
+
+if (auto matched = args.parse(argc, argv)) {
+    if (args.has_handler(*matched)) { return args.dispatch(*matched); }
+    args.print_help();                        // bare invocation: no subcommand
+    return 0;
+}
+return args.exit_code();                       // --help/--version handled, or error
+```
+
+The handler is owned by the `Args` (stored until it is destroyed) and survives a move of the parser. `ArgsCmd::userdata(ptr)` / `userdata<T>()` is the raw, borrowed passthrough (1:1 with the C API); it shares the node's single slot with `handler`, and `dispatch` only fires handlers the parser itself stored — so `has_handler` reports `false` for a raw `userdata` pointer rather than misinterpreting it. Full example: `examples/cpp/app/args.cpp`.
 
 ### REPL loops: tokenizing & re-parsing
 

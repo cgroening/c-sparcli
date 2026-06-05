@@ -68,6 +68,9 @@ struct ScArgsCmd {
     size_t         positional_count;
     size_t         positional_capacity;
 
+    void *user_data;           /**< Borrowed; set/read via
+                                    sc_args_cmd_{set_,}userdata. Never freed. */
+
     struct ScArgs *owner;      /**< Back-pointer for prog/version/ansi. */
 };
 

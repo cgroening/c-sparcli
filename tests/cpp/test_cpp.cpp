@@ -387,6 +387,46 @@ static void test_args_parser() {
           "args: --help renders the usage screen");
 }
 
+// A command's handler is stored in the Args arena, fired by dispatch with the
+// right exit code, and survives a move of the owning Args; the raw userdata<T>
+// passthrough round-trips a typed pointer.
+static void test_args_dispatch() {
+    int ran = 0;  // which handler fired (1 = add, 2 = list)
+
+    Args args(ArgsOpts{ .prog = "disp", .about = "dispatch demo" });
+    args.root().subcommand("add", "Add an item")
+        .positional("TEXT", SC_ARG_STR, "Item text", true, false)
+        .handler([&ran](const Args& a) {
+            ran = 1;
+            return a.get_str("TEXT").value_or("") == "milk" ? 7 : 99;
+        });
+    ArgsCmd list = args.root().subcommand("list", "List items");
+    list.handler([&ran](const Args&) { ran = 2; return 3; });
+
+    const char* argv[] = { "disp", "add", "milk" };
+    auto matched = args.parse(3, const_cast<char**>(argv));
+    CHECK(matched.has_value() && args.has_handler(*matched),
+          "dispatch: the matched command reports a handler");
+    CHECK(args.dispatch(*matched) == 7 && ran == 1,
+          "dispatch: fires the right handler with the parsed args / exit code");
+
+    // Raw typed passthrough (no arena, pointer is the caller's)
+    int sentinel = 42;
+    args.root().subcommand("raw", "raw userdata").userdata(&sentinel);
+    auto raw = args.parse_line("raw");
+    CHECK(raw.has_value() && raw->userdata<int>() == &sentinel
+              && !args.has_handler(*raw),
+          "userdata: typed void* passthrough round-trips");
+
+    // Move the parser: handlers live on the heap, so the stored void* stays
+    // valid and dispatch still works on the moved-to object.
+    Args moved = std::move(args);
+    const char* argv2[] = { "disp", "list" };
+    auto m2 = moved.parse(2, const_cast<char**>(argv2));
+    CHECK(m2.has_value() && moved.dispatch(*m2) == 3 && ran == 2,
+          "dispatch: handlers survive a move of the owning Args");
+}
+
 // The REPL helpers: quote-aware tokenizing (args_split / parse_line) and
 // result clearing (reset / implicit reset on re-parse).
 static void test_args_repl_helpers() {
@@ -518,6 +558,7 @@ int main() {
     test_error_report();
     test_logger();
     test_args_parser();
+    test_args_dispatch();
     test_args_repl_helpers();
     test_history();
     test_parity_helpers();

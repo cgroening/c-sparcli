@@ -1271,18 +1271,22 @@ using ArgsOpts = ScArgsOpts;
 using ArgsStatus = ScArgsStatus;
 using ArgType = ScArgType;
 
+class Args;  // defined below; ArgsCmd holds a back-pointer for handler storage
+
 /**
  * A borrowed command node of an `Args` tree. Builder methods chain; the node
  * is owned by the `Args` parser, never by this wrapper.
  */
 class ArgsCmd {
 public:
-    explicit ArgsCmd(ScArgsCmd* cmd) : c_(cmd) {}
+    explicit ArgsCmd(ScArgsCmd* cmd, Args* owner = nullptr)
+        : c_(cmd), owner_(owner) {}
 
     /** Adds (and returns) a nested subcommand. @see sc_args_subcommand */
     ArgsCmd subcommand(std::string_view name, std::string_view about) {
         return ArgsCmd(sc_args_subcommand(c_, detail::z(name).c_str(),
-                                          detail::z(about).c_str()));
+                                          detail::z(about).c_str()),
+                       owner_);
     }
     /** Help section heading for this command. @see sc_args_cmd_group */
     ArgsCmd& group(std::string_view heading) {
@@ -1338,12 +1342,37 @@ public:
         const char* n = sc_args_cmd_name(c_);
         return n ? n : "";
     }
+
+    /**
+     * Attaches an opaque, borrowed pointer to this node (1:1 with the C API).
+     * The caller owns its lifetime. Shares the node's single slot with
+     * `handler` - use one or the other per node. @see sc_args_cmd_set_userdata
+     */
+    ArgsCmd& userdata(void* p) {
+        sc_args_cmd_set_userdata(c_, p);
+        return *this;
+    }
+    /** Reads the pointer set with `userdata`, typed. @see sc_args_cmd_userdata */
+    template <class T>
+    T* userdata() const {
+        return static_cast<T*>(sc_args_cmd_userdata(c_));
+    }
+
+    /**
+     * Attaches a callback run by `Args::dispatch` when this command matches.
+     * The function is owned by the parent `Args` (stored until it is
+     * destroyed); a node obtained without an owner (e.g. wrapped directly
+     * from a raw `ScArgsCmd*`) silently ignores the call.
+     */
+    ArgsCmd& handler(std::function<int(const Args&)> fn);
+
     /** Borrowed underlying node (escape hatch). */
-    ScArgsCmd* get() { return c_; }
+    ScArgsCmd* get() const { return c_; }
     bool operator==(const ArgsCmd& other) const { return c_ == other.c_; }
 
 private:
     ScArgsCmd* c_;
+    Args* owner_;
 };
 
 /**
@@ -1359,12 +1388,16 @@ public:
         if (!p_) { throw std::bad_alloc(); }
     }
     ~Args() { sc_args_free(p_); }
-    Args(Args&& o) noexcept : p_(o.p_), status_(o.status_) { o.p_ = nullptr; }
+    Args(Args&& o) noexcept
+        : p_(o.p_), status_(o.status_), handlers_(std::move(o.handlers_)) {
+        o.p_ = nullptr;
+    }
     Args& operator=(Args&& o) noexcept {
         if (this != &o) {
             sc_args_free(p_);
             p_ = o.p_;
             status_ = o.status_;
+            handlers_ = std::move(o.handlers_);
             o.p_ = nullptr;
         }
         return *this;
@@ -1373,13 +1406,13 @@ public:
     Args& operator=(const Args&) = delete;
 
     /** The root command node (attach options/subcommands here). */
-    ArgsCmd root() { return ArgsCmd(sc_args_root(p_)); }
+    ArgsCmd root() { return ArgsCmd(sc_args_root(p_), this); }
 
     /** Parses argv; empty optional = help/version handled or parse error. */
     std::optional<ArgsCmd> parse(int argc, char** argv) {
         const ScArgsCmd* matched = sc_args_parse(p_, argc, argv, &status_);
         if (!matched) { return std::nullopt; }
-        return ArgsCmd(const_cast<ScArgsCmd*>(matched));
+        return ArgsCmd(const_cast<ScArgsCmd*>(matched), this);
     }
     /**
      * Tokenizes one REPL line (shell-style quotes/escapes) and parses it -
@@ -1462,13 +1495,63 @@ public:
     /** Emits the zsh completion script. */
     void print_zsh_completion() const { sc_args_print_zsh_completion(p_); }
 
+    /**
+     * True when `cmd` has a handler attached via `ArgsCmd::handler`. A node
+     * carrying a raw `userdata` pointer (not a handler) reports false - the
+     * two share the node's single slot but `dispatch` only fires handlers
+     * this parser owns, so the distinction is honoured.
+     */
+    bool has_handler(const ArgsCmd& cmd) const {
+        return find_handler(cmd) != nullptr;
+    }
+    /**
+     * Runs the handler attached to `cmd` (typically the command returned by
+     * `parse`) and returns its exit code. Throws `std::logic_error` when the
+     * command has no handler - guard with `has_handler` if unsure.
+     */
+    int dispatch(const ArgsCmd& cmd) const {
+        Handler* fn = find_handler(cmd);
+        if (!fn) { throw std::logic_error("no handler attached to command"); }
+        return (*fn)(*this);
+    }
+
     /** Borrowed underlying `ScArgs*` (escape hatch to the C API). */
     ScArgs* get() { return p_; }
 
 private:
+    friend class ArgsCmd;
+    using Handler = std::function<int(const Args&)>;
+
+    // Each handler lives in its own heap node, so the borrowed void* stored on
+    // the C command stays valid across a move of this Args (only the vector of
+    // unique_ptrs moves, not the pointed-to function objects).
+    Handler* store_handler(Handler fn) {
+        handlers_.push_back(std::make_unique<Handler>(std::move(fn)));
+        return handlers_.back().get();
+    }
+    // Resolve the node's pointer to one of our handlers, or null when it is
+    // absent or a raw (non-handler) userdata pointer - so dispatch never
+    // reinterprets a foreign pointer as a std::function.
+    Handler* find_handler(const ArgsCmd& cmd) const {
+        void* p = sc_args_cmd_userdata(cmd.get());
+        if (!p) { return nullptr; }
+        for (const auto& h : handlers_) {
+            if (h.get() == p) { return h.get(); }
+        }
+        return nullptr;
+    }
+
     ScArgs* p_;
     ArgsStatus status_ = SC_ARGS_MATCHED;
+    std::vector<std::unique_ptr<Handler>> handlers_;
 };
+
+inline ArgsCmd& ArgsCmd::handler(std::function<int(const Args&)> fn) {
+    if (owner_) {
+        sc_args_cmd_set_userdata(c_, owner_->store_handler(std::move(fn)));
+    }
+    return *this;
+}
 
 /**
  * Splits one command line into shell-style tokens (quotes group, backslash

@@ -29,36 +29,37 @@ int main(int argc, char** argv) {
         return args.exit_code();
     }
 
-    const std::string command = matched->name();
-    if (command == "convert") {
-        return run_convert(args);
+    // Each command carries its own handler (attached in build_parser), so the
+    // matched node *is* the dispatch table: no name-compare switch needed.
+    if (args.has_handler(*matched)) {
+        return args.dispatch(*matched);
     }
-    if (command == "completion") {
-        sc_args_print_zsh_completion(args.get());
-        return 0;
-    }
-    // Bare invocation: show the help screen.
-    sc_args_print_help(args.get(), nullptr);
+    // Bare invocation (no subcommand): show the help screen.
+    args.print_help();
     return 0;
 }
 
-// Declares the whole command-line interface via the chained builder.
+// Declares the whole command-line interface via the chained builder. Each
+// subcommand binds its action with .handler(...); the parser becomes the
+// registry that maps the matched command straight to the code that runs it.
 static Args build_parser() {
     Args args({ .prog = "imgtool", .version = "1.0.0",
                 .about = "Example image conversion tool" });
 
     args.root().flag("verbose", 'v', "Explain what is being done");
 
-    auto convert = args.root().subcommand("convert", "Convert an image file");
-    convert.opt("format", 'f', SC_ARG_STR, "FMT", "Output format")
-           .opt_choices("format", { "png", "jpeg", "webp" })
-           .opt_default("format", "png")
-           .opt("quality", 'q', SC_ARG_INT, "N", "Quality (0-100)")
-           .opt_default("quality", "80")
-           .opt("tint", 0, SC_ARG_COLOR, "COLOR", "Tint color")
-           .positional("INPUT", SC_ARG_STR, "Input file", true);
+    args.root().subcommand("convert", "Convert an image file")
+        .opt("format", 'f', SC_ARG_STR, "FMT", "Output format")
+        .opt_choices("format", { "png", "jpeg", "webp" })
+        .opt_default("format", "png")
+        .opt("quality", 'q', SC_ARG_INT, "N", "Quality (0-100)")
+        .opt_default("quality", "80")
+        .opt("tint", 0, SC_ARG_COLOR, "COLOR", "Tint color")
+        .positional("INPUT", SC_ARG_STR, "Input file", true)
+        .handler(run_convert);
 
-    args.root().subcommand("completion", "Print the zsh completion script");
+    args.root().subcommand("completion", "Print the zsh completion script")
+        .handler([](const Args& a) { a.print_zsh_completion(); return 0; });
     return args;
 }
 

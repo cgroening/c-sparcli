@@ -354,6 +354,28 @@ SPARCLI_EXPORT const char *sc_args_selected_command(const ScArgs *args);
 /** Name of a command node (borrowed). */
 SPARCLI_EXPORT const char *sc_args_cmd_name(const ScArgsCmd *cmd);
 
+/**
+ * Attaches an opaque pointer to a command node (e.g. a handler or a pointer
+ * to your own command object). The parser turns into a dispatch registry:
+ * the node returned by `sc_args_parse` carries it, so you can go straight
+ * from "which command matched" to "what to run" with no name lookup.
+ *
+ * The pointer is **borrowed** - sparcli stores it verbatim and never frees,
+ * copies, or dereferences it; its lifetime is entirely the caller's.
+ *
+ * @param cmd        Command node; no-op when `NULL`.
+ * @param user_data  Opaque pointer (or `NULL` to clear).
+ */
+SPARCLI_EXPORT void sc_args_cmd_set_userdata(ScArgsCmd *cmd, void *user_data);
+
+/**
+ * Returns the opaque pointer set with `sc_args_cmd_set_userdata`
+ * (`NULL` when none was set or `cmd` is `NULL`).
+ *
+ * @param cmd  Command node (e.g. the one returned by `sc_args_parse`).
+ */
+SPARCLI_EXPORT void *sc_args_cmd_userdata(const ScArgsCmd *cmd);
+
 
 /* ── Help / completion output ───────────────────────────────────────────── */
 

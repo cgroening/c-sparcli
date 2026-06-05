@@ -306,6 +306,14 @@ const char *sc_args_cmd_name(const ScArgsCmd *cmd) {
     return cmd ? cmd->name : NULL;
 }
 
+void sc_args_cmd_set_userdata(ScArgsCmd *cmd, void *user_data) {
+    if (cmd) { cmd->user_data = user_data; }
+}
+
+void *sc_args_cmd_userdata(const ScArgsCmd *cmd) {
+    return cmd ? cmd->user_data : NULL;
+}
+
 
 /* ── Tree lookups (shared with the other args_*.c files) ────────────────── */
 
