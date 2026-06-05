@@ -10,6 +10,8 @@ All functions follow the library conventions: `sc_` prefix, zero-init-friendly o
 - [Pretty Errors](#pretty-errors)
 - [Logging](#logging)
 - [Argument Parser](#argument-parser)
+- [Subprocess](#subprocess)
+- [Config](#config)
 
 ---
 
@@ -422,10 +424,12 @@ A complete REPL (read line with history, tokenize, parse, dispatch) is in `examp
 ```c
 sc_args_print_help(args, NULL);            /* root help to the output stream */
 sc_args_print_help(args, build_cmd);       /* per-command help */
-sc_args_print_zsh_completion(args);        /* #compdef script */
+sc_args_print_zsh_completion(args);        /* zsh #compdef script */
+sc_args_print_bash_completion(args);       /* bash `complete -F` script */
+sc_args_print_fish_completion(args);       /* fish `complete -c` script */
 ```
 
-A typical pattern is a hidden `completion` subcommand whose handler calls `sc_args_print_zsh_completion` – users install it with `mytool completion > ~/.zsh/completions/_mytool`.
+All three generators cover the root options and the first level of subcommands and their options/positionals; value options complete their declared choices. A typical pattern is a hidden `completion <shell>` subcommand whose handler calls the matching generator – users install it with e.g. `mytool completion zsh > ~/.zsh/completions/_mytool`, `mytool completion bash > /etc/bash_completion.d/mytool`, or `mytool completion fish > ~/.config/fish/completions/mytool.fish`. C++: `args.print_{zsh,bash,fish}_completion()`.
 
 ### Bindings
 
@@ -455,3 +459,75 @@ if (auto cmd = args.parse_line("build \"my app\" --jobs 8")) { /* ... */ }
 auto tokens = sparcli::args_split("add \"Buy milk\"");  // optional<vector<string>>
 args.reset();                                           // clear without reparsing
 ```
+
+---
+
+## Subprocess
+
+Run an external command **without a shell** and capture its output. Header: `app/sparcli_process.h`.
+
+```c
+ScProcResult sc_run(const char *const *argv, ScProcOpts opts);
+void         sc_proc_result_free(ScProcResult *result);   /* always call it */
+```
+
+`argv` is a NULL-terminated vector; `argv[0]` is resolved via `$PATH`. There is no shell, so arguments are passed verbatim (no injection surface). The parent multiplexes stdin/stdout/stderr with `poll`, so a large stdin and a chatty child cannot deadlock. Captured output is **sanitized by default** at this trust boundary (ANSI escapes + stray control bytes removed, `\n`/`\t` kept).
+
+`ScProcOpts` (zero-init = inherit env/cwd, empty stdin, separate stderr, sanitized):
+
+| Field | Meaning |
+|-------|---------|
+| `const char *input` / `size_t input_len` | stdin bytes (`len 0` with non-NULL `input` = `strlen`); must outlive the call |
+| `const char *cwd` | `chdir` before exec |
+| `bool merge_stderr` | fold stderr into `out` (then `err` is NULL) |
+| `bool raw` | keep captured bytes verbatim instead of sanitizing |
+
+`ScProcResult`: `bool ok` (spawned + reaped), `int exit_code` (`WEXITSTATUS`; **127** = command not found; **-1** = killed by a signal), `int term_signal`, `char *out`/`size_t out_len`, `char *err`/`size_t err_len` (heap, NUL-terminated). Always call `sc_proc_result_free` (also on failure).
+
+```c
+const char *argv[] = { "git", "rev-parse", "HEAD", NULL };
+ScProcResult r = sc_run(argv, (ScProcOpts){ 0 });
+if (r.ok && r.exit_code == 0) { printf("%s", r.out); }
+sc_proc_result_free(&r);
+```
+
+**Bindings:** C++ `sparcli::run({"git","status"})` → `sparcli::ProcResult` (`ok()`/`exit_code()`/`out()`/`err()` as `string_view`; frees on destruction).
+
+---
+
+## Config
+
+Layered application configuration — **defaults < file < env < flags**, each layer deep-merged via the serde `sc_value_merge`. Header: `app/sparcli_config.h`. Because it depends on the serde `ScValue` model, it is **opt-in and NOT in the `sparcli.h` / `app/sparcli_app.h` umbrella** — include it explicitly (like `<serde/sparcli_serde.h>`).
+
+```c
+ScConfig *sc_config_new(void);  void sc_config_free(ScConfig *);
+
+bool sc_config_set_defaults(ScConfig *, const ScValue *defaults);        /* layer 1 */
+ScConfigStatus sc_config_load_file(ScConfig *, const char *path, ScParseError *); /* 2 */
+void sc_config_load_env(ScConfig *, const char *prefix);                /* layer 3 */
+bool sc_config_merge(ScConfig *, const ScValue *overlay);               /* layer 4 (flags) */
+bool sc_config_set(ScConfig *, const char *path, ScValue *value);       /* takes ownership */
+
+const ScValue *sc_config_root(const ScConfig *);
+const ScValue *sc_config_get(const ScConfig *, const char *path);       /* dotted */
+bool        sc_config_get_bool  (const ScConfig *, const char *path, bool fallback);
+int64_t     sc_config_get_int   (const ScConfig *, const char *path, int64_t fallback);
+double      sc_config_get_float (const ScConfig *, const char *path, double fallback);
+const char *sc_config_get_string(const ScConfig *, const char *path, const char *fallback);
+```
+
+- **File** — format chosen by extension (`.json`/`.toml`/`.yaml`/`.yml`). A missing file returns `SC_CONFIG_MISSING` (not an error, so the same call works with or without a user config); a parse failure returns `SC_CONFIG_ERROR` (and fills `err`). Non-object roots are rejected.
+- **Env** — for each variable starting with `prefix`, the remainder is lowercased into a key path where **`__` denotes nesting** and single `_` stays literal: with `prefix="MYAPP_"`, `MYAPP_SERVER__MAX_CONN=10` sets `server.max_conn`. Values are coerced (`true`/`false` → bool, int/float literals → numbers, else string).
+- **`sc_config_set`** creates intermediate objects along the dotted path and **takes ownership** of `value` (freed on success and failure). Getters resolve dotted paths.
+
+```c
+ScConfig *cfg = sc_config_new();
+sc_config_set_defaults(cfg, defaults);          /* an ScValue object */
+sc_config_load_file(cfg, "~/.config/app.toml", NULL);
+sc_config_load_env(cfg, "APP_");
+sc_config_set(cfg, "debug", sc_value_bool(true));
+long port = sc_config_get_int(cfg, "server.port", 8080);
+sc_config_free(cfg);
+```
+
+**Bindings:** C++ `sparcli::Config` (RAII; `set_defaults`/`load_file`/`load_env`/`merge`/`set` + typed getters), in `<app/sparcli_config.hpp>` (opt-in). Rust/Python use their own config ecosystems.

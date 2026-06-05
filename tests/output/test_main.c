@@ -31,6 +31,10 @@ void test_kv(void);
 void test_alert(void);
 void test_badge(void);
 void test_util(void);
+void test_humanize(void);
+void test_diff(void);
+void test_multiprogress(void);
+void test_multiprogress_animated(void);
 void test_pad(void);
 void test_align(void);
 void test_markup(void);
@@ -84,6 +88,10 @@ static Test *get_all_tests(size_t *count) {
         { "Key-Value Pairs",           &test_kv,                   0 },
         { "Badges",                    &test_badge,                0 },
         { "Utilities",                 &test_util,                 0 },
+        { "Humanize",                  &test_humanize,             0 },
+        { "Diff",                      &test_diff,                 0 },
+        { "Multi Progress",            &test_multiprogress,        0 },
+        { "Animated Multi Progress",   &test_multiprogress_animated, 1 },
         { "Padding",                   &test_pad,                  0 },
         { "Alignment",                 &test_align,                0 },
         { "Markup",                    &test_markup,               0 },

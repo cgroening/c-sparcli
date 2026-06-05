@@ -17,16 +17,19 @@
 #include "output/sparcli_tree.h"         // IWYU pragma: export
 #include "output/sparcli_columns.h"      // IWYU pragma: export
 #include "output/sparcli_progressbar.h"  // IWYU pragma: export
+#include "output/sparcli_multiprogress.h" // IWYU pragma: export
 #include "output/sparcli_spinner.h"      // IWYU pragma: export
 #include "output/sparcli_kv.h"           // IWYU pragma: export
 #include "output/sparcli_alert.h"        // IWYU pragma: export
 #include "output/sparcli_badge.h"        // IWYU pragma: export
 #include "output/sparcli_util.h"         // IWYU pragma: export
+#include "core/sparcli_humanize.h"     // IWYU pragma: export
 #include "output/sparcli_capture.h"      // IWYU pragma: export
 #include "output/sparcli_pad.h"          // IWYU pragma: export
 #include "output/sparcli_align.h"        // IWYU pragma: export
 #include "output/sparcli_pager.h"        // IWYU pragma: export
 #include "output/sparcli_live.h"         // IWYU pragma: export
+#include "output/sparcli_diff.h"         // IWYU pragma: export
 #include "core/sparcli_output.h"       // IWYU pragma: export
 
 #include "input/sparcli_input.h"        // IWYU pragma: export

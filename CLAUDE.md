@@ -56,6 +56,9 @@ make serde-qa     # COMPLETE serde gate (own gate, NOT in `make test`/`qa`):
 make test-serde   # serde data-model + format round-trip suite (headless)
 make serde-sanitize / serde-fuzz / serde-cpp  # ASan/UBSan run / parser fuzzing
                   # (JSON+CSV) / C++ wrapper assertion suite
+make test-view    # VIEW layer suite (ScValue + Markdown render → widgets);
+                  # headless, opt-in (outside make test/qa, like serde).
+make view-sanitize  # the view suite under ASan/UBSan.
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples            # build all C + C++ examples (examples/{c,cpp}/**)
 make run-example EX=<lang>/<group>/<name>   # build+run one example; dispatches
@@ -80,32 +83,44 @@ Besides the C library, sparcli ships a header-only **C++ wrapper** (`include/spa
 Sources are grouped by concern. The **output/input boundary is physical**: `src/output` (and `core`) is stream-oriented and writes through the redirectable `sc_output_stream()`; `src/tty` + `src/input` are tty-oriented and drive a real terminal in raw mode (never `sc_output_stream`).
 
 ```
-src/core/     color, text, print, output(stream), render_wrap, sanitize, version
-src/output/   panel, rule, list, tree, columns, kv, alert, badge,
-              progressbar, spinner, live, markup, pad, util, pager, + table/
+src/core/     color, text, print, output(stream), render_wrap, sanitize,
+              humanize (sizes/durations/relative time/numbers), version
+src/output/   panel, rule, list, tree, columns, kv, alert, badge, progressbar,
+              multiprogress, spinner, live, markup, pad, util, pager, diff,
+              + table/
 src/tty/      term (raw mode + signal restore), key (decoder), screen (redraw)
 src/input/    prompt (loop engine), line_editor, shortcut, editor (external),
               theme, confirm, text_input, password_input, number_input,
               calc (expression evaluator), textarea, select, fuzzy, datepicker,
               history (Up/Down recall + persistence)
-src/app/      application-framework helpers: paths (XDG dirs), error (sc_die)
+src/app/      application-framework helpers: paths (XDG dirs), error (sc_die),
+              process (run command + capture, no shell), config (layered
+              defaults<file<env<flags; serde-dependent, opt-in)
 src/log/      logging: leveled terminal + plain-text file sinks
 src/args/     argument parser: builder, parse loop, typed values, help,
-              did-you-mean, zsh completion generation, line tokenizer (split)
+              did-you-mean, zsh/bash/fish completion generation, line tokenizer
 src/serde/    structured read/write parsers: value (shared ScValue tree), buf
               (growable buffer), parse_error, json, csv, toml, yaml (documented
               subset), markdown (front-matter split + section tree; reuses
               toml/yaml for front matter). Data-only layer; depends on core +
               app/error, NOT in the sparcli.h umbrella
+src/view/     render serde models to the terminal: value_render (jq-style
+              colored ScValue), markdown_render (Markdown → widget stack).
+              Bridges serde + output, so it depends on BOTH and is opt-in like
+              serde (NOT in the sparcli.h umbrella; own `make test-view` gate)
 cli/          the sparcli command-line tool (main + cli_* helpers + cmd_* files)
 completions/  zsh completion (_sparcli) for the CLI
 include/core/    include/output/    include/input/    include/app/
 include/serde/   (serde umbrella sparcli_serde.h + .hpp; not in sparcli.h)
+include/view/    (view umbrella sparcli_view.h; not in sparcli.h)
+                 (app/sparcli_config.h is in include/app/ but NOT in the app
+                  sub-umbrella, since it pulls serde — include it explicitly)
                  (sparcli.h stays at root)
 tests/output/    tests/input/logic/ (interactive)   tests/input/style/ (snapshots)
-tests/app/       framework suite (paths, pager, errors, logging)
+tests/app/       framework suite (paths, pager, errors, logging, process, config)
 tests/args/      argument-parser suite (parse, errors, help, completion)
 tests/serde/     serde suite (value, json, csv, toml, yaml, markdown; `make test-serde`)
+tests/view/      view suite (value + markdown render; `make test-view`)
 tests/cli/       CLI golden-file suite (run_output.sh) + CLI PTY suite
 ```
 
@@ -669,6 +684,22 @@ sc_spinner_free(s);
 
 ---
 
+## Multi Progress (`src/output/multiprogress.c`)
+
+Several progress bars updated together in place (concurrent-task view). Header: `output/sparcli_multiprogress.h` (umbrella). Built on `ScProgressBar` + the live display: each bar is captured (via a temporary memstream redirect of `sc_output_stream`) into one line and the stack is pushed to an internal `ScLive`. Inherits the live engine's behavior — **off a terminal updates are buffered and only the final stack is printed** (clean CI/golden output).
+
+```c
+ScMultiProgress *sc_multiprogress_begin(ScMultiProgressOpts opts); // .transient/.always
+int  sc_multiprogress_add(ScMultiProgress *mp, const char *label, ScProgressBarOpts opts);
+void sc_multiprogress_update(ScMultiProgress *mp, int index, double value, double max);
+void sc_multiprogress_set_label(ScMultiProgress *mp, int index, const char *label);
+void sc_multiprogress_end(ScMultiProgress *mp);   // leave final stack (unless transient) + free
+```
+
+`add` returns the bar index (or `-1`); each `update`/`set_label`/`add` redraws the whole stack. Per-bar `ScProgressBarOpts` are copied like `sc_progressbar_new`. Bars can be added after `begin` (the stack grows; live clears leftover lines). Golden-tested in `tests/output/test_multiprogress.c` (`bar_width` fixed for determinism).
+
+---
+
 ## Input Widgets
 
 Interactive prompts. **Tty-oriented**, not stream-oriented: they open `/dev/tty` (fallback stdin/stdout), enter raw mode, read decoded keys, and redraw in place – they do **not** go through `sc_output_stream()`. Every widget returns `ScInputStatus` (`SC_INPUT_OK` / `SC_INPUT_CANCELLED` / `SC_INPUT_ERROR`); Esc and Ctrl-C always cancel; non-TTY contexts return `SC_INPUT_ERROR` (so callers can fall back to a default). On `SC_INPUT_OK` the interactive region is erased and a one-line summary is printed in its place. Header: `input/sparcli_input.h` (in the `sparcli.h` umbrella).
@@ -875,6 +906,41 @@ void  sc_clear_line(void);
 - `sc_strip_ansi`: returns a heap-allocated copy of `str` with **all** ANSI escape sequences removed (CSI, OSC, DCS/SOS/PM/APC, two-char ESC, lone ESC). Other bytes are copied verbatim. Caller must `free()` the result.
 - `sc_truncate`: if the visible width of `str` exceeds `max_cols`, returns a heap-allocated truncated copy with `ellipsis` appended (may be `NULL`). If it fits, returns `strdup(str)`. Caller must `free()` the result.
 - `sc_clear_line`: writes `\r` + spaces (terminal width) + `\r` + `fflush` to overwrite the current terminal line in place.
+
+---
+
+## Human-readable formatting (`src/core/humanize.c`)
+
+Header: `core/sparcli_humanize.h` (in the `sparcli.h` umbrella). Every function returns a fresh heap string (caller `free`s) or `NULL` on OOM — same convention as `sc_truncate`. Pure data (no ANSI), so it composes with any widget.
+
+```c
+char *sc_humanize_bytes(uint64_t bytes, ScByteUnit unit);          // 1536 → "1.5 KB"
+char *sc_humanize_bytes_opts(uint64_t bytes, ScByteUnit, ScHumanizeOpts);
+char *sc_humanize_number(double value, ScHumanizeOpts opts);       // 1234567 → "1,234,567"
+char *sc_humanize_compact(double value, ScHumanizeOpts opts);      // 12400 → "12.4k"
+char *sc_humanize_percent(double ratio, ScHumanizeOpts opts);      // 0.42 → "42%"
+char *sc_humanize_duration(double seconds);                        // 93 → "1m 33s"
+char *sc_humanize_duration_clock(double seconds);                  // 3725 → "01:02:05"
+char *sc_humanize_relative(time_t when, time_t now);               // → "3 hours ago"
+```
+
+- **`ScByteUnit`**: `SC_BYTES_SI` (1000-based `KB/MB/…`, default), `SC_BYTES_IEC` (1024-based `KiB/MiB/…`), `SC_BYTES_IEC_SHORT` (1024-based `K/M/G/…`).
+- **`ScHumanizeOpts`** (zero-init friendly): `decimals` (`0` = per-function default), `decimal_sep` (`0` = `'.'`; use `','` for de_DE), `group_sep` (`0` = `','` thousands separator for `sc_humanize_number`; use `'.'` for de_DE), `no_space` (drop the space before size units).
+- `sc_humanize_duration` shows the two most-significant units (`2h 14m`, `1d 1h`), `<60s` → `"Ns"`. `sc_humanize_relative` is English-only (`"just now"`, `"in 2 days"`).
+
+---
+
+## Diff Rendering (`src/output/diff.c`)
+
+Colored line-based unified diff. Header: `output/sparcli_diff.h` (umbrella). Computes a minimal LCS line diff and renders `@@ … @@` hunk headers, ` ` context, `-` removed (red) and `+` added (green) lines. Diffed text is sanitized at the boundary; identical inputs render as an empty `ScText`.
+
+```c
+ScText     *sc_diff_text   (const char *old, const char *new, ScDiffOpts opts);
+void        sc_diff_print  (const char *old, const char *new, ScDiffOpts opts);
+ScRendered *sc_capture_diff(const char *old, const char *new, ScDiffOpts opts);
+```
+
+`ScDiffOpts` (zero-init = 3 context lines, `old`/`new` header labels, red/green/cyan): `context` (`0` = default 3, negative = full file), `no_header`, `old_label`/`new_label`, `add_color`/`del_color`/`hunk_color`. Pathologically large inputs (LCS table > 8M cells) fall back to a non-minimal delete-all/add-all diff to bound memory. Golden-tested in `tests/output/test_diff.c`.
 
 ---
 
@@ -1194,6 +1260,42 @@ Tests: `tests/app/test_errors.c` (logic: copies, NULL safety, stderr routing) + 
 
 ---
 
+## Subprocess (`src/app/process.c`)
+
+Run an external command **without a shell** and capture its output. Header: `app/sparcli_process.h` (in the `app/sparcli_app.h` sub-umbrella). Forks + `execvp`s a NULL-terminated `argv` (no shell → no injection surface); the parent multiplexes stdin/stdout/stderr with `poll` so a large stdin + chatty child never deadlock. Captured output is **sanitized by default** at this trust boundary (`raw` opts out).
+
+```c
+ScProcResult sc_run(const char *const *argv, ScProcOpts opts);
+void         sc_proc_result_free(ScProcResult *result);   /* always call it */
+```
+
+- **`ScProcOpts`** (zero-init = inherit env/cwd, empty stdin, separate stderr, sanitized): `input`/`input_len` (stdin bytes; `len 0` = `strlen`), `cwd` (`chdir` before exec), `merge_stderr` (fold stderr into `out`, leaving `err` NULL), `raw` (keep captured bytes verbatim).
+- **`ScProcResult`**: `ok` (spawned + reaped), `exit_code` (`WEXITSTATUS`; **`127` = command not found**; `-1` = killed by signal), `term_signal`, `out`/`out_len`, `err`/`err_len` (heap, NUL-terminated). SIGPIPE is ignored for the session so an early-closing child surfaces as `EPIPE`. Tests: `tests/app/test_process.c`.
+
+---
+
+## Config (`src/app/config.c`)
+
+Layered application configuration — the "klammer" over serde + the framework: **defaults < file < env < flags**, each layer deep-merged via `sc_value_merge`. Header: `app/sparcli_config.h`. **Depends on serde, so it is NOT in the `app/sparcli_app.h` umbrella — include it explicitly** (like `<serde/sparcli_serde.h>`).
+
+```c
+ScConfig *sc_config_new(void);  void sc_config_free(ScConfig *);
+bool sc_config_set_defaults(ScConfig *, const ScValue *defaults);     /* layer 1 */
+ScConfigStatus sc_config_load_file(ScConfig *, const char *path, ScParseError *); /* 2 */
+void sc_config_load_env(ScConfig *, const char *prefix);             /* layer 3 */
+bool sc_config_merge(ScConfig *, const ScValue *overlay);            /* layer 4 (flags) */
+bool sc_config_set(ScConfig *, const char *path, ScValue *value);    /* takes ownership */
+const ScValue *sc_config_root(const ScConfig *);
+const ScValue *sc_config_get(const ScConfig *, const char *path);    /* dotted */
+bool/int64_t/double/const char *sc_config_get_{bool,int,float,string}(cfg, path, fallback);
+```
+
+- **File**: format chosen by extension (`.json`/`.toml`/`.yaml`/`.yml`). A missing file returns `SC_CONFIG_MISSING` (not an error — same call works with or without a user config); a parse failure → `SC_CONFIG_ERROR` (`err` filled). Non-object roots are rejected.
+- **Env**: for each `PREFIX…` variable, the remainder is lowercased into a key path where **`__` denotes nesting** and single `_` is literal (`MYAPP_SERVER__MAX_CONN` → `server.max_conn`); values are coerced (`true`/`false` → bool, int/float literals → numbers, else string).
+- **`sc_config_set`** creates intermediate objects for the dotted path and **takes ownership** of `value` (freed on success and failure). Getters resolve dotted paths via `sc_value_path`. Tests: `tests/app/test_config.c`.
+
+---
+
 ## Logging (`src/log/`)
 
 Leveled, colored terminal logging + plain-text file sinks. Header: `log/sparcli_log.h`. **Global logger** (`sc_log_*`: process-wide, built-in stderr sink at INFO) and **handle-based loggers** (`sc_logger_*`: own sinks/options).
@@ -1250,7 +1352,8 @@ sc_args_reset(args);                       /* explicit clear without reparsing *
 
 | Aspect | Detail |
 |--------|--------|
-| Source layout | `args.c` (builder/getters/free/reset), `args_parse.c` (parse loop), `args_value.c` (int/double/color/choices), `args_suggest.c` (Levenshtein), `args_help.c` (widget-rendered help), `args_complete.c` (zsh completion), `args_split.c` (REPL line tokenizer); internals in `args_internal.h` |
+| Source layout | `args.c` (builder/getters/free/reset), `args_parse.c` (parse loop), `args_value.c` (int/double/color/choices), `args_suggest.c` (Levenshtein), `args_help.c` (widget-rendered help), `args_complete.c` / `args_complete_bash.c` / `args_complete_fish.c` (shell completion), `args_split.c` (REPL line tokenizer); internals in `args_internal.h` |
+| Completion | `sc_args_print_{zsh,bash,fish}_completion(args)` emit a completion script for the whole tree to the output stream (root options + first level of subcommands/their options; value options complete declared choices). Tested in `tests/args/test_args_help.c`. Note: these are for **args-based** CLIs; the `sparcli` binary itself still ships the hand-written `completions/_sparcli` (the CLI is not on the args parser — see the deferred-migration note) |
 | Syntax | `--opt value`, `--opt=value`, `-j8`, `-vq` (combined flags), `--` terminator, negative numbers as values, nested subcommands, variadic positionals |
 | Types | `SC_ARG_STR/INT/DOUBLE/COLOR`; "enums" = STR + `sc_args_opt_choices` (`sc_args_get_enum` returns the index) |
 | Reserved | `--help`/`-h` (every command), `--version`/`-V` (root, when version set); user options with the same short letter win |
@@ -1288,3 +1391,32 @@ Structured **read+write** parsers (JSON, CSV, TOML, YAML, Markdown) over one sha
 | Robustness | All parsers depth-limited + fuzzed 200k clean (the YAML fuzzer caught a flow-sequence non-advancing infinite-loop/OOM - fixed with a cursor-progress guard). `make lint` (clang-tidy, part of `qa`) now covers serde: use `calloc` for string-dup helpers + keep stack pops provably in-bounds |
 | Limitations (deliberate) | numbers `double`/`int64` only (no lossless decimal lexeme); TOML datetimes as strings; YAML subset; Markdown = structure only; **parse→write is data- but NOT comment/format-preserving** (readers accept `#` comments but drop them - not an "edit config in place" tool); no CLI serde subcommands (deferred) |
 | Tests / examples | `tests/serde/` (`test_{value,json,csv,toml,yaml,markdown}.c`), `tests/cpp/test_serde_cpp.cpp`, `tests/fuzz/fuzz_{json,csv,toml,yaml,markdown}.c`; `examples/c/data/`, `examples/cpp/data/` |
+
+---
+
+## View (`src/view/`)
+
+Renders the **serde data models to the terminal** — the bridge between the data layer and the output widgets. Depends on **both** serde and output, so (like serde) it is **opt-in and NOT in the `sparcli.h` umbrella**: `#include <view/sparcli_view.h>`. Compiled into `libsparcli.a`; own gate `make test-view` (+ `view-sanitize`), outside `make test`/`qa`. This is the layer added so a renderer of serde types never forces serde into the `sparcli.h` umbrella nor a serde dependency into `output`.
+
+- **ScValue pretty-print** (`value_render.c`, `view/sparcli_value_render.h`): jq-style colored, indented dump of any `ScValue`.
+  ```c
+  ScText     *sc_value_render_text(const ScValue *, ScValueRenderOpts);
+  void        sc_value_render(const ScValue *, ScValueRenderOpts);   // + trailing \n
+  ScRendered *sc_capture_value(const ScValue *, ScValueRenderOpts);
+  ```
+  `ScValueRenderOpts` (zero-init = 2-space indent, default scheme): `indent`, `sort_keys`, `no_color`, and `key_color`/`string_color`/`number_color`/`literal_color` (blue/green/cyan/magenta).
+
+- **Markdown render** (`markdown_render.c`, `view/sparcli_markdown_render.h`): walks a parsed `ScMarkdown` and renders it through the widget stack — ATX headings (styled + underline rule for L1/L2), paragraphs with inline emphasis (`**bold**`, `*italic*`, `` `code` ``, `[text](url)` → OSC-8 link), bullet/ordered lists (`sc_list`), fenced code blocks (panel), block quotes (`▏` bar), horizontal rules (`sc_rule`) and GitHub pipe tables (`sc_table`). Each block is captured and `sc_vstack`ed with one blank line between blocks.
+  ```c
+  ScRendered *sc_capture_markdown(const ScMarkdown *, ScMarkdownRenderOpts);
+  void        sc_markdown_render(const ScMarkdown *, ScMarkdownRenderOpts);
+  void        sc_markdown_render_str(const char *src, ScMarkdownRenderOpts); // parse + render
+  ```
+  `ScMarkdownRenderOpts` (zero-init = terminal width, default scheme): `width`, `heading_color` (cyan+bold), `code_color` (magenta), `link_color` (blue+underline), `quote_color` (zero = dim).
+
+| Aspect | Detail |
+|--------|--------|
+| Scope | Not full CommonMark — covers the common constructs. Paragraph text is emitted styled and relies on the **terminal's own line wrapping**; lists/tables wrap to `width` |
+| Layering | Block rendering (paragraphs/lists/code/tables) is done in the view layer; the serde markdown parser supplies only the front-matter split + heading/section tree, so the view consumes `sc_md_section_*` + the section body text |
+| Tests | `tests/view/test_view.c` (`make test-view`; assertion-based on ANSI-stripped output), `make view-sanitize` (ASan/UBSan) |
+| Bindings | C/C++ focused (like serde); Rust/Python don't wrap the view layer (they have `serde`/their own renderers). The C sources still compile into those libs |

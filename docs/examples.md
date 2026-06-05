@@ -107,6 +107,7 @@ Non-interactive; safe to run anywhere.
 | `output/columns_layout` | Side-by-side columns with separators, capture + `vstack` composition, pad/align, and redirecting the output stream into a buffer/file. |
 | `output/progress_spinner` | Animated progress bars (block + threshold-colored line), a spinner with a changing label, and `clear_line` for a transient status. |
 | `output/live` | Live in-place dashboard re-rendered from a captured + vstacked frame, plus the fullscreen alternate-screen (`alt_screen`) variant. |
+| `output/multiprogress` (C) · `output/diff` (C/C++) | Several progress bars updated together in place; a colored unified diff (hunks, `-`/`+`, framed via capture). The C++ `output/diff` also shows `humanize::*`. |
 | `output/pager` | Routing long output through `$PAGER` / `less -R` (no-op off a terminal). |
 
 ¹ Word-wrap and `max_rows` are demonstrated in the C and Python variants; the
@@ -137,6 +138,9 @@ Interactive; need a real terminal. Each falls back to a notice without one.
 | `app/errors_logging` | Pretty error reports (cause chain + hint + code) and leveled logging (global + handle-based). | C, C++, Rust, Python |
 | `app/args` | Declarative argument parser: subcommands, typed options, choices, help/version, did-you-mean. | C, C++ |
 | `app/args_repl` | Reusing one parser tree per input line (tokenizer + implicit reset) – the building block for a REPL. | C, C++ |
+| `app/humanize` | Human-readable sizes, durations, relative time and grouped/compact numbers (locale separators). | C |
+| `app/subprocess` | Run a command without a shell, capture stdout, feed stdin, read the exit code (`sc_run`). | C, C++ |
+| `app/config` (C) · `app/config_layer` (C++) | Layered config: defaults < environment (`__` nesting) < explicit overrides, dotted-path getters. | C, C++ |
 
 ## Data parsers (serde)
 
@@ -151,8 +155,12 @@ Non-interactive; safe to run anywhere. These use the opt-in `serde/` layer
 | `data/yaml_convert` | Parse YAML and emit JSON – conversion is "parse one, write the other" over the shared model. | C |
 | `data/markdown_outline` | Split front matter, walk the heading outline, then edit the front matter from a value tree and re-serialize. | C, C++ |
 | `data/config_merge` | A config workflow over the `ScValue` ergonomics: deep-merge defaults + overlay, read via a dotted `path` and typed getters, drop a key, and round-trip through a file (`*_write_file`/`*_parse_file`). | C, C++ |
+| `data/value_render` | jq-style colored pretty-printing of a parsed `ScValue` (the opt-in **view** layer, `view/sparcli_view.h`). | C |
+| `data/markdown_render` | Render Markdown to the terminal through the widget stack (headings, lists, code, quotes, pipe tables, inline emphasis) + pretty-print a value (view layer). | C, C++ |
 
-The full serde reference is in [`docs/api-serde.md`](api-serde.md).
+The full serde reference is in [`docs/api-serde.md`](api-serde.md). The view
+layer (rendering serde models to the terminal) is documented in
+[CLAUDE.md](../CLAUDE.md) under "View" and exercised by `make test-view`.
 
 ## Full applications (C)
 

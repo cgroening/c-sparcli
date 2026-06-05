@@ -87,6 +87,11 @@ using ProgressBarOpts = ScProgressBarOpts;
 using SpinnerOpts     = ScSpinnerOpts;
 using PadOpts         = ScPadOpts;
 using MarkupOpts      = ScMarkupOpts;
+using DiffOpts        = ScDiffOpts;
+using ByteUnit        = ScByteUnit;
+using HumanizeOpts    = ScHumanizeOpts;
+using MultiProgressOpts = ScMultiProgressOpts;
+using ProcOpts        = ScProcOpts;
 
 using AlertType       = ScAlertType;
 using InputStatus     = ScInputStatus;
@@ -213,6 +218,15 @@ namespace detail {
 // (string_view is not guaranteed NUL-terminated, so we materialize.)
 inline std::string z(std::string_view s) { return std::string(s); }
 
+// Takes ownership of a C-heap string: copies into std::string, frees the
+// original, returns the copy (empty string on NULL).
+inline std::string take_string(char* c) {
+    if (!c) { return std::string(); }
+    std::string r(c);
+    std::free(c);
+    return r;
+}
+
 // Debug guard against using a moved-from handle: asserts the wrapped pointer is
 // non-null, then returns it. Wraps each C-call site so misuse aborts clearly in
 // debug builds; compiles to nothing under -DNDEBUG. (Destructors and move
@@ -300,6 +314,9 @@ public:
     /** Borrowed underlying `ScText*` (escape hatch to the C API); not owned. */
     ScText*       get()       { return p_; }
     const ScText* get() const { return p_; }
+
+    /** Adopts ownership of a raw `ScText*` (e.g. from `sc_diff_text`). */
+    static Text adopt(ScText* t) { return Text(t); }
 
 private:
     explicit Text(ScText* adopted) : p_(adopted) { require(); }
@@ -831,6 +848,56 @@ private:
     ScSpinner* p_;
 };
 
+/**
+ * Owning, move-only stack of progress bars updated together in place (wraps
+ * `ScMultiProgress`). Each `add` returns a bar index; `update`/`set_label`
+ * redraw the whole stack. Off-terminal, only the final stack is printed.
+ * @see sc_multiprogress_begin
+ */
+class MultiProgress {
+public:
+    explicit MultiProgress(MultiProgressOpts opts = {})
+        : p_(sc_multiprogress_begin(opts)) {
+        if (!p_) throw std::bad_alloc();
+    }
+    ~MultiProgress() { if (p_) { sc_multiprogress_end(p_); } }
+    MultiProgress(MultiProgress&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    MultiProgress& operator=(MultiProgress&& o) noexcept {
+        if (this != &o) {
+            if (p_) { sc_multiprogress_end(p_); }
+            p_ = o.p_; o.p_ = nullptr;
+        }
+        return *this;
+    }
+    MultiProgress(const MultiProgress&) = delete;
+    MultiProgress& operator=(const MultiProgress&) = delete;
+
+    /** Adds a bar; returns its index (or -1). @see sc_multiprogress_add */
+    int add(std::string_view label, ProgressBarOpts opts = {}) {
+        return sc_multiprogress_add(detail::live(p_),
+                                    detail::z(label).c_str(), opts);
+    }
+    /** Updates bar `index` and redraws. @see sc_multiprogress_update */
+    void update(int index, double value, double max = 0.0) {
+        sc_multiprogress_update(detail::live(p_), index, value, max);
+    }
+    /** Replaces a bar's label and redraws. @see sc_multiprogress_set_label */
+    void set_label(int index, std::string_view label) {
+        sc_multiprogress_set_label(detail::live(p_), index,
+                                   detail::z(label).c_str());
+    }
+    /** Ends the session early (leaves the final stack unless transient). */
+    void end() {
+        if (p_) { sc_multiprogress_end(p_); p_ = nullptr; }
+    }
+
+    /** Borrowed underlying `ScMultiProgress*` (escape hatch); not owned. */
+    ScMultiProgress* get() { return p_; }
+
+private:
+    ScMultiProgress* p_;
+};
+
 // ── Stateless output free functions ──────────────────────────────────────────
 // Thin wrappers over the C renderers; each takes a string_view (or Text) plus
 // the C `*Opts` struct (use C++20 designated initializers). @see sc_print etc.
@@ -866,6 +933,54 @@ inline void rule(const Text& title, RuleOpts opts = {}) {
 inline void badge(std::string_view text, BadgeOpts opts = {}) {
     sc_print_badge(detail::z(text).c_str(), opts);
 }
+
+// ── Diff ──────────────────────────────────────────────────────────────────
+/** Builds a colored unified diff as rich text. @see sc_diff_text */
+inline Text diff_text(std::string_view old_s, std::string_view new_s,
+                      DiffOpts opts = {}) {
+    return Text::adopt(sc_diff_text(detail::z(old_s).c_str(),
+                                    detail::z(new_s).c_str(), opts));
+}
+/** Prints a colored unified diff. @see sc_diff_print */
+inline void diff(std::string_view old_s, std::string_view new_s,
+                 DiffOpts opts = {}) {
+    sc_diff_print(detail::z(old_s).c_str(), detail::z(new_s).c_str(), opts);
+}
+
+// ── Human-readable formatting ────────────────────────────────────────────────
+// Returns std::string copies (the C functions return heap strings). @see
+// sparcli_humanize.h
+namespace humanize {
+/** e.g. 1536 → "1.5 KB". @see sc_humanize_bytes */
+inline std::string bytes(std::uint64_t n, ByteUnit unit = SC_BYTES_SI,
+                         HumanizeOpts o = {}) {
+    return detail::take_string(sc_humanize_bytes_opts(n, unit, o));
+}
+/** e.g. 1234567 → "1,234,567". @see sc_humanize_number */
+inline std::string number(double v, HumanizeOpts o = {}) {
+    return detail::take_string(sc_humanize_number(v, o));
+}
+/** e.g. 12400 → "12.4k". @see sc_humanize_compact */
+inline std::string compact(double v, HumanizeOpts o = {}) {
+    return detail::take_string(sc_humanize_compact(v, o));
+}
+/** e.g. 0.42 → "42%". @see sc_humanize_percent */
+inline std::string percent(double ratio, HumanizeOpts o = {}) {
+    return detail::take_string(sc_humanize_percent(ratio, o));
+}
+/** e.g. 93 → "1m 33s". @see sc_humanize_duration */
+inline std::string duration(double seconds) {
+    return detail::take_string(sc_humanize_duration(seconds));
+}
+/** e.g. 3725 → "01:02:05". @see sc_humanize_duration_clock */
+inline std::string duration_clock(double seconds) {
+    return detail::take_string(sc_humanize_duration_clock(seconds));
+}
+/** e.g. → "3 hours ago". @see sc_humanize_relative */
+inline std::string relative(std::time_t when, std::time_t now) {
+    return detail::take_string(sc_humanize_relative(when, now));
+}
+}  // namespace humanize
 
 /** Preset alert boxes (icon + color + border). @see sc_alert_info etc. */
 namespace alert {
@@ -930,6 +1045,11 @@ inline Rendered panel(const Text& content, PanelOpts o = {}) {
 }
 inline Rendered rule(std::string_view title, RuleOpts o = {}) {
     return Rendered::adopt(sc_capture_rule_str(detail::z(title).c_str(), o));
+}
+inline Rendered diff(std::string_view old_s, std::string_view new_s,
+                     DiffOpts o = {}) {
+    return Rendered::adopt(sc_capture_diff(detail::z(old_s).c_str(),
+                                           detail::z(new_s).c_str(), o));
 }
 }  // namespace capture
 
@@ -1180,6 +1300,62 @@ private:
                              std::string_view hint = {}) {
     sc_die_msg(exit_code, detail::z(message).c_str(),
                hint.empty() ? nullptr : detail::z(hint).c_str());
+}
+
+// ── Subprocess ────────────────────────────────────────────────────────────────
+// Run an external command (no shell) and capture its output. @see
+// sparcli_process.h
+
+/**
+ * Owning result of `run()`: captured stdout/stderr (as `string_view` into the
+ * owned C buffers) plus exit status. Frees the C buffers on destruction.
+ */
+class ProcResult {
+public:
+    explicit ProcResult(ScProcResult r) : r_(r) {}
+    ~ProcResult() { sc_proc_result_free(&r_); }
+    ProcResult(ProcResult&& o) noexcept : r_(o.r_) { o.r_ = ScProcResult{}; }
+    ProcResult& operator=(ProcResult&& o) noexcept {
+        if (this != &o) {
+            sc_proc_result_free(&r_); r_ = o.r_; o.r_ = ScProcResult{};
+        }
+        return *this;
+    }
+    ProcResult(const ProcResult&) = delete;
+    ProcResult& operator=(const ProcResult&) = delete;
+
+    /** True when the child was spawned and reaped. */
+    bool ok() const { return r_.ok; }
+    /** Exit code (127 = not found; -1 = killed by a signal). */
+    int exit_code() const { return r_.exit_code; }
+    /** Signal that killed the child, or 0. */
+    int term_signal() const { return r_.term_signal; }
+    /** Captured stdout (view into the owned buffer). */
+    std::string_view out() const {
+        return r_.out ? std::string_view(r_.out, r_.out_len)
+                      : std::string_view();
+    }
+    /** Captured stderr (empty when merged or on failure). */
+    std::string_view err() const {
+        return r_.err ? std::string_view(r_.err, r_.err_len)
+                      : std::string_view();
+    }
+private:
+    ScProcResult r_;
+};
+
+/**
+ * Runs `argv` (no shell; argv[0] resolved via $PATH) and captures its output.
+ * To feed stdin, set `opts.input`/`opts.input_len` to a buffer that lives
+ * through the call. @see sc_run
+ */
+inline ProcResult run(const std::vector<std::string>& argv,
+                      ProcOpts opts = {}) {
+    std::vector<const char*> cargv;
+    cargv.reserve(argv.size() + 1);
+    for (const auto& a : argv) { cargv.push_back(a.c_str()); }
+    cargv.push_back(nullptr);
+    return ProcResult(sc_run(cargv.data(), opts));
 }
 
 // ── Logging ──────────────────────────────────────────────────────────────────
@@ -1494,6 +1670,10 @@ public:
     }
     /** Emits the zsh completion script. */
     void print_zsh_completion() const { sc_args_print_zsh_completion(p_); }
+    /** Emits the bash completion script. */
+    void print_bash_completion() const { sc_args_print_bash_completion(p_); }
+    /** Emits the fish completion script. */
+    void print_fish_completion() const { sc_args_print_fish_completion(p_); }
 
     /**
      * True when `cmd` has a handler attached via `ArgsCmd::handler`. A node

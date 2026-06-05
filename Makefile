@@ -59,7 +59,7 @@ endif
 # ── Core (foundation: color, text, print, output stream, render) ──────────
 SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/core/print.c src/core/color.c src/core/text.c src/core/render_wrap.c \
-          src/core/sanitize.c \
+          src/core/sanitize.c src/core/humanize.c \
           \
           src/output/panel.c \
           src/output/table/table.c \
@@ -72,7 +72,8 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/output/columns.c src/output/rule.c src/output/tree.c src/output/list.c \
           src/output/progressbar.c src/output/spinner.c src/output/kv.c src/output/alert.c \
           src/output/badge.c src/output/util.c src/output/pad.c src/output/markup.c \
-          src/output/pager.c src/output/live.c \
+          src/output/pager.c src/output/live.c src/output/diff.c \
+          src/output/multiprogress.c \
           \
           src/tty/term.c src/tty/key.c src/tty/screen.c \
           \
@@ -84,12 +85,13 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c \
           src/input/history.c \
           \
-          src/app/paths.c src/app/error.c \
+          src/app/paths.c src/app/error.c src/app/process.c src/app/config.c \
           \
           src/log/log.c \
           \
           src/args/args.c src/args/args_value.c src/args/args_suggest.c \
           src/args/args_parse.c src/args/args_help.c src/args/args_complete.c \
+          src/args/args_complete_bash.c src/args/args_complete_fish.c \
           src/args/args_split.c
 
 # ── Serde layer (structured read/write parsers) ───────────────────────────
@@ -100,6 +102,13 @@ SERDE_SRC = src/serde/value.c src/serde/buf.c src/serde/parse_error.c \
             src/serde/file.c src/serde/json.c src/serde/csv.c \
             src/serde/toml.c src/serde/markdown.c src/serde/yaml.c
 SRC      += $(SERDE_SRC)
+
+# ── View layer (render serde data models to the terminal) ─────────────────
+# Bridges serde + output, so it depends on BOTH and is opt-in like serde
+# (`#include <view/sparcli_view.h>`, not in the sparcli.h umbrella). Compiled
+# into libsparcli.a; exercised by `make test-view` (outside `make test`/`qa`).
+VIEW_SRC = src/view/value_render.c src/view/markdown_render.c
+SRC     += $(VIEW_SRC)
 
 BUILDDIR          = build.nosync
 OBJ               = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC))
@@ -175,6 +184,9 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_alert.c \
            tests/output/test_badge.c \
            tests/output/test_util.c \
+           tests/output/test_humanize.c \
+           tests/output/test_diff.c \
+           tests/output/test_multiprogress.c \
            tests/output/test_pad.c \
            tests/output/test_align.c \
            tests/output/test_markup.c \
@@ -231,7 +243,9 @@ APP_TEST_SRC = tests/app/test_app_main.c \
                tests/app/test_paths.c \
                tests/app/test_pager.c \
                tests/app/test_errors.c \
-               tests/app/test_log.c
+               tests/app/test_log.c \
+               tests/app/test_process.c \
+               tests/app/test_config.c
 APP_TEST_BIN = tests/app/test_app_main
 
 # ── Argument-parser suite (tests/args/) - non-interactive ─────────────────
@@ -258,6 +272,13 @@ SERDE_TEST_BIN          = tests/serde/test_serde_main
 SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize
 SERDE_CPP_TEST_SRC      = tests/cpp/test_serde_cpp.cpp
 
+# ── View suite (tests/view/) - non-interactive; outside `make test`/`qa` ───
+# The view layer renders serde models to the terminal; like serde it is
+# opt-in, so it has its own targets (`make test-view`, `view-sanitize`).
+VIEW_TEST_SRC          = tests/view/test_view.c
+VIEW_TEST_BIN          = tests/view/test_view
+VIEW_SANITIZE_TEST_BIN = tests/view/test_view_sanitize
+
 # Example programs (see docs/examples.md). The tree is grouped by language:
 # examples/c/ and examples/cpp/ compile to binaries in EXAMPLES_BUILDDIR
 # (mirroring the directory structure), examples/rust/ builds through cargo
@@ -273,7 +294,7 @@ EXAMPLES_CPP_BIN  = $(patsubst examples/%.cpp,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all test-serde serde-sanitize serde-fuzz serde-cpp serde-qa
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all test-serde serde-sanitize serde-fuzz serde-cpp serde-qa test-view view-sanitize view-cpp
 
 # `make` must build the C library + CLI (as documented), not the first target
 # that happens to be defined above (the rust/python binding helpers).
@@ -482,6 +503,25 @@ test-args: $(LIB)
 test-serde: $(LIB)
 	$(CC) $(CFLAGS) $(SERDE_TEST_SRC) $(LIB) $(LDFLAGS) -o $(SERDE_TEST_BIN)
 	./$(SERDE_TEST_BIN)
+
+# View data-render suite. Headless; kept out of `make test`/`qa` (opt-in layer).
+test-view: $(LIB)
+	$(CC) $(CFLAGS) $(VIEW_TEST_SRC) $(LIB) $(LDFLAGS) -o $(VIEW_TEST_BIN)
+	./$(VIEW_TEST_BIN)
+
+# The view suite under AddressSanitizer + UBSan.
+view-sanitize: $(SANITIZE_LIB)
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) $(VIEW_TEST_SRC) $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(VIEW_SANITIZE_TEST_BIN)
+	./$(VIEW_SANITIZE_TEST_BIN)
+
+# C++ wrapper gate for the opt-in, serde-dependent headers (sparcli::Config +
+# sparcli::view), built under ASan/UBSan. Counterpart to `serde-cpp`.
+view-cpp: $(SANITIZE_LIB) | $(EXAMPLES_BUILDDIR)
+	$(CXX) $(CXXFLAGS) $(SANITIZE_FLAGS) tests/cpp/test_view_cpp.cpp \
+	    $(SANITIZE_LIB) $(LDFLAGS) $(SANITIZE_FLAGS) \
+	    -o $(EXAMPLES_BUILDDIR)/test_view_cpp
+	./$(EXAMPLES_BUILDDIR)/test_view_cpp
 
 # The serde suite under AddressSanitizer + UBSan (own .a, like `make sanitize`).
 serde-sanitize: $(SANITIZE_LIB)

@@ -34,6 +34,8 @@ int main(void) {
         { "Pager",         test_pager  },
         { "Pretty Errors", test_errors },
         { "Logging",       test_log    },
+        { "Subprocess",    test_process },
+        { "Config",        test_config },
     };
     size_t count = sizeof tests / sizeof tests[0];
 

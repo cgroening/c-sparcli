@@ -540,6 +540,71 @@ static void test_parity_helpers() {
           "live: final table frame is printed");
 }
 
+// ── humanize / diff / multiprogress / process wrappers ──────────────────────
+
+static void test_humanize_wrapper() {
+    CHECK(humanize::bytes(1536) == "1.5 KB", "humanize: bytes SI");
+    CHECK(humanize::bytes(1536, SC_BYTES_IEC) == "1.5 KiB",
+          "humanize: bytes IEC");
+    CHECK(humanize::number(1234567) == "1,234,567", "humanize: number");
+    CHECK(humanize::compact(12400) == "12.4k", "humanize: compact");
+    CHECK(humanize::percent(0.42) == "42%", "humanize: percent");
+    CHECK(humanize::duration(93) == "1m 33s", "humanize: duration");
+    CHECK(humanize::duration_clock(3725) == "01:02:05",
+          "humanize: clock");
+    HumanizeOpts de{ .decimal_sep = ',' };
+    CHECK(humanize::bytes(1536, SC_BYTES_IEC, de) == "1,5 KiB",
+          "humanize: de_DE decimal separator");
+}
+
+static void test_diff_wrapper() {
+    std::string out = render([] {
+        diff("a\nb\nc\n", "a\nB\nc\n", DiffOpts{ .context = 0 });
+    });
+    std::string plain = strip_ansi(out);
+    CHECK(contains(plain, "-b") && contains(plain, "+B"),
+          "diff: removed/added lines present");
+    Text t = diff_text("x\n", "y\n", DiffOpts{ .no_header = true });
+    CHECK(t.visible_width() > 0, "diff: diff_text builds rich text");
+    Rendered r = capture::diff("x\n", "y\n");
+    CHECK(true, "diff: capture::diff returns a Rendered");
+    (void)r;
+}
+
+static void test_multiprogress_wrapper() {
+    // Off a memstream the live display buffers; the final stack is printed.
+    std::string out = render([] {
+        MultiProgress mp;
+        ProgressBarOpts bo{ .left_cap = "[", .right_cap = "]" };
+        bo.bar_width = 10;
+        bo.show_percent = true;
+        int a = mp.add("a", bo);
+        int b = mp.add("b", bo);
+        mp.update(a, 100, 100);
+        mp.update(b, 50, 100);
+        mp.end();
+    });
+    std::string plain = strip_ansi(out);
+    CHECK(contains(plain, "a") && contains(plain, "b")
+              && contains(plain, "100%"),
+          "multiprogress: final stack printed");
+}
+
+static void test_process_wrapper() {
+    ProcResult r = run({ "echo", "hi there" });
+    CHECK(r.ok() && r.exit_code() == 0, "process: echo runs");
+    CHECK(contains(std::string(r.out()), "hi there"),
+          "process: stdout captured as string_view");
+
+    ProcResult miss = run({ "sparcli-no-such-binary-xyz" });
+    CHECK(miss.ok() && miss.exit_code() == 127,
+          "process: missing command → 127");
+
+    ProcResult moved = run({ "true" });
+    ProcResult sink = std::move(moved);   // move-safety
+    CHECK(sink.exit_code() == 0, "process: result survives a move");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_table_owns_temporaries();
@@ -562,6 +627,10 @@ int main() {
     test_args_repl_helpers();
     test_history();
     test_parity_helpers();
+    test_humanize_wrapper();
+    test_diff_wrapper();
+    test_multiprogress_wrapper();
+    test_process_wrapper();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

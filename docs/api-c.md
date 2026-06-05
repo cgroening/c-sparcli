@@ -689,6 +689,68 @@ void  sc_clear_line(void);
 
 ---
 
+## Human-readable formatting
+
+Header `core/sparcli_humanize.h` (in the `sparcli.h` umbrella). Each call returns a fresh heap string (caller `free`s) or `NULL` on OOM; output is plain text.
+
+```c
+char *sc_humanize_bytes(uint64_t bytes, ScByteUnit unit);
+char *sc_humanize_bytes_opts(uint64_t bytes, ScByteUnit unit, ScHumanizeOpts opts);
+char *sc_humanize_number(double value, ScHumanizeOpts opts);
+char *sc_humanize_compact(double value, ScHumanizeOpts opts);
+char *sc_humanize_percent(double ratio, ScHumanizeOpts opts);
+char *sc_humanize_duration(double seconds);
+char *sc_humanize_duration_clock(double seconds);
+char *sc_humanize_relative(time_t when, time_t now);
+```
+
+| Function | Example |
+|----------|---------|
+| `sc_humanize_bytes(1536, SC_BYTES_SI)` | `"1.5 KB"` |
+| `sc_humanize_bytes(1536, SC_BYTES_IEC)` | `"1.5 KiB"` |
+| `sc_humanize_number(1234567, {0})` | `"1,234,567"` |
+| `sc_humanize_compact(12400, {0})` | `"12.4k"` (suffixes `k M B T`) |
+| `sc_humanize_percent(0.42, {0})` | `"42%"` |
+| `sc_humanize_duration(8054)` | `"2h 14m"` (two units; `<60s` → `"Ns"`) |
+| `sc_humanize_duration_clock(3725)` | `"01:02:05"` |
+| `sc_humanize_relative(now-10800, now)` | `"3 hours ago"` (English) |
+
+`ScByteUnit`: `SC_BYTES_SI` (1000-based, default), `SC_BYTES_IEC` (1024-based `KiB…`), `SC_BYTES_IEC_SHORT` (1024-based `K/M/G…`).
+
+`ScHumanizeOpts` (zero-init friendly): `int decimals` (`0` = per-function default), `char decimal_sep` (`0` = `'.'`; `','` for de_DE), `char group_sep` (`0` = `','` thousands separator for `sc_humanize_number`; `'.'` for de_DE), `bool no_space` (drop the space before size units).
+
+---
+
+## Multi Progress
+
+Header `output/sparcli_multiprogress.h` (umbrella). Several progress bars updated together in place; built on `ScProgressBar` + the live display, so off a terminal only the final stack prints.
+
+```c
+ScMultiProgress *sc_multiprogress_begin(ScMultiProgressOpts opts); /* .transient/.always */
+int  sc_multiprogress_add(ScMultiProgress *mp, const char *label, ScProgressBarOpts opts);
+void sc_multiprogress_update(ScMultiProgress *mp, int index, double value, double max);
+void sc_multiprogress_set_label(ScMultiProgress *mp, int index, const char *label);
+void sc_multiprogress_end(ScMultiProgress *mp);
+```
+
+`add` returns the bar index (`-1` on failure); each `update`/`set_label`/`add` redraws the whole stack. Per-bar `ScProgressBarOpts` are copied (like `sc_progressbar_new`); `max == 0` treats `value` as a 0..1 ratio.
+
+---
+
+## Diff
+
+Header `output/sparcli_diff.h` (umbrella). Colored line-based unified diff (LCS).
+
+```c
+ScText     *sc_diff_text   (const char *old, const char *new, ScDiffOpts opts);
+void        sc_diff_print  (const char *old, const char *new, ScDiffOpts opts);
+ScRendered *sc_capture_diff(const char *old, const char *new, ScDiffOpts opts);
+```
+
+`ScDiffOpts` (zero-init = 3 context lines, `old`/`new` labels, red/green/cyan): `int context` (`0` = default 3, negative = full file), `bool no_header`, `const char *old_label`/`new_label`, `ScColor add_color`/`del_color`/`hunk_color`. Identical inputs produce an empty `ScText`. The diffed text is ANSI-sanitized at the boundary.
+
+---
+
 ## Capture API
 
 Renders any widget into a heap-allocated `ScRendered`. Caller must free with `sc_rendered_free()`. Use the result with `sc_pad_print`, `sc_align_print`, or `sc_columns_add_rendered`.

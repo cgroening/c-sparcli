@@ -396,4 +396,21 @@ SPARCLI_EXPORT void sc_args_print_help(const ScArgs *args, const ScArgsCmd *cmd)
  */
 SPARCLI_EXPORT void sc_args_print_zsh_completion(const ScArgs *args);
 
+/**
+ * Emits a bash completion script for the whole command tree to the current
+ * output stream. Source it (e.g. from `~/.bashrc`) or install it under
+ * `/etc/bash_completion.d/`.
+ *
+ * @param args  Parser.
+ */
+SPARCLI_EXPORT void sc_args_print_bash_completion(const ScArgs *args);
+
+/**
+ * Emits a fish completion script for the whole command tree to the current
+ * output stream. Install it as `~/.config/fish/completions/<prog>.fish`.
+ *
+ * @param args  Parser.
+ */
+SPARCLI_EXPORT void sc_args_print_fish_completion(const ScArgs *args);
+
 SPARCLI_END_DECLS

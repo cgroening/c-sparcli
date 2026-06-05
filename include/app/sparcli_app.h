@@ -12,3 +12,4 @@
 
 #include "app/sparcli_paths.h"          // IWYU pragma: export
 #include "app/sparcli_error.h"          // IWYU pragma: export
+#include "app/sparcli_process.h"        // IWYU pragma: export

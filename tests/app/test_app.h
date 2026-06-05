@@ -27,3 +27,5 @@ void test_paths(void);
 void test_pager(void);
 void test_errors(void);
 void test_log(void);
+void test_process(void);
+void test_config(void);

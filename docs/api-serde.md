@@ -517,6 +517,53 @@ std::string out = doc.write();
 
 ---
 
+## View: rendering serde models to the terminal
+
+The **view layer** (`src/view/`, header `view/sparcli_view.h`, C++
+`view/sparcli_view.hpp`) renders the serde data models *to the terminal* — the
+bridge between this data layer and the output widgets. It depends on **both**
+serde and the output stack, so, like serde itself, it is **opt-in and not in the
+`sparcli.h` umbrella**; it has its own gate `make test-view` (+ `view-sanitize`,
+`view-cpp`), outside `make test`/`qa`.
+
+**Pretty-print an `ScValue`** (jq-style, colored):
+
+```c
+ScText     *sc_value_render_text(const ScValue *v, ScValueRenderOpts opts);
+void        sc_value_render(const ScValue *v, ScValueRenderOpts opts);   /* + \n */
+ScRendered *sc_capture_value(const ScValue *v, ScValueRenderOpts opts);
+```
+
+`ScValueRenderOpts` (zero-init = 2-space indent, default scheme): `int indent`,
+`bool sort_keys`, `bool no_color`, and `key_color`/`string_color`/`number_color`/
+`literal_color` (blue/green/cyan/magenta).
+
+**Render Markdown** through the widget stack — ATX headings (styled + underline
+rule), paragraphs with inline emphasis (`**bold**`, `*italic*`, `` `code` ``,
+`[text](url)` → OSC-8 links), bullet/ordered lists, fenced code blocks (panel),
+block quotes, horizontal rules and GitHub pipe tables:
+
+```c
+ScRendered *sc_capture_markdown(const ScMarkdown *md, ScMarkdownRenderOpts opts);
+void        sc_markdown_render(const ScMarkdown *md, ScMarkdownRenderOpts opts);
+void        sc_markdown_render_str(const char *src, ScMarkdownRenderOpts opts);
+```
+
+`ScMarkdownRenderOpts` (zero-init = terminal width, default scheme): `int width`,
+`heading_color` (cyan+bold), `code_color` (magenta), `link_color` (blue+
+underline), `quote_color` (zero = dim). It is not a full CommonMark renderer —
+it covers the common constructs; paragraph text relies on the terminal's own
+line wrapping.
+
+**C++** (`namespace sparcli::view`, header `<view/sparcli_view.hpp>`):
+`value_render` / `value_render_text` / `capture_value` (on a `serde::Value` or
+`serde::View`) and `markdown_render` / `capture_markdown` / `markdown_render_str`
+(on a `serde::Markdown`), returning `sparcli::Text` / `sparcli::Rendered`.
+Examples: `examples/c/data/{value_render,markdown_render}.c`,
+`examples/cpp/data/markdown_render.cpp`.
+
+---
+
 ## Build & test
 
 The serde sources compile into `libsparcli`, but the suite is **separate** from

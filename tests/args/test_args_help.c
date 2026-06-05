@@ -6,19 +6,25 @@ static void check_root_help(void);
 static void check_subcommand_help(void);
 static void check_version(void);
 static void check_completion(void);
+static void check_completion_bash(void);
+static void check_completion_fish(void);
     static void render_root_help(ScArgs *args);
     static void render_build_help(ScArgs *args);
     static void render_version_cb(ScArgs *args);
     static void render_completion(ScArgs *args);
+    static void render_completion_bash(ScArgs *args);
+    static void render_completion_fish(ScArgs *args);
     static char *capture_plain(void (*render)(ScArgs *), ScArgs *args);
 
 
-/** Help screens, --version and the zsh completion generator. */
+/** Help screens, --version and the completion generators. */
 void test_args_help(void) {
     check_root_help();
     check_subcommand_help();
     check_version();
     check_completion();
+    check_completion_bash();
+    check_completion_fish();
 }
 
 
@@ -133,6 +139,52 @@ static void check_completion(void) {
 }
 
 
+/* ── Bash completion ─────────────────────────────────────────────────────── */
+
+static void check_completion_bash(void) {
+    ScArgs *args = test_args_build_demo();
+    char *script = capture_plain(render_completion_bash, args);
+
+    CHECK(test_args_contains(script, "complete -F _demo demo"),
+          "bash: registers the completion function");
+    CHECK(test_args_contains(script, "--verbose"),
+          "bash: root options are offered");
+    CHECK(test_args_contains(script, "build)"),
+          "bash: per-subcommand branch exists");
+    CHECK(test_args_contains(script, "--jobs"),
+          "bash: subcommand options are offered");
+    CHECK(test_args_contains(script, "debug release"),
+          "bash: choices complete after the option");
+
+    free(script);
+    sc_args_free(args);
+}
+
+
+/* ── Fish completion ─────────────────────────────────────────────────────── */
+
+static void check_completion_fish(void) {
+    ScArgs *args = test_args_build_demo();
+    char *script = capture_plain(render_completion_fish, args);
+
+    CHECK(test_args_contains(script,
+              "complete -c demo -f -n __fish_use_subcommand -a build"),
+          "fish: subcommands gated by __fish_use_subcommand");
+    CHECK(test_args_contains(script, "-l verbose"),
+          "fish: long options emitted");
+    CHECK(test_args_contains(script,
+              "__fish_seen_subcommand_from build"),
+          "fish: subcommand options gated by seen-subcommand");
+    CHECK(test_args_contains(script, "-l jobs -r"),
+          "fish: value options marked requiring an argument");
+    CHECK(test_args_contains(script, "-a \"debug release\""),
+          "fish: choices listed as candidates");
+
+    free(script);
+    sc_args_free(args);
+}
+
+
 /* ── Render callbacks + capture helper ───────────────────────────────────── */
 
 static void render_root_help(ScArgs *args) {
@@ -155,6 +207,14 @@ static void render_version_cb(ScArgs *args) {
 
 static void render_completion(ScArgs *args) {
     sc_args_print_zsh_completion(args);
+}
+
+static void render_completion_bash(ScArgs *args) {
+    sc_args_print_bash_completion(args);
+}
+
+static void render_completion_fish(ScArgs *args) {
+    sc_args_print_fish_completion(args);
 }
 
 /** Captures a render callback's output and strips ANSI codes. */

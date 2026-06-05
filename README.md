@@ -59,6 +59,9 @@ The full reference for every output component lives in [`docs/api-c.md`](docs/ap
 
 - **Large set of widgets**: panels, tables, rules, side-by-side columns, lists, trees, key/value blocks, alerts, badges, progress bars, spinners.
 - **Live display & dashboards**: re-render a composed frame in place (`sc_live_*`) – build dashboards from any widgets that update continuously, in-place or on the fullscreen alternate screen ([docs](docs/api-c.md#live-display)).
+- **Multi-progress**: several progress bars updated together in place for concurrent tasks (`sc_multiprogress_*`), buffered to the final stack off a terminal.
+- **Diff rendering**: colored unified diff of two texts (`sc_diff_*`) – `@@` hunks, red/green `-`/`+` lines.
+- **Human-readable formatting**: file sizes, durations, relative time, grouped/compact numbers and percentages (`sc_humanize_*`, e.g. `1536 → "1.5 KB"`, `93 → "1m 33s"`), locale-aware separators.
 - **Rich-compatible markup**: `[bold red]error[/]`, `[on cyan] OK [/]`, `[rgb(120,200,255)]…[/]` – same syntax as [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/Textualize/textual). See [Rich-compatible markup](#rich-compatible-markup).
 - **Clickable hyperlinks (OSC-8)**: `[link=https://…]text[/link]` markup or `sc_text_append_link()` – Cmd/Ctrl+click opens the URL in supporting terminals, plain text everywhere else ([docs](docs/api-c.md#hyperlinks-osc-8)).
 - **Truecolor + 8-color ANSI**, with graceful sentinels for "no color". Plus a curated **named RGB palette** (`SC_COLOR_ACCENT`, `SC_COLOR_ERROR`, … / `sparcli::palette::accent()` / `palette::ACCENT` / `sc.Palette.ACCENT`) usable in code and in markup (`[accent]`, `[error]`, `[orange]`) and the CLI (`--color accent`) ([docs](docs/api-c.md#named-rgb-palette-sc_color_)).
@@ -81,6 +84,9 @@ Everything a complete command-line application needs around the widgets; overvie
 - **Pretty errors**: report fatal errors as red alert panels – message + cause chain + hint + exit code (`sc_die`, [docs](docs/api-framework.md#pretty-errors)).
 - **Pager integration**: pipe long output through `$PAGER` / `less -R` automatically; a no-op in scripts and CI ([docs](docs/api-c.md#pager)).
 - **XDG paths**: resolve per-app config/data/cache/state directories (`sc_path_config("myapp")` → `~/.config/myapp`, created on first use) ([docs](docs/api-framework.md#xdg-paths)).
+- **Subprocess helper**: run a command without a shell and capture stdout/stderr/exit code without deadlocking (`sc_run`); captured output is sanitized by default.
+- **Layered config**: merge defaults < config file (JSON/TOML/YAML by extension) < environment < flags into one tree with dotted-path typed getters (`sc_config_*`); opt-in (serde-backed).
+- **Shell completion**: generate zsh, **bash and fish** completion scripts from an args command tree (`sc_args_print_{zsh,bash,fish}_completion`).
 - **REPL building blocks**: input history with ↑/↓ recall and XDG persistence (`sc_history_*`), a quote-aware line tokenizer (`sc_args_split`), reusable parse trees (implicit `sc_args_reset`), and live-dashboard + prompt composition (`ScLiveOpts.prompt_rows`) – see the `examples/c/apps/repl_*.c` demos.
 
 ### Structured data (serde)
@@ -90,6 +96,7 @@ An opt-in `serde/` layer of read/write parsers over one shared `ScValue` tree (C
 - **JSON, TOML, YAML** (documented subset) – read and write over the shared model, so converting between them is parse-one/write-the-other (`sc_json_*`, `sc_toml_*`, `sc_yaml_*`).
 - **CSV/TSV** – RFC-4180 reader+writer with quoted fields, ragged rows and header lookup (`sc_csv_*`); the same parser the `sparcli table` CLI uses.
 - **Markdown** – front-matter split (YAML/TOML → `ScValue`) plus an editable heading/section tree (`sc_markdown_*`).
+- **Render to the terminal** (view layer): pretty-print any `ScValue` jq-style with syntax coloring (`sc_value_render`), and render Markdown through the widget stack – headings, lists, code blocks, quotes, pipe tables, inline emphasis (`sc_markdown_render`). C and C++ only, opt-in.
 
 ### Shell & language bindings
 

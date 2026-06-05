@@ -418,6 +418,74 @@ auto msg = textarea("Commit message",
                     { .external_editor = true, .editor_key = key_ctrl('g') });
 ```
 
+## Utility wrappers
+
+### Humanize (`namespace humanize`)
+
+Returns `std::string` copies of the C heap strings. @see [`api-c.md`](api-c.md#human-readable-formatting).
+
+```cpp
+humanize::bytes(1536);                 // "1.5 KB"  (or bytes(n, SC_BYTES_IEC))
+humanize::number(1234567);             // "1,234,567"
+humanize::compact(12400);              // "12.4k"
+humanize::percent(0.42);               // "42%"
+humanize::duration(8054);              // "2h 14m"
+humanize::duration_clock(3725);        // "01:02:05"
+humanize::relative(then, now);         // "3 hours ago"
+humanize::bytes(1536, SC_BYTES_IEC, { .decimal_sep = ',' });   // "1,5 KiB"
+```
+
+### Diff
+
+```cpp
+diff("a\nb\n", "a\nB\n");                       // print a colored unified diff
+Text t  = diff_text(old_s, new_s, { .context = 1 });
+Rendered r = capture::diff(old_s, new_s);       // compose into panels/columns
+```
+
+### MultiProgress (RAII)
+
+```cpp
+MultiProgress mp;
+int a = mp.add("download", { .show_percent = true });
+int b = mp.add("extract",  { .show_percent = true });
+for (int i = 0; i <= 100; ++i) { mp.update(a, i, 100); mp.update(b, i/2, 100); }
+mp.end();   // also runs on destruction
+```
+
+### Subprocess
+
+```cpp
+ProcResult r = run({ "git", "rev-parse", "HEAD" });
+if (r.ok() && r.exit_code() == 0) std::print("{}", std::string(r.out()));
+// stdin: set opts.input / opts.input_len to a buffer that lives through the call
+```
+
+`out()`/`err()` return `std::string_view` into the owned buffers; the result frees them on destruction. `exit_code()` is `127` for a missing command.
+
+### Config (opt-in: `<app/sparcli_config.hpp>`)
+
+Serde-dependent, so not pulled in by `<sparcli.hpp>` – include it explicitly.
+
+```cpp
+#include <app/sparcli_config.hpp>
+sparcli::Config cfg;
+cfg.set_defaults(defaults);                 // a serde::Value object
+cfg.load_file("~/.config/app.toml");        // by extension; MISSING is not an error
+cfg.load_env("APP_");                       // APP_SERVER__PORT → server.port
+cfg.set("debug", serde::Value::boolean(true));
+auto port = cfg.get_int("server.port", 8080);
+```
+
+### View: render serde models (opt-in: `<view/sparcli_view.hpp>`)
+
+```cpp
+#include <view/sparcli_view.hpp>
+view::value_render(value);                  // jq-style colored ScValue
+view::markdown_render_str("# Title\n\n- a\n- b\n");
+Rendered r = view::capture_markdown(doc);   // doc = serde::Markdown
+```
+
 ## Escape hatch
 
 Every handle exposes `.get()` returning the raw `Sc*` pointer, so you can always mix wrapper and C calls or reach functionality the wrapper doesn't surface:
