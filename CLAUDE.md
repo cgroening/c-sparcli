@@ -698,6 +698,8 @@ void sc_multiprogress_end(ScMultiProgress *mp);   // leave final stack (unless t
 
 `add` returns the bar index (or `-1`); each `update`/`set_label`/`add` redraws the whole stack. Per-bar `ScProgressBarOpts` are copied like `sc_progressbar_new`. Bars can be added after `begin` (the stack grows; live clears leftover lines). Golden-tested in `tests/output/test_multiprogress.c` (`bar_width` fixed for determinism).
 
+**Bindings:** C++ `sparcli::MultiProgress` (RAII); Rust `MultiProgress` (RAII, `Drop` ends); Python `sc.MultiProgress` (context manager).
+
 ---
 
 ## Input Widgets
@@ -928,6 +930,8 @@ char *sc_humanize_relative(time_t when, time_t now);               // → "3 hou
 - **`ScHumanizeOpts`** (zero-init friendly): `decimals` (`0` = per-function default), `decimal_sep` (`0` = `'.'`; use `','` for de_DE), `group_sep` (`0` = `','` thousands separator for `sc_humanize_number`; use `'.'` for de_DE), `no_space` (drop the space before size units).
 - `sc_humanize_duration` shows the two most-significant units (`2h 14m`, `1d 1h`), `<60s` → `"Ns"`. `sc_humanize_relative` is English-only (`"just now"`, `"in 2 days"`).
 
+**Bindings:** C++ `sparcli::humanize::*` (returns `std::string`); Rust module `sparcli::humanize::{bytes,number,compact,percent,duration,duration_clock,relative}` (+ `ByteUnit`/`HumanizeOpts`); Python `sc.humanize.*` (+ `sc.ByteUnit`/`sc.HumanizeOpts`).
+
 ---
 
 ## Diff Rendering (`src/output/diff.c`)
@@ -941,6 +945,8 @@ ScRendered *sc_capture_diff(const char *old, const char *new, ScDiffOpts opts);
 ```
 
 `ScDiffOpts` (zero-init = 3 context lines, `old`/`new` header labels, red/green/cyan): `context` (`0` = default 3, negative = full file), `no_header`, `old_label`/`new_label`, `add_color`/`del_color`/`hunk_color`. Pathologically large inputs (LCS table > 8M cells) fall back to a non-minimal delete-all/add-all diff to bound memory. Golden-tested in `tests/output/test_diff.c`.
+
+**Bindings:** C++ `sparcli::diff`/`diff_text`/`capture::diff`; Rust `diff_print`/`diff_text`/`capture::diff` (+ `DiffOpts`); Python `sc.diff`/`sc.diff_rendered` (+ `sc.DiffOpts`).
 
 ---
 

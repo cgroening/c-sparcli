@@ -138,6 +138,7 @@ Interactive; need a real terminal. Each falls back to a notice without one.
 | `app/errors_logging` | Pretty error reports (cause chain + hint + code) and leveled logging (global + handle-based). | C, C++, Rust, Python |
 | `app/args` | Declarative argument parser: subcommands, typed options, choices, help/version, did-you-mean. | C, C++ |
 | `app/args_repl` | Reusing one parser tree per input line (tokenizer + implicit reset) – the building block for a REPL. | C, C++ |
+| `app/completion` | Generate zsh / bash / fish completion scripts from an args command tree (`sc_args_print_{zsh,bash,fish}_completion`). | C, C++ |
 | `app/humanize` | Human-readable sizes, durations, relative time and grouped/compact numbers (locale separators). | C, C++, Rust, Python |
 | `app/subprocess` | Run a command without a shell, capture stdout, feed stdin, read the exit code (`sc_run`). | C, C++ |
 | `app/config` (C) · `app/config_layer` (C++) | Layered config: defaults < environment (`__` nesting) < explicit overrides, dotted-path getters. | C, C++ |
