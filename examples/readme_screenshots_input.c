@@ -36,8 +36,6 @@ static const ScTextStyle s_bold   = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE,
                                        SC_ANSI_COLOR_NONE };
 static const ScTextStyle s_dim    = { SC_TEXT_ATTR_DIM,  SC_ANSI_COLOR_NONE,
                                        SC_ANSI_COLOR_NONE };
-static const ScTextStyle s_b_cyan = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN,
-                                       SC_ANSI_COLOR_NONE };
 
 static const ScTextStyle s_b_magenta =
     { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_MAGENTA, SC_ANSI_COLOR_NONE };

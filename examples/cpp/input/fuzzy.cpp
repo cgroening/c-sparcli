@@ -48,7 +48,10 @@ static void run_list_finder() {
                             .border = { .type = SC_BORDER_ROUNDED,
                                         .color = rgb(255, 121, 198) },
                             .bg = rgb(30, 30, 46),
-                            .padding = { .left = 1, .right = 1 } } });
+                            // ScEdges is CSS order {top,right,bottom,left}; C++
+                            // needs designated inits in declaration order (GCC
+                            // errors otherwise), so right precedes left.
+                            .padding = { .right = 1, .left = 1 } } });
     for (const auto& branch : branches) {
         finder.add(branch);
     }

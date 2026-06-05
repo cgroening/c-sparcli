@@ -59,8 +59,11 @@ static void run_single_select() {
                     .accent = cyan(),
                     .selected_style = { .attr = SC_TEXT_ATTR_BOLD,
                                         .fg = white(), .bg = magenta() },
+                    // ScEdges is CSS order {top,right,bottom,left}; C++ needs
+                    // designated inits in declaration order (GCC errors
+                    // otherwise), so right is written before left.
                     .box = { .bg = rgb(30, 30, 46),
-                             .padding = { .left = 1, .right = 1 },
+                             .padding = { .right = 1, .left = 1 },
                              .min_width = 28 } });
     for (const auto& language : kLanguages) {
         select.add(language);
