@@ -355,6 +355,15 @@ These are deliberate, not bugs:
   explicit keys (see the YAML section).
 - **Markdown** parses structure only (ATX headings + front matter + fenced-code
   awareness), not inline formatting, lists or tables.
+- **Comments / formatting are not preserved.** The readers accept `#` comments
+  (TOML/YAML) but do not surface them in the `ScValue` tree. A parse→write round
+  trip is *data*-preserving but **not comment- or format-preserving**: rewriting
+  a file drops its comments and re-formats it. This layer is not an "edit my
+  config file in place" tool – for that, a format-preserving editor (a separate
+  per-format lexer path) would be needed.
+- **No CLI subcommands.** The `sparcli` command-line tool does not (yet) expose
+  JSON/YAML/TOML conversion or querying – deliberately deferred (the CLI reads
+  CSV for `sparcli table`, but that is the only serde use in the binary).
 
 ---
 
