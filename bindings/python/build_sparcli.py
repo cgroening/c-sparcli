@@ -42,6 +42,7 @@ _SOURCES = [
     "core/text.c",
     "core/render_wrap.c",
     "core/sanitize.c",
+    "core/humanize.c",
     "output/panel.c",
     "output/table/table.c",
     "output/table/table_print.c",
@@ -82,6 +83,8 @@ _SOURCES = [
     "input/history.c",
     "output/pager.c",
     "output/live.c",
+    "output/diff.c",
+    "output/multiprogress.c",
     "app/paths.c",
     "app/error.c",
     "log/log.c",
@@ -519,6 +522,56 @@ void sc_spinner_set_label(ScSpinner *spinner, const char *label);
 void sc_spinner_tick(ScSpinner *spinner);
 void sc_spinner_finish(ScSpinner *spinner, bool success, const char *label);
 void sc_spinner_free(ScSpinner *spinner);
+
+/* ── Multi progress ────────────────────────────────────────────────────── */
+typedef struct {
+    bool transient;
+    bool always;
+    ...;
+} ScMultiProgressOpts;
+typedef struct ScMultiProgress ScMultiProgress;
+ScMultiProgress *sc_multiprogress_begin(ScMultiProgressOpts opts);
+int  sc_multiprogress_add(ScMultiProgress *mp, const char *label,
+                          ScProgressBarOpts opts);
+void sc_multiprogress_update(ScMultiProgress *mp, int index,
+                             double value, double max);
+void sc_multiprogress_set_label(ScMultiProgress *mp, int index,
+                                const char *label);
+void sc_multiprogress_end(ScMultiProgress *mp);
+
+/* ── Diff ──────────────────────────────────────────────────────────────── */
+typedef struct {
+    int context;
+    bool no_header;
+    const char *old_label;
+    const char *new_label;
+    ScColor add_color;
+    ScColor del_color;
+    ScColor hunk_color;
+    ...;
+} ScDiffOpts;
+ScText     *sc_diff_text(const char *old, const char *new, ScDiffOpts opts);
+void        sc_diff_print(const char *old, const char *new, ScDiffOpts opts);
+ScRendered *sc_capture_diff(const char *old, const char *new, ScDiffOpts opts);
+
+/* ── Humanize ──────────────────────────────────────────────────────────── */
+typedef enum { SC_BYTES_SI, SC_BYTES_IEC, SC_BYTES_IEC_SHORT } ScByteUnit;
+typedef struct {
+    int  decimals;
+    char decimal_sep;
+    char group_sep;
+    bool no_space;
+    ...;
+} ScHumanizeOpts;
+char *sc_humanize_bytes(uint64_t bytes, ScByteUnit unit);
+char *sc_humanize_bytes_opts(uint64_t bytes, ScByteUnit unit,
+                             ScHumanizeOpts opts);
+char *sc_humanize_number(double value, ScHumanizeOpts opts);
+char *sc_humanize_compact(double value, ScHumanizeOpts opts);
+char *sc_humanize_percent(double ratio, ScHumanizeOpts opts);
+char *sc_humanize_duration(double seconds);
+char *sc_humanize_duration_clock(double seconds);
+char *sc_humanize_relative(long when, long now);
 
 /* ── Utilities ─────────────────────────────────────────────────────────── */
 void sc_set_allow_ansi(bool allow);

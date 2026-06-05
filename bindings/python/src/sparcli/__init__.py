@@ -21,17 +21,20 @@ anything the wrapper does not surface.
 from __future__ import annotations
 
 from . import _sparcli_cffi as sys  # raw FFI escape hatch (ffi, lib)
-from . import capture, markup
+from . import capture, humanize, markup
 from .app import (ErrorReport, Pager, app_dir, app_file, cache_dir,
                   config_dir, data_dir, state_dir)
+from .diff import DiffOpts, diff, diff_rendered
+from .humanize import HumanizeOpts
+from .multiprogress import MultiProgress, MultiProgressOpts
 from .capture import (Live, PadOpts, Rendered, align_str, align_text, capture,
                       pad_str, pad_text, vstack)
 from .color import Color, Palette, color_by_name
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BgExtent, BorderType,
-                    HintLayout, HintPos, ListMarker, LogLevel, PathKind,
-                    Position, ProgressType, SpinnerType, SuggestMatch,
-                    SuggestMode, VAlign, WeekStart, WidthMode)
+                    ByteUnit, HintLayout, HintPos, ListMarker, LogLevel,
+                    PathKind, Position, ProgressType, SpinnerType,
+                    SuggestMatch, SuggestMode, VAlign, WeekStart, WidthMode)
 from .log import (Logger, log_add_file, log_debug, log_error,
                   log_hide_timestamps, log_info, log_level, log_reset,
                   log_set_level, log_warning)
@@ -100,6 +103,11 @@ __all__ = [
     "align_str", "align_text",
     # progress
     "ProgressBar", "ProgressBarOpts", "Thresholds", "Spinner", "SpinnerOpts",
+    "MultiProgress", "MultiProgressOpts",
+    # diff
+    "diff", "diff_rendered", "DiffOpts",
+    # humanize
+    "humanize", "HumanizeOpts", "ByteUnit",
     # input
     "input_available", "confirm", "ConfirmOpts", "text_input", "TextInputOpts",
     "SuggestOpts", "History",

@@ -1618,6 +1618,18 @@ pub mod capture {
     pub fn str(s: &str) -> Rendered {
         Rendered::from_raw(unsafe { ffi::sc_capture_str(cstring(s).as_ptr()) })
     }
+    /// Captures a colored unified diff into a [`Rendered`].
+    pub fn diff(old: &str, new: &str, opts: DiffOpts) -> Rendered {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        Rendered::from_raw(unsafe {
+            ffi::sc_capture_diff(
+                cstring(old).as_ptr(),
+                cstring(new).as_ptr(),
+                o,
+            )
+        })
+    }
     pub fn text(t: &Text) -> Rendered {
         Rendered::from_raw(unsafe { ffi::sc_capture_text(t.as_ptr()) })
     }
@@ -1898,6 +1910,176 @@ impl Live {
 }
 
 impl Drop for Live {
+    fn drop(&mut self) {
+        self.finish();
+    }
+}
+
+// ── Diff ─────────────────────────────────────────────────────────────────────
+
+/// Options for the colored unified diff (zero-init = 3 context lines,
+/// `old`/`new` labels, red/green/cyan).
+#[derive(Clone, Debug, Default)]
+pub struct DiffOpts {
+    /// Context lines around each change. `0` = default (3); negative = full file.
+    pub context: i32,
+    /// Suppress the `--- old` / `+++ new` header.
+    pub no_header: bool,
+    /// Old-side header label; `None` = `"old"`.
+    pub old_label: Option<String>,
+    /// New-side header label; `None` = `"new"`.
+    pub new_label: Option<String>,
+    /// Added (`+`) line color; zero-init = green.
+    pub add_color: Color,
+    /// Removed (`-`) line color; zero-init = red.
+    pub del_color: Color,
+    /// `@@` hunk-header color; zero-init = cyan.
+    pub hunk_color: Color,
+}
+
+impl DiffOpts {
+    pub fn new() -> Self {
+        DiffOpts::default()
+    }
+    pub fn context(mut self, n: i32) -> Self {
+        self.context = n;
+        self
+    }
+    pub fn no_header(mut self, on: bool) -> Self {
+        self.no_header = on;
+        self
+    }
+    pub fn old_label(mut self, s: impl Into<String>) -> Self {
+        self.old_label = Some(s.into());
+        self
+    }
+    pub fn new_label(mut self, s: impl Into<String>) -> Self {
+        self.new_label = Some(s.into());
+        self
+    }
+    pub fn add_color(mut self, c: Color) -> Self {
+        self.add_color = c;
+        self
+    }
+    pub fn del_color(mut self, c: Color) -> Self {
+        self.del_color = c;
+        self
+    }
+    pub fn hunk_color(mut self, c: Color) -> Self {
+        self.hunk_color = c;
+        self
+    }
+    pub(crate) fn raw(&self, a: &mut Arena) -> ffi::ScDiffOpts {
+        ffi::ScDiffOpts {
+            context: self.context,
+            no_header: self.no_header,
+            old_label: a.opt(self.old_label.as_deref()),
+            new_label: a.opt(self.new_label.as_deref()),
+            add_color: self.add_color.raw(),
+            del_color: self.del_color.raw(),
+            hunk_color: self.hunk_color.raw(),
+        }
+    }
+}
+
+/// Builds the colored unified diff of `old` vs `new` as a [`Text`].
+pub fn diff_text(old: &str, new: &str, opts: DiffOpts) -> Text {
+    let mut a = Arena::new();
+    let o = opts.raw(&mut a);
+    let ptr = unsafe {
+        ffi::sc_diff_text(cstring(old).as_ptr(), cstring(new).as_ptr(), o)
+    };
+    crate::text::from_raw(ptr)
+}
+
+/// Prints the colored unified diff to the current output stream.
+pub fn diff_print(old: &str, new: &str, opts: DiffOpts) {
+    let mut a = Arena::new();
+    let o = opts.raw(&mut a);
+    unsafe {
+        ffi::sc_diff_print(cstring(old).as_ptr(), cstring(new).as_ptr(), o)
+    };
+}
+
+// ── Multi progress ───────────────────────────────────────────────────────────
+
+/// Options for [`MultiProgress`] (zero-init = leave the stack, buffer off-TTY).
+#[derive(Clone, Debug, Default)]
+pub struct MultiProgressOpts {
+    /// Erase the bars when the session ends.
+    pub transient: bool,
+    /// Emit redraw escapes even off a terminal.
+    pub always: bool,
+}
+
+impl MultiProgressOpts {
+    pub fn new() -> Self {
+        MultiProgressOpts::default()
+    }
+    pub fn transient(mut self, on: bool) -> Self {
+        self.transient = on;
+        self
+    }
+    pub fn always(mut self, on: bool) -> Self {
+        self.always = on;
+        self
+    }
+    fn raw(&self) -> ffi::ScMultiProgressOpts {
+        ffi::ScMultiProgressOpts {
+            transient: self.transient,
+            always: self.always,
+        }
+    }
+}
+
+/// Several progress bars updated together in place. Off a terminal, only the
+/// final stack is printed. Ends on drop (or call [`MultiProgress::end`]).
+pub struct MultiProgress {
+    ptr: *mut ffi::ScMultiProgress,
+}
+
+impl MultiProgress {
+    pub fn begin(opts: MultiProgressOpts) -> MultiProgress {
+        let ptr = unsafe { ffi::sc_multiprogress_begin(opts.raw()) };
+        assert!(!ptr.is_null(), "sc_multiprogress_begin: out of memory");
+        MultiProgress { ptr }
+    }
+    /// Adds a bar with `label`; returns its index (`-1` on failure).
+    pub fn add(&mut self, label: &str, opts: ProgressBarOpts) -> i32 {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        unsafe {
+            ffi::sc_multiprogress_add(self.ptr, cstring(label).as_ptr(), o)
+        }
+    }
+    /// Updates bar `index` and redraws. `max == 0` → `value` is a 0..1 ratio.
+    pub fn update(&mut self, index: i32, value: f64, max: f64) {
+        unsafe { ffi::sc_multiprogress_update(self.ptr, index, value, max) };
+    }
+    /// Replaces a bar's label and redraws.
+    pub fn set_label(&mut self, index: i32, label: &str) {
+        unsafe {
+            ffi::sc_multiprogress_set_label(
+                self.ptr,
+                index,
+                cstring(label).as_ptr(),
+            )
+        };
+    }
+    /// Ends the session early (leaves the final stack unless `transient`).
+    pub fn end(mut self) {
+        self.finish();
+    }
+    fn finish(&mut self) {
+        if self.ptr.is_null() {
+            return;
+        }
+        unsafe { ffi::sc_multiprogress_end(self.ptr) };
+        self.ptr = std::ptr::null_mut();
+    }
+}
+
+impl Drop for MultiProgress {
     fn drop(&mut self) {
         self.finish();
     }

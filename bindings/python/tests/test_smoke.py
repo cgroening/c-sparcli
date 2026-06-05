@@ -527,3 +527,35 @@ def test_ansi_per_widget_override():
     # Borders stay aligned: every line strips to the same visible width
     widths = {len(sc.strip_ansi(line)) for line in lines}
     assert len(widths) == 1
+
+
+# ── humanize / diff / multiprogress ───────────────────────────────────────────
+def test_humanize():
+    assert sc.humanize.bytes(1536) == "1.5 KB"
+    assert sc.humanize.bytes(1536, sc.ByteUnit.IEC) == "1.5 KiB"
+    assert sc.humanize.number(1234567) == "1,234,567"
+    assert sc.humanize.compact(12400) == "12.4k"
+    assert sc.humanize.percent(0.42) == "42%"
+    assert sc.humanize.duration(93) == "1m 33s"
+    assert sc.humanize.duration_clock(3725) == "01:02:05"
+    de = sc.HumanizeOpts(decimals=2, decimal_sep=",", group_sep=".")
+    assert sc.humanize.number(1234567.89, de) == "1.234.567,89"
+    now = 1_000_000_000
+    assert sc.humanize.relative(now - 3 * 3600, now) == "3 hours ago"
+
+
+def test_diff_render():
+    r = sc.diff_rendered("a\nb\nc\n", "a\nB\nc\n", sc.DiffOpts(context=0))
+    plain = [sc.strip_ansi(line) for line in r.lines]
+    assert any(line == "-b" for line in plain)
+    assert any(line == "+B" for line in plain)
+
+
+def test_multiprogress():
+    with sc.MultiProgress() as mp:
+        a = mp.add("a", sc.ProgressBarOpts(show_percent=True))
+        b = mp.add("b", sc.ProgressBarOpts(show_percent=True))
+        assert (a, b) == (0, 1)
+        mp.update(a, 100, 100)
+        mp.update(b, 50, 100)
+        mp.set_label(b, "b2")

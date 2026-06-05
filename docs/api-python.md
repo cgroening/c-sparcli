@@ -104,6 +104,28 @@ sp.tick()
 sp.finish(True, "Done")
 ```
 
+### Multi-progress, diff & humanize
+
+```python
+# Several bars updated together in place (context manager; ends on exit).
+with sc.MultiProgress() as mp:
+    a = mp.add("download", sc.ProgressBarOpts(show_percent=True))
+    b = mp.add("extract",  sc.ProgressBarOpts(show_percent=True))
+    mp.update(a, 100, 100)
+    mp.update(b, 50, 100)
+
+# Colored unified diff: print, or capture a Rendered.
+sc.diff(old, new, sc.DiffOpts(context=1, old_label="a", new_label="b"))
+r = sc.diff_rendered(old, new, sc.DiffOpts(no_header=True))
+
+# Human-readable formatting (module sc.humanize).
+sc.humanize.bytes(1536)                 # "1.5 KB"  (or bytes(n, sc.ByteUnit.IEC))
+sc.humanize.number(1_234_567)           # "1,234,567"
+sc.humanize.duration(8054)              # "2h 14m"
+sc.humanize.relative(then, now)         # "3 hours ago"
+# de_DE: sc.HumanizeOpts(decimals=2, decimal_sep=",", group_sep=".")
+```
+
 ### Redirecting output
 
 ```python

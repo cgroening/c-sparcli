@@ -174,3 +174,11 @@ class SuggestMatch(IntEnum):
 
     PREFIX = 0
     FUZZY = 1
+
+
+class ByteUnit(IntEnum):
+    """Unit system for :func:`sparcli.humanize.bytes`."""
+
+    SI = 0          # 1000-based: KB, MB, GB
+    IEC = 1         # 1024-based: KiB, MiB, GiB
+    IEC_SHORT = 2   # 1024-based with short labels: K, M, G

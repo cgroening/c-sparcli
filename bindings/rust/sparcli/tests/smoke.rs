@@ -815,3 +815,45 @@ fn palette_border_emits_rgb_escape() {
         r.lines()
     );
 }
+
+#[test]
+fn humanize_formats() {
+    use sparcli::humanize::{self, ByteUnit, HumanizeOpts};
+    assert_eq!(humanize::bytes(1536, ByteUnit::Si), "1.5 KB");
+    assert_eq!(humanize::bytes(1536, ByteUnit::Iec), "1.5 KiB");
+    assert_eq!(humanize::number(1_234_567.0, HumanizeOpts::new()), "1,234,567");
+    assert_eq!(humanize::compact(12_400.0, HumanizeOpts::new()), "12.4k");
+    assert_eq!(humanize::percent(0.42, HumanizeOpts::new()), "42%");
+    assert_eq!(humanize::duration(93.0), "1m 33s");
+    assert_eq!(humanize::duration_clock(3725.0), "01:02:05");
+    let de = HumanizeOpts::new().decimal_sep(',');
+    assert_eq!(humanize::bytes_opts(1536, ByteUnit::Iec, de), "1,5 KiB");
+    let now = 1_000_000_000_i64;
+    assert_eq!(humanize::relative(now - 3 * 3600, now), "3 hours ago");
+}
+
+#[test]
+fn diff_capture_has_changes() {
+    let r = capture::diff(
+        "a\nb\nc\n",
+        "a\nB\nc\n",
+        sparcli::DiffOpts::new().context(0),
+    );
+    let lines = r.lines();
+    assert!(lines.iter().any(|l| l.contains("-b")), "{:?}", lines);
+    assert!(lines.iter().any(|l| l.contains("+B")), "{:?}", lines);
+}
+
+#[test]
+fn multiprogress_smoke() {
+    // Off a TTY the live display buffers; this just exercises the lifecycle.
+    let mut mp = sparcli::MultiProgress::begin(sparcli::MultiProgressOpts::new());
+    let a = mp.add("a", sparcli::ProgressBarOpts::new().show_percent(true));
+    let b = mp.add("b", sparcli::ProgressBarOpts::new().show_percent(true));
+    assert_eq!(a, 0);
+    assert_eq!(b, 1);
+    mp.update(a, 100.0, 100.0);
+    mp.update(b, 50.0, 100.0);
+    mp.set_label(b, "b2");
+    mp.end();
+}

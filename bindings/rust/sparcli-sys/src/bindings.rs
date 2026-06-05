@@ -6,6 +6,7 @@ pub const SC_ANSI_ESCAPE_CODE_DIM: &[u8; 5] = b"\x1B[2m\0";
 pub const SC_ANSI_ESCAPE_CODE_ITALIC: &[u8; 5] = b"\x1B[3m\0";
 pub const SC_ANSI_ESCAPE_CODE_UNDERLINE: &[u8; 5] = b"\x1B[4m\0";
 pub type __int64_t = ::std::os::raw::c_longlong;
+pub type __darwin_time_t = ::std::os::raw::c_long;
 pub type __darwin_off_t = __int64_t;
 pub type fpos_t = __darwin_off_t;
 #[repr(C)]
@@ -342,7 +343,7 @@ pub struct ScTitle {
     #[doc = " Title string; `NULL` = no title."]
     pub text: *const ::std::os::raw::c_char,
     #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
-    pub rich_text: *const ScText,
+    pub rich_text: *mut ScText,
     #[doc = " Text style (bold, color, …) applied to the title."]
     pub style: ScTextStyle,
     #[doc = " Horizontal placement of the title."]
@@ -1421,6 +1422,62 @@ extern "C" {
     #[doc = " Frees `bar` and the owned label string.\n\n @param bar  Bar to free; safe to pass `NULL`."]
     pub fn sc_progressbar_free(bar: *mut ScProgressBar);
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScMultiProgress {
+    _unused: [u8; 0],
+}
+#[doc = " Options for @ref sc_multiprogress_begin. Zero-init = sensible defaults."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScMultiProgressOpts {
+    #[doc = " Erase the bars when the session ends instead of leaving them."]
+    pub transient: bool,
+    #[doc = " Emit redraw escapes even off a terminal (default: buffer, print the\nfinal stack once)."]
+    pub always: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScMultiProgressOpts"][::std::mem::size_of::<ScMultiProgressOpts>() - 2usize];
+    ["Alignment of ScMultiProgressOpts"][::std::mem::align_of::<ScMultiProgressOpts>() - 1usize];
+    ["Offset of field: ScMultiProgressOpts::transient"]
+        [::std::mem::offset_of!(ScMultiProgressOpts, transient) - 0usize];
+    ["Offset of field: ScMultiProgressOpts::always"]
+        [::std::mem::offset_of!(ScMultiProgressOpts, always) - 1usize];
+};
+extern "C" {
+    #[doc = " Starts a multi-progress session on the current output stream.\n @return  Heap handle (pair with @ref sc_multiprogress_end); `NULL` on OOM."]
+    pub fn sc_multiprogress_begin(opts: ScMultiProgressOpts) -> *mut ScMultiProgress;
+}
+extern "C" {
+    #[doc = " Adds a bar with `label` and the given bar options.\n\n @param mp     Session handle.\n @param label  Bar label (copied); may be `NULL`.\n @param opts   Per-bar rendering options (copied, like\n               @ref sc_progressbar_new).\n @return       The new bar's index, or `-1` on failure."]
+    pub fn sc_multiprogress_add(
+        mp: *mut ScMultiProgress,
+        label: *const ::std::os::raw::c_char,
+        opts: ScProgressBarOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Updates bar `index` to `value`/`max` and redraws the whole stack.\n (`max == 0` interprets `value` as a 0..1 ratio, like the single bar.)"]
+    pub fn sc_multiprogress_update(
+        mp: *mut ScMultiProgress,
+        index: ::std::os::raw::c_int,
+        value: f64,
+        max: f64,
+    );
+}
+extern "C" {
+    #[doc = " Replaces the label of bar `index` and redraws."]
+    pub fn sc_multiprogress_set_label(
+        mp: *mut ScMultiProgress,
+        index: ::std::os::raw::c_int,
+        label: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " Ends the session (leaves the final stack unless `transient`) and frees\n  the handle and all bars. `NULL`-safe."]
+    pub fn sc_multiprogress_end(mp: *mut ScMultiProgress);
+}
 #[doc = "< `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` (10 frames, Braille dots)"]
 pub const ScSpinnerType_SC_SPINNER_BRAILLE: ScSpinnerType = 0;
 #[doc = "< `|/-\\` (4 frames, ASCII)"]
@@ -1646,6 +1703,108 @@ extern "C" {
     #[doc = " Overwrites the current terminal line with spaces and returns the cursor\n to column 0, then flushes stdout."]
     pub fn sc_clear_line();
 }
+pub type time_t = __darwin_time_t;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct tm {
+    pub tm_sec: ::std::os::raw::c_int,
+    pub tm_min: ::std::os::raw::c_int,
+    pub tm_hour: ::std::os::raw::c_int,
+    pub tm_mday: ::std::os::raw::c_int,
+    pub tm_mon: ::std::os::raw::c_int,
+    pub tm_year: ::std::os::raw::c_int,
+    pub tm_wday: ::std::os::raw::c_int,
+    pub tm_yday: ::std::os::raw::c_int,
+    pub tm_isdst: ::std::os::raw::c_int,
+    pub tm_gmtoff: ::std::os::raw::c_long,
+    pub tm_zone: *mut ::std::os::raw::c_char,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of tm"][::std::mem::size_of::<tm>() - 56usize];
+    ["Alignment of tm"][::std::mem::align_of::<tm>() - 8usize];
+    ["Offset of field: tm::tm_sec"][::std::mem::offset_of!(tm, tm_sec) - 0usize];
+    ["Offset of field: tm::tm_min"][::std::mem::offset_of!(tm, tm_min) - 4usize];
+    ["Offset of field: tm::tm_hour"][::std::mem::offset_of!(tm, tm_hour) - 8usize];
+    ["Offset of field: tm::tm_mday"][::std::mem::offset_of!(tm, tm_mday) - 12usize];
+    ["Offset of field: tm::tm_mon"][::std::mem::offset_of!(tm, tm_mon) - 16usize];
+    ["Offset of field: tm::tm_year"][::std::mem::offset_of!(tm, tm_year) - 20usize];
+    ["Offset of field: tm::tm_wday"][::std::mem::offset_of!(tm, tm_wday) - 24usize];
+    ["Offset of field: tm::tm_yday"][::std::mem::offset_of!(tm, tm_yday) - 28usize];
+    ["Offset of field: tm::tm_isdst"][::std::mem::offset_of!(tm, tm_isdst) - 32usize];
+    ["Offset of field: tm::tm_gmtoff"][::std::mem::offset_of!(tm, tm_gmtoff) - 40usize];
+    ["Offset of field: tm::tm_zone"][::std::mem::offset_of!(tm, tm_zone) - 48usize];
+};
+#[doc = " SI / decimal: 1000-based with `KB`, `MB`, `GB`, … (the default)."]
+pub const ScByteUnit_SC_BYTES_SI: ScByteUnit = 0;
+#[doc = " IEC / binary: 1024-based with `KiB`, `MiB`, `GiB`, …"]
+pub const ScByteUnit_SC_BYTES_IEC: ScByteUnit = 1;
+#[doc = " IEC magnitudes (1024-based) with short labels `K`, `M`, `G`, …"]
+pub const ScByteUnit_SC_BYTES_IEC_SHORT: ScByteUnit = 2;
+#[doc = " Unit system for @ref sc_humanize_bytes."]
+pub type ScByteUnit = ::std::os::raw::c_uint;
+#[doc = " Shared formatting options. Zero-init selects sensible defaults\n (period decimal separator, comma thousands separator, one fractional\n digit where applicable, a space before size units)."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScHumanizeOpts {
+    #[doc = " Fixed number of fractional digits; `0` = per-function default."]
+    pub decimals: ::std::os::raw::c_int,
+    #[doc = " Decimal separator character; `0` = `'.'` (use `','` for de_DE)."]
+    pub decimal_sep: ::std::os::raw::c_char,
+    #[doc = " Thousands grouping separator for @ref sc_humanize_number;\n`0` = `','` (use `'.'` for de_DE)."]
+    pub group_sep: ::std::os::raw::c_char,
+    #[doc = " Suppress the space between number and unit\n(`\"1.5KB\"` instead of `\"1.5 KB\"`)."]
+    pub no_space: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScHumanizeOpts"][::std::mem::size_of::<ScHumanizeOpts>() - 8usize];
+    ["Alignment of ScHumanizeOpts"][::std::mem::align_of::<ScHumanizeOpts>() - 4usize];
+    ["Offset of field: ScHumanizeOpts::decimals"]
+        [::std::mem::offset_of!(ScHumanizeOpts, decimals) - 0usize];
+    ["Offset of field: ScHumanizeOpts::decimal_sep"]
+        [::std::mem::offset_of!(ScHumanizeOpts, decimal_sep) - 4usize];
+    ["Offset of field: ScHumanizeOpts::group_sep"]
+        [::std::mem::offset_of!(ScHumanizeOpts, group_sep) - 5usize];
+    ["Offset of field: ScHumanizeOpts::no_space"]
+        [::std::mem::offset_of!(ScHumanizeOpts, no_space) - 6usize];
+};
+extern "C" {
+    #[doc = " Formats a byte count as a human-readable size, e.g. `1536` → `\"1.5 KB\"`\n (SI) or `\"1.5 KiB\"` (IEC).\n\n Raw byte counts (below the first unit threshold) are printed without a\n fractional part; larger magnitudes use one fractional digit by default\n with trailing zeros trimmed.\n\n @param bytes  Number of bytes.\n @param unit   Unit system (see @ref ScByteUnit).\n @return       Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_bytes(bytes: u64, unit: ScByteUnit) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Options-taking variant of @ref sc_humanize_bytes."]
+    pub fn sc_humanize_bytes_opts(
+        bytes: u64,
+        unit: ScByteUnit,
+        opts: ScHumanizeOpts,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Formats a plain number with thousands grouping, e.g.\n `1234567.5` → `\"1,234,567.5\"`.\n\n @param value  The value to format.\n @param opts   Separators / decimals (zero-init = `1,234,567.5` style).\n @return       Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_number(value: f64, opts: ScHumanizeOpts) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Formats a number in compact form, e.g. `12400` → `\"12.4k\"`,\n `1200000` → `\"1.2M\"`. Suffixes: `k`, `M`, `B`, `T`.\n\n @param value  The value to format.\n @param opts   Decimals / decimal separator (grouping unused).\n @return       Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_compact(value: f64, opts: ScHumanizeOpts) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Formats a ratio as a percentage, e.g. `0.42` → `\"42%\"`.\n\n @param ratio  The ratio (1.0 = 100%).\n @param opts   `decimals` controls precision (default 0).\n @return       Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_percent(ratio: f64, opts: ScHumanizeOpts) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Formats a duration as the two most-significant units, e.g.\n `93` → `\"1m 33s\"`, `8054` → `\"2h 14m\"`, `90061` → `\"1d 1h\"`.\n Durations under a minute render as `\"Ns\"`.\n\n @param seconds  Duration in seconds (negative is treated as its magnitude).\n @return         Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_duration(seconds: f64) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Formats a duration as a clock value, `\"MM:SS\"` (or `\"HH:MM:SS\"` from one\n hour on), e.g. `93` → `\"01:33\"`, `3725` → `\"01:02:05\"`.\n\n @param seconds  Duration in seconds (negative is treated as its magnitude).\n @return         Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_duration_clock(seconds: f64) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Formats `when` relative to `now`, e.g. `\"3 hours ago\"` / `\"in 2 days\"`;\n within a few seconds it returns `\"just now\"`. English only.\n\n @param when  The timestamp to describe.\n @param now   The reference time (typically `time(NULL)`).\n @return      Heap string, caller frees; `NULL` on allocation failure."]
+    pub fn sc_humanize_relative(when: time_t, now: time_t) -> *mut ::std::os::raw::c_char;
+}
 extern "C" {
     #[doc = " Captures a plain string as a heap-allocated `ScRendered`.\n\n All `sc_capture_*` functions render the widget into an off-screen\n buffer, split the output on newlines, and return an `ScRendered` whose\n `lines` retain their original ANSI codes. The caller must free the\n result with `sc_rendered_free`.\n\n @param str  Source string; a trailing newline is added when missing.\n @return     Heap-allocated `ScRendered`; free with `sc_rendered_free`."]
     pub fn sc_capture_str(str_: *const ::std::os::raw::c_char) -> *mut ScRendered;
@@ -1852,6 +2011,67 @@ extern "C" {
 extern "C" {
     #[doc = " Ends the live session and frees the handle.\n\n Terminal sessions restore the cursor and (in `alt_screen` mode) the\n previous screen content; the final frame stays visible unless\n `transient` was set. Non-terminal sessions print the buffered final\n frame once.\n\n @param live  Live session; `NULL`-safe. The handle is freed."]
     pub fn sc_live_end(live: *mut ScLive);
+}
+#[doc = " Options for the diff renderer. Zero-init = 3 lines of context, the\n  default red/green/cyan colors and `old`/`new` header labels."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScDiffOpts {
+    #[doc = " Lines of unchanged context around each change. `0` = the default\n(3); a negative value shows the full files (no elision)."]
+    pub context: ::std::os::raw::c_int,
+    #[doc = " Suppress the `--- old` / `+++ new` file header lines."]
+    pub no_header: bool,
+    #[doc = " Label for the old/left side in the header; `NULL` = `\"old\"`."]
+    pub old_label: *const ::std::os::raw::c_char,
+    #[doc = " Label for the new/right side in the header; `NULL` = `\"new\"`."]
+    pub new_label: *const ::std::os::raw::c_char,
+    #[doc = " Color of added (`+`) lines; zero-init = green."]
+    pub add_color: ScColor,
+    #[doc = " Color of removed (`-`) lines; zero-init = red."]
+    pub del_color: ScColor,
+    #[doc = " Color of `@@` hunk headers; zero-init = cyan."]
+    pub hunk_color: ScColor,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScDiffOpts"][::std::mem::size_of::<ScDiffOpts>() - 48usize];
+    ["Alignment of ScDiffOpts"][::std::mem::align_of::<ScDiffOpts>() - 8usize];
+    ["Offset of field: ScDiffOpts::context"][::std::mem::offset_of!(ScDiffOpts, context) - 0usize];
+    ["Offset of field: ScDiffOpts::no_header"]
+        [::std::mem::offset_of!(ScDiffOpts, no_header) - 4usize];
+    ["Offset of field: ScDiffOpts::old_label"]
+        [::std::mem::offset_of!(ScDiffOpts, old_label) - 8usize];
+    ["Offset of field: ScDiffOpts::new_label"]
+        [::std::mem::offset_of!(ScDiffOpts, new_label) - 16usize];
+    ["Offset of field: ScDiffOpts::add_color"]
+        [::std::mem::offset_of!(ScDiffOpts, add_color) - 24usize];
+    ["Offset of field: ScDiffOpts::del_color"]
+        [::std::mem::offset_of!(ScDiffOpts, del_color) - 32usize];
+    ["Offset of field: ScDiffOpts::hunk_color"]
+        [::std::mem::offset_of!(ScDiffOpts, hunk_color) - 40usize];
+};
+extern "C" {
+    #[doc = " Builds the colored unified diff of `old_text` vs `new_text` as an\n `ScText` (one styled span per line). Returns an empty `ScText` when the\n inputs are identical.\n\n @return  Heap `ScText` (free with `sc_text_free`); `NULL` on OOM."]
+    pub fn sc_diff_text(
+        old_text: *const ::std::os::raw::c_char,
+        new_text: *const ::std::os::raw::c_char,
+        opts: ScDiffOpts,
+    ) -> *mut ScText;
+}
+extern "C" {
+    #[doc = " Prints the unified diff to the current output stream."]
+    pub fn sc_diff_print(
+        old_text: *const ::std::os::raw::c_char,
+        new_text: *const ::std::os::raw::c_char,
+        opts: ScDiffOpts,
+    );
+}
+extern "C" {
+    #[doc = " Renders the unified diff into a heap `ScRendered` (free with\n `sc_rendered_free`), usable with `sc_pad_print`, panels, columns, etc."]
+    pub fn sc_capture_diff(
+        old_text: *const ::std::os::raw::c_char,
+        new_text: *const ::std::os::raw::c_char,
+        opts: ScDiffOpts,
+    ) -> *mut ScRendered;
 }
 extern "C" {
     #[doc = " Returns the `FILE *` sparcli writes its output to.\n\n Defaults to `stdout` when `sc_output_set_stream` has not been called (or the\n caller has reset the output to `NULL`). All sparcli print/render\n functions go through this stream, so redirecting it lets callers\n capture output into a memory buffer, a log file, or a custom stream\n without intercepting `stdout` globally.\n\n @return  Current output stream; never `NULL`."]
@@ -3192,37 +3412,6 @@ extern "C" {
     #[doc = " Frees a finder and all owned rows.\n\n @param fuzzy  Finder to free; safe to pass `NULL`."]
     pub fn sc_fuzzy_free(fuzzy: *mut ScFuzzy);
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct tm {
-    pub tm_sec: ::std::os::raw::c_int,
-    pub tm_min: ::std::os::raw::c_int,
-    pub tm_hour: ::std::os::raw::c_int,
-    pub tm_mday: ::std::os::raw::c_int,
-    pub tm_mon: ::std::os::raw::c_int,
-    pub tm_year: ::std::os::raw::c_int,
-    pub tm_wday: ::std::os::raw::c_int,
-    pub tm_yday: ::std::os::raw::c_int,
-    pub tm_isdst: ::std::os::raw::c_int,
-    pub tm_gmtoff: ::std::os::raw::c_long,
-    pub tm_zone: *mut ::std::os::raw::c_char,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of tm"][::std::mem::size_of::<tm>() - 56usize];
-    ["Alignment of tm"][::std::mem::align_of::<tm>() - 8usize];
-    ["Offset of field: tm::tm_sec"][::std::mem::offset_of!(tm, tm_sec) - 0usize];
-    ["Offset of field: tm::tm_min"][::std::mem::offset_of!(tm, tm_min) - 4usize];
-    ["Offset of field: tm::tm_hour"][::std::mem::offset_of!(tm, tm_hour) - 8usize];
-    ["Offset of field: tm::tm_mday"][::std::mem::offset_of!(tm, tm_mday) - 12usize];
-    ["Offset of field: tm::tm_mon"][::std::mem::offset_of!(tm, tm_mon) - 16usize];
-    ["Offset of field: tm::tm_year"][::std::mem::offset_of!(tm, tm_year) - 20usize];
-    ["Offset of field: tm::tm_wday"][::std::mem::offset_of!(tm, tm_wday) - 24usize];
-    ["Offset of field: tm::tm_yday"][::std::mem::offset_of!(tm, tm_yday) - 28usize];
-    ["Offset of field: tm::tm_isdst"][::std::mem::offset_of!(tm, tm_isdst) - 32usize];
-    ["Offset of field: tm::tm_gmtoff"][::std::mem::offset_of!(tm, tm_gmtoff) - 40usize];
-    ["Offset of field: tm::tm_zone"][::std::mem::offset_of!(tm, tm_zone) - 48usize];
-};
 #[doc = "< Same as Monday."]
 pub const ScWeekStart_SC_WEEK_START_DEFAULT: ScWeekStart = 0;
 pub const ScWeekStart_SC_WEEK_START_MONDAY: ScWeekStart = 1;
@@ -3416,6 +3605,76 @@ extern "C" {
         message: *const ::std::os::raw::c_char,
         hint: *const ::std::os::raw::c_char,
     );
+}
+#[doc = " Options for @ref sc_run. Zero-init = inherit environment + working\n directory, no stdin, separate stderr, sanitized output."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScProcOpts {
+    #[doc = " Optional bytes to feed to the child's stdin; `NULL` = empty stdin."]
+    pub input: *const ::std::os::raw::c_char,
+    #[doc = " Length of `input`; `0` with a non-`NULL` `input` means `strlen`."]
+    pub input_len: usize,
+    #[doc = " Optional working directory for the child (`chdir` before exec)."]
+    pub cwd: *const ::std::os::raw::c_char,
+    #[doc = " Route the child's stderr into the captured stdout (`err` stays NULL)."]
+    pub merge_stderr: bool,
+    #[doc = " Keep captured bytes verbatim instead of sanitizing them."]
+    pub raw: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScProcOpts"][::std::mem::size_of::<ScProcOpts>() - 32usize];
+    ["Alignment of ScProcOpts"][::std::mem::align_of::<ScProcOpts>() - 8usize];
+    ["Offset of field: ScProcOpts::input"][::std::mem::offset_of!(ScProcOpts, input) - 0usize];
+    ["Offset of field: ScProcOpts::input_len"]
+        [::std::mem::offset_of!(ScProcOpts, input_len) - 8usize];
+    ["Offset of field: ScProcOpts::cwd"][::std::mem::offset_of!(ScProcOpts, cwd) - 16usize];
+    ["Offset of field: ScProcOpts::merge_stderr"]
+        [::std::mem::offset_of!(ScProcOpts, merge_stderr) - 24usize];
+    ["Offset of field: ScProcOpts::raw"][::std::mem::offset_of!(ScProcOpts, raw) - 25usize];
+};
+#[doc = " Result of @ref sc_run. Free the heap buffers with\n @ref sc_proc_result_free."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScProcResult {
+    #[doc = " `true` when the child was spawned and waited on (then `exit_code` is\nmeaningful); `false` on fork/pipe setup failure."]
+    pub ok: bool,
+    #[doc = " Child exit status (`WEXITSTATUS`); `127` = command not found / could\nnot exec; `-1` when the child was killed by a signal."]
+    pub exit_code: ::std::os::raw::c_int,
+    #[doc = " Signal that killed the child, or `0` when it exited normally."]
+    pub term_signal: ::std::os::raw::c_int,
+    #[doc = " Captured stdout (heap, NUL-terminated); `NULL` only on failure."]
+    pub out: *mut ::std::os::raw::c_char,
+    #[doc = " Length of `out` in bytes (excluding the terminator)."]
+    pub out_len: usize,
+    #[doc = " Captured stderr (heap, NUL-terminated); `NULL` when\n`merge_stderr` is set or on failure."]
+    pub err: *mut ::std::os::raw::c_char,
+    #[doc = " Length of `err` in bytes (excluding the terminator)."]
+    pub err_len: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScProcResult"][::std::mem::size_of::<ScProcResult>() - 48usize];
+    ["Alignment of ScProcResult"][::std::mem::align_of::<ScProcResult>() - 8usize];
+    ["Offset of field: ScProcResult::ok"][::std::mem::offset_of!(ScProcResult, ok) - 0usize];
+    ["Offset of field: ScProcResult::exit_code"]
+        [::std::mem::offset_of!(ScProcResult, exit_code) - 4usize];
+    ["Offset of field: ScProcResult::term_signal"]
+        [::std::mem::offset_of!(ScProcResult, term_signal) - 8usize];
+    ["Offset of field: ScProcResult::out"][::std::mem::offset_of!(ScProcResult, out) - 16usize];
+    ["Offset of field: ScProcResult::out_len"]
+        [::std::mem::offset_of!(ScProcResult, out_len) - 24usize];
+    ["Offset of field: ScProcResult::err"][::std::mem::offset_of!(ScProcResult, err) - 32usize];
+    ["Offset of field: ScProcResult::err_len"]
+        [::std::mem::offset_of!(ScProcResult, err_len) - 40usize];
+};
+extern "C" {
+    #[doc = " Runs `argv` as a child process (no shell) and captures its output.\n\n @param argv  NULL-terminated argument vector; `argv[0]` is the program\n              (resolved via `$PATH`). Must have at least one element.\n @param opts  Options (see @ref ScProcOpts); pass `(ScProcOpts){0}` for\n              the defaults.\n @return      An @ref ScProcResult. Always call @ref sc_proc_result_free\n              on it (also when `ok` is `false`)."]
+    pub fn sc_run(argv: *const *const ::std::os::raw::c_char, opts: ScProcOpts) -> ScProcResult;
+}
+extern "C" {
+    #[doc = " Frees the heap buffers held by a result and clears the pointers.\n `NULL`-safe."]
+    pub fn sc_proc_result_free(result: *mut ScProcResult);
 }
 #[doc = "< Diagnostic detail (dim)."]
 pub const ScLogLevel_SC_LOG_DEBUG: ScLogLevel = 0;
@@ -3733,12 +3992,28 @@ extern "C" {
     pub fn sc_args_cmd_name(cmd: *const ScArgsCmd) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
+    #[doc = " Attaches an opaque pointer to a command node (e.g. a handler or a pointer\n to your own command object). The parser turns into a dispatch registry:\n the node returned by `sc_args_parse` carries it, so you can go straight\n from \"which command matched\" to \"what to run\" with no name lookup.\n\n The pointer is **borrowed** - sparcli stores it verbatim and never frees,\n copies, or dereferences it; its lifetime is entirely the caller's.\n\n @param cmd        Command node; no-op when `NULL`.\n @param user_data  Opaque pointer (or `NULL` to clear)."]
+    pub fn sc_args_cmd_set_userdata(cmd: *mut ScArgsCmd, user_data: *mut ::std::os::raw::c_void);
+}
+extern "C" {
+    #[doc = " Returns the opaque pointer set with `sc_args_cmd_set_userdata`\n (`NULL` when none was set or `cmd` is `NULL`).\n\n @param cmd  Command node (e.g. the one returned by `sc_args_parse`)."]
+    pub fn sc_args_cmd_userdata(cmd: *const ScArgsCmd) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
     #[doc = " Renders the help screen for `cmd` (or the root when `NULL`) to the\n current output stream, using sparcli widgets.\n\n @param args  Parser.\n @param cmd   Command to document; `NULL` = root."]
     pub fn sc_args_print_help(args: *const ScArgs, cmd: *const ScArgsCmd);
 }
 extern "C" {
     #[doc = " Emits a zsh completion script (`#compdef`) for the whole command tree\n to the current output stream. Install it as `_<prog>` in `$fpath`.\n\n @param args  Parser."]
     pub fn sc_args_print_zsh_completion(args: *const ScArgs);
+}
+extern "C" {
+    #[doc = " Emits a bash completion script for the whole command tree to the current\n output stream. Source it (e.g. from `~/.bashrc`) or install it under\n `/etc/bash_completion.d/`.\n\n @param args  Parser."]
+    pub fn sc_args_print_bash_completion(args: *const ScArgs);
+}
+extern "C" {
+    #[doc = " Emits a fish completion script for the whole command tree to the current\n output stream. Install it as `~/.config/fish/completions/<prog>.fish`.\n\n @param args  Parser."]
+    pub fn sc_args_print_fish_completion(args: *const ScArgs);
 }
 #[doc = " Optional rich title (mixed styles). When non-`NULL` it overrides `text`\n and `style`, and its visible width is used for layout. Currently honored\n by panels (incl. boxed input prompts); rules/tables ignore it. Borrowed -\n must outlive the render call."]
 #[repr(C)]

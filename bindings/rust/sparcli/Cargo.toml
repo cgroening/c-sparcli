@@ -104,3 +104,15 @@ path = "../../../examples/rust/app/paths.rs"
 [[example]]
 name = "app_errors_logging"
 path = "../../../examples/rust/app/errors_logging.rs"
+
+[[example]]
+name = "app_humanize"
+path = "../../../examples/rust/app/humanize.rs"
+
+[[example]]
+name = "output_diff"
+path = "../../../examples/rust/output/diff.rs"
+
+[[example]]
+name = "output_multiprogress"
+path = "../../../examples/rust/output/multiprogress.rs"

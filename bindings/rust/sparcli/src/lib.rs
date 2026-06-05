@@ -31,6 +31,7 @@ use std::os::raw::c_void;
 mod style;
 mod app;
 mod error;
+pub mod humanize;
 mod input;
 mod logging;
 mod output;

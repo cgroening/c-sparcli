@@ -125,6 +125,31 @@ sp.tick();
 sp.finish(true, "Done");
 ```
 
+### Multi-progress, diff & humanize
+
+```rust
+// Several bars updated together in place (RAII; ends on drop or .end()).
+let mut mp = MultiProgress::begin(MultiProgressOpts::new());
+let a = mp.add("download", ProgressBarOpts::new().show_percent(true));
+let b = mp.add("extract",  ProgressBarOpts::new().show_percent(true));
+mp.update(a, 100.0, 100.0);
+mp.update(b, 50.0, 100.0);
+mp.end();
+
+// Colored unified diff: print, build a Text, or capture a Rendered.
+diff_print(old, new, DiffOpts::new().context(1).old_label("a").new_label("b"));
+let t = diff_text(old, new, DiffOpts::new());
+let r = capture::diff(old, new, DiffOpts::new().no_header(true));
+
+// Human-readable formatting (module `sparcli::humanize`).
+use sparcli::humanize::{self, ByteUnit, HumanizeOpts};
+humanize::bytes(1536, ByteUnit::Si);   // "1.5 KB"
+humanize::number(1_234_567.0, HumanizeOpts::new());   // "1,234,567"
+humanize::duration(8054.0);            // "2h 14m"
+humanize::relative(then, now);         // "3 hours ago"
+// de_DE: HumanizeOpts::new().decimals(2).decimal_sep(',').group_sep('.')
+```
+
 ### ANSI-injection protection
 
 User strings are sanitized by default (control bytes and escape sequences removed). Opt out globally or per widget:
