@@ -47,8 +47,15 @@ make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
                   # warnings are errors; tools optional, prints install hints
                   # when missing)
 make fuzz         # random-input fuzzing of the markup parser, key decoder,
-                  # ANSI sanitizer, CLI CSV parser + argument parser under
-                  # ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable)
+                  # ANSI sanitizer, argument parser/splitter + calculator under
+                  # ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable). The serde
+                  # parsers (JSON/CSV) are fuzzed by `make serde-fuzz` instead.
+make serde-qa     # COMPLETE serde gate (own gate, NOT in `make test`/`qa`):
+                  # test-serde (-Werror) + serde-sanitize + serde-fuzz +
+                  # serde-cpp. Run after any src/serde/ change.
+make test-serde   # serde data-model + format round-trip suite (headless)
+make serde-sanitize / serde-fuzz / serde-cpp  # ASan/UBSan run / parser fuzzing
+                  # (JSON+CSV) / C++ wrapper assertion suite
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples            # build all C + C++ examples (examples/{c,cpp}/**)
 make run-example EX=<lang>/<group>/<name>   # build+run one example; dispatches
@@ -103,7 +110,7 @@ When adding a source file, append its path (e.g. `src/output/foo.c`) to `SRC` in
 
 The `sparcli` binary exposes every widget as a shell subcommand (rich-cli + gum in one tool); full reference in `docs/cli.md`. Key facts:
 
-- **Structure:** `cli/main.c` (dispatch table + global flags) → `cli/cmd_*.c` (one file per command group: output, layout, table, tree, progress, input, select) over shared helpers `cli/cli_common.c` (ctx, errors, capture), `cli_parse.c` (string→enum/color lookup tables), `cli_stdin.c` (file-or-stdin), `cli_csv.c` (RFC-4180-ish parser). Linked against the static `libsparcli.a`, public headers only.
+- **Structure:** `cli/main.c` (dispatch table + global flags) → `cli/cmd_*.c` (one file per command group: output, layout, table, tree, progress, input, select) over shared helpers `cli/cli_common.c` (ctx, errors, capture), `cli_parse.c` (string→enum/color lookup tables), `cli_stdin.c` (file-or-stdin). CSV/TSV is parsed via the serde layer's public `sc_csv_*` API (`serde/sparcli_csv.h`), not a CLI-private parser. Linked against the static `libsparcli.a`, public headers only.
 - **Conventions:** markup parsed by default in all text (`--no-markup` opt-out); `--no-color`/`NO_COLOR` strips ANSI by rendering through a capture stream + `sc_strip_ansi`; input text is sanitized by default (`--allow-ansi` opt-out → `sc_set_allow_ansi`); exit codes 0 = OK / 1 = cancelled or "no" / 2 = error or no TTY.
 - **Input commands** set `hide_summary`, print only the raw value to stdout (the widget UI goes to `/dev/tty`), so `$(sparcli input …)` command substitution works; `--accent` is applied via `sc_input_set_theme`.
 - **`spin`** forks the wrapped command and routes the spinner to `/dev/tty` (the spinner is a stream widget – it must not pollute the child's stdout); the child's exit code is propagated.

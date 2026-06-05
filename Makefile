@@ -97,7 +97,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
 # suite has its own targets and is deliberately NOT part of `make test`/`qa`.
 # Validate it with `make serde-qa`.
 SERDE_SRC = src/serde/value.c src/serde/buf.c src/serde/parse_error.c \
-            src/serde/json.c
+            src/serde/json.c src/serde/csv.c
 SRC      += $(SERDE_SRC)
 
 BUILDDIR          = build.nosync
@@ -112,7 +112,7 @@ PC_FILE           = sparcli.pc
 # library using only the public headers (-Iinclude, deliberately no -Isrc).
 # A second, sanitizer-instrumented binary backs the CLI PTY test suite.
 CLI_SRC          = cli/main.c cli/cli_common.c cli/cli_parse.c \
-                   cli/cli_stdin.c cli/cli_csv.c cli/cmd_output.c \
+                   cli/cli_stdin.c cli/cmd_output.c \
                    cli/cmd_layout.c cli/cmd_table.c cli/cmd_tree.c \
                    cli/cmd_progress.c cli/cmd_input.c cli/cmd_select.c
 CLI_OBJ          = $(patsubst cli/%.c,$(BUILDDIR)/cli/%.o,$(CLI_SRC))
@@ -149,7 +149,7 @@ TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1 \
 # Fuzz harnesses: portable random-input fuzzers built under ASan/UBSan (no
 # libFuzzer dependency; the harness entry points are libFuzzer-compatible).
 FUZZ_SRC   = tests/fuzz/fuzz_markup.c tests/fuzz/fuzz_key.c \
-             tests/fuzz/fuzz_sanitize.c tests/fuzz/fuzz_csv.c \
+             tests/fuzz/fuzz_sanitize.c \
              tests/fuzz/fuzz_args.c tests/fuzz/fuzz_calc.c \
              tests/fuzz/fuzz_split.c
 FUZZ_BIN   = $(patsubst tests/fuzz/%.c,$(BUILDDIR)/fuzz/%,$(FUZZ_SRC))
@@ -247,7 +247,8 @@ ARGS_TEST_BIN = tests/args/test_args_main
 # sanitized + fuzzed variants and the aggregate gate live under `make serde-qa`.
 SERDE_TEST_SRC          = tests/serde/test_serde_main.c \
                           tests/serde/test_value.c \
-                          tests/serde/test_json.c
+                          tests/serde/test_json.c \
+                          tests/serde/test_csv.c
 SERDE_TEST_BIN          = tests/serde/test_serde_main
 SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize
 SERDE_CPP_TEST_SRC      = tests/cpp/test_serde_cpp.cpp
@@ -489,7 +490,10 @@ serde-fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	@mkdir -p $(BUILDDIR)/fuzz
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_json.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_json
+	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_csv.c $(SANITIZE_LIB) \
+	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_csv
 	./$(BUILDDIR)/fuzz/fuzz_json $(FUZZ_ITERS) $(FUZZ_SEED)
+	./$(BUILDDIR)/fuzz/fuzz_csv $(FUZZ_ITERS) $(FUZZ_SEED)
 
 # Serde C++ wrapper gate (header-only, include/serde/sparcli_serde.hpp): builds
 # the assertion suite under ASan/UBSan and runs it (RAII/move-safety + C parity).
@@ -628,7 +632,9 @@ $(TSAN_BUILDDIR):
 	mkdir -p $(TSAN_BUILDDIR)
 
 # Random-input fuzzing of the external parsers (markup, key decoder, ANSI
-# sanitizer, CLI CSV parser) under ASan/UBSan. Deterministic by default (FUZZ_SEED=1); override
+# sanitizer, argument parser/splitter, calculator) under ASan/UBSan. (The CSV
+# and JSON parsers moved to the serde layer; fuzz them with `make serde-fuzz`.)
+# Deterministic by default (FUZZ_SEED=1); override
 # iterations/seed with `make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42`. The
 # harnesses also expose a libFuzzer-compatible LLVMFuzzerTestOneInput for
 # toolchains that ship libFuzzer (build with -DSPARCLI_LIBFUZZER
@@ -641,8 +647,6 @@ fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_key
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_sanitize.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_sanitize
-	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) -Icli tests/fuzz/fuzz_csv.c \
-	    cli/cli_csv.c $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_csv
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_args.c $(SANITIZE_LIB) \
 	    $(LDFLAGS) $(SANITIZE_FLAGS) -o $(BUILDDIR)/fuzz/fuzz_args
 	$(CC) $(CFLAGS) $(SANITIZE_FLAGS) tests/fuzz/fuzz_calc.c $(SANITIZE_LIB) \
@@ -652,7 +656,6 @@ fuzz: $(SANITIZE_LIB) | $(BUILDDIR)
 	./$(BUILDDIR)/fuzz/fuzz_markup $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_key $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_sanitize $(FUZZ_ITERS) $(FUZZ_SEED)
-	./$(BUILDDIR)/fuzz/fuzz_csv $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_args $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_calc $(FUZZ_ITERS) $(FUZZ_SEED)
 	./$(BUILDDIR)/fuzz/fuzz_split $(FUZZ_ITERS) $(FUZZ_SEED)

@@ -1,47 +1,46 @@
-#include "cli_csv.h"
+#include "serde/sparcli_csv.h"
 #include "fuzz_common.h"
 
-#include <string.h>
+#include <stdlib.h>
 
 /**
- * Fuzz target for the CLI's RFC-4180 CSV/TSV parser (`sc_cli_csv_parse`):
- * random byte sequences (quotes, embedded delimiters/newlines, `""` escapes,
- * unterminated quotes) must never crash, leak, read out of bounds, or
- * trigger UB - in both the comma and the tab delimiter mode. Every accessor
- * is exercised across the full row/field range to surface indexing bugs.
+ * Fuzz target for the serde CSV/TSV reader+writer (`sc_csv_parse`): random
+ * byte sequences (quotes, embedded delimiters/newlines, `""` escapes,
+ * unterminated quotes) must never crash, leak, read out of bounds or trigger
+ * UB - in both the comma and the tab dialect. Every accessor is walked across
+ * the full row/field range (incl. one past the ragged edge), and any accepted
+ * document is round-tripped through the writer.
  */
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    // The parser takes a NUL-terminated string; embedded NUL bytes simply
-    // truncate the input, which is fine for fuzzing purposes.
-    char *input = malloc(size + 1);
-    if (!input) {
-        return 0;
-    }
-    memcpy(input, data, size);
-    input[size] = '\0';
-
     static const char delimiters[] = { ',', '\t' };
-    for (size_t d = 0; d < sizeof(delimiters); d++) {
-        ScCliCsv *csv = sc_cli_csv_parse(input, delimiters[d]);
+    for (size_t d = 0; d < sizeof delimiters; d++) {
+        ScParseError err = { 0 };
+        ScCsv *csv = sc_csv_parse(
+            (const char *)data, size,
+            (ScCsvOpts){ .delim = delimiters[d], .has_header = true }, &err
+        );
         if (!csv) {
-            continue;   // allocation failure or unterminated quote: valid
+            continue; // allocation failure or unterminated quote: valid
         }
 
-        // Walk every row and field, including one past the ragged edge
-        // (the accessor contract returns "" there, never NULL).
-        size_t rows = sc_cli_csv_rows(csv);
-        size_t max_cols = sc_cli_csv_max_cols(csv);
+        // Walk every row and field, including one past the ragged edge (the
+        // accessor contract returns "" there, never NULL).
+        size_t rows = sc_csv_rows(csv);
+        size_t cols = sc_csv_cols(csv);
         for (size_t row = 0; row < rows; row++) {
-            size_t cols = sc_cli_csv_cols(csv, row);
-            if (cols > max_cols) { abort(); }
-            for (size_t col = 0; col <= max_cols; col++) {
-                const char *field = sc_cli_csv_field(csv, row, col);
-                if (!field) { abort(); }
+            if (sc_csv_row_cols(csv, row) > cols) { abort(); }
+            for (size_t col = 0; col <= cols; col++) {
+                if (!sc_csv_at(csv, row, col)) { abort(); }
             }
         }
-        sc_cli_csv_free(csv);
-    }
+        // Header lookup path.
+        for (size_t col = 0; col < cols; col++) {
+            sc_csv_get(csv, 0, sc_csv_header(csv, col));
+        }
 
-    free(input);
+        // Round-trip through the writer.
+        free(sc_csv_write(csv));
+        sc_csv_free(csv);
+    }
     return 0;
 }

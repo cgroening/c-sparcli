@@ -31,3 +31,4 @@ extern int g_serde_failures;
 /* Test entry points (one per file). */
 void test_serde_value(void);
 void test_serde_json(void);
+void test_serde_csv(void);

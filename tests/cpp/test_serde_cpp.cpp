@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace sparcli::serde;
 
@@ -80,6 +81,20 @@ static void check_parse_error() {
     CHECK(threw && line == 1, "parse error: throws ParseError with a location");
 }
 
+static void check_csv() {
+    Csv table = Csv::parse("name,age\nAlice,30\nBob,25\n",
+                           { .has_header = true });
+    CHECK(table.has_header() && table.data_rows() == 2,
+          "csv: header parsed, data rows counted");
+    CHECK(table.get(0, "name") == "Alice" && table.get(1, "age") == "25",
+          "csv: lookup by header name");
+
+    Csv built = Csv::create();
+    built.add_row({ "a,b", "plain" });
+    CHECK(built.write() == "\"a,b\",plain\n",
+          "csv: writer quotes only when needed");
+}
+
 static void check_move_semantics() {
     // Moving must not double-free: the moved-from object is left empty and its
     // destructor is a no-op. ASan/UBSan would flag a violation here.
@@ -94,6 +109,7 @@ int main() {
     check_parse_and_navigate();
     check_round_trip();
     check_parse_error();
+    check_csv();
     check_move_semantics();
 
     if (g_failures > 0) {

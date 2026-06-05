@@ -32,6 +32,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace sparcli::serde {
 
@@ -40,6 +41,9 @@ using Type = ScValueType;
 
 /** Writer options, reusing the C struct verbatim. */
 using JsonWriteOpts = ScJsonWriteOpts;
+
+/** CSV dialect options, reusing the C struct verbatim. */
+using CsvOpts = ScCsvOpts;
 
 
 /** Thrown by the parsers on malformed input; carries the source location. */
@@ -231,5 +235,89 @@ namespace json {
 }
 
 }  // namespace json
+
+
+/** RAII owner of a CSV document (move-only); reader and writer in one type. */
+class Csv {
+public:
+    Csv(const Csv &) = delete;
+    Csv &operator=(const Csv &) = delete;
+
+    Csv(Csv &&other) noexcept : doc_(std::exchange(other.doc_, nullptr)) {}
+    Csv &operator=(Csv &&other) noexcept {
+        if (this != &other) {
+            sc_csv_free(doc_);
+            doc_ = std::exchange(other.doc_, nullptr);
+        }
+        return *this;
+    }
+    ~Csv() { sc_csv_free(doc_); }
+
+    /** Parses CSV/TSV text; throws `ParseError` on malformed input. */
+    [[nodiscard]] static Csv parse(std::string_view src, CsvOpts opts = {}) {
+        ScParseError error{};
+        ScCsv *doc = sc_csv_parse(src.data(), src.size(), opts, &error);
+        if (!doc) { throw ParseError(error); }
+        return Csv(doc);
+    }
+
+    /** Creates an empty document for building output with `add_row`/`write`. */
+    [[nodiscard]] static Csv create(CsvOpts opts = {}) {
+        ScCsv *doc = sc_csv_new(opts);
+        if (!doc) { throw std::bad_alloc(); }
+        return Csv(doc);
+    }
+
+    // ── Reading ──────────────────────────────────────────────────────────
+    [[nodiscard]] std::size_t rows() const noexcept { return sc_csv_rows(doc_); }
+    [[nodiscard]] std::size_t cols() const noexcept { return sc_csv_cols(doc_); }
+    [[nodiscard]] std::size_t row_cols(std::size_t row) const noexcept {
+        return sc_csv_row_cols(doc_, row);
+    }
+    [[nodiscard]] std::string_view at(
+        std::size_t row, std::size_t col
+    ) const noexcept {
+        return sc_csv_at(doc_, row, col);
+    }
+    [[nodiscard]] bool has_header() const noexcept {
+        return sc_csv_has_header(doc_);
+    }
+    [[nodiscard]] std::string_view header(std::size_t col) const noexcept {
+        return sc_csv_header(doc_, col);
+    }
+    [[nodiscard]] std::size_t data_rows() const noexcept {
+        return sc_csv_data_rows(doc_);
+    }
+    [[nodiscard]] std::string_view get(
+        std::size_t data_row, std::string_view name
+    ) const {
+        return sc_csv_get(doc_, data_row, std::string(name).c_str());
+    }
+
+    // ── Writing ──────────────────────────────────────────────────────────
+    void add_row(const std::vector<std::string> &fields) {
+        std::vector<const char *> raw;
+        raw.reserve(fields.size());
+        for (const std::string &field : fields) { raw.push_back(field.c_str()); }
+        if (!sc_csv_add_row(doc_, raw.data(), raw.size())) {
+            throw std::bad_alloc();
+        }
+    }
+    [[nodiscard]] std::string write() const {
+        char *out = sc_csv_write(doc_);
+        if (!out) { throw std::bad_alloc(); }
+        std::string result(out);
+        std::free(out);
+        return result;
+    }
+
+    /** Borrowed C handle (escape hatch); ownership stays with this object. */
+    [[nodiscard]] const ScCsv *get() const noexcept { return doc_; }
+
+private:
+    explicit Csv(ScCsv *doc) noexcept : doc_(doc) {}
+
+    ScCsv *doc_;
+};
 
 }  // namespace sparcli::serde

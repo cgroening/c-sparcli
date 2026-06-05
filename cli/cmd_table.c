@@ -4,11 +4,11 @@
  */
 #include "cli_commands.h"
 #include "cli_common.h"
-#include "cli_csv.h"
 #include "cli_parse.h"
 #include "cli_stdin.h"
 
 #include "sparcli.h"
+#include "serde/sparcli_csv.h"
 
 #include <getopt.h>
 #include <stdlib.h>
@@ -23,11 +23,11 @@ typedef struct TableArgs {
 } TableArgs;
 
 static int run_table(ScCliCtx *ctx, TableArgs *args);
-    static void add_columns(ScTableData *table, const ScCliCsv *csv,
+    static void add_columns(ScTableData *table, const ScCsv *csv,
                             const TableArgs *args);
     static bool add_rows(ScCliCtx *ctx, ScTableData *table,
-                         const ScCliCsv *csv, const TableArgs *args);
-        static bool is_blank_row(const ScCliCsv *csv, size_t row);
+                         const ScCsv *csv, const TableArgs *args);
+        static bool is_blank_row(const ScCsv *csv, size_t row);
 
 static const char TABLE_USAGE[] =
     "Usage: sparcli table [options] [FILE]\n"
@@ -267,13 +267,15 @@ static int run_table(ScCliCtx *ctx, TableArgs *args) {
         return sc_cli_error(ctx, "cannot read input");
     }
 
-    ScCliCsv *csv = sc_cli_csv_parse(data, args->delim);
+    ScCsv *csv = sc_csv_parse(
+        data, strlen(data), (ScCsvOpts){ .delim = args->delim }, NULL
+    );
     free(data);
     if (csv == NULL) {
         return sc_cli_error(ctx, "invalid CSV input (unterminated quote?)");
     }
-    if (sc_cli_csv_rows(csv) == 0) {
-        sc_cli_csv_free(csv);
+    if (sc_csv_rows(csv) == 0) {
+        sc_csv_free(csv);
         return sc_cli_error(ctx, "no input data");
     }
 
@@ -285,14 +287,14 @@ static int run_table(ScCliCtx *ctx, TableArgs *args) {
 
     ScTableData *table = sc_table_new();
     if (table == NULL) {
-        sc_cli_csv_free(csv);
+        sc_csv_free(csv);
         return sc_cli_error(ctx, "out of memory");
     }
 
     add_columns(table, csv, args);
     if (!add_rows(ctx, table, csv, args)) {
         sc_table_free(table);
-        sc_cli_csv_free(csv);
+        sc_csv_free(csv);
         return sc_cli_error(ctx, "out of memory");
     }
 
@@ -301,21 +303,21 @@ static int run_table(ScCliCtx *ctx, TableArgs *args) {
     /* Plain-string cells borrow the CSV fields, so the CSV document is
        freed only after printing. */
     sc_table_free(table);
-    sc_cli_csv_free(csv);
+    sc_csv_free(csv);
     return SC_CLI_EXIT_OK;
 }
 
 /* Adds one table column per CSV column; with --header-row the first CSV
    row provides the header strings. */
-static void add_columns(ScTableData *table, const ScCliCsv *csv,
+static void add_columns(ScTableData *table, const ScCsv *csv,
                         const TableArgs *args) {
-    size_t    col_count = sc_cli_csv_max_cols(csv);
+    size_t    col_count = sc_csv_cols(csv);
     ScColOpts col_opts  = { .halign = args->col_halign };
 
     for (size_t col = 0; col < col_count; col++) {
         const char *header = NULL;
         if (args->opts.header.row) {
-            header = sc_cli_csv_field(csv, 0, col);
+            header = sc_csv_at(csv, 0, col);
         }
         sc_table_add_column(table, header, col_opts);
     }
@@ -323,10 +325,10 @@ static void add_columns(ScTableData *table, const ScCliCsv *csv,
 
 /* Adds every CSV data row to the table (skipping the header row when it
    was consumed by add_columns and skipping blank rows). */
-static bool add_rows(ScCliCtx *ctx, ScTableData *table, const ScCliCsv *csv,
+static bool add_rows(ScCliCtx *ctx, ScTableData *table, const ScCsv *csv,
                      const TableArgs *args) {
-    size_t col_count = sc_cli_csv_max_cols(csv);
-    size_t row_count = sc_cli_csv_rows(csv);
+    size_t col_count = sc_csv_cols(csv);
+    size_t row_count = sc_csv_rows(csv);
     size_t first_row = args->opts.header.row ? 1 : 0;
 
     ScCell *cells = malloc(col_count * sizeof(*cells));
@@ -339,7 +341,7 @@ static bool add_rows(ScCliCtx *ctx, ScTableData *table, const ScCliCsv *csv,
             continue;
         }
         for (size_t col = 0; col < col_count; col++) {
-            const char *field = sc_cli_csv_field(csv, row, col);
+            const char *field = sc_csv_at(csv, row, col);
             cells[col] = ctx->markup ? sc_cell_from_markup(field)
                                      : sc_cell_from_str(field);
         }
@@ -351,7 +353,7 @@ static bool add_rows(ScCliCtx *ctx, ScTableData *table, const ScCliCsv *csv,
 }
 
 /* A row is blank when it has a single empty field (e.g. an empty line). */
-static bool is_blank_row(const ScCliCsv *csv, size_t row) {
-    return sc_cli_csv_cols(csv, row) == 1
-           && sc_cli_csv_field(csv, row, 0)[0] == '\0';
+static bool is_blank_row(const ScCsv *csv, size_t row) {
+    return sc_csv_row_cols(csv, row) == 1
+           && sc_csv_at(csv, row, 0)[0] == '\0';
 }

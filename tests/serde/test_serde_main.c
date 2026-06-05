@@ -29,6 +29,7 @@ int main(void) {
     static const Test tests[] = {
         { "Value model", test_serde_value },
         { "JSON read/write", test_serde_json },
+        { "CSV read/write", test_serde_csv },
     };
     size_t count = sizeof tests / sizeof tests[0];
 
