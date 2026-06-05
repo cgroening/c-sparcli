@@ -2,6 +2,10 @@
  * args.c - declarative argument parser: subcommands, typed options,
  * help/version handling and error reporting.
  *
+ * Dispatch is driven by each node's user_data: a pointer to a Command
+ * descriptor is attached to the matching subcommand, so the parser itself
+ * becomes the dispatch table - no strcmp chain after parsing.
+ *
  * Run (after `make`):
  *   make run-example EX=c/app/args
  * then try it directly:
@@ -14,11 +18,25 @@
 #include <sparcli.h>
 
 #include <stdio.h>
-#include <string.h>
 
+
+/*
+ * A command descriptor keeps a command's action next to its declaration. A
+ * pointer to one is stashed on the matching node with sc_args_cmd_set_userdata
+ * and read back from the matched node after parsing. The pointer is borrowed
+ * (sparcli never frees it), so the descriptors are static and outlive the
+ * parser - here, the whole program.
+ */
+typedef struct Command {
+    int (*run)(const ScArgs *args);
+} Command;
 
 static ScArgs *build_parser(void);
 static int run_convert(const ScArgs *args);
+static int run_completion(const ScArgs *args);
+
+static Command convert_cmd    = { run_convert };
+static Command completion_cmd = { run_completion };
 
 
 int main(int argc, char **argv) {
@@ -36,12 +54,12 @@ int main(int argc, char **argv) {
         return status == SC_ARGS_HANDLED ? 0 : 2;
     }
 
-    const char *command = sc_args_cmd_name(matched);
+    // The matched node carries its Command (NULL for the bare root): dispatch
+    // straight through it instead of comparing names.
+    const Command *cmd = sc_args_cmd_userdata(matched);
     int exit_code = 0;
-    if (strcmp(command, "convert") == 0) {
-        exit_code = run_convert(args);
-    } else if (strcmp(command, "completion") == 0) {
-        sc_args_print_zsh_completion(args);
+    if (cmd) {
+        exit_code = cmd->run(args);
     } else {
         // Bare invocation without a subcommand: show the help screen.
         sc_args_print_help(args, NULL);
@@ -84,8 +102,14 @@ static ScArgs *build_parser(void) {
     sc_args_positional(convert, "INPUT", SC_ARG_STR, "Input file",
                        true, false);
 
-    sc_args_subcommand(root, "completion",
-                       "Print the zsh completion script");
+    // Attach each command's action to its node; the matched node is then the
+    // whole dispatch table (see main).
+    sc_args_cmd_set_userdata(convert, &convert_cmd);
+
+    ScArgsCmd *completion = sc_args_subcommand(
+        root, "completion", "Print the zsh completion script");
+    sc_args_cmd_set_userdata(completion, &completion_cmd);
+
     return args;
 }
 
@@ -107,5 +131,11 @@ static int run_convert(const ScArgs *args) {
     }
 
     sc_alert_success("Conversion finished (pretend).");
+    return 0;
+}
+
+/** The "completion" command: print the zsh completion script. */
+static int run_completion(const ScArgs *args) {
+    sc_args_print_zsh_completion(args);
     return 0;
 }

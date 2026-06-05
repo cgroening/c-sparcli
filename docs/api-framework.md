@@ -349,6 +349,8 @@ if (status == SC_ARGS_MATCHED) {
 }
 ```
 
+Full C example (a `Command` descriptor per node): `examples/c/app/args.c`.
+
 In **C++** the wrapper builds on this with a handler arena: attach a `std::function<int(const Args&)>` directly to a subcommand with `ArgsCmd::handler(...)`, then run the matched one with `Args::dispatch(...)` (the clap/cobra model — command and action live in one place):
 
 ```cpp
