@@ -42,7 +42,12 @@ let mut t = Table::new();
 t.column("Name", ColOpts::new().style(Style::bold().fg(Color::CYAN)))   // per-column style
     .column("Age", ColOpts::new().align(Align::Right));
 t.row(["Ada", "36"]).row(["Alan", "41"]);
-t.print(TableOpts::new().border(BorderType::Rounded).header_row(true).striped(true));
+t.footer_row(["", "2 people"]);   // footer section
+t.print(TableOpts {                // TableHeader / TableFooter / TableBorder
+    header: TableHeader { row: true, ..Default::default() },
+    footer: TableFooter { style: Style::dim(), ..Default::default() },
+    ..Default::default()
+});
 
 let mut list = List::new(ListOpts::new().marker(ListMarker::Number));
 let item = list.add("top", Style::default());
@@ -88,6 +93,10 @@ r.align(Align::Center, 0);
 let lines: Vec<String> = r.lines();         // ANSI-included
 let stacked = vstack(&[&r, &r], 1).unwrap();
 
+// Rich-text / re-framing variants: capture::panel_text, capture::rule_text,
+// and capture::panel_rendered (frame an already-captured rendering in a panel).
+let framed = capture::panel_rendered(&r, PanelOpts::new().single());
+
 let mut cols = Columns::new(ColumnsOpts::new().gap(3));
 cols.add_rendered(&r, ColItem::new()).add_str("text", ColItem::new());
 cols.print();
@@ -106,6 +115,10 @@ let mut bar = ProgressBar::new(ProgressBarOpts::new().brackets().show_percent(tr
 bar.set_label("Installing");
 for v in 0..=100 { bar.draw(v as f64, 100.0); }
 bar.finish(100.0, 100.0);
+
+// Threshold coloring: green below mid, yellow up to high, red above.
+let bar = ProgressBar::new(ProgressBarOpts::new().thresholds(
+    ProgressThresholds::new(Color::GREEN, Color::YELLOW, Color::RED).ratios(0.5, 0.8)));
 
 let mut sp = Spinner::new("Loading", SpinnerOpts::new());
 sp.tick();
@@ -179,6 +192,12 @@ use sparcli::*;
 
 if let Some(yes) = confirm("Proceed?", ConfirmOpts::new().default_yes(true))? { /* … */ }
 if let Some(name) = text_input("Name", TextInputOpts::new().placeholder("Ada"))? { /* … */ }
+
+// Validation: Ok(()) accepts, Err(msg) keeps the prompt open and shows msg
+// beneath the field (text_input + password_input).
+if let Some(user) = text_input("User", TextInputOpts::new().validate(|v| {
+    if v.trim().is_empty() { Err("must not be empty".into()) } else { Ok(()) }
+}))? { /* … */ }
 
 // Autocomplete dropdown: suggestions as a navigable list below the field
 // (arrows move, Tab/Enter accept; prefix or fuzzy matching).

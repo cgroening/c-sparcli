@@ -531,6 +531,10 @@ pub struct TableBorder {
     pub kind: BorderType,
     pub outer_color: Color,
     pub inner_color: Color,
+    /// Color of the separator under a header row.
+    pub header_row_sep_color: Color,
+    /// Color of the separator right of a header column.
+    pub header_col_sep_color: Color,
     pub no_outer: bool,
     pub no_inner_h: bool,
     pub no_inner_v: bool,
@@ -546,11 +550,20 @@ pub struct TableHeader {
     pub style: Style,
 }
 
+/// Footer settings (the section produced by [`Table::footer_row`]).
+#[derive(Clone, Debug, Default)]
+pub struct TableFooter {
+    pub row_bg: Color,
+    pub col_bg: Color,
+    pub style: Style,
+}
+
 /// Options for printing a [`Table`].
 #[derive(Clone, Debug, Default)]
 pub struct TableOpts {
     pub border: TableBorder,
     pub header: TableHeader,
+    pub footer: TableFooter,
     pub striped: bool,
     pub stripe_bg: Color,
     pub title: Title,
@@ -615,8 +628,8 @@ impl TableOpts {
                 type_: self.border.kind.raw(),
                 outer_color: self.border.outer_color.raw(),
                 inner_color: self.border.inner_color.raw(),
-                header_row_sep_color: Color::NONE.raw(),
-                header_col_sep_color: Color::NONE.raw(),
+                header_row_sep_color: self.border.header_row_sep_color.raw(),
+                header_col_sep_color: self.border.header_col_sep_color.raw(),
                 no_outer: self.border.no_outer,
                 no_inner_h: self.border.no_inner_h,
                 no_inner_v: self.border.no_inner_v,
@@ -631,9 +644,9 @@ impl TableOpts {
             striped: self.striped,
             stripe_bg: self.stripe_bg.raw(),
             footer: ffi::ScTableFooter {
-                row_bg: Color::NONE.raw(),
-                col_bg: Color::NONE.raw(),
-                style: Style::default().raw(),
+                row_bg: self.footer.row_bg.raw(),
+                col_bg: self.footer.col_bg.raw(),
+                style: self.footer.style.raw(),
             },
             title: self.title.raw(a),
             cell_pad: self.cell_pad.raw(),
@@ -987,6 +1000,29 @@ impl Tree {
         TreeNode { ptr: node }
     }
 
+    /// Like [`add`](Self::add) but with a styled `prefix` marker printed before
+    /// the node text (e.g. a status icon or tag).
+    pub fn add_prefixed(
+        &mut self,
+        s: &str,
+        parent: TreeNode,
+        style: Style,
+        prefix: &str,
+        prefix_style: Style,
+    ) -> TreeNode {
+        let node = unsafe {
+            ffi::sc_tree_add_str(
+                self.ptr,
+                parent.ptr,
+                cstring(s).as_ptr(),
+                style.raw(),
+                cstring(prefix).as_ptr(),
+                prefix_style.raw(),
+            )
+        };
+        TreeNode { ptr: node }
+    }
+
     pub fn print(&self) {
         unsafe { ffi::sc_tree_print(self.ptr) };
     }
@@ -1275,6 +1311,52 @@ impl Drop for Columns {
 /* ── Progress bar ────────────────────────────────────────────────────────── */
 
 /// Options for a [`ProgressBar`].
+/// Threshold-based fill coloring for a [`ProgressBar`]: the fill switches color
+/// by ratio - `color_low` below `mid`, `color_mid` up to `high`, `color_high`
+/// at/above `high`. Disabled by default (zero-init); build one with
+/// [`ProgressThresholds::new`] and attach it via [`ProgressBarOpts::thresholds`].
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ProgressThresholds {
+    pub enabled: bool,
+    /// Low/mid boundary ratio (0..1); `0.0` = the C default 0.5.
+    pub mid: f64,
+    /// Mid/high boundary ratio (0..1); `0.0` = the C default 0.75.
+    pub high: f64,
+    pub color_low: Color,
+    pub color_mid: Color,
+    pub color_high: Color,
+}
+
+impl ProgressThresholds {
+    /// Enabled thresholds with the default boundaries (mid 0.5, high 0.75).
+    pub fn new(low: Color, mid: Color, high: Color) -> Self {
+        ProgressThresholds {
+            enabled: true,
+            mid: 0.0,
+            high: 0.0,
+            color_low: low,
+            color_mid: mid,
+            color_high: high,
+        }
+    }
+    /// Overrides the boundary ratios.
+    pub fn ratios(mut self, mid: f64, high: f64) -> Self {
+        self.mid = mid;
+        self.high = high;
+        self
+    }
+    fn raw(self) -> ffi::ScProgressThresholds {
+        ffi::ScProgressThresholds {
+            enabled: self.enabled,
+            mid: self.mid,
+            high: self.high,
+            color_low: self.color_low.raw(),
+            color_mid: self.color_mid.raw(),
+            color_high: self.color_high.raw(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct ProgressBarOpts {
     pub kind: ProgressType,
@@ -1282,6 +1364,8 @@ pub struct ProgressBarOpts {
     pub right_cap: Option<String>,
     pub fill_color: Color,
     pub empty_color: Color,
+    /// Threshold-based fill coloring (overrides `fill_color` when enabled).
+    pub thresholds: ProgressThresholds,
     pub show_percent: bool,
     pub show_value: bool,
     pub bar_width: i32,
@@ -1310,6 +1394,11 @@ impl ProgressBarOpts {
         self.fill_color = c;
         self
     }
+    /// Color the fill by ratio (see [`ProgressThresholds`]).
+    pub fn thresholds(mut self, t: ProgressThresholds) -> Self {
+        self.thresholds = t;
+        self
+    }
     pub fn show_percent(mut self, on: bool) -> Self {
         self.show_percent = on;
         self
@@ -1334,14 +1423,7 @@ impl ProgressBarOpts {
             right_cap: a.opt(self.right_cap.as_deref()),
             fill_color: self.fill_color.raw(),
             empty_color: self.empty_color.raw(),
-            thresholds: ffi::ScProgressThresholds {
-                enabled: false,
-                mid: 0.0,
-                high: 0.0,
-                color_low: Color::NONE.raw(),
-                color_mid: Color::NONE.raw(),
-                color_high: Color::NONE.raw(),
-            },
+            thresholds: self.thresholds.raw(),
             show_percent: self.show_percent,
             show_value: self.show_value,
             bar_width: self.bar_width,
@@ -1562,11 +1644,36 @@ pub mod capture {
         let c = a.cstr(content);
         Rendered::from_raw(unsafe { ffi::sc_capture_panel_str(c, o) })
     }
+    /// Captures a panel with rich-text content.
+    pub fn panel_text(content: &Text, opts: PanelOpts) -> Rendered {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        Rendered::from_raw(unsafe {
+            ffi::sc_capture_panel_text(content.as_ptr(), o)
+        })
+    }
+    /// Frames an already-captured rendering inside a panel (border, background,
+    /// padding). The content's own ANSI styling is preserved (not re-sanitized).
+    pub fn panel_rendered(content: &Rendered, opts: PanelOpts) -> Rendered {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        Rendered::from_raw(unsafe {
+            ffi::sc_capture_panel_rendered(content.ptr, o)
+        })
+    }
     pub fn rule(opts: RuleOpts) -> Rendered {
         let mut a = Arena::new();
         let o = opts.raw(&mut a);
         Rendered::from_raw(unsafe {
             ffi::sc_capture_rule_str(std::ptr::null(), o)
+        })
+    }
+    /// Captures a rule with a rich-text title.
+    pub fn rule_text(title: &Text, opts: RuleOpts) -> Rendered {
+        let mut a = Arena::new();
+        let o = opts.raw(&mut a);
+        Rendered::from_raw(unsafe {
+            ffi::sc_capture_rule_text(title.as_ptr(), o)
         })
     }
 

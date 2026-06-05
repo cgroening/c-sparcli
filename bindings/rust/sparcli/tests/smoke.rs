@@ -452,6 +452,40 @@ fn text_input_suggest_dropdown_without_tty_errors() {
 }
 
 #[test]
+fn text_input_validate_builder_without_tty() {
+    use sparcli::{password_input, text_input, PasswordOpts, TextInputOpts};
+
+    // The validate closure must cross the FFI boundary cleanly (boxed +
+    // trampoline); off-TTY the prompt errors before the validator ever runs.
+    if !no_tty_behavior_testable() {
+        return;
+    }
+    let r = text_input(
+        "Name",
+        TextInputOpts::new().validate(|v: &str| {
+            if v.trim().is_empty() {
+                Err("must not be empty".into())
+            } else {
+                Ok(())
+            }
+        }),
+    );
+    assert!(r.is_err()); // SPARCLI_NO_TTY -> Unavailable, validator not invoked
+
+    let p = password_input(
+        "Secret",
+        PasswordOpts::new().validate(|v: &str| {
+            if v.len() < 8 {
+                Err("too short".into())
+            } else {
+                Ok(())
+            }
+        }),
+    );
+    assert!(p.is_err());
+}
+
+#[test]
 fn number_input_text_without_tty_errors() {
     if !no_tty_behavior_testable() {
         return;
@@ -679,6 +713,93 @@ fn logger_terminal_sink_writes_to_stream() {
         .unwrap();
     let _ = std::fs::remove_file(&path);
     assert!(content.contains("terminal record"));
+}
+
+#[test]
+fn capture_rich_text_variants_and_tree_prefix() {
+    use sparcli::{Tree, TreeNode, TreeOpts};
+    // capture::panel_text / rule_text take rich text; panel_rendered frames an
+    // already-captured rendering and preserves its embedded ANSI.
+    let t = Text::markup("[bold]title[/]");
+    assert!(capture::panel_text(&t, PanelOpts::new().single())
+        .lines()
+        .iter()
+        .any(|l| l.contains("title")));
+    assert!(capture::rule_text(&t, sparcli::RuleOpts::new())
+        .lines()
+        .iter()
+        .any(|l| l.contains("title")));
+
+    let inner = capture::str("body");
+    let framed = capture::panel_rendered(&inner, PanelOpts::new().single());
+    assert!(framed.lines().iter().any(|l| l.contains("body")));
+    assert!(framed.line_count() >= 3); // top border + content + bottom border
+
+    // Tree::add_prefixed attaches a styled prefix marker before the node text.
+    let mut tree = Tree::new(TreeOpts::new());
+    tree.add_prefixed(
+        "deploy",
+        TreeNode::root(),
+        Style::default(),
+        "✔",
+        Style::default().fg(Color::GREEN),
+    );
+    let raw = capture::tree(&tree).lines().join("\n");
+    assert!(raw.contains('✔'));
+    assert!(raw.contains("deploy"));
+}
+
+#[test]
+fn table_footer_and_header_sep_styling() {
+    use sparcli::{TableBorder, TableFooter, TableHeader};
+    // Footer-section background and the header-row separator color are now
+    // configurable (were hardcoded to none). Blue bg = ESC[44m, red fg = ESC[31m.
+    let mut t = Table::new();
+    t.column("Item", Default::default())
+        .column("Qty", Default::default());
+    t.row(["apples", "3"]);
+    t.footer_row(["total", "3"]);
+    let r = capture::table(
+        &t,
+        TableOpts {
+            header: TableHeader { row: true, ..Default::default() },
+            footer: TableFooter {
+                row_bg: Color::BLUE,
+                style: Style::bold(),
+                ..Default::default()
+            },
+            border: TableBorder {
+                kind: sparcli::BorderType::Single,
+                header_row_sep_color: Color::RED,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    );
+    let raw = r.lines().join("\n");
+    assert!(raw.contains("\x1b[44m"), "footer bg: {raw:?}");
+    assert!(raw.contains("\x1b[31m"), "header sep color: {raw:?}");
+}
+
+#[test]
+fn progress_thresholds_color_by_ratio() {
+    use sparcli::{ProgressBar, ProgressBarOpts, ProgressThresholds};
+    // Threshold coloring: at 20% (below the 0.5 mid boundary) the fill uses the
+    // low color (green = ESC[32m), not the default fill color.
+    let out = capture::output(|| {
+        let mut bar = ProgressBar::new(
+            ProgressBarOpts::new().width(40).thresholds(
+                ProgressThresholds::new(Color::GREEN, Color::YELLOW, Color::RED)
+                    .ratios(0.5, 0.8),
+            ),
+        );
+        bar.draw(20.0, 100.0);
+        bar.finish(20.0, 100.0);
+    });
+    assert!(
+        out.contains("\x1b[32m"),
+        "expected green fill at low ratio, got: {out:?}"
+    );
 }
 
 #[test]

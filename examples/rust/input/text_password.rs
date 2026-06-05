@@ -1,5 +1,5 @@
-//! Text input (placeholder, char filter, autocomplete, boxed) and masked
-//! password input.
+//! Text input (placeholder, validation, char filter, autocomplete, boxed) and
+//! masked password input.
 //!
 //!   cargo run -p sparcli --example input_text_password
 
@@ -31,11 +31,21 @@ fn run_rich_prompt() -> sparcli::Result<()> {
     Ok(())
 }
 
-/// Plain entry with a placeholder.
+/// Plain entry with a placeholder and a validator: Ok(()) accepts, Err(msg)
+/// keeps the prompt open and shows `msg` beneath the field.
 fn run_plain_input() -> sparcli::Result<()> {
-    if let Some(name) =
-        text_input("Project name", TextInputOpts::new().placeholder("my-project"))?
-    {
+    if let Some(name) = text_input(
+        "Project name",
+        TextInputOpts::new().placeholder("my-project").validate(|v| {
+            if v.trim().is_empty() {
+                Err("Please enter a value".into())
+            } else if v.contains(' ') {
+                Err("No spaces allowed".into())
+            } else {
+                Ok(())
+            }
+        }),
+    )? {
         println(&format!("  -> {name:?}"), Style::default());
     }
     Ok(())

@@ -619,6 +619,38 @@ impl CharFilter {
     }
 }
 
+/// A validation callback: `Ok(())` accepts the value, `Err(msg)` keeps the
+/// prompt open and shows `msg` beneath the field.
+type ValidateFn = Box<dyn FnMut(&str) -> std::result::Result<(), String>>;
+
+/// Owns the validator closure for one prompt run and keeps the last error
+/// message alive for the C side to read through `err_out`.
+struct ValidatorState {
+    f: ValidateFn,
+    last_err: Option<CString>,
+}
+
+unsafe extern "C" fn validate_tramp(
+    value: *const c_char,
+    ctx: *mut c_void,
+    err_out: *mut *const c_char,
+) -> bool {
+    let state = &mut *(ctx as *mut ValidatorState);
+    let v = std::ffi::CStr::from_ptr(value).to_string_lossy();
+    match (state.f)(&v) {
+        Ok(()) => true,
+        Err(msg) => {
+            // Keep the message alive past this call (the widget displays it
+            // until the next keystroke), then hand the C side a pointer to it.
+            state.last_err = Some(cstring(&msg));
+            if !err_out.is_null() {
+                *err_out = state.last_err.as_ref().unwrap().as_ptr();
+            }
+            false
+        }
+    }
+}
+
 /// How autocomplete suggestions are presented.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SuggestMode {
@@ -858,6 +890,9 @@ pub struct TextInputOpts<'a> {
     pub hide_char_count: bool,
     pub box_: BoxStyle,
     pub char_filter: Option<CharFilter>,
+    /// Validator: `Ok(())` accepts, `Err(msg)` keeps the prompt open and shows
+    /// `msg` beneath the field. Set via [`TextInputOpts::validate`].
+    pub validate: Option<ValidateFn>,
     pub suggestions: Vec<String>,
     pub suggest: SuggestOpts,
     pub hint_layout: HintLayout,
@@ -903,6 +938,23 @@ impl<'a> TextInputOpts<'a> {
         self.char_filter = Some(f);
         self
     }
+    /// Sets a validator: return `Ok(())` to accept the submitted value, or
+    /// `Err(message)` to reject it - the prompt stays open and shows `message`
+    /// beneath the field.
+    ///
+    /// ```no_run
+    /// use sparcli::{text_input, TextInputOpts};
+    /// let name = text_input("Name", TextInputOpts::new().validate(|v| {
+    ///     if v.trim().is_empty() { Err("must not be empty".into()) } else { Ok(()) }
+    /// }));
+    /// ```
+    pub fn validate<F>(mut self, f: F) -> Self
+    where
+        F: FnMut(&str) -> std::result::Result<(), String> + 'static,
+    {
+        self.validate = Some(Box::new(f));
+        self
+    }
     pub fn suggestions(mut self, s: Vec<String>) -> Self {
         self.suggestions = s;
         self
@@ -944,8 +996,21 @@ impl<'a> TextInputOpts<'a> {
 }
 
 /// Single-line text entry. `*out` is owned and copied into a `String`.
-pub fn text_input(prompt: &str, opts: TextInputOpts) -> Result<Option<String>> {
+pub fn text_input(
+    prompt: &str,
+    mut opts: TextInputOpts,
+) -> Result<Option<String>> {
     let mut o: ffi::ScTextInputOpts = unsafe { mem::zeroed() };
+    // Validator state must outlive the sc_text_input call (the C side calls
+    // back into it); keep it on the stack for the duration of this function.
+    let mut validator = opts
+        .validate
+        .take()
+        .map(|f| ValidatorState { f, last_err: None });
+    if let Some(state) = validator.as_mut() {
+        o.validate = Some(validate_tramp);
+        o.validate_ctx = state as *mut ValidatorState as *mut c_void;
+    }
     let initial = opts.initial.as_deref().map(cstring);
     let placeholder = opts.placeholder.as_deref().map(cstring);
     let editor = opts.editor.as_deref().map(cstring);
@@ -1014,6 +1079,9 @@ pub struct PasswordOpts {
     pub max_chars: i32,
     pub hide_char_count: bool,
     pub box_: BoxStyle,
+    /// Validator: `Ok(())` accepts, `Err(msg)` keeps the prompt open and shows
+    /// `msg` beneath the field. Set via [`PasswordOpts::validate`].
+    pub validate: Option<ValidateFn>,
 }
 
 impl PasswordOpts {
@@ -1022,6 +1090,16 @@ impl PasswordOpts {
     }
     pub fn mask(mut self, m: impl Into<String>) -> Self {
         self.mask = Some(m.into());
+        self
+    }
+    /// Sets a validator: return `Ok(())` to accept, or `Err(message)` to reject
+    /// (the prompt stays open and shows `message`). See
+    /// [`TextInputOpts::validate`].
+    pub fn validate<F>(mut self, f: F) -> Self
+    where
+        F: FnMut(&str) -> std::result::Result<(), String> + 'static,
+    {
+        self.validate = Some(Box::new(f));
         self
     }
     /// Frame the field in a panel with the given width (`0` = terminal width).
@@ -1040,9 +1118,17 @@ impl PasswordOpts {
 /// Masked single-line entry.
 pub fn password_input(
     prompt: &str,
-    opts: PasswordOpts,
+    mut opts: PasswordOpts,
 ) -> Result<Option<String>> {
     let mut o: ffi::ScPasswordOpts = unsafe { mem::zeroed() };
+    let mut validator = opts
+        .validate
+        .take()
+        .map(|f| ValidatorState { f, last_err: None });
+    if let Some(state) = validator.as_mut() {
+        o.validate = Some(validate_tramp);
+        o.validate_ctx = state as *mut ValidatorState as *mut c_void;
+    }
     let placeholder = opts.placeholder.as_deref().map(cstring);
     let mask = opts.mask.as_deref().map(cstring);
     o.placeholder = placeholder
@@ -1672,5 +1758,42 @@ pub fn datepicker(
         }))
     } else {
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::{CStr, CString};
+
+    // The validator trampoline must: accept Ok values (return true, write no
+    // error) and, for Err values, return false and expose the message through
+    // err_out, keeping it alive past the call.
+    #[test]
+    fn validator_trampoline_reports_error_message() {
+        let mut state = ValidatorState {
+            f: Box::new(|v: &str| {
+                if v == "ok" {
+                    Ok(())
+                } else {
+                    Err(format!("bad: {v}"))
+                }
+            }),
+            last_err: None,
+        };
+        let ctx = &mut state as *mut ValidatorState as *mut c_void;
+
+        let ok = CString::new("ok").unwrap();
+        let mut err: *const c_char = std::ptr::null();
+        let r = unsafe { validate_tramp(ok.as_ptr(), ctx, &mut err) };
+        assert!(r);
+        assert!(err.is_null());
+
+        let bad = CString::new("xy").unwrap();
+        let r = unsafe { validate_tramp(bad.as_ptr(), ctx, &mut err) };
+        assert!(!r);
+        assert!(!err.is_null());
+        let msg = unsafe { CStr::from_ptr(err).to_str().unwrap() };
+        assert_eq!(msg, "bad: xy");
     }
 }

@@ -10,6 +10,8 @@ use sparcli::*;
 fn main() {
     run_progress_bar();
     println("", Style::default());
+    run_threshold_bar();
+    println("", Style::default());
     run_spinner();
     println("", Style::default());
     run_transient_line();
@@ -37,6 +39,27 @@ fn run_progress_bar() {
             .width(60),
     );
     bar.set_label("download");
+    for value in 0..=100 {
+        bar.draw(value as f64, 100.0);
+        sleep(Duration::from_millis(8));
+    }
+    bar.finish(100.0, 100.0);
+}
+
+/// Threshold coloring: the fill switches color by ratio - green below 50%,
+/// yellow up to 80%, red above (e.g. a disk- or load-usage gauge).
+fn run_threshold_bar() {
+    let mut bar = ProgressBar::new(
+        ProgressBarOpts::new()
+            .brackets()
+            .show_percent(true)
+            .width(60)
+            .thresholds(
+                ProgressThresholds::new(Color::GREEN, Color::YELLOW, Color::RED)
+                    .ratios(0.5, 0.8),
+            ),
+    );
+    bar.set_label("disk");
     for value in 0..=100 {
         bar.draw(value as f64, 100.0);
         sleep(Duration::from_millis(8));
