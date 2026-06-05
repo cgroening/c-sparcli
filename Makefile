@@ -248,7 +248,7 @@ EXAMPLES_CPP_BIN  = $(patsubst examples/%.cpp,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all
+.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all
 
 # `make` must build the C library + CLI (as documented), not the first target
 # that happens to be defined above (the rust/python binding helpers).
@@ -383,6 +383,7 @@ test:
 	$(MAKE) test-args
 	$(MAKE) test-cpp
 	$(MAKE) test-cli-check
+	$(MAKE) test-cli-completion
 	$(MAKE) test-cli-pty
 
 # Full QA run: every gate in order, stops at the first failure. This is the
@@ -481,6 +482,11 @@ test-cli-check: $(CLI_BIN) | $(BUILDDIR)
 test-cli-golden: $(CLI_BIN)
 	sh tests/cli/run_output.sh ./$(CLI_BIN) > $(CLI_GOLDEN)
 	@echo "Regenerated $(CLI_GOLDEN)"
+
+# Anti-drift: assert the hand-written zsh completion offers every long option
+# each `sparcli <cmd> --help` documents (the CLI is not on the args parser yet).
+test-cli-completion: $(CLI_BIN)
+	sh tests/cli/test_completion.sh ./$(CLI_BIN)
 
 # CLI PTY suite: drives the interactive CLI subcommands (confirm, input,
 # select, ...) on a pseudo-terminal and asserts stdout value + exit code.

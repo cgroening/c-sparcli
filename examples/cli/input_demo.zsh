@@ -41,6 +41,14 @@ $bin rule "input: validation via filters" --color cyan
 port=$($bin input "Port:" --filter digits --max 5 --initial 8080) || port=8080
 $bin print "Port: [bold]${port}[/]"
 
+$bin rule "input: autocomplete dropdown (fuzzy)" --color cyan
+# --suggest is repeatable; --suggest-dropdown shows the matches as a list
+# below the field (arrows move, Tab/Enter accept), --suggest-match fuzzy ranks.
+cmd=$($bin input "Git command:" \
+    --suggest commit --suggest checkout --suggest cherry-pick --suggest stash \
+    --suggest-dropdown --suggest-match fuzzy --suggest-max 4) || cmd=""
+$bin print "Command: [bold]${cmd:-(none)}[/]"
+
 $bin rule "password: masked entry" --color cyan
 secret=$($bin password "Pretend API key:" --mask "•") || secret=""
 $bin print "Got [bold]${#secret}[/] characters (not echoing them, obviously)"
@@ -49,6 +57,13 @@ $bin rule "number: steps, bounds and exact decimals" --color cyan
 amount=$($bin number "Amount (EUR):" --decimals 2 --decimal-sep , \
     --min 0 --max 1000 --step 0.5 --start-empty) || amount="0.00"
 $bin print "Amount: [bold green]${amount}[/] EUR"
+
+$bin rule "number --calculator: '='-prefixed expressions" --color cyan
+# Type e.g. =12,5*3 then Enter to evaluate, Enter again to submit; the exact
+# (full-precision) result is what reaches stdout.
+total=$($bin number "Total (try =12,5*3):" --decimals 2 --decimal-sep , \
+    --calculator --start-empty) || total="0.00"
+$bin print "Total: [bold green]${total}[/] EUR"
 
 $bin rule "select: pick from arguments" --color cyan
 flavor=$($bin select --prompt "Favorite flavor?" vanilla chocolate pistachio) \

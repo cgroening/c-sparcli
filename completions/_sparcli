@@ -16,13 +16,18 @@ _sparcli() {
     local -a alert_levels=(info debug warning error success)
     local -a filters=(digits decimal alpha alnum no-space)
     local -a week_starts=(monday sunday)
+    local -a hint_layouts=(inline stacked hidden)
+    local -a hint_positions=(top bottom left right)
+    local -a suggest_matches=(prefix fuzzy)
     local color_msg='color name (black red green yellow blue magenta cyan white), #RRGGBB or R,G,B'
+    local style_msg='ELEM=SPEC, e.g. title="bold red" or "dim on white"'
 
     # Options every command accepts.
     local -a common_opts=(
         '--no-markup[Treat \[tag\] markup as literal text]'
         '--no-color[Strip ANSI colors from the output]'
         '--allow-ansi[Pass ANSI escapes in input text through]'
+        "*--style=[Style an element (ELEM=SPEC)]:style:_message '$style_msg'"
         '--help[Show command help]'
     )
     # Additional options every interactive input command accepts.
@@ -31,6 +36,8 @@ _sparcli() {
         "--accent=[Accent color]:color:_message '$color_msg'"
         '--hint=[Custom key-hint footer text]:text:'
         '--no-hint[Hide the key-hint footer]'
+        "--hint-layout=[Key-hint footer layout]:layout:($hint_layouts)"
+        "--hint-pos=[Key-hint footer placement]:position:($hint_positions)"
     )
     # Box-framing options shared by every boxed input command.
     local -a box_opts=(
@@ -116,6 +123,7 @@ _sparcli() {
                         "--border=[Line style]:style:($borders)" \
                         "--color=[Line color]:color:_message '$color_msg'" \
                         "--align=[Title position]:alignment:($aligns)" \
+                        '--title-pad=[Spaces around the title]:count:' \
                         '--width=[Fixed rule width]:width:' \
                         '--margin=[Outer margin (N or T,R,B,L)]:edges:' \
                         $common_opts \
@@ -127,6 +135,10 @@ _sparcli() {
                         '--delim=[Custom field delimiter]:char:' \
                         '--header-row[Treat the first row as the header]' \
                         '--header-col[Treat the first column as a header]' \
+                        "--header-bg=[Header row background]:color:_message '$color_msg'" \
+                        "--header-col-bg=[Header column background]:color:_message '$color_msg'" \
+                        "--footer-bg=[Footer row background]:color:_message '$color_msg'" \
+                        "--footer-col-bg=[Footer column background]:color:_message '$color_msg'" \
                         "--border=[Border style]:style:($borders)" \
                         "--color=[Outer border color]:color:_message '$color_msg'" \
                         "--inner-color=[Inner separator color]:color:_message '$color_msg'" \
@@ -136,9 +148,13 @@ _sparcli() {
                         '--striped[Alternate row backgrounds]' \
                         "--stripe-bg=[Stripe background color]:color:_message '$color_msg'" \
                         '--title=[Table title]:title:' \
+                        "--title-align=[Title alignment]:alignment:($aligns)" \
                         "--align=[Default column alignment]:alignment:($aligns)" \
+                        '--cell-pad=[Inner cell padding (N or T,R,B,L)]:edges:' \
+                        '--margin=[Outer table margin (N or T,R,B,L)]:edges:' \
                         '--width=[Total table width]:width:' \
                         '--max-rows=[Show at most N rows]:count:' \
+                        '--rtl[Right-to-left column order]' \
                         $common_opts \
                         '1:CSV file:_files'
                     ;;
@@ -147,9 +163,12 @@ _sparcli() {
                         "--marker=[Marker style]:marker:($markers)" \
                         '--bullet=[Bullet character]:char:' \
                         "--marker-color=[Marker color]:color:_message '$color_msg'" \
+                        '--marker-prefix=[Text before the marker value]:text:' \
+                        '--marker-suffix=[Text after the marker value]:text:' \
                         '--indent=[Left indent in columns]:count:' \
                         '--gap=[Blank lines between items]:count:' \
                         '--width=[List width]:width:' \
+                        '--margin=[Outer margin (N or T,R,B,L)]:edges:' \
                         $common_opts \
                         '*:item:'
                     ;;
@@ -172,6 +191,7 @@ _sparcli() {
                         '--wrap[Word-wrap long values]' \
                         '--gap=[Blank lines between items]:count:' \
                         '--width=[Total width]:width:' \
+                        '--margin=[Outer margin (N or T,R,B,L)]:edges:' \
                         $common_opts \
                         '1:input file:_files'
                     ;;
@@ -215,8 +235,20 @@ _sparcli() {
                         "--type=[Bar style]:style:($progress_types)" \
                         '--label=[Label left of the bar]:text:' \
                         "--color=[Fill color]:color:_message '$color_msg'" \
+                        "--empty-color=[Color of the unfilled part]:color:_message '$color_msg'" \
+                        "--left-cap=[Left bracket (e.g. '[')]:text:" \
+                        "--right-cap=[Right bracket (e.g. ']')]:text:" \
+                        '--bar-width=[Inner bar width (0 = auto)]:count:' \
+                        '--label-width=[Fixed label column width]:count:' \
                         '--width=[Total line width]:width:' \
                         '--no-percent[Hide the percentage]' \
+                        '--show-value[Append (value/max) after the percent]' \
+                        '--thresholds[Color the fill by ratio]' \
+                        '--threshold-mid=[Low/mid boundary (default 0.5)]:ratio:' \
+                        '--threshold-high=[Mid/high boundary (default 0.75)]:ratio:' \
+                        "--threshold-low-color=[Fill color below mid]:color:_message '$color_msg'" \
+                        "--threshold-mid-color=[Fill color between mid and high]:color:_message '$color_msg'" \
+                        "--threshold-high-color=[Fill color at/above high]:color:_message '$color_msg'" \
                         $common_opts
                     ;;
                 confirm)
@@ -235,8 +267,14 @@ _sparcli() {
                         '--initial=[Pre-filled value]:text:' \
                         '--placeholder=[Placeholder shown when empty]:text:' \
                         '--max=[Maximum number of characters]:count:' \
+                        '--no-count[Hide the character counter]' \
                         "--filter=[Character filter]:filter:($filters)" \
                         '*--suggest=[Autocomplete suggestion]:text:' \
+                        '--suggest-dropdown[Show suggestions as a dropdown list]' \
+                        "--suggest-match=[Dropdown match mode]:match:($suggest_matches)" \
+                        '--suggest-max=[Dropdown rows before overflow]:count:' \
+                        '--external-editor[Allow editing in $VISUAL/$EDITOR (Ctrl-G)]' \
+                        '--editor=[External editor command]:command:_command_names' \
                         $box_opts \
                         $input_opts \
                         '*:prompt:'
@@ -244,7 +282,10 @@ _sparcli() {
                 password)
                     _arguments \
                         '--mask=[Mask character]:char:' \
+                        '--placeholder=[Placeholder shown when empty]:text:' \
                         '--max=[Maximum number of characters]:count:' \
+                        '--no-count[Hide the character counter]' \
+                        "--filter=[Character filter]:filter:($filters)" \
                         $box_opts \
                         $input_opts \
                         '*:prompt:'
@@ -258,6 +299,10 @@ _sparcli() {
                         '--step=[Arrow step size]:number:' \
                         '--decimals=[Number of decimal places]:count:' \
                         '--decimal-sep=[Decimal separator]:char:(. ,)' \
+                        "--calculator[Enable '='-prefixed expression input]" \
+                        '--calc-store-rounded[Submit the displayed (rounded) value]' \
+                        '--calc-show-precise[Display the full-precision result]' \
+                        '--calc-warn-text=[Message when an exact result is discarded]:text:' \
                         $box_opts \
                         $input_opts \
                         '*:prompt:'
@@ -278,6 +323,11 @@ _sparcli() {
                         '--multi[Multi-select with checkboxes]' \
                         '--max-visible=[Viewport height]:count:' \
                         '--no-cycle[Stop at the list ends (default cycles)]' \
+                        '--marker=[Marker before non-cursor rows]:text:' \
+                        '--cursor-marker=[Marker before the cursor row]:text:' \
+                        '--checkbox-on=[Checked box glyph (multi-select)]:text:' \
+                        '--checkbox-off=[Unchecked box glyph (multi-select)]:text:' \
+                        '--arrow-nav[Left = back (exit 3), Right = select]' \
                         $box_opts \
                         $input_opts \
                         '*:item:'
@@ -290,6 +340,10 @@ _sparcli() {
                         '--delim=[Custom delimiter for the table view]:char:' \
                         '--header-row[First input line provides the headers]' \
                         '--no-cycle[Stop at the result-list ends (default cycles)]' \
+                        '--marker=[Marker before non-cursor rows]:text:' \
+                        '--cursor-marker=[Marker before the cursor row]:text:' \
+                        '--search-columns=[Table columns to search (e.g. 1,3)]:columns:' \
+                        '--arrow-nav[Left = back (exit 3), Right = select]' \
                         $box_opts \
                         $input_opts \
                         '*:item:'
@@ -300,6 +354,8 @@ _sparcli() {
                         '--format=[strftime output format]:format:' \
                         '--initial=[Initially selected date]:date (YYYY-MM-DD):' \
                         "--week-start=[First day of the week]:day:($week_starts)" \
+                        '--header-prev=[Glyph for the previous-month control]:text:' \
+                        '--header-next=[Glyph for the next-month control]:text:' \
                         $box_opts \
                         $input_opts
                     ;;

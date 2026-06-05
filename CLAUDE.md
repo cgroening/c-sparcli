@@ -14,7 +14,8 @@ make qa           # EVERY QA gate in one command: test -Werror, sanitize, tsan,
 make test         # FULL non-interactive suite: chains the headless gates below
                   # (test-output-check, test-input ARGS=--logic,
                   # test-input-style-check, test-input-pty, test-app, test-args,
-                  # test-cpp, test-cli-check, test-cli-pty). The canonical check.
+                  # test-cpp, test-cli-check, test-cli-completion, test-cli-pty).
+                  # The canonical check.
 make test-output  # OUTPUT gallery (tests/output/test_main), printed for eyeballing.
                   # ARGS=--focus / --no-animated (and the combo).
 make test-output-check / -golden   # OUTPUT golden-file diff / regenerate snapshot
@@ -31,6 +32,9 @@ make test-app     # APP framework suite (tests/app/): XDG paths, pager, pretty
                   # errors + logging logic tests; headless (CI).
 make test-args    # ARGS parser suite (tests/args/): parse loop, typed values,
                   # error reporting, help + completion rendering; headless (CI).
+make test-cli-completion  # assert the zsh completion (completions/_sparcli)
+                  # offers every option each `sparcli <cmd> --help` documents
+                  # (anti-drift for the hand-written completion; headless, CI)
 make test-cli-check / -golden  # CLI output golden-file diff / regenerate
                   # (tests/cli/run_output.sh drives every output subcommand)
 make test-cli-pty     # CLI input PTY suite under ASan/UBSan: forks the sanitized
@@ -103,7 +107,7 @@ The `sparcli` binary exposes every widget as a shell subcommand (rich-cli + gum 
 - **Conventions:** markup parsed by default in all text (`--no-markup` opt-out); `--no-color`/`NO_COLOR` strips ANSI by rendering through a capture stream + `sc_strip_ansi`; input text is sanitized by default (`--allow-ansi` opt-out → `sc_set_allow_ansi`); exit codes 0 = OK / 1 = cancelled or "no" / 2 = error or no TTY.
 - **Input commands** set `hide_summary`, print only the raw value to stdout (the widget UI goes to `/dev/tty`), so `$(sparcli input …)` command substitution works; `--accent` is applied via `sc_input_set_theme`.
 - **`spin`** forks the wrapped command and routes the spinner to `/dev/tty` (the spinner is a stream widget – it must not pollute the child's stdout); the child's exit code is propagated.
-- **Tests:** `make test-cli-check` (golden, `tests/cli/run_output.sh` + `expected.txt`) and `make test-cli-pty` (`tests/cli/test_cli_pty.c`: forkpty + stdout-pipe redirect, runs the ASan/UBSan `sparcli-sanitize` binary). Both are part of `make test`. New output cases go into `run_output.sh` (+ `make test-cli-golden`), new input cases into the `CASES[]` array.
+- **Tests:** `make test-cli-check` (golden, `tests/cli/run_output.sh` + `expected.txt`), `make test-cli-completion` (`tests/cli/test_completion.sh`: asserts the hand-written zsh completion offers every option each `<cmd> --help` documents — resolving the shared `$common_opts`/`$input_opts`/`$box_opts` arrays — so the completion can't silently drift), and `make test-cli-pty` (`tests/cli/test_cli_pty.c`: forkpty + stdout-pipe redirect, runs the ASan/UBSan `sparcli-sanitize` binary). All three are part of `make test`. New output cases go into `run_output.sh` (+ `make test-cli-golden`), new input cases into the `CASES[]` array; when adding a CLI flag, add it to `completions/_sparcli` too (the completion test enforces it).
 - **Install:** `make install` puts the binary in `$(BINDIR)` and `completions/_sparcli` in `$(ZSHFUNCDIR)`.
 - **Future migration (deliberately deferred):** the CLI still uses `getopt_long` + hand-written usage strings/completion - NOT the `src/args/` parser. Migrating it is a roadmap item (see README), postponed until the args API has stabilized through real-world use, so that args API changes do not force follow-up changes in the stable, golden-tested CLI. Do not propose this migration as new work.
 

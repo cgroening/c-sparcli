@@ -28,7 +28,7 @@ sudo make install   # installs sparcli to $(PREFIX)/bin (default /usr/local/bin)
                     # and the zsh completion to $(PREFIX)/share/zsh/site-functions
 ```
 
-The binary is statically linked against `libsparcli.a`, so it has no runtime dependency on the installed library. The zsh completion (`completions/_sparcli`) is picked up automatically once it is in `$fpath` (re-run `compinit` or restart the shell).
+The binary is statically linked against `libsparcli.a`, so it has no runtime dependency on the installed library. The zsh completion (`completions/_sparcli`) is picked up automatically once it is in `$fpath` (re-run `compinit` or restart the shell). It completes every command, all of their options (including enum values such as border styles, colors, alert levels and hint layouts), and file/value arguments. The completion is kept in lock-step with the binary by `make test-cli-completion`, which fails if any option a `sparcli <cmd> --help` documents is not offered by the completion.
 
 ---
 

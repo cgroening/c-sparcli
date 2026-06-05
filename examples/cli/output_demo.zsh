@@ -98,5 +98,15 @@ for i in {1..50}; do
     sleep 0.02
 done | $bin progress --total 100 --label "Working" --color green --width 60
 
+# --thresholds recolors the fill by ratio: green < mid, yellow < high, red above.
+$bin rule "progress --thresholds: color by ratio" --color cyan
+for i in {1..50}; do
+    print $((i * 2))
+    sleep 0.02
+done | $bin progress --total 100 --label "Disk" --width 60 --show-value \
+    --thresholds --threshold-mid 0.5 --threshold-high 0.8 \
+    --threshold-low-color green --threshold-mid-color yellow \
+    --threshold-high-color red
+
 $bin rule --color cyan
 $bin print "[bold green]Done.[/] See [cyan]docs/cli.md[/] for the full reference."
