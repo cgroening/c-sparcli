@@ -93,6 +93,57 @@ fn fuzzy_has_no_selection_before_run() {
 }
 
 #[test]
+fn fuzzy_sections_multi_and_styles() {
+    use sparcli::FuzzyOrder;
+    let mut fz = Fuzzy::new(
+        FuzzyOpts::new()
+            .multi()
+            .section_counts()
+            .order(FuzzyOrder::Column(0))
+            .toggle_all_key(key_ctrl('a')),
+    );
+    fz.add_section("Monday");
+    fz.add("buy milk");
+    fz.add("call bob");
+
+    // Stable ids + label / set_label.
+    fz.set_id(1, 42);
+    assert_eq!(fz.id_at(1), 42);
+    assert_eq!(fz.id_at(99), 0);
+    assert_eq!(fz.label(1).as_deref(), Some("buy milk"));
+    fz.set_label(1, "BUY MILK");
+    assert_eq!(fz.label(1).as_deref(), Some("BUY MILK"));
+
+    // Checked set.
+    fz.set_checked(1, true);
+    fz.set_checked(2, true);
+    assert_eq!(fz.checked_count(), 2);
+    assert!(fz.is_checked(1));
+    fz.check_all(false);
+    assert_eq!(fz.checked_count(), 0);
+
+    // Disabling clears + blocks the check.
+    fz.set_disabled(2, true);
+    fz.set_checked(2, true);
+    assert!(!fz.is_checked(2));
+}
+
+#[test]
+fn fuzzy_rich_and_styled_rows() {
+    let style = Style::new().fg(Color::RED);
+    let mut g = Fuzzy::new(FuzzyOpts::new().table(["Status", "Task"]));
+    g.add_row_styled(["overdue", "pay invoice"], &[style, Style::new()]);
+    assert_eq!(g.label(0).as_deref(), Some("overdue"));
+
+    let mut badge = Text::new();
+    badge.append("HI", Style::new());
+    badge.append("GH", Style::bold());
+    let mut r = Fuzzy::new(FuzzyOpts::new().table(["x"]));
+    r.add_row_rich(&[badge]);
+    assert_eq!(r.label(0).as_deref(), Some("HIGH"));
+}
+
+#[test]
 fn capture_panel_contains_text() {
     let r = capture::panel("hello", PanelOpts::new().single().title("hi"));
     let lines = r.lines();

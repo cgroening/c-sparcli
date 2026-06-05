@@ -20,6 +20,11 @@
 #    sizes) and ignores NOLINT, so its false positives are unsuppressible.
 #    Real out-of-bounds bugs of this class are covered dynamically by
 #    `make sanitize` / `make test-input-pty` / `make fuzz` (ASan).
+#  - clang-analyzer-optin.performance.Padding: a micro-optimization hint, not a
+#    bug finder. The public `Sc*Opts` structs group fields by concern for
+#    readability and (in C++) rely on declaration order for designated
+#    initializers, so repacking them to shave padding would hurt the API; they
+#    are passed by value once per call, where the padding does not matter.
 Checks: >
   bugprone-*,
   clang-analyzer-*,
@@ -29,7 +34,8 @@ Checks: >
   -bugprone-multi-level-implicit-pointer-conversion,
   -cert-err33-c,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
-  -clang-analyzer-security.ArrayBound
+  -clang-analyzer-security.ArrayBound,
+  -clang-analyzer-optin.performance.Padding
 WarningsAsErrors: ''
 HeaderFilterRegex: '(include|src)/.*'
 FormatStyle: none

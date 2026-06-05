@@ -3251,6 +3251,14 @@ extern "C" {
     #[doc = " Frees a selection and all owned item labels.\n\n @param select  Selection to free; safe to pass `NULL`."]
     pub fn sc_select_free(select: *mut ScSelect);
 }
+#[doc = "< match score desc, then add order (default)."]
+pub const ScFuzzyOrder_SC_FUZZY_ORDER_SCORE: ScFuzzyOrder = 0;
+#[doc = "< stable add order (e.g. tasks by time)."]
+pub const ScFuzzyOrder_SC_FUZZY_ORDER_INSERTION: ScFuzzyOrder = 1;
+#[doc = "< by `fields[order_column]` (case-insensitive)."]
+pub const ScFuzzyOrder_SC_FUZZY_ORDER_COLUMN: ScFuzzyOrder = 2;
+#[doc = " Result ordering of the filtered list. With section headers the order is\n applied *within* each section/group; without sections it is global."]
+pub type ScFuzzyOrder = ::std::os::raw::c_uint;
 #[doc = " Options for a fuzzy finder."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3309,10 +3317,40 @@ pub struct ScFuzzyOpts {
     pub prompt_text: *const ScText,
     #[doc = " Parse the string prompt as inline markup."]
     pub prompt_markup: bool,
+    #[doc = " `true` = multi-select: Space toggles, run via `sc_fuzzy_run_multi`."]
+    pub multi: bool,
+    #[doc = " Checked box glyph (multi); `NULL` = \"[x] \"."]
+    pub checkbox_on: *const ::std::os::raw::c_char,
+    #[doc = " Unchecked box glyph (multi); `NULL` = \"[ ] \"."]
+    pub checkbox_off: *const ::std::os::raw::c_char,
+    #[doc = " Table view: render the checkbox as its own leading column instead of a\nglyph prefixed to the first data column."]
+    pub checkbox_column: bool,
+    #[doc = " Key that toggles all selectable rows on/off (multi only). Zero-init\n(`chord.key == 0`) disables it. Build with `sc_key_ctrl('a')` etc."]
+    pub toggle_all_key: ScKeyChord,
+    #[doc = " Key that toggles all selectable rows of the cursor's section on/off\n(multi only). Zero-init disables it."]
+    pub toggle_section_key: ScKeyChord,
+    #[doc = " Style of section-header rows; zero-init = dim + bold."]
+    pub section_style: ScTextStyle,
+    #[doc = " Append the matched-row count to each section header, e.g. \"Monday (3)\"."]
+    pub section_counts: bool,
+    #[doc = " Style of disabled (greyed, non-selectable) rows; zero-init = dim."]
+    pub disabled_style: ScTextStyle,
+    #[doc = " Text shown when no row matches the query; `NULL` = nothing."]
+    pub empty_text: *const ::std::os::raw::c_char,
+    #[doc = " Style of `empty_text`; zero-init = dim."]
+    pub empty_style: ScTextStyle,
+    #[doc = " Result order (see `ScFuzzyOrder`); applied within sections when present."]
+    pub order: ScFuzzyOrder,
+    #[doc = " Column index for `SC_FUZZY_ORDER_COLUMN`."]
+    pub order_column: usize,
+    #[doc = " Sort descending for COLUMN / INSERTION order."]
+    pub order_desc: bool,
+    #[doc = " Pre-fill the query field on the next run; `NULL` = empty."]
+    pub initial_query: *const ::std::os::raw::c_char,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 568usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 712usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
@@ -3362,6 +3400,34 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, prompt_text) - 552usize];
     ["Offset of field: ScFuzzyOpts::prompt_markup"]
         [::std::mem::offset_of!(ScFuzzyOpts, prompt_markup) - 560usize];
+    ["Offset of field: ScFuzzyOpts::multi"][::std::mem::offset_of!(ScFuzzyOpts, multi) - 561usize];
+    ["Offset of field: ScFuzzyOpts::checkbox_on"]
+        [::std::mem::offset_of!(ScFuzzyOpts, checkbox_on) - 568usize];
+    ["Offset of field: ScFuzzyOpts::checkbox_off"]
+        [::std::mem::offset_of!(ScFuzzyOpts, checkbox_off) - 576usize];
+    ["Offset of field: ScFuzzyOpts::checkbox_column"]
+        [::std::mem::offset_of!(ScFuzzyOpts, checkbox_column) - 584usize];
+    ["Offset of field: ScFuzzyOpts::toggle_all_key"]
+        [::std::mem::offset_of!(ScFuzzyOpts, toggle_all_key) - 588usize];
+    ["Offset of field: ScFuzzyOpts::toggle_section_key"]
+        [::std::mem::offset_of!(ScFuzzyOpts, toggle_section_key) - 600usize];
+    ["Offset of field: ScFuzzyOpts::section_style"]
+        [::std::mem::offset_of!(ScFuzzyOpts, section_style) - 612usize];
+    ["Offset of field: ScFuzzyOpts::section_counts"]
+        [::std::mem::offset_of!(ScFuzzyOpts, section_counts) - 632usize];
+    ["Offset of field: ScFuzzyOpts::disabled_style"]
+        [::std::mem::offset_of!(ScFuzzyOpts, disabled_style) - 636usize];
+    ["Offset of field: ScFuzzyOpts::empty_text"]
+        [::std::mem::offset_of!(ScFuzzyOpts, empty_text) - 656usize];
+    ["Offset of field: ScFuzzyOpts::empty_style"]
+        [::std::mem::offset_of!(ScFuzzyOpts, empty_style) - 664usize];
+    ["Offset of field: ScFuzzyOpts::order"][::std::mem::offset_of!(ScFuzzyOpts, order) - 684usize];
+    ["Offset of field: ScFuzzyOpts::order_column"]
+        [::std::mem::offset_of!(ScFuzzyOpts, order_column) - 688usize];
+    ["Offset of field: ScFuzzyOpts::order_desc"]
+        [::std::mem::offset_of!(ScFuzzyOpts, order_desc) - 696usize];
+    ["Offset of field: ScFuzzyOpts::initial_query"]
+        [::std::mem::offset_of!(ScFuzzyOpts, initial_query) - 704usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3390,6 +3456,105 @@ extern "C" {
         fuzzy: *mut ScFuzzy,
         fields: *const *const ::std::os::raw::c_char,
         n: usize,
+    );
+}
+extern "C" {
+    #[doc = " Adds a non-selectable **section header** row (e.g. a day in a todo list).\n Headers are shown only when their group has at least one matching row, are\n skipped by the cursor, and group the rows that follow until the next header.\n\n @param fuzzy  Target finder.\n @param title  Header text; copied internally."]
+    pub fn sc_fuzzy_add_section(fuzzy: *mut ScFuzzy, title: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " Adds a single-field item with a base text style (whole-cell color/attributes).\n The query-match highlight (bold + underline) is overlaid on top of `style`."]
+    pub fn sc_fuzzy_add_styled(
+        fuzzy: *mut ScFuzzy,
+        label: *const ::std::os::raw::c_char,
+        style: ScTextStyle,
+    );
+}
+extern "C" {
+    #[doc = " Adds a multi-field row with an optional per-cell base style. `styles` (if not\n `NULL`) holds `n` styles applied as each cell's base; the match highlight is\n overlaid. `styles` is borrowed for the call (copied internally)."]
+    pub fn sc_fuzzy_add_row_styled(
+        fuzzy: *mut ScFuzzy,
+        fields: *const *const ::std::os::raw::c_char,
+        styles: *const ScTextStyle,
+        n: usize,
+    );
+}
+extern "C" {
+    #[doc = " Adds a multi-field row whose cells are full `ScText` (arbitrary multi-color\n spans). The match/display key for each cell is the flattened span text, so\n matching still works, but the per-character match highlight is not drawn in\n rich cells. `cells` entries are deep-copied; the caller keeps ownership."]
+    pub fn sc_fuzzy_add_row_rich(fuzzy: *mut ScFuzzy, cells: *const *mut ScText, n: usize);
+}
+extern "C" {
+    #[doc = " Marks the row at `index` (add order) disabled (greyed, non-selectable)."]
+    pub fn sc_fuzzy_set_disabled(fuzzy: *mut ScFuzzy, index: usize, on: bool);
+}
+extern "C" {
+    #[doc = " Sets a stable caller id on the row at `index` (add order)."]
+    pub fn sc_fuzzy_set_id(fuzzy: *mut ScFuzzy, index: usize, id: u64);
+}
+extern "C" {
+    #[doc = " Returns the stable id of the row at `index` (add order), or 0."]
+    pub fn sc_fuzzy_id_at(fuzzy: *const ScFuzzy, index: usize) -> u64;
+}
+extern "C" {
+    #[doc = " Returns the stable id of the currently highlighted row, or 0."]
+    pub fn sc_fuzzy_cursor_id(fuzzy: *const ScFuzzy) -> u64;
+}
+extern "C" {
+    #[doc = " Runs the finder in multi-select mode. Writes the checked rows' add-order\n indices in display order; `*count_io` is in:capacity / out:count written.\n Space toggles the cursor row. Mirrors `sc_select_run`."]
+    pub fn sc_fuzzy_run_multi(
+        fuzzy: *mut ScFuzzy,
+        indices: *mut usize,
+        count_io: *mut usize,
+    ) -> ScInputStatus;
+}
+extern "C" {
+    #[doc = " Pre-checks/unchecks the row at `index` (add order) for multi-select."]
+    pub fn sc_fuzzy_set_checked(fuzzy: *mut ScFuzzy, index: usize, on: bool);
+}
+extern "C" {
+    #[doc = " Reports whether the row at `index` (add order) is checked."]
+    pub fn sc_fuzzy_is_checked(fuzzy: *const ScFuzzy, index: usize) -> bool;
+}
+extern "C" {
+    #[doc = " Checks or unchecks every selectable row."]
+    pub fn sc_fuzzy_check_all(fuzzy: *mut ScFuzzy, on: bool);
+}
+extern "C" {
+    #[doc = " Returns the number of checked rows."]
+    pub fn sc_fuzzy_checked_count(fuzzy: *const ScFuzzy) -> usize;
+}
+extern "C" {
+    #[doc = " Pre-positions the cursor on `index` (add order, clamped to a selectable)."]
+    pub fn sc_fuzzy_set_cursor(fuzzy: *mut ScFuzzy, index: usize);
+}
+extern "C" {
+    #[doc = " Returns the first field of the row at `index` (add order), or `NULL`."]
+    pub fn sc_fuzzy_label(fuzzy: *const ScFuzzy, index: usize) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Replaces the first field of the row at `index` (add order); copied."]
+    pub fn sc_fuzzy_set_label(
+        fuzzy: *mut ScFuzzy,
+        index: usize,
+        label: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " Replaces all fields of the row at `index` (add order); copied. Drops any\nper-cell styles/rich texts previously set on that row."]
+    pub fn sc_fuzzy_set_row(
+        fuzzy: *mut ScFuzzy,
+        index: usize,
+        fields: *const *const ::std::os::raw::c_char,
+        n: usize,
+    );
+}
+extern "C" {
+    #[doc = " Sets the base style of cell `col` in the row at `index` (add order)."]
+    pub fn sc_fuzzy_set_row_style(
+        fuzzy: *mut ScFuzzy,
+        index: usize,
+        col: usize,
+        style: ScTextStyle,
     );
 }
 extern "C" {

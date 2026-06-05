@@ -278,6 +278,21 @@ let mut grid = Fuzzy::new(FuzzyOpts::new()
 grid.add_row(["Ada", "Engineer"]).add_row(["Alan", "Founder"]);
 if let Some(i) = grid.run()? { /* add-order index */ }
 
+// Todo-style finder: day sections, multi-select, per-cell colors, ordering.
+let mut todo = Fuzzy::new(FuzzyOpts::new()
+    .table(["Time", "Task", "Status"])
+    .multi().checkbox_column().section_counts()
+    .order(FuzzyOrder::Column(0))          // chronological per day
+    .toggle_all_key(key_ctrl('a')));
+todo.add_section("Monday");
+todo.add_row_styled(["09:00", "Pay invoice", "overdue"],
+                    &[Style::new(), Style::new(), Style::new().fg(Color::RED)]);
+todo.set_id(1, 102);                        // stable id (survives remove/reorder)
+if let Some(checked) = todo.run_multi()? { /* Vec<usize> of checked rows */ }
+// also: add_section / add_styled / add_row_rich, set_disabled, set_checked /
+// check_all / checked_count, set_cursor / set_label / set_row / set_row_style,
+// id_at / cursor_id. Full demo: examples/c/apps/todo_fuzzy.c.
+
 // Process-wide defaults every widget inherits (per-call opts still win):
 Theme::new().accent(Color::MAGENTA).marker("➜ ").apply();   // reset_theme() clears
 

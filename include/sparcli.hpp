@@ -2146,9 +2146,12 @@ public:
         if (!p_) throw std::bad_alloc();
     }
     ~Fuzzy() { sc_fuzzy_free(p_); }
-    Fuzzy(Fuzzy&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    Fuzzy(Fuzzy&& o) noexcept : p_(o.p_), count_(o.count_) { o.p_ = nullptr; }
     Fuzzy& operator=(Fuzzy&& o) noexcept {
-        if (this != &o) { sc_fuzzy_free(p_); p_ = o.p_; o.p_ = nullptr; }
+        if (this != &o) {
+            sc_fuzzy_free(p_);
+            p_ = o.p_; count_ = o.count_; o.p_ = nullptr;
+        }
         return *this;
     }
     Fuzzy(const Fuzzy&) = delete;
@@ -2156,7 +2159,8 @@ public:
 
     /** Adds a single-field item (copied). @see sc_fuzzy_add */
     Fuzzy& add(std::string_view label) {
-        sc_fuzzy_add(detail::live(p_), detail::z(label).c_str()); return *this;
+        sc_fuzzy_add(detail::live(p_), detail::z(label).c_str());
+        ++count_; return *this;
     }
     /** Adds a multi-field row; `fields[0]` is the match key. */
     Fuzzy& add_row(const std::vector<std::string>& fields) {
@@ -2164,7 +2168,52 @@ public:
         ptrs.reserve(fields.size());
         for (const auto& f : fields) ptrs.push_back(f.c_str());
         sc_fuzzy_add_row(detail::live(p_), ptrs.data(), ptrs.size());
-        return *this;
+        ++count_; return *this;
+    }
+    /** Adds a non-selectable section header. @see sc_fuzzy_add_section */
+    Fuzzy& add_section(std::string_view title) {
+        sc_fuzzy_add_section(detail::live(p_), detail::z(title).c_str());
+        ++count_; return *this;
+    }
+    /** Adds a single item with a base text style. @see sc_fuzzy_add_styled */
+    Fuzzy& add_styled(std::string_view label, TextStyle style) {
+        sc_fuzzy_add_styled(detail::live(p_), detail::z(label).c_str(), style);
+        ++count_; return *this;
+    }
+    /** Adds a row with a per-cell base style (padded to the field count). */
+    Fuzzy& add_row_styled(const std::vector<std::string>& fields,
+                          std::vector<TextStyle> styles) {
+        std::vector<const char*> ptrs;
+        ptrs.reserve(fields.size());
+        for (const auto& f : fields) ptrs.push_back(f.c_str());
+        styles.resize(fields.size());
+        sc_fuzzy_add_row_styled(detail::live(p_), ptrs.data(),
+                                styles.data(), ptrs.size());
+        ++count_; return *this;
+    }
+    /** Adds a row of rich `Text` cells (deep-copied). @see sc_fuzzy_add_row_rich */
+    Fuzzy& add_row_rich(std::vector<Text>& cells) {
+        std::vector<ScText*> ptrs;
+        ptrs.reserve(cells.size());
+        for (auto& c : cells) ptrs.push_back(c.get());
+        sc_fuzzy_add_row_rich(detail::live(p_), ptrs.data(), ptrs.size());
+        ++count_; return *this;
+    }
+    /** Marks the row at `index` disabled (greyed). @see sc_fuzzy_set_disabled */
+    Fuzzy& set_disabled(std::size_t index, bool on = true) {
+        sc_fuzzy_set_disabled(detail::live(p_), index, on); return *this;
+    }
+    /** Sets a stable id on the row at `index`. @see sc_fuzzy_set_id */
+    Fuzzy& set_id(std::size_t index, std::uint64_t id) {
+        sc_fuzzy_set_id(detail::live(p_), index, id); return *this;
+    }
+    /** Stable id of the row at `index`, or 0. @see sc_fuzzy_id_at */
+    std::uint64_t id_at(std::size_t index) const {
+        return sc_fuzzy_id_at(detail::live(p_), index);
+    }
+    /** Stable id of the highlighted row, or 0. @see sc_fuzzy_cursor_id */
+    std::uint64_t cursor_id() const {
+        return sc_fuzzy_cursor_id(detail::live(p_));
     }
     /** Runs the finder. @return the add-order index, or nullopt. */
     std::optional<std::size_t> run() {
@@ -2172,6 +2221,60 @@ public:
         if (sc_fuzzy_run(detail::live(p_), &out) != SC_INPUT_OK)
             return std::nullopt;
         return out;
+    }
+    /** Runs the finder in multi-select mode. @return the checked add-order
+        indices (empty = nothing checked), or nullopt on cancel. */
+    std::optional<std::vector<std::size_t>> run_multi() {
+        std::vector<std::size_t> buf(count_ ? count_ : 1);
+        std::size_t n = buf.size();
+        if (sc_fuzzy_run_multi(detail::live(p_), buf.data(), &n) != SC_INPUT_OK)
+            return std::nullopt;
+        buf.resize(n);
+        return buf;
+    }
+    /** Pre-checks/unchecks the row at `index`. @see sc_fuzzy_set_checked */
+    Fuzzy& set_checked(std::size_t index, bool on = true) {
+        sc_fuzzy_set_checked(detail::live(p_), index, on); return *this;
+    }
+    /** Whether the row at `index` is checked. @see sc_fuzzy_is_checked */
+    bool is_checked(std::size_t index) const {
+        return sc_fuzzy_is_checked(detail::live(p_), index);
+    }
+    /** Checks/unchecks every selectable row. @see sc_fuzzy_check_all */
+    Fuzzy& check_all(bool on = true) {
+        sc_fuzzy_check_all(detail::live(p_), on); return *this;
+    }
+    /** Number of checked rows. @see sc_fuzzy_checked_count */
+    std::size_t checked_count() const {
+        return sc_fuzzy_checked_count(detail::live(p_));
+    }
+    /** Pre-positions the cursor on `index`. @see sc_fuzzy_set_cursor */
+    Fuzzy& set_cursor(std::size_t index) {
+        sc_fuzzy_set_cursor(detail::live(p_), index); return *this;
+    }
+    /** First field of the row at `index`, or nullopt. @see sc_fuzzy_label */
+    std::optional<std::string> label(std::size_t index) const {
+        const char* s = sc_fuzzy_label(detail::live(p_), index);
+        if (!s) return std::nullopt;
+        return std::string(s);
+    }
+    /** Replaces the first field of the row at `index`. @see sc_fuzzy_set_label */
+    Fuzzy& set_label(std::size_t index, std::string_view label) {
+        sc_fuzzy_set_label(detail::live(p_), index, detail::z(label).c_str());
+        return *this;
+    }
+    /** Replaces all fields of the row at `index`. @see sc_fuzzy_set_row */
+    Fuzzy& set_row(std::size_t index, const std::vector<std::string>& fields) {
+        std::vector<const char*> ptrs;
+        ptrs.reserve(fields.size());
+        for (const auto& f : fields) ptrs.push_back(f.c_str());
+        sc_fuzzy_set_row(detail::live(p_), index, ptrs.data(), ptrs.size());
+        return *this;
+    }
+    /** Sets the base style of cell `col` in row `index`. @see sc_fuzzy_set_row_style */
+    Fuzzy& set_row_style(std::size_t index, std::size_t col, TextStyle style) {
+        sc_fuzzy_set_row_style(detail::live(p_), index, col, style);
+        return *this;
     }
     /** Highlighted row's index (from a callback). @see sc_fuzzy_cursor_index */
     std::size_t cursor_index() const {
@@ -2191,6 +2294,7 @@ public:
 
 private:
     ScFuzzy* p_;
+    std::size_t count_ = 0;   // rows added (sizes the run_multi buffer)
 };
 
 }  // namespace sparcli

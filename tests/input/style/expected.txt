@@ -559,6 +559,68 @@
    [0m                          [0m [0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
+[2mfuzzy list: sections + counts, query=''[0m
+  [1m[36mTasks[0m [0m[30m[47m [0m[2m  (3/3)[0m
+  [1m[2mMonday[0m[1m[2m (2)[0m
+  [1m[36m‣ [0m[1m[36mBuy milk[0m
+    [0mCall Bob[0m
+  [1m[2mTuesday[0m[1m[2m (1)[0m
+    [0mShip release[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy list: second row disabled (greyed)[0m
+  [1m[36mTasks[0m [0m[30m[47m [0m[2m  (1/1)[0m
+  [1m[36m‣ [0m[1m[36mActive task[0m
+  [2m  [0m[2mDone task[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy list: multi-select, Tokyo + London checked[0m
+  [1m[36mPick[0m [0m[30m[47m [0m[2m  (5/5 · 2 ✓)[0m
+  [1m[36m‣ [0m[1m[36m[x] [0m[1m[36mTokyo[0m
+    [0m[ ] [0mToronto[0m
+    [0m[x] [0mLondon[0m
+    [0m[ ] [0mBoston[0m
+    [0m[ ] [0mLisbon[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy table: multi checkbox column, sections, order=time[0m
+  [1m[36mAgenda[0m [0m[30m[47m [0m[2m  (2/2 · 1 ✓)[0m
+  ┌[0m────[0m┬[0m─────[0m┬[0m─────────[0m┐[0m
+  │[0m    │[0m[1mTime[0m │[0m[1mTask[0m     │[0m
+  ├[0m────[0m┼[0m─────[0m┼[0m─────────[0m┤[0m
+  │[0m[1m[2mMonday[0m[1m[2m (2)[0m          │[0m
+  ├[0m────[0m┼[0m─────[0m┼[0m─────────[0m┤[0m
+  │[0m[46m[x] [0m│[0m[46m09:00[0m│[0m[46mStandup[0m[46m  [0m│[0m
+  ├[0m────[0m┼[0m─────[0m┼[0m─────────[0m┤[0m
+  │[0m[ ] [0m│[0m14:00[0m│[0mReview PR[0m│[0m
+  └[0m────[0m┴[0m─────[0m┴[0m─────────[0m┘[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy table: per-cell status colors (red/green)[0m
+  [1m[36mStatus[0m [0m[30m[47m [0m[2m  (2/2)[0m
+  ┌[0m───────[0m┬[0m────────────[0m┐[0m
+  │[0m[1mStatus[0m │[0m[1mTask[0m        │[0m
+  ├[0m───────[0m┼[0m────────────[0m┤[0m
+  │[0m[31m[46moverdue[0m│[0m[46mPay invoice[0m[46m [0m│[0m
+  ├[0m───────[0m┼[0m────────────[0m┤[0m
+  │[0m[32mdone[0m   │[0mWrite report[0m│[0m
+  └[0m───────[0m┴[0m────────────[0m┘[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy table: rich ScText cell (white-on-red badge)[0m
+  [1m[36mPrio[0m [0m[30m[47m [0m[2m  (1/1)[0m
+  ┌[0m────[0m┬[0m─────────────[0m┐[0m
+  │[0m[1mPrio[0m│[0m[1mTask[0m         │[0m
+  ├[0m────[0m┼[0m─────────────[0m┤[0m
+  │[0m[1m[37m[41mHIGH[0m│[0m[46mFix login bug[0m│[0m
+  └[0m────[0m┴[0m─────────────[0m┘[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy list: empty-state text, query='zzz'[0m
+  [1m[36mCity[0m [0mz[0mz[0mz[0m[30m[47m [0m[2m  (0/5)[0m
+  [2mNo matching cities[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ═════════════════════════════════ [1mDate Picker[0m ══════════════════════════════════

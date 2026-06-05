@@ -53,7 +53,8 @@ from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      version_string)
 from .progress import (ProgressBar, ProgressBarOpts, Spinner, SpinnerOpts,
                        Thresholds)
-from .select import (Fuzzy, FuzzyOpts, Select, SelectOpts, fuzzy_match)
+from .select import (Fuzzy, FuzzyOpts, FuzzyOrder, Select, SelectOpts,
+                     fuzzy_match)
 from .structures import (Kv, KvOpts, List, ListItem, ListOpts, Tree, TreeNode,
                          TreeOpts)
 from .style import BorderStyle, BoxStyle, Edges, Style, Title
@@ -114,7 +115,7 @@ __all__ = [
     "password_input", "PasswordOpts", "number_input", "decimal_input",
     "calc_eval",
     "NumberOpts", "textarea", "TextareaOpts", "datepicker", "DatePickerOpts",
-    "Select", "SelectOpts", "Fuzzy", "FuzzyOpts", "fuzzy_match",
+    "Select", "SelectOpts", "Fuzzy", "FuzzyOpts", "FuzzyOrder", "fuzzy_match",
     "filter_digits", "filter_decimal", "filter_alpha", "filter_alnum",
     "filter_no_space",
     # shortcuts / keys / theme

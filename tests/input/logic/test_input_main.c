@@ -61,6 +61,7 @@ int main(int argc, char *argv[]) {
         { "Textarea",       test_textarea,       1 },
         { "Select",         test_select,         1 },
         { "Fuzzy Finder",   test_fuzzy,          1 },
+        { "Fuzzy (logic)",  test_fuzzy_logic,    0 },
         { "Date Picker",    test_datepicker,     1 },
         { "Theme",          test_theme,          1 },
     };

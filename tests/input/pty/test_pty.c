@@ -541,6 +541,121 @@ static int child_case(int c) {
             sc_select_free(sl);
             return ok ? 0 : 1;
         }
+        case 37: {
+            /* Sections: the cursor skips the non-selectable header. Two Downs
+               from the first item land on the item after the second header. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+            sc_fuzzy_add_section(fz, "A");   /* idx 0 */
+            sc_fuzzy_add(fz, "x");           /* idx 1 */
+            sc_fuzzy_add(fz, "y");           /* idx 2 */
+            sc_fuzzy_add_section(fz, "B");   /* idx 3 */
+            sc_fuzzy_add(fz, "z");           /* idx 4 */
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 4);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 38: {
+            /* Disabled rows are skipped by the cursor: Down from a lands on c. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+            sc_fuzzy_add(fz, "a");
+            sc_fuzzy_add(fz, "b");
+            sc_fuzzy_add(fz, "c");
+            sc_fuzzy_set_disabled(fz, 1, true);
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 2);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 39: {
+            /* Multi-select: Space checks a, Down, Space checks b, Enter. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .multi = true });
+            sc_fuzzy_add(fz, "a");
+            sc_fuzzy_add(fz, "b");
+            sc_fuzzy_add(fz, "c");
+            size_t idx[8], n = 8;
+            ScInputStatus s = sc_fuzzy_run_multi(fz, idx, &n);
+            int ok = (s == SC_INPUT_OK && n == 2 && idx[0] == 0 && idx[1] == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 40: {
+            /* Toggle-all (Ctrl-A) checks every selectable row. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .multi = true, .toggle_all_key = sc_key_ctrl('a') });
+            sc_fuzzy_add(fz, "a");
+            sc_fuzzy_add(fz, "b");
+            sc_fuzzy_add(fz, "c");
+            size_t idx[8], n = 8;
+            ScInputStatus s = sc_fuzzy_run_multi(fz, idx, &n);
+            int ok = (s == SC_INPUT_OK && n == 3);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 41: {
+            /* Toggle-section (Ctrl-S) checks the cursor's group only. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .multi = true, .toggle_section_key = sc_key_ctrl('s') });
+            sc_fuzzy_add_section(fz, "A");   /* idx 0 */
+            sc_fuzzy_add(fz, "x");           /* idx 1 */
+            sc_fuzzy_add(fz, "y");           /* idx 2 */
+            sc_fuzzy_add_section(fz, "B");   /* idx 3 */
+            sc_fuzzy_add(fz, "z");           /* idx 4 */
+            size_t idx[8], n = 8;
+            ScInputStatus s = sc_fuzzy_run_multi(fz, idx, &n);
+            int ok = (s == SC_INPUT_OK && n == 2
+                      && idx[0] == 1 && idx[1] == 2);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 42: {
+            /* order = COLUMN sorts the 09:00 row before 14:00; Enter picks it
+               (its original add-order index 1). */
+            const char *h[] = { "Time", "Task" };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .table = true, .headers = h, .n_cols = 2,
+                .order = SC_FUZZY_ORDER_COLUMN, .order_column = 0 });
+            sc_fuzzy_add_row(fz, (const char *[]){ "14:00", "Late" }, 2);
+            sc_fuzzy_add_row(fz, (const char *[]){ "09:00", "Early" }, 2);
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 43: {
+            /* initial_query pre-filters to "Rent"; Enter picks it (index 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .initial_query = "Ren" });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 44: {
+            /* Multi-select + RETURN shortcut (the todo action loop): Space
+               checks item 0, Ctrl-D fires id 7 and ends the run with the
+               checked set intact. */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = sc_key_ctrl('d'), .id = 7,
+                  .mode = SC_SHORTCUT_RETURN },
+            };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .multi = true, .shortcuts = sk, .n_shortcuts = 1,
+                .out_shortcut_id = &act });
+            sc_fuzzy_add(fz, "a");
+            sc_fuzzy_add(fz, "b");
+            size_t idx[8], n = 8;
+            ScInputStatus s = sc_fuzzy_run_multi(fz, idx, &n);
+            int ok = (s == SC_INPUT_OK && act == 7 && n == 1 && idx[0] == 0);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -591,6 +706,14 @@ static const Case CASES[] = {
     { "select-cycle-up", "\x1b[A\r" },             /* default: Up first -> last */
     { "fuzzy-cycle-up", "\x1b[A\r" },              /* default: Up first -> last */
     { "select-no-cycle-up", "\x1b[A\r" },          /* no_cycle: Up first stays */
+    { "fuzzy-section-skip", "\x1b[B\x1b[B\r" },     /* 2x down skips header -> z */
+    { "fuzzy-disabled-skip", "\x1b[B\r" },          /* down skips disabled -> c */
+    { "fuzzy-multi-toggle", " \x1b[B \r" },         /* space, down, space, enter */
+    { "fuzzy-toggle-all", "\x01\r" },               /* Ctrl-A checks all, enter */
+    { "fuzzy-toggle-section", "\x13\r" },           /* Ctrl-S checks group, enter */
+    { "fuzzy-order-column", "\r" },                 /* sorted: 09:00 first */
+    { "fuzzy-initial-query", "\r" },                /* pre-filtered to Rent */
+    { "fuzzy-multi-shortcut", " \x04" },            /* space, Ctrl-D (id 7) */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

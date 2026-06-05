@@ -1166,15 +1166,40 @@ void      sc_select_free(ScSelect *s);
 ScFuzzy  *sc_fuzzy_new(ScFuzzyOpts opts);              /* opts.table + headers/n_cols → table view */
 void      sc_fuzzy_add    (ScFuzzy *f, const char *label);
 void      sc_fuzzy_add_row(ScFuzzy *f, const char *const *fields, size_t n); /* query searches all cols (opts.search_columns) */
+void      sc_fuzzy_add_section(ScFuzzy *f, const char *title);              /* non-selectable header (e.g. a day) */
+void      sc_fuzzy_add_styled (ScFuzzy *f, const char *label, ScTextStyle s); /* per-item base style */
+void      sc_fuzzy_add_row_styled(ScFuzzy *f, const char *const *fields, const ScTextStyle *styles, size_t n); /* per-cell base style */
+void      sc_fuzzy_add_row_rich(ScFuzzy *f, ScText *const *cells, size_t n); /* full ScText cells (deep-copied); match-key flattened */
+void      sc_fuzzy_set_disabled(ScFuzzy *f, size_t i, bool on);            /* grey out, non-selectable (also unchecks) */
+void      sc_fuzzy_set_id  (ScFuzzy *f, size_t i, uint64_t id);            /* stable caller id */
+uint64_t  sc_fuzzy_id_at   (const ScFuzzy *f, size_t i);                   /* id by add-order index */
+uint64_t  sc_fuzzy_cursor_id(const ScFuzzy *f);                           /* id of the highlighted row */
 size_t    sc_fuzzy_cursor_index(const ScFuzzy *f);     /* live selection (for callbacks) */
 bool      sc_fuzzy_has_selection(const ScFuzzy *f);    /* a row matches the query? (cursor_index 0 is ambiguous) */
-void      sc_fuzzy_remove (ScFuzzy *f, size_t index);  /* delete row (for callbacks) */
+void      sc_fuzzy_remove (ScFuzzy *f, size_t index);  /* delete row (for callbacks / re-run loops) */
 ScInputStatus sc_fuzzy_run(ScFuzzy *f, size_t *out_index);  /* out_index = original add order */
+ScInputStatus sc_fuzzy_run_multi(ScFuzzy *f, size_t *indices, size_t *count_io); /* opts.multi: Space toggles; checked add-order indices */
+void      sc_fuzzy_set_checked(ScFuzzy *f, size_t i, bool on);            /* seed / inspect the checked set */
+bool      sc_fuzzy_is_checked (const ScFuzzy *f, size_t i);
+void      sc_fuzzy_check_all  (ScFuzzy *f, bool on);
+size_t    sc_fuzzy_checked_count(const ScFuzzy *f);
+void      sc_fuzzy_set_cursor (ScFuzzy *f, size_t i);                     /* pre-position the cursor (add order) */
+const char *sc_fuzzy_label    (const ScFuzzy *f, size_t i);              /* first field */
+void      sc_fuzzy_set_label  (ScFuzzy *f, size_t i, const char *s);     /* live relabel */
+void      sc_fuzzy_set_row    (ScFuzzy *f, size_t i, const char *const *fields, size_t n);
+void      sc_fuzzy_set_row_style(ScFuzzy *f, size_t i, size_t col, ScTextStyle s);
 void      sc_fuzzy_free(ScFuzzy *f);
 bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* pure, testable */
 ```
 
-**Opts lifetime (handle widgets):** `sc_select_new` / `sc_fuzzy_new` **copy** their opts string fields (prompt, markers, checkbox glyphs, hint, fuzzy headers) and item labels are copied by `sc_*_add`, so the caller's buffers only need to live until the respective call returns. Only `shortcuts` and `prompt_text` stay **borrowed** and must outlive the run.
+**Sections, multi-select, styling, ordering** — `ScFuzzyOpts` is zero-init-friendly, so existing callers are unchanged; the new capabilities are opt-in:
+
+- **Sections** (`sc_fuzzy_add_section`) are non-selectable headers; they appear **only when their group has a match**, the cursor skips them, and `opts.section_counts` appends `" (k)"`. `opts.empty_text` shows a line when nothing matches.
+- **Multi-select** (`opts.multi`): Space toggles, `sc_fuzzy_run_multi` returns the checked add-order indices, `opts.checkbox_column` gives the table its own checkbox column, and `opts.toggle_all_key` / `opts.toggle_section_key` (`ScKeyChord`, e.g. `sc_key_ctrl('a')`) flip all rows / the cursor's section.
+- **Per-cell color**: `sc_fuzzy_add_row_styled` sets a whole-cell base `ScTextStyle` (the match highlight overlays it; the cursor row keeps the cell color); `sc_fuzzy_add_row_rich` takes full `ScText` cells (multi-color spans, no per-character highlight). `opts.disabled_style` greys disabled rows.
+- **Ordering** (`opts.order` = `SC_FUZZY_ORDER_SCORE` / `_INSERTION` / `_COLUMN` with `order_column` / `order_desc`) sorts **within each section** when sections are present, else globally. Stable ids (`sc_fuzzy_set_id` / `_id_at` / `_cursor_id`) and the live mutators (`set_cursor` / `set_label` / `set_row` / `set_row_style` / `remove`, plus `opts.initial_query`) drive an apply-action-then-re-run loop (see `examples/c/apps/todo_fuzzy.c`).
+
+**Opts lifetime (handle widgets):** `sc_select_new` / `sc_fuzzy_new` **copy** their opts string fields (prompt, markers, checkbox glyphs, hint, fuzzy headers, `empty_text`, `initial_query`) and item labels are copied by `sc_*_add` (rich `ScText` cells are deep-copied), so the caller's buffers only need to live until the respective call returns. Only `shortcuts` and `prompt_text` stay **borrowed** and must outlive the run.
 
 ```c
 /* Custom shortcuts (any widget) – bind extra keys to actions. See "Custom shortcuts". */
@@ -1425,7 +1450,7 @@ Opaque handle (variable item count). `j/k` + arrows move; Space toggles in multi
 
 ### sc_fuzzy
 
-Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched characters are highlighted (in the list, and in the matched table cells). List view by default; set `table = true` with `headers`/`n_cols` and add rows via `sc_fuzzy_add_row` for a table view. `out_index` is the chosen item's original add order. `sc_fuzzy_cursor_index` / `sc_fuzzy_remove` expose and mutate the selection from a shortcut callback.
+Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched characters are highlighted (in the list, and in the matched table cells). List view by default; set `table = true` with `headers`/`n_cols` and add rows via `sc_fuzzy_add_row` for a table view. `out_index` is the chosen item's original add order. `sc_fuzzy_cursor_index` / `sc_fuzzy_remove` expose and mutate the selection from a shortcut callback. Beyond plain picking it also does **section headers** (`sc_fuzzy_add_section`, shown only when their group matches), **multi-select** (`opts.multi` + `sc_fuzzy_run_multi`, with `set_checked`/`check_all` and a checkbox column / toggle keys), **per-cell colors** (`sc_fuzzy_add_row_styled` / `_add_row_rich`) and disabled rows, configurable **ordering** within sections (`opts.order`), **stable ids** (`sc_fuzzy_set_id` / `_id_at`), and **live mutation** (`set_label`/`set_row`/`set_row_style`) for an apply-action-then-re-run loop — see the "Sections, multi-select, styling, ordering" notes above and `examples/c/apps/todo_fuzzy.c`.
 
 | Field | Description |
 |-------|-------------|

@@ -205,6 +205,22 @@ fz = sc.Fuzzy(sc.FuzzyOpts(prompt="Find"))
 fz.add("Tokyo").add("London")
 i = fz.run()                # add-order index
 
+# Todo-style finder: day sections, multi-select, per-cell colors, ordering.
+from sparcli.keys import key_ctrl
+todo = sc.Fuzzy(sc.FuzzyOpts(
+    table=True, headers=["Time", "Task", "Status"],
+    multi=True, checkbox_column=True, section_counts=True,
+    order=sc.FuzzyOrder.COLUMN, order_column=0,   # chronological per day
+    toggle_all_key=key_ctrl("a")))
+todo.add_section("Monday")
+todo.add_row(["09:00", "Pay invoice", "overdue"],
+             styles=[sc.Style(), sc.Style(), sc.Style(fg=sc.Color.RED)])
+todo.set_id(1, 102)                               # stable id
+checked = todo.run_multi()   # list[int] of checked rows, or None on cancel
+# also: add_section / add_styled-via-styles / add_row_rich, set_disabled,
+# set_checked / check_all / checked_count, set_cursor / set_label / set_row /
+# set_row_style, id_at / cursor_id. Demo: examples/c/apps/todo_fuzzy.c.
+
 import datetime
 d = sc.datepicker(datetime.date.today(), sc.DatePickerOpts(week_start=sc.WeekStart.MONDAY))
 # -> datetime.date

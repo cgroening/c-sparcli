@@ -21,6 +21,16 @@ SPARCLI_BEGIN_DECLS
  * `table = true` and columns are supplied, as a sparcli table.
  */
 
+/**
+ * Result ordering of the filtered list. With section headers the order is
+ * applied *within* each section/group; without sections it is global.
+ */
+typedef enum ScFuzzyOrder {
+    SC_FUZZY_ORDER_SCORE = 0,  /**< match score desc, then add order (default). */
+    SC_FUZZY_ORDER_INSERTION,  /**< stable add order (e.g. tasks by time). */
+    SC_FUZZY_ORDER_COLUMN,     /**< by `fields[order_column]` (case-insensitive). */
+} ScFuzzyOrder;
+
 /** Options for a fuzzy finder. */
 typedef struct ScFuzzyOpts {
     /** Search-field label; `NULL` = "Search". */
@@ -124,6 +134,60 @@ typedef struct ScFuzzyOpts {
 
     /** Parse the string prompt as inline markup. */
     bool prompt_markup;
+
+    /* ---- Multi-select (checkbox) ---- */
+
+    /** `true` = multi-select: Space toggles, run via `sc_fuzzy_run_multi`. */
+    bool multi;
+
+    /** Checked box glyph (multi); `NULL` = "[x] ". */
+    const char *checkbox_on;
+
+    /** Unchecked box glyph (multi); `NULL` = "[ ] ". */
+    const char *checkbox_off;
+
+    /** Table view: render the checkbox as its own leading column instead of a
+        glyph prefixed to the first data column. */
+    bool checkbox_column;
+
+    /** Key that toggles all selectable rows on/off (multi only). Zero-init
+        (`chord.key == 0`) disables it. Build with `sc_key_ctrl('a')` etc. */
+    ScKeyChord toggle_all_key;
+
+    /** Key that toggles all selectable rows of the cursor's section on/off
+        (multi only). Zero-init disables it. */
+    ScKeyChord toggle_section_key;
+
+    /* ---- Sections / disabled / empty ---- */
+
+    /** Style of section-header rows; zero-init = dim + bold. */
+    ScTextStyle section_style;
+
+    /** Append the matched-row count to each section header, e.g. "Monday (3)". */
+    bool section_counts;
+
+    /** Style of disabled (greyed, non-selectable) rows; zero-init = dim. */
+    ScTextStyle disabled_style;
+
+    /** Text shown when no row matches the query; `NULL` = nothing. */
+    const char *empty_text;
+
+    /** Style of `empty_text`; zero-init = dim. */
+    ScTextStyle empty_style;
+
+    /* ---- Ordering / seed ---- */
+
+    /** Result order (see `ScFuzzyOrder`); applied within sections when present. */
+    ScFuzzyOrder order;
+
+    /** Column index for `SC_FUZZY_ORDER_COLUMN`. */
+    size_t order_column;
+
+    /** Sort descending for COLUMN / INSERTION order. */
+    bool order_desc;
+
+    /** Pre-fill the query field on the next run; `NULL` = empty. */
+    const char *initial_query;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */
@@ -173,6 +237,105 @@ SPARCLI_EXPORT void sc_fuzzy_add(ScFuzzy *fuzzy, const char *label);
  */
 SPARCLI_EXPORT void sc_fuzzy_add_row(
     ScFuzzy *fuzzy, const char *const *fields, size_t n
+);
+
+/**
+ * Adds a non-selectable **section header** row (e.g. a day in a todo list).
+ * Headers are shown only when their group has at least one matching row, are
+ * skipped by the cursor, and group the rows that follow until the next header.
+ *
+ * @param fuzzy  Target finder.
+ * @param title  Header text; copied internally.
+ */
+SPARCLI_EXPORT void sc_fuzzy_add_section(ScFuzzy *fuzzy, const char *title);
+
+/**
+ * Adds a single-field item with a base text style (whole-cell color/attributes).
+ * The query-match highlight (bold + underline) is overlaid on top of `style`.
+ */
+SPARCLI_EXPORT void sc_fuzzy_add_styled(
+    ScFuzzy *fuzzy, const char *label, ScTextStyle style
+);
+
+/**
+ * Adds a multi-field row with an optional per-cell base style. `styles` (if not
+ * `NULL`) holds `n` styles applied as each cell's base; the match highlight is
+ * overlaid. `styles` is borrowed for the call (copied internally).
+ */
+SPARCLI_EXPORT void sc_fuzzy_add_row_styled(
+    ScFuzzy *fuzzy, const char *const *fields,
+    const ScTextStyle *styles, size_t n
+);
+
+/**
+ * Adds a multi-field row whose cells are full `ScText` (arbitrary multi-color
+ * spans). The match/display key for each cell is the flattened span text, so
+ * matching still works, but the per-character match highlight is not drawn in
+ * rich cells. `cells` entries are deep-copied; the caller keeps ownership.
+ */
+SPARCLI_EXPORT void sc_fuzzy_add_row_rich(
+    ScFuzzy *fuzzy, ScText *const *cells, size_t n
+);
+
+/** Marks the row at `index` (add order) disabled (greyed, non-selectable). */
+SPARCLI_EXPORT void sc_fuzzy_set_disabled(
+    ScFuzzy *fuzzy, size_t index, bool on
+);
+
+/** Sets a stable caller id on the row at `index` (add order). */
+SPARCLI_EXPORT void sc_fuzzy_set_id(ScFuzzy *fuzzy, size_t index, uint64_t id);
+
+/** Returns the stable id of the row at `index` (add order), or 0. */
+SPARCLI_EXPORT uint64_t sc_fuzzy_id_at(const ScFuzzy *fuzzy, size_t index);
+
+/** Returns the stable id of the currently highlighted row, or 0. */
+SPARCLI_EXPORT uint64_t sc_fuzzy_cursor_id(const ScFuzzy *fuzzy);
+
+/**
+ * Runs the finder in multi-select mode. Writes the checked rows' add-order
+ * indices in display order; `*count_io` is in:capacity / out:count written.
+ * Space toggles the cursor row. Mirrors `sc_select_run`.
+ */
+SPARCLI_EXPORT ScInputStatus sc_fuzzy_run_multi(
+    ScFuzzy *fuzzy, size_t *indices, size_t *count_io
+);
+
+/** Pre-checks/unchecks the row at `index` (add order) for multi-select. */
+SPARCLI_EXPORT void sc_fuzzy_set_checked(
+    ScFuzzy *fuzzy, size_t index, bool on
+);
+
+/** Reports whether the row at `index` (add order) is checked. */
+SPARCLI_EXPORT bool sc_fuzzy_is_checked(const ScFuzzy *fuzzy, size_t index);
+
+/** Checks or unchecks every selectable row. */
+SPARCLI_EXPORT void sc_fuzzy_check_all(ScFuzzy *fuzzy, bool on);
+
+/** Returns the number of checked rows. */
+SPARCLI_EXPORT size_t sc_fuzzy_checked_count(const ScFuzzy *fuzzy);
+
+/** Pre-positions the cursor on `index` (add order, clamped to a selectable). */
+SPARCLI_EXPORT void sc_fuzzy_set_cursor(ScFuzzy *fuzzy, size_t index);
+
+/** Returns the first field of the row at `index` (add order), or `NULL`. */
+SPARCLI_EXPORT const char *sc_fuzzy_label(
+    const ScFuzzy *fuzzy, size_t index
+);
+
+/** Replaces the first field of the row at `index` (add order); copied. */
+SPARCLI_EXPORT void sc_fuzzy_set_label(
+    ScFuzzy *fuzzy, size_t index, const char *label
+);
+
+/** Replaces all fields of the row at `index` (add order); copied. Drops any
+    per-cell styles/rich texts previously set on that row. */
+SPARCLI_EXPORT void sc_fuzzy_set_row(
+    ScFuzzy *fuzzy, size_t index, const char *const *fields, size_t n
+);
+
+/** Sets the base style of cell `col` in the row at `index` (add order). */
+SPARCLI_EXPORT void sc_fuzzy_set_row_style(
+    ScFuzzy *fuzzy, size_t index, size_t col, ScTextStyle style
 );
 
 /**

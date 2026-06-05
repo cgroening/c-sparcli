@@ -46,5 +46,6 @@ void test_number(void);
 void test_textarea(void);
 void test_select(void);
 void test_fuzzy(void);
+void test_fuzzy_logic(void);
 void test_datepicker(void);
 void test_theme(void);

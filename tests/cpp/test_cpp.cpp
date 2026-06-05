@@ -557,6 +557,36 @@ static void test_humanize_wrapper() {
           "humanize: de_DE decimal separator");
 }
 
+// Headless coverage of the Fuzzy section / multi / style additions.
+static void test_fuzzy_wrapper() {
+    Fuzzy f{ FuzzyOpts{ .multi = true } };
+    f.add("alpha").add("beta").add("gamma");
+    f.set_id(0, 100).set_id(2, 300);
+    CHECK(f.id_at(0) == 100 && f.id_at(2) == 300, "fuzzy++: set_id/id_at");
+    CHECK(f.label(1) && *f.label(1) == "beta", "fuzzy++: label");
+    f.set_label(1, "BETA");
+    CHECK(*f.label(1) == "BETA", "fuzzy++: set_label");
+
+    f.set_checked(0).set_checked(2);
+    CHECK(f.is_checked(0) && !f.is_checked(1) && f.checked_count() == 2,
+          "fuzzy++: checked set");
+    f.check_all(true);
+    CHECK(f.checked_count() == 3, "fuzzy++: check_all");
+    f.set_disabled(1, true);
+    f.check_all(true);
+    CHECK(!f.is_checked(1), "fuzzy++: check_all skips disabled");
+
+    // add_row_rich flattens span text into the label/match key.
+    Fuzzy g{ FuzzyOpts{ .table = true, .n_cols = 1 } };
+    std::vector<Text> cells;
+    cells.emplace_back();
+    cells[0].append("HI").append("GH", { SC_TEXT_ATTR_BOLD,
+                    SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE });
+    g.add_row_rich(cells);
+    CHECK(g.label(0) && *g.label(0) == "HIGH",
+          "fuzzy++: add_row_rich flattens spans");
+}
+
 static void test_diff_wrapper() {
     std::string out = render([] {
         diff("a\nb\nc\n", "a\nB\nc\n", DiffOpts{ .context = 0 });
@@ -628,6 +658,7 @@ int main() {
     test_history();
     test_parity_helpers();
     test_humanize_wrapper();
+    test_fuzzy_wrapper();
     test_diff_wrapper();
     test_multiprogress_wrapper();
     test_process_wrapper();

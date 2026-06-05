@@ -129,4 +129,90 @@ void style_fuzzy(void) {
     style_show("fuzzy list: borderless blue bg, fixed width 28",
                sc_fuzzy_frame(k, "to"));
     sc_fuzzy_free(k);
+
+    /* Sections (list): non-selectable headers + per-group counts. */
+    ScFuzzy *s1 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Tasks", .section_counts = true });
+    sc_fuzzy_add_section(s1, "Monday");
+    sc_fuzzy_add(s1, "Buy milk");
+    sc_fuzzy_add(s1, "Call Bob");
+    sc_fuzzy_add_section(s1, "Tuesday");
+    sc_fuzzy_add(s1, "Ship release");
+    style_show("fuzzy list: sections + counts, query=''",
+               sc_fuzzy_frame(s1, ""));
+    sc_fuzzy_free(s1);
+
+    /* Disabled (greyed, non-selectable) row. */
+    ScFuzzy *s2 = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+    sc_fuzzy_add(s2, "Active task");
+    sc_fuzzy_add(s2, "Done task");
+    sc_fuzzy_set_disabled(s2, 1, true);
+    style_show("fuzzy list: second row disabled (greyed)",
+               sc_fuzzy_frame(s2, ""));
+    sc_fuzzy_free(s2);
+
+    /* Multi-select (list): two rows pre-checked. */
+    ScFuzzy *s3 = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Pick", .multi = true });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(s3, cities[m]); }
+    sc_fuzzy_set_checked(s3, 0, true);
+    sc_fuzzy_set_checked(s3, 2, true);
+    style_show("fuzzy list: multi-select, Tokyo + London checked",
+               sc_fuzzy_frame(s3, ""));
+    sc_fuzzy_free(s3);
+
+    /* Multi-select table: dedicated checkbox column, sections + counts,
+     * ordered by the time column. */
+    const char *todo_headers[] = { "Time", "Task" };
+    ScFuzzy *s4 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Agenda", .table = true,
+        .headers = todo_headers, .n_cols = 2,
+        .multi = true, .checkbox_column = true, .section_counts = true,
+        .order = SC_FUZZY_ORDER_COLUMN, .order_column = 0 });
+    sc_fuzzy_add_section(s4, "Monday");
+    sc_fuzzy_add_row(s4, (const char *[]){ "14:00", "Review PR" }, 2);
+    sc_fuzzy_add_row(s4, (const char *[]){ "09:00", "Standup"  }, 2);
+    sc_fuzzy_set_checked(s4, 2, true);   /* the 09:00 standup */
+    style_show("fuzzy table: multi checkbox column, sections, order=time",
+               sc_fuzzy_frame(s4, ""));
+    sc_fuzzy_free(s4);
+
+    /* Per-cell base style (whole-cell color), highlight overlays on top. */
+    const char *st_headers[] = { "Status", "Task" };
+    ScTextStyle red   = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,
+                          SC_ANSI_COLOR_NONE };
+    ScTextStyle green = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN,
+                          SC_ANSI_COLOR_NONE };
+    ScFuzzy *s5 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Status", .table = true,
+        .headers = st_headers, .n_cols = 2 });
+    sc_fuzzy_add_row_styled(s5, (const char *[]){ "overdue", "Pay invoice" },
+                            (ScTextStyle[]){ red, { 0 } }, 2);
+    sc_fuzzy_add_row_styled(s5, (const char *[]){ "done", "Write report" },
+                            (ScTextStyle[]){ green, { 0 } }, 2);
+    style_show("fuzzy table: per-cell status colors (red/green)",
+               sc_fuzzy_frame(s5, ""));
+    sc_fuzzy_free(s5);
+
+    /* Rich ScText cell: a colored priority badge in column 0. */
+    const char *pr_headers[] = { "Prio", "Task" };
+    ScText *badge = sc_text_new();
+    sc_text_append(badge, "HIGH", (ScTextStyle){ SC_TEXT_ATTR_BOLD,
+                   SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_RED });
+    ScText *plain = sc_text_from_str("Fix login bug");
+    ScFuzzy *s6 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Prio", .table = true, .headers = pr_headers, .n_cols = 2 });
+    sc_fuzzy_add_row_rich(s6, (ScText *[]){ badge, plain }, 2);
+    sc_text_free(badge);
+    sc_text_free(plain);
+    style_show("fuzzy table: rich ScText cell (white-on-red badge)",
+               sc_fuzzy_frame(s6, ""));
+    sc_fuzzy_free(s6);
+
+    /* Empty-state line when the query matches nothing. */
+    ScFuzzy *s7 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .empty_text = "No matching cities" });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(s7, cities[m]); }
+    style_show("fuzzy list: empty-state text, query='zzz'",
+               sc_fuzzy_frame(s7, "zzz"));
+    sc_fuzzy_free(s7);
 }

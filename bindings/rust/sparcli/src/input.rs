@@ -1534,6 +1534,19 @@ pub fn fuzzy_match(pattern: &str, s: &str) -> (bool, i32) {
     (ok, score)
 }
 
+/// Result ordering of the filtered list. With section headers the order is
+/// applied *within* each section; without sections it is global.
+#[derive(Default, Clone, Copy)]
+pub enum FuzzyOrder {
+    /// Match score, then add order (default).
+    #[default]
+    Score,
+    /// Stable add order (e.g. tasks by time).
+    Insertion,
+    /// By the given column (case-insensitive).
+    Column(usize),
+}
+
 /// Options for a [`Fuzzy`] finder.
 #[derive(Default)]
 pub struct FuzzyOpts {
@@ -1553,6 +1566,28 @@ pub struct FuzzyOpts {
     pub search_columns: u64,
     /// Table-view rendering options (border, header style, padding, …).
     pub table_opts: crate::output::TableOpts,
+    /// Multi-select: Space toggles, run via [`Fuzzy::run_multi`].
+    pub multi: bool,
+    /// Table view: render the checkbox as its own leading column.
+    pub checkbox_column: bool,
+    /// Append the matched-row count to each section header ("Monday (3)").
+    pub section_counts: bool,
+    /// Result ordering (within sections when present).
+    pub order: FuzzyOrder,
+    /// Sort descending for `Column`/`Insertion` order.
+    pub order_desc: bool,
+    /// Style of section-header rows (zero-init = dim + bold).
+    pub section_style: Style,
+    /// Style of disabled (greyed) rows (zero-init = dim).
+    pub disabled_style: Style,
+    /// Text shown when no row matches the query.
+    pub empty_text: Option<String>,
+    /// Pre-fill the query field on the next run.
+    pub initial_query: Option<String>,
+    /// Key that toggles all selectable rows (multi only).
+    pub toggle_all_key: Option<Chord>,
+    /// Key that toggles the cursor's section (multi only).
+    pub toggle_section_key: Option<Chord>,
 }
 
 impl FuzzyOpts {
@@ -1606,12 +1641,68 @@ impl FuzzyOpts {
         self.box_ = b;
         self
     }
+    /// Enable multi-select (Space toggles; run with [`Fuzzy::run_multi`]).
+    pub fn multi(mut self) -> Self {
+        self.multi = true;
+        self
+    }
+    /// Render the checkbox as its own leading table column (multi).
+    pub fn checkbox_column(mut self) -> Self {
+        self.checkbox_column = true;
+        self
+    }
+    /// Show the matched-row count on each section header.
+    pub fn section_counts(mut self) -> Self {
+        self.section_counts = true;
+        self
+    }
+    /// Set the result ordering (applied within sections when present).
+    pub fn order(mut self, order: FuzzyOrder) -> Self {
+        self.order = order;
+        self
+    }
+    /// Sort descending for `Column`/`Insertion` ordering.
+    pub fn order_desc(mut self) -> Self {
+        self.order_desc = true;
+        self
+    }
+    /// Style of section-header rows.
+    pub fn section_style(mut self, s: Style) -> Self {
+        self.section_style = s;
+        self
+    }
+    /// Style of disabled (greyed) rows.
+    pub fn disabled_style(mut self, s: Style) -> Self {
+        self.disabled_style = s;
+        self
+    }
+    /// Text shown when the query matches nothing.
+    pub fn empty_text(mut self, s: impl Into<String>) -> Self {
+        self.empty_text = Some(s.into());
+        self
+    }
+    /// Pre-fill the query field on the next run.
+    pub fn initial_query(mut self, s: impl Into<String>) -> Self {
+        self.initial_query = Some(s.into());
+        self
+    }
+    /// Key that toggles all selectable rows on/off (multi only).
+    pub fn toggle_all_key(mut self, chord: Chord) -> Self {
+        self.toggle_all_key = Some(chord);
+        self
+    }
+    /// Key that toggles the cursor's section on/off (multi only).
+    pub fn toggle_section_key(mut self, chord: Chord) -> Self {
+        self.toggle_section_key = Some(chord);
+        self
+    }
 }
 
 /// An owning incremental fuzzy finder (list view).
 pub struct Fuzzy {
     ptr: *mut ffi::ScFuzzy,
     _prompt: Option<CString>,
+    count: usize,
 }
 
 impl Fuzzy {
@@ -1621,6 +1712,10 @@ impl Fuzzy {
             opts.headers.iter().map(|h| cstring(h)).collect();
         let header_ptrs: Vec<*const c_char> =
             headers.iter().map(|c| c.as_ptr()).collect();
+        // The C side copies these strings in sc_fuzzy_new, so the locals only
+        // need to live until the call returns.
+        let empty = opts.empty_text.as_deref().map(cstring);
+        let initial = opts.initial_query.as_deref().map(cstring);
         let mut arena = crate::style::Arena::new();
         let mut o: ffi::ScFuzzyOpts = unsafe { mem::zeroed() };
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
@@ -1636,16 +1731,43 @@ impl Fuzzy {
         }
         o.search_columns = opts.search_columns;
         o.table_opts = opts.table_opts.raw(&mut arena);
+        o.multi = opts.multi;
+        o.checkbox_column = opts.checkbox_column;
+        o.section_counts = opts.section_counts;
+        o.section_style = opts.section_style.raw();
+        o.disabled_style = opts.disabled_style.raw();
+        o.order_desc = opts.order_desc;
+        match opts.order {
+            FuzzyOrder::Score => o.order = ffi::ScFuzzyOrder_SC_FUZZY_ORDER_SCORE,
+            FuzzyOrder::Insertion => {
+                o.order = ffi::ScFuzzyOrder_SC_FUZZY_ORDER_INSERTION;
+            }
+            FuzzyOrder::Column(col) => {
+                o.order = ffi::ScFuzzyOrder_SC_FUZZY_ORDER_COLUMN;
+                o.order_column = col;
+            }
+        }
+        o.empty_text = empty.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        o.initial_query =
+            initial.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        if let Some(c) = opts.toggle_all_key {
+            o.toggle_all_key = c.0;
+        }
+        if let Some(c) = opts.toggle_section_key {
+            o.toggle_section_key = c.0;
+        }
         let ptr = unsafe { ffi::sc_fuzzy_new(o) };
         assert!(!ptr.is_null(), "sc_fuzzy_new: out of memory");
         Fuzzy {
             ptr,
             _prompt: prompt,
+            count: 0,
         }
     }
     /// Adds a single-column item (list view).
     pub fn add(&mut self, label: &str) -> &mut Self {
         unsafe { ffi::sc_fuzzy_add(self.ptr, cstring(label).as_ptr()) };
+        self.count += 1;
         self
     }
     /// Adds a multi-column row (table view). The query searches the columns
@@ -1659,7 +1781,130 @@ impl Fuzzy {
             fields.into_iter().map(|f| cstring(f.as_ref())).collect();
         let ptrs: Vec<*const c_char> = cs.iter().map(|c| c.as_ptr()).collect();
         unsafe { ffi::sc_fuzzy_add_row(self.ptr, ptrs.as_ptr(), ptrs.len()) };
+        self.count += 1;
         self
+    }
+    /// Adds a non-selectable section header (e.g. a day in a todo list).
+    pub fn add_section(&mut self, title: &str) -> &mut Self {
+        unsafe { ffi::sc_fuzzy_add_section(self.ptr, cstring(title).as_ptr()) };
+        self.count += 1;
+        self
+    }
+    /// Adds a single item with a base text style (whole-cell color).
+    pub fn add_styled(&mut self, label: &str, style: Style) -> &mut Self {
+        unsafe {
+            ffi::sc_fuzzy_add_styled(self.ptr, cstring(label).as_ptr(),
+                style.raw());
+        }
+        self.count += 1;
+        self
+    }
+    /// Adds a multi-column row with a per-cell base style (padded to the field
+    /// count). The match highlight is overlaid on top.
+    pub fn add_row_styled<I, S>(&mut self, fields: I, styles: &[Style])
+        -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let cs: Vec<CString> =
+            fields.into_iter().map(|f| cstring(f.as_ref())).collect();
+        let ptrs: Vec<*const c_char> = cs.iter().map(|c| c.as_ptr()).collect();
+        let mut sty: Vec<ffi::ScTextStyle> =
+            styles.iter().map(|s| s.raw()).collect();
+        sty.resize(ptrs.len(), unsafe { mem::zeroed() });
+        unsafe {
+            ffi::sc_fuzzy_add_row_styled(self.ptr, ptrs.as_ptr(),
+                sty.as_ptr(), ptrs.len());
+        }
+        self.count += 1;
+        self
+    }
+    /// Adds a row of rich [`Text`] cells (deep-copied; the match key is each
+    /// cell's flattened text).
+    pub fn add_row_rich(&mut self, cells: &[Text]) -> &mut Self {
+        // The C side only reads (clones) the cells, so casting away const is
+        // sound: it never mutates the borrowed ScText.
+        let ptrs: Vec<*mut ffi::ScText> =
+            cells.iter().map(|t| t.as_ptr() as *mut ffi::ScText).collect();
+        unsafe {
+            ffi::sc_fuzzy_add_row_rich(self.ptr, ptrs.as_ptr(), ptrs.len());
+        }
+        self.count += 1;
+        self
+    }
+    /// Greys out the row at `index` (add order) and makes it unselectable.
+    pub fn set_disabled(&mut self, index: usize, on: bool) {
+        unsafe { ffi::sc_fuzzy_set_disabled(self.ptr, index, on) };
+    }
+    /// Sets a stable caller id on the row at `index` (add order).
+    pub fn set_id(&mut self, index: usize, id: u64) {
+        unsafe { ffi::sc_fuzzy_set_id(self.ptr, index, id) };
+    }
+    /// Stable id of the row at `index` (add order), or 0.
+    pub fn id_at(&self, index: usize) -> u64 {
+        unsafe { ffi::sc_fuzzy_id_at(self.ptr, index) }
+    }
+    /// Stable id of the currently highlighted row, or 0.
+    pub fn cursor_id(&self) -> u64 {
+        unsafe { ffi::sc_fuzzy_cursor_id(self.ptr) }
+    }
+    /// Pre-checks/unchecks the row at `index` (multi-select).
+    pub fn set_checked(&mut self, index: usize, on: bool) {
+        unsafe { ffi::sc_fuzzy_set_checked(self.ptr, index, on) };
+    }
+    /// Whether the row at `index` (add order) is checked.
+    pub fn is_checked(&self, index: usize) -> bool {
+        unsafe { ffi::sc_fuzzy_is_checked(self.ptr, index) }
+    }
+    /// Checks or unchecks every selectable row.
+    pub fn check_all(&mut self, on: bool) {
+        unsafe { ffi::sc_fuzzy_check_all(self.ptr, on) };
+    }
+    /// Number of checked rows.
+    pub fn checked_count(&self) -> usize {
+        unsafe { ffi::sc_fuzzy_checked_count(self.ptr) }
+    }
+    /// Pre-positions the cursor on `index` (add order, clamped to a selectable).
+    pub fn set_cursor(&mut self, index: usize) {
+        unsafe { ffi::sc_fuzzy_set_cursor(self.ptr, index) };
+    }
+    /// First field of the row at `index` (add order), or `None`.
+    pub fn label(&self, index: usize) -> Option<String> {
+        let p = unsafe { ffi::sc_fuzzy_label(self.ptr, index) };
+        if p.is_null() {
+            return None;
+        }
+        Some(
+            unsafe { std::ffi::CStr::from_ptr(p) }
+                .to_string_lossy()
+                .into_owned(),
+        )
+    }
+    /// Replaces the first field of the row at `index` (add order).
+    pub fn set_label(&mut self, index: usize, label: &str) {
+        unsafe {
+            ffi::sc_fuzzy_set_label(self.ptr, index, cstring(label).as_ptr());
+        }
+    }
+    /// Replaces all fields of the row at `index` (add order).
+    pub fn set_row<I, S>(&mut self, index: usize, fields: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let cs: Vec<CString> =
+            fields.into_iter().map(|f| cstring(f.as_ref())).collect();
+        let ptrs: Vec<*const c_char> = cs.iter().map(|c| c.as_ptr()).collect();
+        unsafe {
+            ffi::sc_fuzzy_set_row(self.ptr, index, ptrs.as_ptr(), ptrs.len());
+        }
+    }
+    /// Sets the base style of cell `col` in the row at `index`.
+    pub fn set_row_style(&mut self, index: usize, col: usize, style: Style) {
+        unsafe {
+            ffi::sc_fuzzy_set_row_style(self.ptr, index, col, style.raw());
+        }
     }
     pub fn cursor_index(&self) -> usize {
         unsafe { ffi::sc_fuzzy_cursor_index(self.ptr) }
@@ -1672,12 +1917,26 @@ impl Fuzzy {
     }
     pub fn remove(&mut self, index: usize) {
         unsafe { ffi::sc_fuzzy_remove(self.ptr, index) };
+        self.count = self.count.saturating_sub(1);
     }
     /// Runs the finder → the chosen item's original add-order index.
     pub fn run(&mut self) -> Result<Option<usize>> {
         let mut out = 0usize;
         let st = unsafe { ffi::sc_fuzzy_run(self.ptr, &mut out) };
         Ok(status(st)?.then_some(out))
+    }
+    /// Runs the finder in multi-select mode → the checked add-order indices
+    /// (empty when nothing was checked), or `None` on cancel.
+    pub fn run_multi(&mut self) -> Result<Option<Vec<usize>>> {
+        let cap = self.count.max(1);
+        let mut buf = vec![0usize; cap];
+        let mut n = cap;
+        let st =
+            unsafe { ffi::sc_fuzzy_run_multi(self.ptr, buf.as_mut_ptr(), &mut n) };
+        Ok(status(st)?.then(|| {
+            buf.truncate(n);
+            buf
+        }))
     }
 }
 

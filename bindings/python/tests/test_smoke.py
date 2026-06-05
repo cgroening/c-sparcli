@@ -43,6 +43,52 @@ def test_fuzzy_has_no_selection_before_run():
     assert fz.has_selection() is False
 
 
+def test_fuzzy_sections_multi_and_styles():
+    from sparcli.keys import key_ctrl
+
+    fz = sc.Fuzzy(sc.FuzzyOpts(
+        multi=True, section_counts=True,
+        toggle_all_key=key_ctrl("a"),
+        order=sc.FuzzyOrder.COLUMN, order_column=0))
+    fz.add_section("Monday")
+    fz.add("buy milk")
+    fz.add("call bob")
+
+    # Stable ids + label / set_label.
+    fz.set_id(1, 42)
+    assert fz.id_at(1) == 42
+    assert fz.id_at(99) == 0
+    assert fz.label(1) == "buy milk"
+    fz.set_label(1, "BUY MILK")
+    assert fz.label(1) == "BUY MILK"
+
+    # Checked set.
+    fz.set_checked(1)
+    fz.set_checked(2)
+    assert fz.checked_count() == 2 and fz.is_checked(1)
+    fz.check_all(False)
+    assert fz.checked_count() == 0
+
+    # Disabling clears + blocks the check.
+    fz.set_disabled(2, True)
+    fz.set_checked(2)
+    assert fz.is_checked(2) is False
+
+
+def test_fuzzy_rich_and_styled_rows():
+    style = sc.Style(fg=sc.Color.RED)
+    g = sc.Fuzzy(sc.FuzzyOpts(table=True, headers=["Status", "Task"]))
+    g.add_row(["overdue", "pay invoice"], styles=[style, sc.Style()])
+    assert g.label(0) == "overdue"
+
+    badge = sc.Text()
+    badge.append("HI")
+    badge.append("GH", sc.Style(attr=sc.Attr.BOLD))
+    r = sc.Fuzzy(sc.FuzzyOpts(table=True, headers=["x"]))
+    r.add_row_rich([badge])
+    assert r.label(0) == "HIGH"
+
+
 def test_strip_ansi():
     assert sc.strip_ansi("\033[1;31mhi\033[0m") == "hi"
     assert sc.strip_ansi("plain") == "plain"

@@ -943,6 +943,11 @@ void sc_select_remove(ScSelect *select, size_t index);
 void sc_select_free(ScSelect *select);
 
 /* ── Fuzzy ─────────────────────────────────────────────────────────────── */
+typedef enum {
+    SC_FUZZY_ORDER_SCORE,
+    SC_FUZZY_ORDER_INSERTION,
+    SC_FUZZY_ORDER_COLUMN,
+} ScFuzzyOrder;
 typedef struct {
     const char *prompt;
     int max_visible;
@@ -971,6 +976,21 @@ typedef struct {
     int *out_shortcut_id;
     const ScText *prompt_text;
     bool prompt_markup;
+    bool multi;
+    const char *checkbox_on;
+    const char *checkbox_off;
+    bool checkbox_column;
+    ScKeyChord toggle_all_key;
+    ScKeyChord toggle_section_key;
+    ScTextStyle section_style;
+    bool section_counts;
+    ScTextStyle disabled_style;
+    const char *empty_text;
+    ScTextStyle empty_style;
+    ScFuzzyOrder order;
+    size_t order_column;
+    bool order_desc;
+    const char *initial_query;
     ...;
 } ScFuzzyOpts;
 typedef struct ScFuzzy ScFuzzy;
@@ -978,7 +998,26 @@ bool sc_fuzzy_match(const char *pattern, const char *str, int *score);
 ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts);
 void sc_fuzzy_add(ScFuzzy *fuzzy, const char *label);
 void sc_fuzzy_add_row(ScFuzzy *fuzzy, const char *const *fields, size_t n);
+void sc_fuzzy_add_section(ScFuzzy *fuzzy, const char *title);
+void sc_fuzzy_add_styled(ScFuzzy *fuzzy, const char *label, ScTextStyle style);
+void sc_fuzzy_add_row_styled(ScFuzzy *fuzzy, const char *const *fields,
+                             const ScTextStyle *styles, size_t n);
+void sc_fuzzy_add_row_rich(ScFuzzy *fuzzy, ScText *const *cells, size_t n);
+void sc_fuzzy_set_disabled(ScFuzzy *fuzzy, size_t index, bool on);
+void sc_fuzzy_set_id(ScFuzzy *fuzzy, size_t index, uint64_t id);
+uint64_t sc_fuzzy_id_at(const ScFuzzy *fuzzy, size_t index);
+uint64_t sc_fuzzy_cursor_id(const ScFuzzy *fuzzy);
 ScInputStatus sc_fuzzy_run(ScFuzzy *fuzzy, size_t *out_index);
+ScInputStatus sc_fuzzy_run_multi(ScFuzzy *fuzzy, size_t *indices, size_t *count_io);
+void sc_fuzzy_set_checked(ScFuzzy *fuzzy, size_t index, bool on);
+bool sc_fuzzy_is_checked(const ScFuzzy *fuzzy, size_t index);
+void sc_fuzzy_check_all(ScFuzzy *fuzzy, bool on);
+size_t sc_fuzzy_checked_count(const ScFuzzy *fuzzy);
+void sc_fuzzy_set_cursor(ScFuzzy *fuzzy, size_t index);
+const char *sc_fuzzy_label(const ScFuzzy *fuzzy, size_t index);
+void sc_fuzzy_set_label(ScFuzzy *fuzzy, size_t index, const char *label);
+void sc_fuzzy_set_row(ScFuzzy *fuzzy, size_t index, const char *const *fields, size_t n);
+void sc_fuzzy_set_row_style(ScFuzzy *fuzzy, size_t index, size_t col, ScTextStyle style);
 size_t sc_fuzzy_cursor_index(const ScFuzzy *fuzzy);
 bool sc_fuzzy_has_selection(const ScFuzzy *fuzzy);
 void sc_fuzzy_remove(ScFuzzy *fuzzy, size_t index);

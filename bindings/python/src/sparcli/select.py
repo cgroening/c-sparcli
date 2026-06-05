@@ -4,15 +4,24 @@ from __future__ import annotations
 
 import weakref
 from dataclasses import dataclass, field
+from enum import IntEnum
 
 from ._ffi import apply_box, apply_color, apply_style, cstr, ffi, lib
 from ._inputcommon import (fill_hint, fill_prompt_text, fill_shortcuts, result)
 from .color import Color
 from .enums import HintLayout, HintPos
-from .keys import Shortcuts
+from .keys import KeyChord, Shortcuts
 from .style import BoxStyle, Style
 from .table import TableOpts
 from .text import Text
+
+
+class FuzzyOrder(IntEnum):
+    """Result ordering for a :class:`Fuzzy` finder (within sections if any)."""
+
+    SCORE = 0       #: match score (default)
+    INSERTION = 1   #: stable add order (e.g. tasks by time)
+    COLUMN = 2      #: by a chosen column (case-insensitive)
 
 
 def fuzzy_match(pattern: str, s: str) -> tuple[bool, int]:
@@ -174,6 +183,21 @@ class FuzzyOpts:
     shortcuts: Shortcuts | None = None
     prompt_text: Text | None = None
     prompt_markup: bool = False
+    multi: bool = False
+    checkbox_on: str | None = None
+    checkbox_off: str | None = None
+    checkbox_column: bool = False
+    toggle_all_key: KeyChord | None = None
+    toggle_section_key: KeyChord | None = None
+    section_style: Style = field(default_factory=Style)
+    section_counts: bool = False
+    disabled_style: Style = field(default_factory=Style)
+    empty_text: str | None = None
+    empty_style: Style = field(default_factory=Style)
+    order: FuzzyOrder = FuzzyOrder.SCORE
+    order_column: int = 0
+    order_desc: bool = False
+    initial_query: str | None = None
 
     def _fill(self, c, arena: list) -> None:
         c.prompt = cstr(arena, self.prompt)
@@ -202,12 +226,29 @@ class FuzzyOpts:
                   self.hint_style, arena)
         fill_shortcuts(c, self.shortcuts, arena)
         fill_prompt_text(c, self.prompt_text, self.prompt_markup)
+        c.multi = self.multi
+        c.checkbox_on = cstr(arena, self.checkbox_on)
+        c.checkbox_off = cstr(arena, self.checkbox_off)
+        c.checkbox_column = self.checkbox_column
+        if self.toggle_all_key is not None:
+            c.toggle_all_key = self.toggle_all_key.value
+        if self.toggle_section_key is not None:
+            c.toggle_section_key = self.toggle_section_key.value
+        apply_style(c.section_style, self.section_style)
+        c.section_counts = self.section_counts
+        apply_style(c.disabled_style, self.disabled_style)
+        c.empty_text = cstr(arena, self.empty_text)
+        apply_style(c.empty_style, self.empty_style)
+        c.order = int(self.order)
+        c.order_column = self.order_column
+        c.order_desc = self.order_desc
+        c.initial_query = cstr(arena, self.initial_query)
 
 
 class Fuzzy:
     """An incremental fuzzy finder, list or table view."""
 
-    __slots__ = ("_p", "_finalizer", "_keepalive", "__weakref__")
+    __slots__ = ("_p", "_finalizer", "_keepalive", "_count", "__weakref__")
 
     def __init__(self, opts: FuzzyOpts = FuzzyOpts()) -> None:
         arena: list = []
@@ -217,6 +258,7 @@ class Fuzzy:
         if p == ffi.NULL:
             raise MemoryError("sc_fuzzy_new failed")
         self._p = p
+        self._count = 0
         # The C side borrows `shortcuts` / `prompt_text` / table_opts strings
         # for its lifetime; keep the opts (and the cffi buffers built from
         # them) alive with it.
@@ -227,16 +269,113 @@ class Fuzzy:
         """Add a single-field item. Returns ``self``."""
         local: list = []
         lib.sc_fuzzy_add(self._p, cstr(local, label))
+        self._count += 1
         return self
 
-    def add_row(self, fields: list[str]) -> "Fuzzy":
-        """Add a multi-field row (table view); ``fields[0]`` is matched."""
+    def add_row(self, fields: list[str], styles: list[Style] | None = None
+                ) -> "Fuzzy":
+        """Add a multi-field row (table view); ``fields[0]`` is matched. With
+        ``styles`` each cell gets a base text style (padded to the field
+        count)."""
         local: list = []
         bufs = [cstr(local, f) for f in fields]
         arr = ffi.new("char *[]", bufs)
-        lib.sc_fuzzy_add_row(
-            self._p, ffi.cast("const char *const *", arr), len(bufs))
+        cfields = ffi.cast("const char *const *", arr)
+        if styles is None:
+            lib.sc_fuzzy_add_row(self._p, cfields, len(bufs))
+        else:
+            st = ffi.new("ScTextStyle[]", len(bufs))
+            for i in range(len(bufs)):
+                if i < len(styles):
+                    apply_style(st[i], styles[i])
+            lib.sc_fuzzy_add_row_styled(self._p, cfields, st, len(bufs))
+        self._count += 1
         return self
+
+    def add_section(self, title: str) -> "Fuzzy":
+        """Add a non-selectable section header (e.g. a day). Returns ``self``."""
+        local: list = []
+        lib.sc_fuzzy_add_section(self._p, cstr(local, title))
+        self._count += 1
+        return self
+
+    def add_styled(self, label: str, style: Style) -> "Fuzzy":
+        """Add a single item with a base text style. Returns ``self``."""
+        local: list = []
+        st = ffi.new("ScTextStyle *")
+        apply_style(st, style)
+        lib.sc_fuzzy_add_styled(self._p, cstr(local, label), st[0])
+        self._count += 1
+        return self
+
+    def add_row_rich(self, cells: list[Text]) -> "Fuzzy":
+        """Add a row of rich :class:`Text` cells (deep-copied). The match key
+        is each cell's flattened text. Returns ``self``."""
+        arr = ffi.new("ScText *[]", [c._ptr for c in cells])
+        lib.sc_fuzzy_add_row_rich(
+            self._p, ffi.cast("ScText *const *", arr), len(cells))
+        self._count += 1
+        return self
+
+    def set_disabled(self, index: int, on: bool = True) -> None:
+        """Grey out the row at ``index`` (add order) and make it unselectable."""
+        lib.sc_fuzzy_set_disabled(self._p, index, bool(on))
+
+    def set_id(self, index: int, id: int) -> None:
+        """Set a stable caller id on the row at ``index`` (add order)."""
+        lib.sc_fuzzy_set_id(self._p, index, id)
+
+    def id_at(self, index: int) -> int:
+        """Stable id of the row at ``index`` (add order), or 0."""
+        return int(lib.sc_fuzzy_id_at(self._p, index))
+
+    def cursor_id(self) -> int:
+        """Stable id of the currently highlighted row, or 0."""
+        return int(lib.sc_fuzzy_cursor_id(self._p))
+
+    def set_checked(self, index: int, on: bool = True) -> None:
+        """Pre-check/uncheck the row at ``index`` (multi-select)."""
+        lib.sc_fuzzy_set_checked(self._p, index, bool(on))
+
+    def is_checked(self, index: int) -> bool:
+        """Whether the row at ``index`` (add order) is checked."""
+        return bool(lib.sc_fuzzy_is_checked(self._p, index))
+
+    def check_all(self, on: bool = True) -> None:
+        """Check or uncheck every selectable row."""
+        lib.sc_fuzzy_check_all(self._p, bool(on))
+
+    def checked_count(self) -> int:
+        """Number of checked rows."""
+        return int(lib.sc_fuzzy_checked_count(self._p))
+
+    def set_cursor(self, index: int) -> None:
+        """Pre-position the cursor on ``index`` (add order, clamped)."""
+        lib.sc_fuzzy_set_cursor(self._p, index)
+
+    def label(self, index: int) -> str | None:
+        """First field of the row at ``index`` (add order), or ``None``."""
+        p = lib.sc_fuzzy_label(self._p, index)
+        return None if p == ffi.NULL else ffi.string(p).decode()
+
+    def set_label(self, index: int, label: str) -> None:
+        """Replace the first field of the row at ``index`` (add order)."""
+        local: list = []
+        lib.sc_fuzzy_set_label(self._p, index, cstr(local, label))
+
+    def set_row(self, index: int, fields: list[str]) -> None:
+        """Replace all fields of the row at ``index`` (add order)."""
+        local: list = []
+        bufs = [cstr(local, f) for f in fields]
+        arr = ffi.new("char *[]", bufs)
+        lib.sc_fuzzy_set_row(
+            self._p, index, ffi.cast("const char *const *", arr), len(bufs))
+
+    def set_row_style(self, index: int, col: int, style: Style) -> None:
+        """Set the base style of cell ``col`` in the row at ``index``."""
+        st = ffi.new("ScTextStyle *")
+        apply_style(st, style)
+        lib.sc_fuzzy_set_row_style(self._p, index, col, st[0])
 
     def cursor_index(self) -> int:
         """Add-order index of the highlighted row (e.g. from a callback)."""
@@ -252,12 +391,23 @@ class Fuzzy:
 
     def remove(self, index: int) -> None:
         lib.sc_fuzzy_remove(self._p, index)
+        if self._count:
+            self._count -= 1
 
     def run(self) -> int | None:
         """Run the finder; returns the chosen item's add-order index."""
         out = ffi.new("size_t *")
         st = lib.sc_fuzzy_run(self._p, out)
         return result(st, lambda: int(out[0]))
+
+    def run_multi(self) -> list[int] | None:
+        """Run multi-select; returns the checked add-order indices (``[]`` when
+        nothing was checked), or ``None`` on cancel."""
+        cap = max(1, self._count)
+        indices = ffi.new("size_t[]", cap)
+        count = ffi.new("size_t *", cap)
+        st = lib.sc_fuzzy_run_multi(self._p, indices, count)
+        return result(st, lambda: [int(indices[i]) for i in range(count[0])])
 
     def close(self) -> None:
         self._finalizer()

@@ -354,6 +354,20 @@ if (auto i = fz.run()) { /* add-order index */ }
 Fuzzy langs({ .table = true, .headers = headers, .n_cols = 2 });
 langs.add_row({ "C", "Static" }).add_row({ "Python", "Dynamic" });
 
+// Todo-style finder: day sections, multi-select, per-cell colors, ordering.
+Fuzzy todo({ .table = true, .headers = todo_headers, .n_cols = 3,
+             .multi = true, .checkbox_column = true, .section_counts = true,
+             .order = SC_FUZZY_ORDER_COLUMN, .order_column = 0,
+             .toggle_all_key = key_ctrl('a') });
+todo.add_section("Monday");
+todo.add_row_styled({ "09:00", "Pay invoice", "overdue" },
+                    { {}, {}, { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, {} } });
+todo.set_id(1, 102);
+if (auto checked = todo.run_multi()) { /* std::vector<size_t> of checked rows */ }
+// also: add_styled / add_row_rich(std::vector<Text>&), set_disabled,
+// set_checked / check_all / checked_count, set_cursor / set_label / set_row /
+// set_row_style, id_at / cursor_id. Demo: examples/c/apps/todo_fuzzy.c.
+
 bool m = fuzzy_match("to", "Tokyo");      // pure, no TTY
 set_theme({ .accent = magenta() });  reset_theme();   // InputTheme theme();
 
