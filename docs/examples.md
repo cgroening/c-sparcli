@@ -12,7 +12,7 @@ The examples live under `examples/`, grouped by language and then by area:
 ```
 examples/
   c/output/     c/input/     c/app/     c/data/   c/apps/   (+ readme_screenshots_*.c)
-  cpp/output/   cpp/input/   cpp/app/   cpp/data/
+  cpp/output/   cpp/input/   cpp/app/   cpp/data/  cpp/apps/
   rust/output/  rust/input/  rust/app/
   python/output/ python/input/ python/app/
   cli/
@@ -172,10 +172,10 @@ Larger end-to-end programs that combine many widgets:
 | `c/apps/repl_minimal` | The smallest REPL: a prompt loop with Up/Down history. |
 | `c/apps/repl_demo` | A task-manager REPL built on the argument parser (split + implicit reset + history). |
 | `c/apps/repl_dashboard` | A fixed live header above an interactive prompt, with a shortcut action bar. |
-| `c/apps/todo_fuzzy` | A mini todo app on the fuzzy finder: day sections, time-ordered table, per-cell status colors + a rich priority badge, multi-select with a checkbox column, and done/delete actions on the checked set in a re-run loop. Uses the modal (vim-style) mode: normal mode acts on bare keys (`d` done, `x` delete, `c` clear, `j`/`k` move, space check), `i` enters insert mode to type a filter, `Esc` returns; the query line is badged + tinted per mode. |
-| `c/apps/form_demo` | A grid-layout form: framed fields arranged in a raster with per-field width (%/fixed/auto) and col/row spans (a "Tier" select spanning two columns, a tall multiline "Notes" field spanning two rows). Arrow keys move the active box in 2D; Enter opens the editor below the grid (boxed in the accent color), a second Enter saves; select/multiselect/date open list/grid pickers; the multiline Notes field opens `$EDITOR`/nvim with Enter or Ctrl-G; bool fields toggle with Space; Ctrl-D submits. |
+| `c/apps/todo_fuzzy` · `cpp/apps/todo_fuzzy` | A mini todo app on the fuzzy finder: day sections, time-ordered table, per-cell status colors + a rich priority badge, multi-select with a checkbox column, and done/delete actions on the checked set in a re-run loop. Uses the modal (vim-style) mode: normal mode acts on bare keys (`d` done, `x` delete, `c` clear, `j`/`k` move, space check), `i` enters insert mode to type a filter, `Esc` returns; the query line is badged + tinted per mode. (C + C++.) |
+| `c/apps/form_demo` · `cpp/apps/form_demo` | A grid-layout form: framed fields arranged in a raster with per-field width (%/fixed/auto) and col/row spans (a "Tier" select spanning two columns, a tall multiline "Notes" field spanning two rows). Arrow keys move the active box in 2D; Enter opens the editor below the grid (boxed in the accent color), a second Enter saves; select/multiselect/date open list/grid pickers; the multiline Notes field opens `$EDITOR`/nvim with Enter or Ctrl-G; bool fields toggle with Space; Ctrl-D submits. (C + C++.) |
 
-Run them with `make run-example EX=c/apps/repl_demo` (in a real terminal).
+Run them with `make run-example EX=c/apps/repl_demo` (or `EX=cpp/apps/form_demo`) in a real terminal.
 
 ## CLI tool
 
