@@ -59,19 +59,20 @@ int main() {
         { .width_mode = SC_FWIDTH_AUTO });
     int since = form.add_date("Since", {}, { .width_mode = SC_FWIDTH_AUTO });
 
-    // Rows 4+5: a tall multiline notes field (rowspan 2) beside stacked fields.
+    // Rows 4+5: a tall multiline notes field (rowspan 2) in the MIDDLE column,
+    // flanked by stacked fields (Phone/City left, Active/ZIP right).
     form.row_begin();
+    int phone = form.add_text("Phone", "+1 555 0100",
+        { .width_mode = SC_FWIDTH_AUTO });
     int notes = form.add_text("Notes", "preferred supplier",
         { .width_mode = SC_FWIDTH_PCT, .width = 50, .row_span = 2, .height = 3,
           .multiline = true, .help = "ctrl-g opens $EDITOR" });
-    int phone = form.add_text("Phone", "+1 555 0100",
-        { .width_mode = SC_FWIDTH_AUTO });
     int active = form.add_bool("Active", true, { .width_mode = SC_FWIDTH_AUTO });
 
     form.row_begin();
-    form.add_skip();   // covered by the rowspan "Notes" field
     int city = form.add_text("City", "Cupertino",
         { .width_mode = SC_FWIDTH_AUTO });
+    form.add_skip();   // covered by the rowspan "Notes" field
     int zip = form.add_text("ZIP", "95014", { .width_mode = SC_FWIDTH_AUTO });
 
     if (form.run()) {

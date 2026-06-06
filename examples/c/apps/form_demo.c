@@ -60,21 +60,22 @@ int main(void) {
     int since = sc_form_add_date(form, "Since", (struct tm){ 0 },
         (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
 
-    /* Row 3+4: a tall notes field (rowspan 2) beside stacked fields. */
+    /* Row 3+4: a tall notes field (rowspan 2) in the MIDDLE column, flanked by
+       stacked fields (Phone/City on the left, Active/ZIP on the right). */
     sc_form_row_begin(form);
+    int phone = sc_form_add_text(form, "Phone", "+1 555 0100",
+        (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
     int notes = sc_form_add_text(form, "Notes", "preferred supplier",
         (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 50,
                        .row_span = 2, .height = 3, .multiline = true,
                        .help = "ctrl-g opens $EDITOR" });
-    int phone = sc_form_add_text(form, "Phone", "+1 555 0100",
-        (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
     int active = sc_form_add_bool(form, "Active", true,
         (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
 
     sc_form_row_begin(form);
-    sc_form_add_skip(form);   // covered by the rowspan "Notes" field
     int city = sc_form_add_text(form, "City", "Cupertino",
         (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
+    sc_form_add_skip(form);   // covered by the rowspan "Notes" field
     int zip = sc_form_add_text(form, "ZIP", "95014",
         (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
 
