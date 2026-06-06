@@ -392,6 +392,9 @@ pub struct ColOpts {
     /// Default text style for unstyled cells in this column; lower priority
     /// than per-cell styling and the header/footer section styles.
     pub style: Style,
+    /// Size to content but exclude from `TableOpts::total_width` stretching;
+    /// the surplus then goes only to the remaining flex columns.
+    pub no_stretch: bool,
 }
 
 impl ColOpts {
@@ -430,6 +433,11 @@ impl ColOpts {
         self.style = s;
         self
     }
+    /// Exclude this column from `total_width` stretching (content-sized).
+    pub fn no_stretch(mut self) -> Self {
+        self.no_stretch = true;
+        self
+    }
     fn raw(&self) -> ffi::ScColOpts {
         ffi::ScColOpts {
             min_width: self.min_width,
@@ -440,6 +448,7 @@ impl ColOpts {
             word_wrap: self.word_wrap,
             bg: self.bg.raw(),
             style: self.style.raw(),
+            no_stretch: self.no_stretch,
         }
     }
 }

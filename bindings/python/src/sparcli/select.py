@@ -166,6 +166,7 @@ class FuzzyOpts:
     table: bool = False
     headers: list[str] | None = None
     search_columns: int = 0
+    stretch_columns: int = 0  #: table cols that fill a bounded box width (mask)
     prompt_style: Style = field(default_factory=Style)
     selected_style: Style = field(default_factory=Style)
     cursor_style: Style = field(default_factory=Style)
@@ -222,6 +223,7 @@ class FuzzyOpts:
             c.headers = ffi.cast("const char *const *", arr)
             c.n_cols = len(bufs)
         c.search_columns = self.search_columns
+        c.stretch_columns = self.stretch_columns
         apply_style(c.prompt_style, self.prompt_style)
         apply_style(c.selected_style, self.selected_style)
         apply_style(c.cursor_style, self.cursor_style)

@@ -108,6 +108,18 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(i, ""));
     sc_fuzzy_free(i);
 
+    /* Boxed table, fixed width 60: column 0 stretches to fill the frame. */
+    ScFuzzy *is = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Search", .table = true, .headers = headers, .n_cols = 3,
+        .stretch_columns = (uint64_t)1 << 0,
+        .box = { .enabled = true, .width = 60,
+                 .border = { .type = SC_BORDER_ROUNDED } } });
+    sc_fuzzy_add_row(is, (const char *[]){ "Tokyo",  "Japan", "37.4" }, 3);
+    sc_fuzzy_add_row(is, (const char *[]){ "London", "UK",    "9.0"  }, 3);
+    style_show("fuzzy table: width 60, col 0 stretches to fill",
+               sc_fuzzy_frame(is, ""));
+    sc_fuzzy_free(is);
+
     /* List view, widget background without a frame: rows inherit it and the
      * cursor row is a full-width bar (selected_style.bg). */
     ScFuzzy *j = sc_fuzzy_new((ScFuzzyOpts){

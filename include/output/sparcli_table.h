@@ -208,6 +208,15 @@ typedef struct ScColOpts {
      * use the `bg` field above for column backgrounds.
      */
     ScTextStyle style;
+
+    /**
+     * When `true`, the column is sized to its content (still honoring
+     * `min_width`/`max_width`) but is **excluded from `ScTableOpts.total_width`
+     * stretching** - the surplus width goes only to the remaining flex columns.
+     * Has no effect on a `fixed_width` column. Zero-init = the column flexes
+     * with `total_width` as before.
+     */
+    bool no_stretch;
 } ScColOpts;
 
 /** Border style and color settings for a table. */

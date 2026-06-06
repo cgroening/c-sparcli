@@ -1573,6 +1573,10 @@ pub struct FuzzyOpts {
     /// Bitmask of columns the query searches (bit `c` = column `c`); `0`
     /// (default) searches all columns. Table view only.
     pub search_columns: u64,
+    /// Bitmask of table columns that stretch to fill the box width when `box`
+    /// has a bounded width (bit `c` = column `c`); `0` (default) keeps the table
+    /// content-sized. Table view only.
+    pub stretch_columns: u64,
     /// Table-view rendering options (border, header style, padding, …).
     pub table_opts: crate::output::TableOpts,
     /// Multi-select: Space toggles, run via [`Fuzzy::run_multi`].
@@ -1644,6 +1648,11 @@ impl FuzzyOpts {
     /// Sets which columns the query searches (bitmask; `0` = all).
     pub fn search_columns(mut self, mask: u64) -> Self {
         self.search_columns = mask;
+        self
+    }
+    /// Sets which table columns stretch to fill the box width (bitmask).
+    pub fn stretch_columns(mut self, mask: u64) -> Self {
+        self.stretch_columns = mask;
         self
     }
     /// Sets the table-view rendering options.
@@ -1806,6 +1815,7 @@ impl Fuzzy {
             o.n_cols = header_ptrs.len();
         }
         o.search_columns = opts.search_columns;
+        o.stretch_columns = opts.stretch_columns;
         o.table_opts = opts.table_opts.raw(&mut arena);
         o.multi = opts.multi;
         o.checkbox_column = opts.checkbox_column;

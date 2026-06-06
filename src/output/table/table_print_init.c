@@ -194,11 +194,17 @@ static int count_inner_separators(const Table *table) {
     return count;
 }
 
-/** Returns the number of flex (non-fixed-width) columns. */
+/** True when a column participates in `total_width` stretching (auto width and
+    not opted out via `no_stretch`). */
+static bool column_is_flex(const ScColOpts *opts) {
+    return opts->fixed_width == 0 && !opts->no_stretch;
+}
+
+/** Returns the number of flex (stretchable) columns. */
 static int count_flex_columns(const ScTableData *data) {
     int count = 0;
     for (size_t col = 0; col < data->column_count; col++) {
-        if (data->columns[col].opts.fixed_width == 0) { count++; }
+        if (column_is_flex(&data->columns[col].opts)) { count++; }
     }
     return count;
 }
@@ -217,7 +223,7 @@ static void distribute_width_delta(
 
     const ScTableData *data = table->table_data;
     for (size_t col = 0; col < data->column_count; col++) {
-        if (data->columns[col].opts.fixed_width > 0) { continue; }
+        if (!column_is_flex(&data->columns[col].opts)) { continue; }
         int adjustment = base_adjustment + (remainder > 0 ? direction : 0);
         if (remainder > 0) { remainder--; }
         int new_width = table->column_widths[col] + adjustment;

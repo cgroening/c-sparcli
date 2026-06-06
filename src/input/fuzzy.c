@@ -88,10 +88,11 @@ static ScRendered *fuzzy_render(void *state);
             ScTextStyle base_style, ScColor accent);
             static void append_run(ScText *text, const char *start,
                                    const char *end, ScTextStyle style);
-    static ScRendered *render_table(ScFuzzy *self);
-        static ScTableData *fuzzy_table_columns(ScFuzzy *self);
+    static ScRendered *render_table(ScFuzzy *self, int total_width);
+        static ScTableData *fuzzy_table_columns(ScFuzzy *self, bool stretch);
         static bool fuzzy_checkbox_column(const ScFuzzy *self);
-        static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self);
+        static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self,
+                                                    int total_width);
     static ScRendered *render_scroll_hint(ScFuzzy *self);
 static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel);
 static int match_cmp(const void *a, const void *b);
@@ -850,7 +851,7 @@ static ScRendered *fuzzy_render(void *state) {
     ScRendered *body = NULL;
     int body_w;
     if (self->opts.table) {
-        body = render_table(self);   /* table fills its own row widths */
+        body = render_table(self, 0);   /* natural width first */
         body_w = body ? body->max_column_width : 0;
     } else {
         body_w = render_list_width(self);   /* measured before rendering */
@@ -865,6 +866,15 @@ static ScRendered *fuzzy_render(void *state) {
 
     if (!self->opts.table) {
         body = render_list(self, layout.interior_w, fill);
+    } else if (self->opts.stretch_columns && body
+               && layout.interior_w > body->max_column_width) {
+        /* Box is wider than the natural table: re-render filling the interior,
+           the surplus going to the stretch columns. */
+        ScRendered *wide = render_table(self, layout.interior_w);
+        if (wide) {
+            sc_rendered_free(body);
+            body = wide;
+        }
     }
     if (!body) {
         sc_rendered_free(query);
@@ -1249,8 +1259,8 @@ static void append_highlighted(ScText *text, const char *label,
 /** Table view: visible entries as a sparcli table. Section headers span all
     columns; the cursor row gets a background; rows carry per-cell styles, rich
     cells, disabled greying and (multi) a checkbox column or glyph. */
-static ScRendered *render_table(ScFuzzy *self) {
-    ScTableData *table = fuzzy_table_columns(self);
+static ScRendered *render_table(ScFuzzy *self, int total_width) {
+    ScTableData *table = fuzzy_table_columns(self, total_width > 0);
     if (!table) {
         return NULL;
     }
@@ -1370,7 +1380,7 @@ static ScRendered *render_table(ScFuzzy *self) {
     }
 
     ScRendered *rendered =
-        sc_capture_table(table, resolve_fuzzy_table_opts(self));
+        sc_capture_table(table, resolve_fuzzy_table_opts(self, total_width));
     sc_table_free(table);
     for (size_t t = 0; t < n_texts; t++) {
         sc_text_free(texts[t]);
@@ -1385,12 +1395,15 @@ static bool fuzzy_checkbox_column(const ScFuzzy *self) {
 }
 
 /** Builds the table with one (word-wrap-off) column per configured field, plus
-    an optional leading checkbox column for multi-select. */
-static ScTableData *fuzzy_table_columns(ScFuzzy *self) {
+    an optional leading checkbox column for multi-select. When `stretch` is set,
+    columns NOT in `opts.stretch_columns` are marked `no_stretch` so the
+    `total_width` surplus reaches only the selected column(s). */
+static ScTableData *fuzzy_table_columns(ScFuzzy *self, bool stretch) {
     ScTableData *table = sc_table_new();
     if (!table) {
         return NULL;
     }
+    uint64_t mask = self->opts.stretch_columns;
     if (fuzzy_checkbox_column(self)) {
         const char *off = cb_glyph(self, false);
         int w = (int)sc_utf8_string_length(off, strlen(off));
@@ -1401,7 +1414,9 @@ static ScTableData *fuzzy_table_columns(ScFuzzy *self) {
     for (size_t c = 0; c < cols; c++) {
         const char *header = (self->opts.headers && c < self->opts.n_cols)
             ? self->opts.headers[c] : "";
-        sc_table_add_column(table, header, (ScColOpts){ .word_wrap = false });
+        bool stretch_col = stretch && (mask & ((uint64_t)1 << c));
+        sc_table_add_column(table, header,
+            (ScColOpts){ .word_wrap = false, .no_stretch = !stretch_col });
     }
     return table;
 }
@@ -1410,7 +1425,8 @@ static ScTableData *fuzzy_table_columns(ScFuzzy *self) {
  * Resolves the caller's `table_opts`, filling the fuzzy defaults (single
  * border, bold header row) only where a field was left zero-init.
  */
-static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self) {
+static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self,
+                                            int total_width) {
     ScTableOpts opts = self->opts.table_opts;
     if (opts.border.type == SC_BORDER_NONE) {
         opts.border.type = SC_BORDER_SINGLE;
@@ -1422,6 +1438,7 @@ static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self) {
                 SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
         }
     }
+    if (total_width > 0) { opts.total_width = total_width; }
     return opts;
 }
 

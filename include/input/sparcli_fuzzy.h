@@ -230,6 +230,16 @@ typedef struct ScFuzzyOpts {
     /** Badge + query-field style in insert mode; zero-init = bold black on
         green. */
     ScTextStyle mode_insert_style;
+
+    /**
+     * Table view: bitmask of display columns (bit `c` = column `c`) that stretch
+     * to fill the box width when `box` has a bounded width
+     * (`SC_WIDTH_FULL`/`FIXED`, or `CONTENT` with a `max_width`). The surplus is
+     * split across the selected columns; the rest stay content-sized. `0` (the
+     * default) keeps the table content-sized inside the frame. The list view
+     * already fills a bounded box, so this is table-view only.
+     */
+    uint64_t stretch_columns;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */

@@ -304,6 +304,7 @@ typedef struct {
     bool word_wrap;
     ScColor bg;
     ScTextStyle style;
+    bool no_stretch;
     ...;
 } ScColOpts;
 typedef struct {
@@ -1002,6 +1003,7 @@ typedef struct {
     const char *insert_label;
     ScTextStyle mode_normal_style;
     ScTextStyle mode_insert_style;
+    uint64_t stretch_columns;
     ...;
 } ScFuzzyOpts;
 typedef struct ScFuzzy ScFuzzy;

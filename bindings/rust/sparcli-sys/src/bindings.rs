@@ -738,10 +738,12 @@ pub struct ScColOpts {
     pub bg: ScColor,
     #[doc = " Default text style (attributes + foreground) for unstyled cell spans\n in this column; zero-init = none. Lower priority than per-cell styling\n and the header/footer section styles. The style's `bg` is ignored -\n use the `bg` field above for column backgrounds."]
     pub style: ScTextStyle,
+    #[doc = " Size to content but exclude from `total_width` stretching."]
+    pub no_stretch: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScColOpts"][::std::mem::size_of::<ScColOpts>() - 52usize];
+    ["Size of ScColOpts"][::std::mem::size_of::<ScColOpts>() - 56usize];
     ["Alignment of ScColOpts"][::std::mem::align_of::<ScColOpts>() - 4usize];
     ["Offset of field: ScColOpts::min_width"]
         [::std::mem::offset_of!(ScColOpts, min_width) - 0usize];
@@ -755,6 +757,8 @@ const _: () = {
         [::std::mem::offset_of!(ScColOpts, word_wrap) - 20usize];
     ["Offset of field: ScColOpts::bg"][::std::mem::offset_of!(ScColOpts, bg) - 24usize];
     ["Offset of field: ScColOpts::style"][::std::mem::offset_of!(ScColOpts, style) - 32usize];
+    ["Offset of field: ScColOpts::no_stretch"]
+        [::std::mem::offset_of!(ScColOpts, no_stretch) - 52usize];
 };
 #[doc = " Border style and color settings for a table."]
 #[repr(C)]
@@ -3367,10 +3371,12 @@ pub struct ScFuzzyOpts {
     pub mode_normal_style: ScTextStyle,
     #[doc = " Badge + query-field style in insert mode; zero-init = bold black on\ngreen."]
     pub mode_insert_style: ScTextStyle,
+    #[doc = " Bitmask of table columns that stretch to fill a bounded box width."]
+    pub stretch_columns: u64,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 816usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 824usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
@@ -3467,6 +3473,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, mode_normal_style) - 776usize];
     ["Offset of field: ScFuzzyOpts::mode_insert_style"]
         [::std::mem::offset_of!(ScFuzzyOpts, mode_insert_style) - 796usize];
+    ["Offset of field: ScFuzzyOpts::stretch_columns"]
+        [::std::mem::offset_of!(ScFuzzyOpts, stretch_columns) - 816usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

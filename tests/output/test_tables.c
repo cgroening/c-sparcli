@@ -594,6 +594,38 @@ void test_tables(void) {
 
     printf("\n");
 
+    /* ── 21b. Total width with a no_stretch column ── */
+    {
+        ScTableData *table = sc_table_new();
+        /* "Country" keeps its content width; the surplus goes to the others. */
+        sc_table_add_column(table, "Country",
+            (ScColOpts){ .halign = SC_ALIGN_LEFT, .no_stretch = true });
+        sc_table_add_column(table, "Capital", col_left);
+        sc_table_add_column(table, "Population", col_right);
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell("Germany"), sc_cell("Berlin"), sc_cell("83M"),
+        }, 3);
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell("France"), sc_cell("Paris"), sc_cell("68M"),
+        }, 3);
+        sc_table_add_row(table, (ScCell[]){
+            sc_cell("Netherlands"), sc_cell("Amsterdam"), sc_cell("18M"),
+        }, 3);
+        sc_table_print(table, (ScTableOpts){
+            .border = default_border(SC_BORDER_SINGLE),
+            .header.row = true,
+            .header.style = bold,
+            .total_width = 60,
+            .title = title_centered_top(
+                " Total Width = 60, col 0 no_stretch ", bold_magenta
+            ),
+            .cell_pad = { 0, 1, 0, 1 },
+        });
+        sc_table_free(table);
+    }
+
+    printf("\n");
+
     /* ── 22. Colspan ── */
     {
         ScTableData *table = sc_table_new();

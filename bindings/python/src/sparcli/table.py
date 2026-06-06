@@ -79,6 +79,8 @@ class ColOpts:
     style: Style = field(default_factory=Style)
     """Default text style for unstyled cells in this column; lower priority
     than per-cell styling and the header/footer section styles."""
+    no_stretch: bool = False
+    """Size to content but exclude from ``TableOpts.total_width`` stretching."""
 
     def _fill(self, c) -> None:
         c.min_width = self.min_width
@@ -89,6 +91,7 @@ class ColOpts:
         c.word_wrap = self.word_wrap
         apply_color(c.bg, self.bg)
         apply_style(c.style, self.style)
+        c.no_stretch = self.no_stretch
 
 
 @dataclass
