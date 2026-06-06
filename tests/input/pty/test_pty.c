@@ -835,6 +835,116 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 57: {
+            /* Form: Enter opens the editor (seeded "a"), type "X" -> "aX",
+               Enter saves, Ctrl-D submits. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "aX") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 58: {
+            /* Form: Right moves to the bool field, Space toggles it on, Ctrl-D
+               submits. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_add_bool(f, "B", false, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && sc_form_get_bool(f, 1) == true);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 59: {
+            /* Form: edit, type, Esc discards the edit, value stays "a". */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "a") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 60: {
+            /* Form: Esc in navigation cancels the whole form. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            sc_form_free(f);
+            return (s == SC_INPUT_CANCELLED) ? 0 : 1;
+        }
+        case 61: {
+            /* Form number field: edit, Ctrl-U clear, type 42, save, submit. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_number(f, "N", 1, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && sc_form_get_number(f, 0) == 42.0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 62: {
+            /* Form select: Enter opens the list, Down moves to index 1, Enter
+               selects, Ctrl-D submits. */
+            static const char *const opt[] = { "a", "b", "c" };
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_select(f, "P", opt, 3, 0, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && sc_form_get_choice(f, 0) == 1);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 63: {
+            /* Form multiselect: open, Space checks index 0, Down, Space checks
+               index 1, Enter confirms, Ctrl-D submits. */
+            static const char *const opt[] = { "a", "b", "c" };
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_multiselect(f, "T", opt, 3, NULL, 0, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            size_t idx[3] = { 9, 9, 9 };
+            size_t n = sc_form_get_checked(f, 0, idx, 3);
+            int ok = (s == SC_INPUT_OK && n == 2 && idx[0] == 0 && idx[1] == 1);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 64: {
+            /* Form select Esc keeps the original selection (index 1). */
+            static const char *const opt[] = { "a", "b", "c" };
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_select(f, "P", opt, 3, 1, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && sc_form_get_choice(f, 0) == 1);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 65: {
+            /* Required: first Ctrl-D is blocked (empty), then edit to "x" and
+               Ctrl-D submits. A premature submit would end with an empty
+               value and fail. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "", (ScFieldOpts){ .required = true });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "x") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 66: {
+            /* Form date: seeded 2026-05-15, open, Right (→16), Enter picks,
+               Ctrl-D submits. */
+            struct tm d = { 0 };
+            d.tm_year = 2026 - 1900; d.tm_mon = 4; d.tm_mday = 15;
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_date(f, "D", d, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            struct tm got = { 0 };
+            int ok = (s == SC_INPUT_OK && sc_form_get_date(f, 0, &got)
+                      && got.tm_mday == 16 && got.tm_mon == 4
+                      && got.tm_year == 2026 - 1900);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -905,6 +1015,16 @@ static const Case CASES[] = {
     { "modal-vim-g", "jjg\r" },                     /* j,j to last, g -> first */
     { "fuzzy-ctrl-p-nav", "\x10\r" },               /* Ctrl-P up cycles -> last */
     { "modal-custom-keys", "aRen\r" },              /* custom insert key 'a' */
+    { "form-edit-text", "\rX\r\x04" },     /* edit, type X, save, Ctrl-D */
+    { "form-bool-toggle", "\x1b[C \x04" }, /* right, space toggles, Ctrl-D */
+    { "form-edit-cancel", "\rZ\x1b\x04" }, /* edit, type, Esc discard, Ctrl-D */
+    { "form-esc-cancels", "\x1b" },         /* Esc in nav cancels */
+    { "form-number-edit", "\r\x15" "42\r\x04" }, /* edit, clear, 42, save, submit */
+    { "form-select", "\r\x1b[B\r\x04" },         /* open, down, select, submit */
+    { "form-multiselect", "\r \x1b[B \r\x04" },  /* open, check 0, down, check 1 */
+    { "form-select-esc-keeps", "\r\x1b[B\x1b\x04" }, /* move, Esc discards */
+    { "form-required-blocks", "\x04\rx\r\x04" }, /* Ctrl-D blocked, then edit */
+    { "form-date", "\r\x1b[C\r\x04" },           /* open, right (+1 day), pick */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

@@ -83,6 +83,7 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/input/calc.c \
           src/input/textarea.c \
           src/input/select.c src/input/fuzzy.c src/input/datepicker.c \
+          src/input/form.c \
           src/input/history.c \
           \
           src/app/paths.c src/app/error.c src/app/process.c src/app/config.c \
@@ -216,6 +217,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_sanitize.c \
                  tests/input/logic/test_suggest.c \
                  tests/input/logic/test_history.c \
+                 tests/input/logic/test_form.c \
                  tests/input/logic/test_no_tty.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
@@ -228,7 +230,8 @@ STYLE_TEST_SRC = tests/input/style/test_style_main.c \
                  tests/input/style/test_style_textarea.c \
                  tests/input/style/test_style_select.c \
                  tests/input/style/test_style_fuzzy.c \
-                 tests/input/style/test_style_datepicker.c
+                 tests/input/style/test_style_datepicker.c \
+                 tests/input/style/test_style_form.c
 STYLE_TEST_BIN = tests/input/style/test_style_main
 
 # ── Self-driving PTY suite: runs the interactive widgets under a pseudo-

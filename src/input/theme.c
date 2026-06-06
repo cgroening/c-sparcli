@@ -176,6 +176,20 @@ void sc_theme_apply_datepicker(ScDatePickerOpts *o) {
     }
 }
 
+void sc_theme_apply_form(ScFormOpts *o) {
+    ScInputTheme t = g_theme;
+    m_color(&o->accent, t.accent);
+    m_style(&o->title_style, t.prompt_style);
+    m_style(&o->summary_style, t.summary_style);
+    m_style(&o->hint_style, t.hint_style);
+    if (o->hint_layout == SC_HINT_LAYOUT_DEFAULT) {
+        o->hint_layout = t.hint_layout;
+    }
+    if (o->hint_pos == SC_HINT_POS_DEFAULT) {
+        o->hint_pos = t.hint_pos;
+    }
+}
+
 
 /* ── Field-merge helpers ────────────────────────────────────────────────── */
 
