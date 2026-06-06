@@ -120,6 +120,20 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(is, ""));
     sc_fuzzy_free(is);
 
+    /* Full-width box: the stretched table fills the frame's interior exactly
+     * (regression: the FULL interior must match the panel's content area). */
+    ScFuzzy *fw = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Search", .table = true, .headers = headers, .n_cols = 3,
+        .stretch_columns = (uint64_t)1 << 0,
+        .box = { .enabled = true, .padding = { .left = 1, .right = 1 },
+                 .border = { .type = SC_BORDER_ROUNDED },
+                 .width_mode = SC_WIDTH_FULL } });
+    sc_fuzzy_add_row(fw, (const char *[]){ "Tokyo",  "Japan", "37.4" }, 3);
+    sc_fuzzy_add_row(fw, (const char *[]){ "London", "UK",    "9.0"  }, 3);
+    style_show("fuzzy table: full-width box, col 0 fills to the frame",
+               sc_fuzzy_frame(fw, ""));
+    sc_fuzzy_free(fw);
+
     /* List view, widget background without a frame: rows inherit it and the
      * cursor row is a full-width bar (selected_style.bg). */
     ScFuzzy *j = sc_fuzzy_new((ScFuzzyOpts){

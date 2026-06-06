@@ -153,7 +153,11 @@ static inline ScBoxLayout sc_box_layout(
     }
     case SC_WIDTH_FULL: {
         panel.full_width = true;
-        int outer = term_w - 2;
+        /* The full-width panel draws its frame across the whole terminal (minus
+           margins): inner = term - 2 - margins, content = inner - padding. Match
+           that here so the interior width handed to the body equals the panel's
+           real content area (a `term_w - 2` here double-counted the border). */
+        int outer = term_w - box.margin.left - box.margin.right;
         interior = outer - overhead;
         break;
     }
