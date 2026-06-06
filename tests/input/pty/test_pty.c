@@ -971,6 +971,57 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 69: {
+            /* Tab while editing: edit A (seed "a") -> "aX", Tab commits A and
+               immediately opens B (seed "b") -> "bY", Enter saves, Ctrl-D. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_add_text(f, "B", "b", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *a = sc_form_get_string(f, 0);
+            const char *b = sc_form_get_string(f, 1);
+            int ok = (s == SC_INPUT_OK && a && b
+                      && strcmp(a, "aX") == 0 && strcmp(b, "bY") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 70: {
+            /* Tab onto a bool only focuses it (no auto-toggle): edit A -> "aX",
+               Tab lands on B in nav mode, Space toggles it on, Ctrl-D. A single
+               Space yielding `true` proves Tab did not toggle first. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_add_bool(f, "B", false, (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *a = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && a && strcmp(a, "aX") == 0
+                      && sc_form_get_bool(f, 1) == true);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 71: {
+            /* Robust nav: Title spans visually but occupies only grid col 0.
+               Down->Priority, Right->Due, Right->Someday, Up must still reach
+               Title (the old same-column scan found nothing). Edit Title to
+               prove arrival: "t" -> "tZ". */
+            static const char *const opt[] = { "lo", "hi" };
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "Title", "t",
+                (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 100 });
+            sc_form_row_begin(f);
+            sc_form_add_select(f, "Priority", opt, 2, 0, (ScFieldOpts){ 0 });
+            sc_form_add_text(f, "Due", "d", (ScFieldOpts){ 0 });
+            sc_form_add_bool(f, "Someday", false, (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "Description", "desc",
+                (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 100 });
+            ScInputStatus s = sc_form_run(f);
+            const char *title = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && title && strcmp(title, "tZ") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1053,6 +1104,9 @@ static const Case CASES[] = {
     { "form-date", "\r\x1b[C\r\x04" },           /* open, right (+1 day), pick */
     { "form-multiline-editor", "\x07\x04" },     /* Ctrl-G editor, Ctrl-D submit */
     { "form-multiline-enter", "\r\x04" },        /* Enter opens editor, Ctrl-D */
+    { "form-tab-edit-advance", "\rX\tY\r\x04" }, /* edit A, Tab commits+edits B */
+    { "form-tab-bool-focus", "\rX\t \x04" },     /* Tab onto bool: focus, not toggle */
+    { "form-nav-robust", "\x1b[B\x1b[C\x1b[C\x1b[A\rZ\r\x04" }, /* up reaches title */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

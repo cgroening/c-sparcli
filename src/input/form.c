@@ -939,34 +939,46 @@ static ScRendered *build_edit_region(ScForm *self, int box_w) {
 
 enum { DIR_LEFT, DIR_RIGHT, DIR_UP, DIR_DOWN };
 
-/** Returns the field index reached by moving `dir` from the active field. */
+/** Returns the field index reached by moving `dir` from the active field.
+ *
+ *  Finds the nearest field in the requested direction by cell-center distance,
+ *  not a strict same-row/same-column scan. This stays robust when a field's
+ *  visible box width (its ScFieldWidthMode) differs from its grid col_span -
+ *  e.g. a full-width-looking title that occupies only grid column 0 is still
+ *  reachable from a field two columns over. The primary axis (row for up/down,
+ *  column for left/right) dominates; the cross axis breaks ties. */
 static int neighbor(const ScForm *self, int dir) {
-    if (!self->grid) { return self->active; }
     const Field *a = &self->fields[self->active];
-    int r = a->row, c = a->col;
-    int cols = self->cols, rows = self->rows;
-    if (dir == DIR_RIGHT) {
-        for (int cc = c + a->col_span; cc < cols; cc++) {
-            int idx = self->grid[r * cols + cc];
-            if (idx >= 0 && idx != self->active) { return idx; }
+    long a_rc = 2L * a->row + a->row_span;   /* row center ×2 */
+    long a_cc = 2L * a->col + a->col_span;   /* col center ×2 */
+    int best = self->active;
+    long best_score = -1;
+    for (size_t i = 0; i < self->count; i++) {
+        if ((int)i == self->active) { continue; }
+        const Field *f = &self->fields[i];
+        long f_rc = 2L * f->row + f->row_span;
+        long f_cc = 2L * f->col + f->col_span;
+        long primary, secondary;
+        switch (dir) {
+            case DIR_UP:
+                if (f_rc >= a_rc) { continue; }
+                primary = a_rc - f_rc; secondary = labs(a_cc - f_cc); break;
+            case DIR_DOWN:
+                if (f_rc <= a_rc) { continue; }
+                primary = f_rc - a_rc; secondary = labs(a_cc - f_cc); break;
+            case DIR_LEFT:
+                if (f_cc >= a_cc) { continue; }
+                primary = a_cc - f_cc; secondary = labs(a_rc - f_rc); break;
+            default:   /* DIR_RIGHT */
+                if (f_cc <= a_cc) { continue; }
+                primary = f_cc - a_cc; secondary = labs(a_rc - f_rc); break;
         }
-    } else if (dir == DIR_LEFT) {
-        for (int cc = c - 1; cc >= 0; cc--) {
-            int idx = self->grid[r * cols + cc];
-            if (idx >= 0 && idx != self->active) { return idx; }
-        }
-    } else if (dir == DIR_DOWN) {
-        for (int rr = r + a->row_span; rr < rows; rr++) {
-            int idx = self->grid[rr * cols + c];
-            if (idx >= 0 && idx != self->active) { return idx; }
-        }
-    } else {   /* DIR_UP */
-        for (int rr = r - 1; rr >= 0; rr--) {
-            int idx = self->grid[rr * cols + c];
-            if (idx >= 0 && idx != self->active) { return idx; }
+        long score = primary * 100000L + secondary;
+        if (best_score < 0 || score < best_score) {
+            best_score = score; best = (int)i;
         }
     }
-    return self->active;
+    return best;
 }
 
 /** Keeps the choice-list cursor inside the visible window. */
@@ -1095,6 +1107,36 @@ static void commit_edit(ScForm *self) {
     self->edit_err = NULL;
 }
 
+/** Commits the field currently being edited; returns true when edit mode was
+ *  left (success). Text/number validation can fail and keep the editor open. */
+static bool edit_commit_current(ScForm *self) {
+    Field *a = &self->fields[self->active];
+    if (a->type == SC_FIELD_SELECT || a->type == SC_FIELD_MULTISELECT) {
+        commit_list(self);
+        return true;
+    }
+    if (a->type == SC_FIELD_DATE) {
+        a->date = self->date_edit;
+        self->editing = false;
+        return true;
+    }
+    commit_edit(self);          /* text/number; sets edit_err on failure */
+    return !self->editing;      /* false → validation failed, stay open */
+}
+
+/** Tab/Shift-Tab while editing: commit the current field, move to the next
+ *  (`step` ±1, wrapping), and start editing it. Bool/multiline fields are only
+ *  focused (begin_edit would toggle a bool; multiline opens no inline editor),
+ *  so the user lands on them in navigation mode. */
+static void edit_advance(ScForm *self, int step) {
+    if (!edit_commit_current(self)) { return; }   /* stay on validation error */
+    self->active =
+        (self->active + step + (int)self->count) % (int)self->count;
+    if (self->fields[self->active].type != SC_FIELD_BOOL) {
+        begin_edit(self);   /* multiline: begin_edit returns early = focus only */
+    }
+}
+
 static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
     ScForm *self = state;
     if (self->count == 0) { *cancel = true; return; }
@@ -1119,6 +1161,8 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
                     a->date = self->date_edit;
                     self->editing = false;
                     return;
+                case SC_KEY_TAB:     edit_advance(self, +1); return;
+                case SC_KEY_BACKTAB: edit_advance(self, -1); return;
                 case SC_KEY_ESC: self->editing = false; return;
                 case SC_KEY_CHAR:
                     if (key.mods != 0) { return; }
@@ -1136,6 +1180,8 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
                 case SC_KEY_UP:    move_list(self, -1); return;
                 case SC_KEY_DOWN:  move_list(self, +1); return;
                 case SC_KEY_ENTER: commit_list(self);   return;
+                case SC_KEY_TAB:     edit_advance(self, +1); return;
+                case SC_KEY_BACKTAB: edit_advance(self, -1); return;
                 case SC_KEY_ESC:   cancel_list(self);   return;
                 case SC_KEY_CHAR:
                     if (key.mods != 0) { return; }
@@ -1158,6 +1204,8 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         }
         switch (key.type) {
             case SC_KEY_ENTER: commit_edit(self); return;
+            case SC_KEY_TAB:     edit_advance(self, +1); return;
+            case SC_KEY_BACKTAB: edit_advance(self, -1); return;
             case SC_KEY_ESC:
                 sc_le_free(&self->ed);
                 self->ed_active = false;
