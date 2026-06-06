@@ -86,6 +86,15 @@ typedef struct ScFieldOpts {
      */
     bool multiline;
 
+    /**
+     * Date field only: the date may be absent ("no date"). The field then starts
+     * empty when its `initial` is a zeroed `struct tm` (showing the placeholder
+     * instead of today), Delete/Backspace clears it back to empty while editing,
+     * and `sc_form_get_date` returns `false` for an empty field. Zero-init = off
+     * (a date field always holds a date; a zeroed `initial` means today).
+     */
+    bool date_optional;
+
     /** One-line help shown in the editor region; may be NULL. */
     const char *help;
 

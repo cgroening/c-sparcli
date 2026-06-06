@@ -1052,6 +1052,7 @@ typedef struct {
     ScBoxStyle box;
     ScTextStyle summary_style;
     bool hide_summary;
+    bool allow_clear;
     const char *hint;
     ScHintLayout hint_layout;
     ScHintPosition hint_pos;
@@ -1076,6 +1077,7 @@ typedef struct {
     int height;
     bool required;
     bool multiline;
+    bool date_optional;
     const char *help;
     ...;
 } ScFieldOpts;

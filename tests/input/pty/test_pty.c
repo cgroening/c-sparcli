@@ -1121,6 +1121,39 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 77: {
+            /* Standalone datepicker with allow_clear: Delete returns "no date"
+               (a zeroed tm), reported by sc_date_is_empty. */
+            struct tm picked = { 0 };   /* seeds today */
+            ScInputStatus s = sc_datepicker(&picked,
+                (ScDatePickerOpts){ .allow_clear = true });
+            return (s == SC_INPUT_OK && sc_date_is_empty(picked)) ? 0 : 1;
+        }
+        case 78: {
+            /* Optional form date seeded with a real date: open the calendar,
+               Backspace clears it, Ctrl-D submits -> get_date reports empty. */
+            struct tm d = { 0 };
+            d.tm_year = 2026 - 1900; d.tm_mon = 4; d.tm_mday = 15;
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_date(f, "Due", d, (ScFieldOpts){ .date_optional = true });
+            ScInputStatus s = sc_form_run(f);
+            struct tm got;
+            int ok = (s == SC_INPUT_OK && !sc_form_get_date(f, 0, &got));
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 79: {
+            /* Optional form date with a zeroed initial starts empty and stays
+               empty on submit (get_date returns false). */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_date(f, "Due", (struct tm){ 0 },
+                (ScFieldOpts){ .date_optional = true });
+            ScInputStatus s = sc_form_run(f);
+            struct tm got;
+            int ok = (s == SC_INPUT_OK && !sc_form_get_date(f, 0, &got));
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1211,6 +1244,9 @@ static const Case CASES[] = {
     { "form-nav-goal-col", "\x1b[C\x1b[C\x1b[B\x1b[B\rZ\r\x04" }, /* col kept past span */
     { "form-nav-cycle", "\x1b[A\rZ\r\x04" },             /* up wraps to bottom */
     { "form-nav-no-cycle", "\x1b[A\rZ\r\x04" },          /* up at top stays put */
+    { "date-clear", "\x1b[3~" },                  /* Delete clears -> no date */
+    { "form-date-clear", "\r\x7f\x04" },          /* edit, Backspace clears, submit */
+    { "form-date-optional-empty", "\x04" },       /* optional date starts empty */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

@@ -65,6 +65,13 @@ typedef struct ScDatePickerOpts {
     /** Suppress the post-pick summary line. */
     bool hide_summary;
 
+    /** Allow clearing the date to "no date". When set, Delete or Backspace
+        leaves the picker returning a zeroed `struct tm` (all of
+        `tm_year`/`tm_mon`/`tm_mday` are 0, i.e. `sc_date_is_empty()` is true),
+        so a caller can represent an absent date (e.g. an optional due date).
+        The key-hint footer gains a "clear" entry. Zero-init = off. */
+    bool allow_clear;
+
     /** Key-hint footer; `NULL` = sensible default. */
     const char *hint;
 
@@ -105,7 +112,9 @@ typedef struct ScDatePickerOpts {
  *
  * `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view
  * (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten
- * with the picked date (normalized via `mktime`).
+ * with the picked date (normalized via `mktime`). With `opts.allow_clear`,
+ * pressing Delete/Backspace returns `SC_INPUT_OK` with a zeroed `*io`
+ * (`sc_date_is_empty()` is true) to mean "no date".
  *
  * @param io    In: initial date. Out: picked date. Must not be `NULL`.
  * @param opts  Rendering options.
@@ -114,5 +123,12 @@ typedef struct ScDatePickerOpts {
 SPARCLI_EXPORT ScInputStatus sc_datepicker(
     struct tm *io, ScDatePickerOpts opts
 );
+
+/**
+ * Reports whether `t` is the "no date" sentinel (year, month and day all 0),
+ * as produced by `sc_datepicker` on a clear (and by an empty optional form
+ * date field). A real picked date is `mktime`-normalized and never matches.
+ */
+SPARCLI_EXPORT bool sc_date_is_empty(struct tm t);
 
 SPARCLI_END_DECLS

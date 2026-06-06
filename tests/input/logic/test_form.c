@@ -124,6 +124,34 @@ void test_form(void) {
         sc_form_free(f);
     }
 
+    /* ── Optional date (no-date) ── */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        int empty = sc_form_add_date(f, "Due", (struct tm){ 0 },
+            (ScFieldOpts){ .date_optional = true });
+        struct tm seed = { 0 };
+        seed.tm_year = 2026 - 1900; seed.tm_mon = 4; seed.tm_mday = 15;
+        int set = sc_form_add_date(f, "Since", seed,
+            (ScFieldOpts){ .date_optional = true });
+
+        struct tm got = { 0 };
+        CHECK(sc_form_get_date(f, empty, &got) == false,
+              "optional date with zeroed initial starts empty (get_date false)");
+        CHECK(sc_form_get_date(f, set, &got) && got.tm_mday == 15,
+              "optional date with a real initial returns it");
+        CHECK(sc_date_is_empty((struct tm){ 0 })
+              && !sc_date_is_empty(got),
+              "sc_date_is_empty detects the no-date sentinel");
+
+        /* The empty field renders (placeholder) without a TTY. */
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(fr != NULL && fr->line_count > 0, "optional-date form renders");
+        sc_rendered_free(fr);
+
+        sc_form_free(f);
+    }
+
     /* ── Multiline text field ── */
     {
         ScForm *f = sc_form_new((ScFormOpts){ .editor = "true" });

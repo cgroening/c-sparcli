@@ -2052,6 +2052,14 @@ pub struct Date {
     pub day: u32,
 }
 
+impl Date {
+    /// True for the "no date" sentinel (`day == 0`), as returned by
+    /// [`datepicker`] on a clear with [`DatePickerOpts::allow_clear`].
+    pub fn is_empty(&self) -> bool {
+        self.day == 0
+    }
+}
+
 /// Options for [`datepicker`].
 #[derive(Default)]
 pub struct DatePickerOpts {
@@ -2059,6 +2067,9 @@ pub struct DatePickerOpts {
     pub week_start: WeekStart,
     pub accent: Color,
     pub box_: BoxStyle,
+    /// Allow clearing the date with Delete/Backspace; the picker then returns a
+    /// present-but-empty [`Date`] (`is_empty()`) meaning "no date".
+    pub allow_clear: bool,
 }
 
 impl DatePickerOpts {
@@ -2082,6 +2093,11 @@ impl DatePickerOpts {
         self.box_ = b;
         self
     }
+    /// Allow clearing the date to "no date" with Delete/Backspace.
+    pub fn allow_clear(mut self) -> Self {
+        self.allow_clear = true;
+        self
+    }
 }
 
 /// Month-grid date picker. `seed` defaults to today when `None`.
@@ -2095,6 +2111,7 @@ pub fn datepicker(
     o.week_start = opts.week_start.raw();
     o.accent = opts.accent.raw();
     o.box_ = opts.box_.raw();
+    o.allow_clear = opts.allow_clear;
 
     let mut tm: ffi::tm = unsafe { mem::zeroed() };
     if let Some(d) = seed {
@@ -2142,6 +2159,10 @@ pub struct FieldOpts {
     pub required: bool,
     /// Text field: multi-line value edited via the external editor.
     pub multiline: bool,
+    /// Date field: the date may be absent. The field starts empty when its
+    /// `initial` is `None`, Delete/Backspace clears it while editing, and
+    /// [`Form::get_date`] returns `None` for an empty field.
+    pub date_optional: bool,
     /// One-line help shown in the editor region.
     pub help: Option<String>,
     /// Box border (zero = rounded).
@@ -2160,6 +2181,7 @@ fn field_ffi(o: &FieldOpts) -> (ffi::ScFieldOpts, Option<CString>) {
     f.height = o.height;
     f.required = o.required;
     f.multiline = o.multiline;
+    f.date_optional = o.date_optional;
     f.help = help.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     f.border = o.border.raw();
     (f, help)

@@ -8,6 +8,8 @@
 //   - Enter opens the editor below the grid; a second Enter saves; Esc aborts.
 //     Bool fields toggle directly with Space/Enter.
 //   - The multiline "Notes" field opens in $EDITOR/nvim with Enter or Ctrl-G.
+//   - The optional "Since" date starts empty; Delete/Backspace clears it back
+//     to "no date" while the calendar is open.
 //   - Ctrl-D submits the whole form; Esc (in navigation) cancels.
 //
 // Run (after `make`) in a real terminal:
@@ -57,7 +59,8 @@ int main() {
                                            .width = 30 });
     int flags = form.add_multiselect("Flags", tags, { 0 },
         { .width_mode = SC_FWIDTH_AUTO });
-    int since = form.add_date("Since", {}, { .width_mode = SC_FWIDTH_AUTO });
+    int since = form.add_date("Since", {},
+        { .width_mode = SC_FWIDTH_AUTO, .date_optional = true });
 
     // Rows 4+5: a tall multiline notes field (rowspan 2) in the MIDDLE column,
     // flanked by stacked fields (Phone/City left, Active/ZIP right).

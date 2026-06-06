@@ -514,6 +514,7 @@ class DatePickerOpts:
     header_next: str | None = None
     summary_style: Style = field(default_factory=Style)
     hide_summary: bool = False
+    allow_clear: bool = False  #: Delete/Backspace clears to "no date" (None)
     hint: str | None = None
     hint_layout: HintLayout = HintLayout.DEFAULT
     hint_pos: HintPos = HintPos.DEFAULT
@@ -536,6 +537,7 @@ class DatePickerOpts:
         apply_box(c.box, self.box)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
+        c.allow_clear = self.allow_clear
         fill_hint(c, self.hint, self.hint_layout, self.hint_pos,
                   self.hint_style, arena)
         fill_shortcuts(c, self.shortcuts, arena)
@@ -545,7 +547,10 @@ class DatePickerOpts:
 def datepicker(initial: _dt.date | None = None,
                opts: DatePickerOpts = DatePickerOpts()) -> _dt.date | None:
     """Pick a date from a month calendar. ``initial`` seeds the view (``None`` =
-    today). Returns a :class:`datetime.date`, or ``None`` on cancel."""
+    today). Returns a :class:`datetime.date`, or ``None`` on cancel. With
+    ``opts.allow_clear``, pressing Delete/Backspace also returns ``None`` ("no
+    date"); use a form date field (``date_optional``) if you must tell a cleared
+    date apart from a cancelled prompt."""
     arena: list = []
     c = ffi.new("ScDatePickerOpts *")
     opts._fill(c, arena)
@@ -557,5 +562,7 @@ def datepicker(initial: _dt.date | None = None,
     st = lib.sc_datepicker(tm, c[0])
     return result(
         st,
-        lambda: _dt.date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday),
+        # A cleared date comes back as a zeroed tm (tm_mday == 0) -> None.
+        lambda: (None if tm.tm_mday == 0
+                 else _dt.date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday)),
     )

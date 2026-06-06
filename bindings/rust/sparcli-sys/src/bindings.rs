@@ -3650,6 +3650,8 @@ pub struct ScDatePickerOpts {
     pub summary_style: ScTextStyle,
     #[doc = " Suppress the post-pick summary line."]
     pub hide_summary: bool,
+    #[doc = " Allow clearing the date to \"no date\" (Delete/Backspace)."]
+    pub allow_clear: bool,
     #[doc = " Key-hint footer; `NULL` = sensible default."]
     pub hint: *const ::std::os::raw::c_char,
     #[doc = " Key-hint footer layout: inline (default) / stacked / hidden."]
@@ -3697,6 +3699,8 @@ const _: () = {
         [::std::mem::offset_of!(ScDatePickerOpts, summary_style) - 204usize];
     ["Offset of field: ScDatePickerOpts::hide_summary"]
         [::std::mem::offset_of!(ScDatePickerOpts, hide_summary) - 224usize];
+    ["Offset of field: ScDatePickerOpts::allow_clear"]
+        [::std::mem::offset_of!(ScDatePickerOpts, allow_clear) - 225usize];
     ["Offset of field: ScDatePickerOpts::hint"]
         [::std::mem::offset_of!(ScDatePickerOpts, hint) - 232usize];
     ["Offset of field: ScDatePickerOpts::hint_layout"]
@@ -3765,6 +3769,8 @@ pub struct ScFieldOpts {
     pub required: bool,
     #[doc = " Text field only: the value may contain newlines. The box shows it across\n its content lines and the field is edited via the external editor\n (`ScFormOpts.editor_key`, default Ctrl-G) instead of an inline editor."]
     pub multiline: bool,
+    #[doc = " Date field only: the date may be absent (\"no date\")."]
+    pub date_optional: bool,
     #[doc = " One-line help shown in the editor region; may be NULL."]
     pub help: *const ::std::os::raw::c_char,
     #[doc = " Box border; zero-init type = rounded."]
@@ -3789,6 +3795,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFieldOpts, required) - 20usize];
     ["Offset of field: ScFieldOpts::multiline"]
         [::std::mem::offset_of!(ScFieldOpts, multiline) - 21usize];
+    ["Offset of field: ScFieldOpts::date_optional"]
+        [::std::mem::offset_of!(ScFieldOpts, date_optional) - 22usize];
     ["Offset of field: ScFieldOpts::help"][::std::mem::offset_of!(ScFieldOpts, help) - 24usize];
     ["Offset of field: ScFieldOpts::border"][::std::mem::offset_of!(ScFieldOpts, border) - 32usize];
     ["Offset of field: ScFieldOpts::validate"]

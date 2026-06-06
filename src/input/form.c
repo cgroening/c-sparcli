@@ -40,6 +40,7 @@ typedef struct Field {
 
     /* Date. */
     struct tm   date;        /**< Picked date (date fields). */
+    bool        date_set;    /**< Date fields: false = empty (date_optional). */
 
     ScFieldOpts opts;        /**< Copied (help/label are owned separately). */
 
@@ -315,7 +316,13 @@ int sc_form_add_date(ScForm *self, const char *label, struct tm initial,
                      ScFieldOpts opts) {
     int idx = add_field(self, SC_FIELD_DATE, label, "", opts);
     if (idx >= 0) {
+        bool empty = opts.date_optional
+            && initial.tm_year == 0 && initial.tm_mon == 0
+            && initial.tm_mday == 0;
+        /* Seed `date` to today either way (the calendar view when editing an
+           empty field); `date_set` records whether a date is actually present. */
         self->fields[idx].date = date_seed(initial);
+        self->fields[idx].date_set = !empty;
     }
     return idx;
 }
@@ -577,6 +584,10 @@ static char *value_display(const Field *f, bool *is_placeholder) {
         return out;
     }
     if (f->type == SC_FIELD_DATE) {
+        if (!f->date_set) {
+            *is_placeholder = true;
+            return sc_dup_str("\xe2\x80\x94");   // em dash
+        }
         char buf[32];
         struct tm tmp = f->date;
         strftime(buf, sizeof buf, "%Y-%m-%d", &tmp);
@@ -1069,6 +1080,9 @@ static bool field_required_unmet(const Field *f) {
         }
         return true;
     }
+    if (f->type == SC_FIELD_DATE) {
+        return !f->date_set;   // optional date required but still empty
+    }
     return false;   // bool / select always carry a value
 }
 
@@ -1173,6 +1187,7 @@ static bool edit_commit_current(ScForm *self) {
     }
     if (a->type == SC_FIELD_DATE) {
         a->date = self->date_edit;
+        a->date_set = true;
         self->editing = false;
         return true;
     }
@@ -1215,7 +1230,15 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
                     return;
                 case SC_KEY_ENTER:
                     a->date = self->date_edit;
+                    a->date_set = true;
                     self->editing = false;
+                    return;
+                case SC_KEY_DELETE:
+                case SC_KEY_BACKSPACE:
+                    if (a->opts.date_optional) {   /* clear to "no date" */
+                        a->date_set = false;
+                        self->editing = false;
+                    }
                     return;
                 case SC_KEY_TAB:     edit_advance(self, +1); return;
                 case SC_KEY_BACKTAB: edit_advance(self, -1); return;
@@ -1458,6 +1481,7 @@ bool sc_form_get_date(const ScForm *self, int field, struct tm *out) {
     }
     const Field *f = &self->fields[field];
     if (f->type != SC_FIELD_DATE) { return false; }
+    if (!f->date_set) { return false; }   // empty optional date
     struct tm tmp = f->date;
     tmp.tm_hour = 0;
     tmp.tm_min = 0;

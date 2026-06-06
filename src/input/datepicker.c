@@ -14,6 +14,7 @@ typedef struct DateState {
     /** WDAYS offset: 0 = Sunday, 1 = Monday. */
     int week_start;
     ScColor accent;
+    bool cleared;   /**< Set when the user cleared the date (allow_clear). */
     ScDatePickerOpts opts;
 } DateState;
 
@@ -28,6 +29,11 @@ static const char *const DEFAULT_HINT =
     "\xe2\x86\x90/\xe2\x86\x92/\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
     "pgup/pgdn month \xc2\xb7 shift+pgup/pgdn year \xc2\xb7 "
     "enter select \xc2\xb7 esc cancel";
+/* Same as DEFAULT_HINT plus a "del clear" entry (allow_clear). */
+static const char *const DEFAULT_HINT_CLEAR =
+    "\xe2\x86\x90/\xe2\x86\x92/\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
+    "pgup/pgdn month \xc2\xb7 shift+pgup/pgdn year \xc2\xb7 "
+    "enter select \xc2\xb7 del clear \xc2\xb7 esc cancel";
 
 
 static DateState make_state(const struct tm *seed, ScDatePickerOpts opts);
@@ -62,7 +68,15 @@ ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
     ScInputStatus status =
         sc_prompt_run(&vtable, &state, opts.shortcuts ? &sk : NULL, NULL);
 
-    if (status == SC_INPUT_OK) {
+    if (status == SC_INPUT_OK && state.cleared) {
+        *io = (struct tm){ 0 };   /* "no date" sentinel */
+        if (!opts.hide_summary) {
+            char line[128];
+            snprintf(line, sizeof line, "? %s (no date)",
+                     opts.prompt ? opts.prompt : "Date");
+            sc_println(line, opts.summary_style);
+        }
+    } else if (status == SC_INPUT_OK) {
         state.cur.tm_hour = 0;
         state.cur.tm_min = 0;
         state.cur.tm_sec = 0;
@@ -78,6 +92,10 @@ ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
         }
     }
     return status;
+}
+
+bool sc_date_is_empty(struct tm t) {
+    return t.tm_year == 0 && t.tm_mon == 0 && t.tm_mday == 0;
 }
 
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts) {
@@ -155,10 +173,10 @@ static ScRendered *date_render(void *state) {
     sc_text_free(text);
     body = sc_box_wrap(body, self->opts.box, SC_WIDTH_CONTENT,
                        sc_terminal_width());
-    return sc_compose_hint(body,
-                           self->opts.hint ? self->opts.hint : DEFAULT_HINT,
-                           self->opts.hint_layout, self->opts.hint_pos,
-                           self->opts.hint_style);
+    const char *hint = self->opts.hint ? self->opts.hint
+        : (self->opts.allow_clear ? DEFAULT_HINT_CLEAR : DEFAULT_HINT);
+    return sc_compose_hint(body, hint, self->opts.hint_layout,
+                           self->opts.hint_pos, self->opts.hint_style);
 }
 
 /** Appends the weekday header row, rotated to start on `week_start`. */
@@ -240,6 +258,13 @@ static void date_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         case SC_KEY_SHIFT_PAGEUP:   shift_year(self, -1);   break;
         case SC_KEY_SHIFT_PAGEDOWN: shift_year(self, +1);   break;
         case SC_KEY_ENTER:          *done = true;           return;
+        case SC_KEY_DELETE:
+        case SC_KEY_BACKSPACE:
+            if (self->opts.allow_clear) {
+                self->cleared = true;
+                *done = true;
+            }
+            return;
         case SC_KEY_CHAR:
             if (key.mods != 0) { return; }   // Ctrl/Alt + char isn't '<'/'>'
             if (key.bytes[0] == '<') {

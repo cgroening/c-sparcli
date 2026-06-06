@@ -2031,8 +2031,14 @@ inline std::optional<std::string> number_input_text(std::string_view prompt,
         sc_number_input(detail::z(prompt).c_str(), &value, opts);
     return detail::take(out, st);
 }
+/** True if `t` is the "no date" sentinel (year/month/day all 0), as produced by
+ *  `datepicker` on a clear with `allow_clear`. @see sc_date_is_empty */
+inline bool date_empty(const std::tm& t) { return sc_date_is_empty(t); }
+
 /** Month-grid date picker (a zeroed `seed` starts at today). @return the picked
- *  date, or nullopt. @see sc_datepicker */
+ *  date, or nullopt on cancel. With `opts.allow_clear`, Delete/Backspace returns
+ *  a present-but-empty date (`date_empty(*result)` is true) meaning "no date".
+ *  @see sc_datepicker */
 inline std::optional<std::tm> datepicker(std::tm seed = {},
                                          DatePickerOpts opts = {}) {
     if (sc_datepicker(&seed, opts) == SC_INPUT_OK) return seed;

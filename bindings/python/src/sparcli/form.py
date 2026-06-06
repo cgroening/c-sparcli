@@ -30,6 +30,7 @@ class FieldOpts:
     height: int = 0           #: content lines in the box (0 = 1)
     required: bool = False
     multiline: bool = False   #: text field edited via the external editor
+    date_optional: bool = False  #: date field may be empty (get_date -> None)
     help: str | None = None
 
     def _fill(self, c, arena: list) -> None:
@@ -40,6 +41,7 @@ class FieldOpts:
         c.height = self.height
         c.required = self.required
         c.multiline = self.multiline
+        c.date_optional = self.date_optional
         c.help = cstr(arena, self.help)
 
 
