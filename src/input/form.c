@@ -64,6 +64,7 @@ struct ScForm {
     ScFormOpts  opts;
     char       *title;       /**< Owned. */
     char       *hint;        /**< Owned. */
+    char       *editor;      /**< Owned external-editor command, or NULL. */
     ScColor     accent;
 
     /* Run state. */
@@ -171,7 +172,7 @@ static ScRendered *form_render(void *state);
                                     const int *colx, const int *colw,
                                     const int *rowy, const int *rowh,
                                     int total_w, int total_lines);
-    static ScRendered *build_edit_region(ScForm *self);
+    static ScRendered *build_edit_region(ScForm *self, int box_w);
 static void form_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static int  neighbor(const ScForm *self, int dir);
     static void begin_edit(ScForm *self);
@@ -191,6 +192,7 @@ ScForm *sc_form_new(ScFormOpts opts) {
     self->opts = opts;
     self->title = sc_dup_opt_str(opts.title);
     self->hint = sc_dup_opt_str(opts.hint);
+    self->editor = sc_dup_opt_str(opts.editor);
     self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
     self->cur_row = -1;
     self->active = 0;
@@ -343,6 +345,7 @@ void sc_form_free(ScForm *self) {
     free(self->grid);
     free(self->title);
     free(self->hint);
+    free(self->editor);
     free(self);
 }
 
@@ -514,7 +517,7 @@ static ScRendered *form_render(void *state) {
     free(panels);
 
     /* Stack: [title] + grid + edit-region. */
-    ScRendered *edit = build_edit_region(self);
+    ScRendered *edit = build_edit_region(self, total_w);
     ScRendered *title = NULL;
     if (self->title && self->title[0]) {
         ScTextStyle ts = sc_style_set(self->opts.title_style)
@@ -594,19 +597,35 @@ static ScRendered *capture_field(const ScForm *self, const Field *f,
 
     bool placeholder = false;
     char *val = value_display(f, &placeholder);
-    char *shown = sc_truncate(val, inner, "\xe2\x80\xa6");   // …
-    free(val);
 
     ScText *content = sc_text_new();
     ScTextStyle vstyle = placeholder
         ? (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                          SC_ANSI_COLOR_NONE }
         : (ScTextStyle){ 0 };
-    sc_text_append(content, shown ? shown : "", vstyle);
-    for (int i = 1; i < content_lines; i++) {
+
+    /* Lay the value across content lines, breaking on '\n' (multiline fields);
+       single-line values keep their old one-line look. Extra lines are
+       dropped; remaining lines are padded blank so the panel fills its box. */
+    const char *p = val ? val : "";
+    int line = 0;
+    while (line < content_lines) {
+        const char *nl = strchr(p, '\n');
+        size_t len = nl ? (size_t)(nl - p) : strlen(p);
+        char *seg = strndup(p, len);
+        char *shown = sc_truncate(seg ? seg : "", inner, "\xe2\x80\xa6");
+        free(seg);
+        if (line > 0) { sc_text_append(content, "\n", (ScTextStyle){ 0 }); }
+        sc_text_append(content, shown ? shown : "", vstyle);
+        free(shown);
+        line++;
+        if (!nl) { break; }
+        p = nl + 1;
+    }
+    for (; line < content_lines; line++) {
         sc_text_append(content, "\n", (ScTextStyle){ 0 });
     }
-    free(shown);
+    free(val);
 
     ScBorderType bt = f->opts.border.type ? f->opts.border.type
                                           : SC_BORDER_ROUNDED;
@@ -708,17 +727,13 @@ static ScRendered *compose_grid(const ScForm *self,
     return out;
 }
 
-/** Appends the editing choice-list (single or multi) for a select field. */
-static void append_choice_list(ScForm *self, const Field *a, ScText *t) {
-    ScTextStyle lab = { SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
+/** Appends the choice-list body (rows + scroll indicator), no label/hint. */
+static void append_choice_body(ScForm *self, const Field *a, ScText *t) {
     ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                         SC_ANSI_COLOR_NONE };
     ScTextStyle cur_style = { SC_TEXT_ATTR_BOLD, self->accent,
                               SC_ANSI_COLOR_NONE };
     bool multi = (a->type == SC_FIELD_MULTISELECT);
-
-    sc_text_append(t, a->label, lab);
-    sc_text_append(t, ":\n", lab);
 
     size_t n = a->n_choices;
     size_t top = self->list_top;
@@ -732,25 +747,21 @@ static void append_choice_list(ScForm *self, const Field *a, ScText *t) {
                            cur ? cur_style : (ScTextStyle){ 0 });
         }
         sc_text_append(t, a->choices[i], cur ? cur_style : (ScTextStyle){ 0 });
-        sc_text_append(t, "\n", (ScTextStyle){ 0 });
+        if (i + 1 < end || n > FORM_LIST_VISIBLE) {
+            sc_text_append(t, "\n", (ScTextStyle){ 0 });
+        }
     }
     if (n > FORM_LIST_VISIBLE) {
         char ind[64];
         snprintf(ind, sizeof ind, "\xe2\x86\x91 %zu\xe2\x80\x93%zu/%zu \xe2\x86\x93",
                  top + 1, end, n);
         sc_text_append(t, ind, dim);
-        sc_text_append(t, "\n", (ScTextStyle){ 0 });
     }
-    sc_text_append(t, multi
-        ? "\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 space toggle \xc2\xb7 "
-          "enter confirm \xc2\xb7 esc cancel"
-        : "\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 enter select \xc2\xb7 "
-          "esc cancel",
-        dim);
 }
 
-/** Appends the editing month grid for a date field (Monday week start). */
-static void append_month_grid(ScForm *self, const Field *a, ScText *t) {
+/** Appends the month-grid body (Monday week start), no label/hint. */
+static void append_month_body(ScForm *self, const Field *a, ScText *t) {
+    (void)a;
     static const char *const MONTHS[] = {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -758,7 +769,6 @@ static void append_month_grid(ScForm *self, const Field *a, ScText *t) {
     static const char *const WDAYS[] = {
         "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"
     };
-    ScTextStyle lab = { SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
     ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                         SC_ANSI_COLOR_NONE };
     ScTextStyle hdr = { SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
@@ -766,9 +776,6 @@ static void append_month_grid(ScForm *self, const Field *a, ScText *t) {
 
     struct tm cur = self->date_edit;
     int year = cur.tm_year + 1900;
-
-    sc_text_append(t, a->label, lab);
-    sc_text_append(t, ":\n", lab);
 
     char header[96];
     snprintf(header, sizeof header, "\xe2\x80\xb9 %s %d \xe2\x80\xba",
@@ -800,59 +807,131 @@ static void append_month_grid(ScForm *self, const Field *a, ScText *t) {
             col = 0;
         }
     }
-    sc_text_append(t, "\n", (ScTextStyle){ 0 });
-    sc_text_append(t,
-        "\xe2\x86\x90/\xe2\x86\x92/\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
-        "pgup/pgdn month \xc2\xb7 enter select \xc2\xb7 esc cancel", dim);
 }
 
-/** Builds the region below the grid (live editor or a nav help line). */
-static ScRendered *build_edit_region(ScForm *self) {
-    if (self->count == 0) { return NULL; }
-    const Field *a = &self->fields[self->active];
+/** Editor field width / box inner width for text & number inputs. */
+#define FORM_EDIT_INPUT_W 42
+
+/** Name of the configured external-editor key (default Ctrl-G). */
+static void editor_key_name(const ScForm *self, char *buf, size_t cap) {
+    ScKeyChord chord = self->opts.editor_key;
+    if (chord.key == SC_KEY_NONE && chord.codepoint == 0) {
+        chord = sc_key_ctrl('g');
+    }
+    sc_key_chord_name(chord, buf, cap);
+}
+
+/** Nav-mode help/error line (ungeboxed). */
+static ScRendered *build_nav_region(ScForm *self, const Field *a) {
     ScText *t = sc_text_new();
     ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                         SC_ANSI_COLOR_NONE };
     ScTextStyle red = { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,
                         SC_ANSI_COLOR_NONE };
-
-    if (self->editing && self->ed_active
-        && (a->type == SC_FIELD_TEXT || a->type == SC_FIELD_NUMBER)) {
-        ScTextStyle lab = { SC_TEXT_ATTR_BOLD, self->accent,
-                            SC_ANSI_COLOR_NONE };
-        sc_text_append(t, a->label, lab);
-        sc_text_append(t, ": ", lab);
-        sc_le_render_into(&self->ed, t, (ScTextStyle){ 0 },
-                          (ScTextStyle){ 0 }, NULL, NULL,
-                          (ScTextStyle){ 0 }, 40);
+    if (self->form_err) {
+        sc_text_append(t, self->form_err, red);
         sc_text_append(t, "\n", (ScTextStyle){ 0 });
-        if (self->edit_err) {
-            sc_text_append(t, self->edit_err, red);
-            sc_text_append(t, "\n", (ScTextStyle){ 0 });
-        }
-        sc_text_append(t, "enter save \xc2\xb7 esc cancel", dim);
-    } else if (self->editing
-               && (a->type == SC_FIELD_SELECT
-                   || a->type == SC_FIELD_MULTISELECT)) {
-        append_choice_list(self, a, t);
-    } else if (self->editing && a->type == SC_FIELD_DATE) {
-        append_month_grid(self, a, t);
-    } else {
-        if (self->form_err) {
-            sc_text_append(t, self->form_err, red);
-            sc_text_append(t, "\n", (ScTextStyle){ 0 });
-        }
-        const char *help = a->opts.help;
-        if (!help) {
-            help = (a->type == SC_FIELD_BOOL)
-                ? "space/enter toggle" : "enter to edit";
-        }
-        sc_text_append(t, help, dim);
     }
-
+    const char *help = a->opts.help;
+    char ml_help[48];
+    if (!help) {
+        if (a->type == SC_FIELD_BOOL) {
+            help = "space/enter toggle";
+        } else if (a->type == SC_FIELD_TEXT && a->opts.multiline) {
+            char key[16];
+            editor_key_name(self, key, sizeof key);
+            snprintf(ml_help, sizeof ml_help, "enter / %s open in editor", key);
+            help = ml_help;
+        } else {
+            help = "enter to edit";
+        }
+    }
+    sc_text_append(t, help, dim);
     ScRendered *r = sc_capture_text(t);
     sc_text_free(t);
     return r;
+}
+
+/**
+ * Edit-mode region: the active field's editor body framed in an accent panel
+ * (same color as the active cell), with the key hint stacked dim below it.
+ */
+static ScRendered *build_edit_box(ScForm *self, const Field *a, int box_w) {
+    ScText *body = sc_text_new();
+    const char *hint = "enter save \xc2\xb7 esc cancel";
+
+    if (a->type == SC_FIELD_SELECT || a->type == SC_FIELD_MULTISELECT) {
+        append_choice_body(self, a, body);
+        hint = (a->type == SC_FIELD_MULTISELECT)
+            ? "\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 space toggle \xc2\xb7 "
+              "enter confirm \xc2\xb7 esc cancel"
+            : "\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 enter select \xc2\xb7 "
+              "esc cancel";
+    } else if (a->type == SC_FIELD_DATE) {
+        append_month_body(self, a, body);
+        hint = "\xe2\x86\x90/\xe2\x86\x92/\xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
+               "pgup/pgdn month \xc2\xb7 enter select \xc2\xb7 esc cancel";
+    } else {   /* text / number: line editor spans the full box width */
+        int inner = box_w - 4;   /* - border - padding */
+        if (inner < 8) { inner = 8; }
+        sc_le_render_into(&self->ed, body, (ScTextStyle){ 0 },
+                          (ScTextStyle){ 0 }, NULL, NULL,
+                          (ScTextStyle){ 0 }, inner);
+    }
+
+    ScRendered *r_body = sc_capture_text(body);
+    sc_text_free(body);
+
+    ScPanelOpts po = {
+        .border = { .type = SC_BORDER_ROUNDED, .color = self->accent },
+        .title = { .text = a->label, .halign = SC_ALIGN_LEFT, .pad = 1,
+                   .style = { SC_TEXT_ATTR_BOLD, self->accent,
+                              SC_ANSI_COLOR_NONE } },
+        .padding = { .left = 1, .right = 1 },
+        .width = box_w,
+    };
+    ScRendered *framed = sc_capture_panel_rendered(r_body, po);
+    if (!framed) { return r_body; }   /* fall back to the unframed body */
+    sc_rendered_free(r_body);
+
+    /* Hint (+ validation error for text/number) stacked dim below the box. */
+    ScText *below = sc_text_new();
+    ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                        SC_ANSI_COLOR_NONE };
+    if (self->edit_err
+        && (a->type == SC_FIELD_TEXT || a->type == SC_FIELD_NUMBER)) {
+        sc_text_append(below, self->edit_err,
+                       (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,
+                                      SC_ANSI_COLOR_NONE });
+        sc_text_append(below, "\n", (ScTextStyle){ 0 });
+    }
+    sc_text_append(below, hint, dim);
+    ScRendered *r_hint = sc_capture_text(below);
+    sc_text_free(below);
+
+    const ScRendered *parts[2] = { framed, r_hint };
+    ScRendered *out = sc_vstack(parts, 2, 0);
+    sc_rendered_free(framed);
+    sc_rendered_free(r_hint);
+    return out;
+}
+
+/**
+ * Builds the region below the grid (boxed editor or a nav help line). The boxed
+ * editor spans `box_w` columns (the full grid width) so it lines up with it.
+ */
+static ScRendered *build_edit_region(ScForm *self, int box_w) {
+    if (self->count == 0) { return NULL; }
+    const Field *a = &self->fields[self->active];
+    bool list_edit = self->editing
+        && (a->type == SC_FIELD_SELECT || a->type == SC_FIELD_MULTISELECT
+            || a->type == SC_FIELD_DATE);
+    bool text_edit = self->editing && self->ed_active
+        && (a->type == SC_FIELD_TEXT || a->type == SC_FIELD_NUMBER);
+    if (list_edit || text_edit) {
+        return build_edit_box(self, a, box_w);
+    }
+    return build_nav_region(self, a);
 }
 
 
@@ -977,6 +1056,9 @@ static void begin_edit(ScForm *self) {
         self->date_edit = a->date;
         self->editing = true;
         return;
+    }
+    if (a->type == SC_FIELD_TEXT && a->opts.multiline) {
+        return;   // edited only via the external editor (editor_key)
     }
     sc_le_init(&self->ed, a->text ? a->text : "");
     self->ed_active = true;
@@ -1128,6 +1210,50 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
 }
 
 
+/* ── External editor (multiline fields) ──────────────────────────────────── */
+
+/** Returns true when the active field is an editor-backed multiline text. */
+static bool active_is_multiline(const ScForm *self) {
+    if (self->count == 0) { return false; }
+    const Field *a = &self->fields[self->active];
+    return a->type == SC_FIELD_TEXT && a->opts.multiline;
+}
+
+/** Engine hook: heap copy of the active multiline field's text, else NULL. */
+static char *form_edit_get(void *state) {
+    ScForm *self = state;
+    if (!active_is_multiline(self)) { return NULL; }
+    const Field *a = &self->fields[self->active];
+    return sc_dup_str(a->text ? a->text : "");
+}
+
+/** Engine hook: stores the editor result into the active multiline field. */
+static void form_edit_set(void *state, const char *text) {
+    ScForm *self = state;
+    if (!active_is_multiline(self)) { return; }
+    Field *a = &self->fields[self->active];
+    free(a->text);
+    a->text = sc_dup_str(text ? text : "");
+}
+
+/** Engine hook: Enter also opens the editor on a multiline field (+ Ctrl-G). */
+static bool form_wants_editor(void *state, ScKey key) {
+    ScForm *self = state;
+    return key.type == SC_KEY_ENTER && active_is_multiline(self);
+}
+
+/** True when any field uses the external editor. */
+static bool form_has_multiline(const ScForm *self) {
+    for (size_t i = 0; i < self->count; i++) {
+        if (self->fields[i].type == SC_FIELD_TEXT
+            && self->fields[i].opts.multiline) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /* ── Run ─────────────────────────────────────────────────────────────────── */
 
 ScInputStatus sc_form_run(ScForm *self) {
@@ -1143,17 +1269,27 @@ ScInputStatus sc_form_run(ScForm *self) {
     free(self->list_checked);
     self->list_checked = NULL;
 
+    bool has_editor = form_has_multiline(self);
     ScPromptVTable vtable = {
         .render = form_render,
         .on_key = form_on_key,
         .paste = SC_PASTE_TEXT,
         .capture_escape = true,   // Esc handled per mode in on_key
+        .edit_get = form_edit_get,
+        .edit_set = form_edit_set,
+        .wants_editor = form_wants_editor,
     };
     ScPromptShortcuts sk = {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
     };
+    ScPromptEditor editor = {
+        .enabled = has_editor,
+        .cmd = self->editor,
+        .chord = self->opts.editor_key,
+    };
     ScInputStatus status = sc_prompt_run(
-        &vtable, self, self->opts.shortcuts ? &sk : NULL, NULL
+        &vtable, self, self->opts.shortcuts ? &sk : NULL,
+        has_editor ? &editor : NULL
     );
 
     if (self->ed_active) {

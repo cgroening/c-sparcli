@@ -64,6 +64,11 @@ static bool run_editor_action(
     const ScPromptEditor *editor, ScScreen *screen
 ) {
     char *current = vtable->edit_get(state);
+    if (!current) {
+        // The widget has nothing editable right now (e.g. a form whose active
+        // field is not an editor-backed field): treat the key as a no-op.
+        return true;
+    }
     sc_screen_clear(screen);          // erase our region before handing over
     sc_tty_end();   // suspend: restore terminal, drop handlers
 
@@ -110,11 +115,15 @@ static bool draw_prompt_frame(
  * supports editing. A zero-init chord resolves to Ctrl-G.
  */
 static bool editor_key_matches(
-    const ScPromptEditor *editor, const ScPromptVTable *vtable, ScKey key
+    const ScPromptEditor *editor, const ScPromptVTable *vtable, void *state,
+    ScKey key
 ) {
     if (!editor || !editor->enabled
         || !vtable->edit_get || !vtable->edit_set) {
         return false;
+    }
+    if (vtable->wants_editor && vtable->wants_editor(state, key)) {
+        return true;   // widget-bound extra key (e.g. Enter on a multiline)
     }
     ScKeyChord chord = (editor->chord.key == SC_KEY_NONE
                         && editor->chord.codepoint == 0)
@@ -229,7 +238,7 @@ ScInputStatus sc_prompt_run(
 
         // External-editor key (opt-in; text_input/textarea only). Matched
         // before shortcuts/on_key, after the reserved cancel keys.
-        if (editor_key_matches(editor, vtable, key)) {
+        if (editor_key_matches(editor, vtable, state, key)) {
             if (!run_editor_action(vtable, state, editor, &screen)) {
                 status = SC_INPUT_ERROR;
                 break;

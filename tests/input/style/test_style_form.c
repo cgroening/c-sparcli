@@ -122,4 +122,27 @@ void style_form(void) {
                          sc_form_frame_edit(f, 0));
         sc_form_free(f);
     }
+
+    /* Text input: the boxed accent editor open below the grid. */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ .title = "Editing text" });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Name", "Ada Lovelace", (ScFieldOpts){ 0 });
+        sc_form_add_text(f, "Role", "Pioneer", (ScFieldOpts){ 0 });
+        style_show_flush("form: boxed accent text editor open",
+                         sc_form_frame_edit(f, 0));
+        sc_form_free(f);
+    }
+
+    /* Multiline field: value shown across the box; nav help names the key. */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ .title = "Multiline",
+                                              .editor = "nvim" });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Notes", "first line\nsecond line\nthird line",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 60,
+                           .height = 3, .multiline = true });
+        sc_form_add_text(f, "Tag", "vip", (ScFieldOpts){ 0 });
+        show_form("form: multiline field (newlines shown in the box)", f);
+    }
 }

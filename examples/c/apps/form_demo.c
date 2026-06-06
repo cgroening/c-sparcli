@@ -8,6 +8,7 @@
  *   - Arrow keys move the highlighted box (2D); Tab/Shift-Tab cycle.
  *   - Enter opens the editor below the grid; a second Enter saves; Esc aborts
  *     the edit. Bool fields toggle directly with Space/Enter.
+ *   - The multiline "Notes" field opens in $EDITOR/nvim with Enter or Ctrl-G.
  *   - Ctrl-D submits the whole form; Esc (in navigation) cancels.
  *
  * Build (after `make`):
@@ -28,6 +29,7 @@ int main(void) {
     ScForm *form = sc_form_new((ScFormOpts){
         .title = "Edit contact",
         .accent = SC_COLOR_ACCENT,
+        .editor = "nvim",   /* multiline fields open here via Ctrl-G */
     });
 
     /* Row 1: three equal-width fields. */
@@ -45,7 +47,7 @@ int main(void) {
     int email = sc_form_add_text(form, "Email", "info@apple.example",
         (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 60 });
     int tier = sc_form_add_select(form, "Tier", tiers, 3, 1,
-        (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
+        (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO, .col_span = 2 });
 
     /* A multiselect + date row. */
     static const char *const tags[] = {
@@ -62,7 +64,8 @@ int main(void) {
     sc_form_row_begin(form);
     int notes = sc_form_add_text(form, "Notes", "preferred supplier",
         (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 50,
-                       .row_span = 2, .height = 2 });
+                       .row_span = 2, .height = 3, .multiline = true,
+                       .help = "ctrl-g opens $EDITOR" });
     int phone = sc_form_add_text(form, "Phone", "+1 555 0100",
         (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
     int active = sc_form_add_bool(form, "Active", true,

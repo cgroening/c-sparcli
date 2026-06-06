@@ -945,6 +945,32 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 67: {
+            /* Multiline field: Ctrl-G opens the stub editor (writes a two-line
+               value), Ctrl-D submits. The newlines are preserved. */
+            ScForm *f = sc_form_new((ScFormOpts){ .editor = g_editor });
+            sc_form_add_text(f, "Notes", "old", (ScFieldOpts){
+                .multiline = true });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v
+                      && strcmp(v, "from-editor\nsecond") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 68: {
+            /* Multiline field: Enter ALSO opens the editor (besides Ctrl-G),
+               then Ctrl-D submits. */
+            ScForm *f = sc_form_new((ScFormOpts){ .editor = g_editor });
+            sc_form_add_text(f, "Notes", "old", (ScFieldOpts){
+                .multiline = true });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v
+                      && strcmp(v, "from-editor\nsecond") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1025,6 +1051,8 @@ static const Case CASES[] = {
     { "form-select-esc-keeps", "\r\x1b[B\x1b\x04" }, /* move, Esc discards */
     { "form-required-blocks", "\x04\rx\r\x04" }, /* Ctrl-D blocked, then edit */
     { "form-date", "\r\x1b[C\r\x04" },           /* open, right (+1 day), pick */
+    { "form-multiline-editor", "\x07\x04" },     /* Ctrl-G editor, Ctrl-D submit */
+    { "form-multiline-enter", "\r\x04" },        /* Enter opens editor, Ctrl-D */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

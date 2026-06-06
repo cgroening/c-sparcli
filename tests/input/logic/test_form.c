@@ -124,6 +124,21 @@ void test_form(void) {
         sc_form_free(f);
     }
 
+    /* ── Multiline text field ── */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ .editor = "true" });
+        sc_form_row_begin(f);
+        int ml = sc_form_add_text(f, "Notes", "line one\nline two",
+            (ScFieldOpts){ .row_span = 1, .height = 3, .multiline = true });
+        CHECK(strcmp(sc_form_get_string(f, ml), "line one\nline two") == 0,
+              "multiline field keeps embedded newlines");
+        /* The nav frame renders the multi-line value across the box. */
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(fr != NULL && fr->line_count > 0, "multiline form frame renders");
+        sc_rendered_free(fr);
+        sc_form_free(f);
+    }
+
     /* NULL-safety. */
     sc_form_free(NULL);
     CHECK(sc_form_get_string(NULL, 0) == NULL, "get_string(NULL) is safe");

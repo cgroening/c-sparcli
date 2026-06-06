@@ -79,6 +79,13 @@ typedef struct ScFieldOpts {
     /** Block form submit until non-empty / changed. */
     bool required;
 
+    /**
+     * Text field only: the value may contain newlines. The box shows it across
+     * its content lines and the field is edited via the external editor
+     * (`ScFormOpts.editor_key`, default Ctrl-G) instead of an inline editor.
+     */
+    bool multiline;
+
     /** One-line help shown in the editor region; may be NULL. */
     const char *help;
 
@@ -119,6 +126,14 @@ typedef struct ScFormOpts {
     const ScShortcut *shortcuts;
     size_t n_shortcuts;
     int *out_shortcut_id;
+
+    /**
+     * External editor for `multiline` fields. `editor` is the command
+     * (NULL = `$VISUAL`/`$EDITOR`/nvim/vi); `editor_key` opens it on the active
+     * multiline field (zero-init = Ctrl-G). No effect without a multiline field.
+     */
+    const char *editor;
+    ScKeyChord editor_key;
 } ScFormOpts;
 
 /** Opaque form handle. */
