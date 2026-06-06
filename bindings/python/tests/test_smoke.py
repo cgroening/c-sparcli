@@ -75,6 +75,21 @@ def test_fuzzy_sections_multi_and_styles():
     assert fz.is_checked(2) is False
 
 
+def test_fuzzy_modal_opts():
+    from sparcli.keys import key_char
+
+    # Modal opts construct cleanly (including a bare-char clear key + custom
+    # mode styling); no TTY so we only exercise the option plumbing.
+    fz = sc.Fuzzy(sc.FuzzyOpts(
+        modal=True, start_in_insert=True,
+        clear_key=key_char("c"),
+        normal_label="CMD", insert_label="EDIT",
+        mode_normal_style=sc.Style(fg=sc.Color.WHITE, bg=sc.Color.BLUE),
+        mode_insert_style=sc.Style(fg=sc.Color.BLACK, bg=sc.Color.GREEN)))
+    fz.add("alpha").add("beta")
+    assert fz.has_selection() is False
+
+
 def test_fuzzy_rich_and_styled_rows():
     style = sc.Style(fg=sc.Color.RED)
     g = sc.Fuzzy(sc.FuzzyOpts(table=True, headers=["Status", "Task"]))

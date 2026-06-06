@@ -51,6 +51,15 @@ pub fn key_fn(n: i32) -> Chord {
 pub fn key_alt(letter: char) -> Chord {
     Chord(unsafe { ffi::sc_key_alt(letter as c_char) })
 }
+/// A bare character chord (no modifiers), e.g. `key_char('c')`. Useful for the
+/// modal fuzzy finder's `clear_key` or bare-letter shortcuts.
+pub fn key_char(letter: char) -> Chord {
+    let mut c: ffi::ScKeyChord = unsafe { mem::zeroed() };
+    c.key = ffi::ScKeyType_SC_KEY_CHAR;
+    c.codepoint = letter as u32;
+    c.mods = 0;
+    Chord(c)
+}
 
 /// Chord for a named (non-character) key - arrows, Enter, Tab. Use these to
 /// build e.g. Left = back / Right = forward navigation on any widget.
@@ -1588,6 +1597,29 @@ pub struct FuzzyOpts {
     pub toggle_all_key: Option<Chord>,
     /// Key that toggles the cursor's section (multi only).
     pub toggle_section_key: Option<Chord>,
+    /// Enable a modal normal/insert mode (vim-style). Off by default: every
+    /// key types into the query. When on, normal mode fires bare-letter
+    /// shortcuts and navigates with `j`/`k`/`g`/`G`; insert mode edits the
+    /// query. Toggle with `i` / `Esc`; the mode shows in the query line.
+    pub modal: bool,
+    /// Modal: start in insert mode instead of normal mode (the default).
+    pub start_in_insert: bool,
+    /// Hide the NORMAL/INSERT badge (the field is still tinted per mode).
+    pub hide_mode_badge: bool,
+    /// Normal-mode badge text (default "NORMAL").
+    pub normal_label: Option<String>,
+    /// Insert-mode badge text (default "INSERT").
+    pub insert_label: Option<String>,
+    /// Badge + query-field style in normal mode (zero-init = white on blue).
+    pub mode_normal_style: Style,
+    /// Badge + query-field style in insert mode (zero-init = black on green).
+    pub mode_insert_style: Style,
+    /// Chord that enters insert mode (default `i`).
+    pub insert_key: Option<Chord>,
+    /// Chord that leaves insert mode / cancels in normal mode (default `Esc`).
+    pub normal_key: Option<Chord>,
+    /// Normal-mode chord that clears the query (default: disabled).
+    pub clear_key: Option<Chord>,
 }
 
 impl FuzzyOpts {
@@ -1696,6 +1728,48 @@ impl FuzzyOpts {
         self.toggle_section_key = Some(chord);
         self
     }
+    /// Enable the modal normal/insert mode (vim-style).
+    pub fn modal(mut self) -> Self {
+        self.modal = true;
+        self
+    }
+    /// Start in insert mode (requires [`FuzzyOpts::modal`]).
+    pub fn start_in_insert(mut self) -> Self {
+        self.start_in_insert = true;
+        self
+    }
+    /// Hide the NORMAL/INSERT badge (the field is still tinted).
+    pub fn hide_mode_badge(mut self) -> Self {
+        self.hide_mode_badge = true;
+        self
+    }
+    /// Set the normal- and insert-mode badge labels.
+    pub fn mode_labels(
+        mut self,
+        normal: impl Into<String>,
+        insert: impl Into<String>,
+    ) -> Self {
+        self.normal_label = Some(normal.into());
+        self.insert_label = Some(insert.into());
+        self
+    }
+    /// Set the badge + query-field styles for normal and insert mode.
+    pub fn mode_styles(mut self, normal: Style, insert: Style) -> Self {
+        self.mode_normal_style = normal;
+        self.mode_insert_style = insert;
+        self
+    }
+    /// Override the insert / normal mode-toggle chords (defaults `i` / `Esc`).
+    pub fn mode_keys(mut self, insert: Chord, normal: Chord) -> Self {
+        self.insert_key = Some(insert);
+        self.normal_key = Some(normal);
+        self
+    }
+    /// Normal-mode chord that clears the query field.
+    pub fn clear_key(mut self, chord: Chord) -> Self {
+        self.clear_key = Some(chord);
+        self
+    }
 }
 
 /// An owning incremental fuzzy finder (list view).
@@ -1716,6 +1790,8 @@ impl Fuzzy {
         // need to live until the call returns.
         let empty = opts.empty_text.as_deref().map(cstring);
         let initial = opts.initial_query.as_deref().map(cstring);
+        let normal_label = opts.normal_label.as_deref().map(cstring);
+        let insert_label = opts.insert_label.as_deref().map(cstring);
         let mut arena = crate::style::Arena::new();
         let mut o: ffi::ScFuzzyOpts = unsafe { mem::zeroed() };
         o.prompt = prompt.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
@@ -1755,6 +1831,24 @@ impl Fuzzy {
         }
         if let Some(c) = opts.toggle_section_key {
             o.toggle_section_key = c.0;
+        }
+        o.modal = opts.modal;
+        o.start_in_insert = opts.start_in_insert;
+        o.hide_mode_badge = opts.hide_mode_badge;
+        o.normal_label =
+            normal_label.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        o.insert_label =
+            insert_label.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        o.mode_normal_style = opts.mode_normal_style.raw();
+        o.mode_insert_style = opts.mode_insert_style.raw();
+        if let Some(c) = opts.insert_key {
+            o.insert_key = c.0;
+        }
+        if let Some(c) = opts.normal_key {
+            o.normal_key = c.0;
+        }
+        if let Some(c) = opts.clear_key {
+            o.clear_key = c.0;
         }
         let ptr = unsafe { ffi::sc_fuzzy_new(o) };
         assert!(!ptr.is_null(), "sc_fuzzy_new: out of memory");

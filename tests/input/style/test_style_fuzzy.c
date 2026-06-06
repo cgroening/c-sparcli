@@ -229,4 +229,38 @@ void style_fuzzy(void) {
     style_show("fuzzy list: empty-state text, query='zzz'",
                sc_fuzzy_frame(s7, "zzz"));
     sc_fuzzy_free(s7);
+
+    /* Modal mode: NORMAL badge (default colors) + field tint. */
+    ScFuzzy *m1 = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "City", .modal = true });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(m1, cities[m]); }
+    style_show("fuzzy list: modal NORMAL badge, query='to'",
+               sc_fuzzy_frame(m1, "to"));
+    sc_fuzzy_free(m1);
+
+    /* Modal mode: INSERT badge (start_in_insert) + field tint. */
+    ScFuzzy *m2 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .modal = true, .start_in_insert = true });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(m2, cities[m]); }
+    style_show("fuzzy list: modal INSERT badge, query='to'",
+               sc_fuzzy_frame(m2, "to"));
+    sc_fuzzy_free(m2);
+
+    /* Modal mode: custom label + style (black on yellow). */
+    ScFuzzy *m3 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .modal = true,
+        .normal_label = "CMD",
+        .mode_normal_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
+                               SC_ANSI_COLOR_YELLOW } });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(m3, cities[m]); }
+    style_show("fuzzy list: modal custom CMD badge (black on yellow)",
+               sc_fuzzy_frame(m3, "o"));
+    sc_fuzzy_free(m3);
+
+    /* Modal mode with the badge hidden: the field is still tinted per mode. */
+    ScFuzzy *m4 = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .modal = true, .hide_mode_badge = true });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(m4, cities[m]); }
+    style_show("fuzzy list: modal badge hidden (field tint only)",
+               sc_fuzzy_frame(m4, "to"));
+    sc_fuzzy_free(m4);
 }

@@ -221,6 +221,15 @@ checked = todo.run_multi()   # list[int] of checked rows, or None on cancel
 # set_checked / check_all / checked_count, set_cursor / set_label / set_row /
 # set_row_style, id_at / cursor_id. Demo: examples/c/apps/todo_fuzzy.c.
 
+# Modal (vim-style) mode: normal mode fires bare-letter shortcuts + j/k/g/G,
+# insert mode (press `i`) types a filter, `Esc` toggles back; the query line is
+# badged + tinted per mode. Build bare-char chords with key_char.
+from sparcli.keys import key_char
+modal = sc.Fuzzy(sc.FuzzyOpts(
+    modal=True,                       # start_in_insert=True to flip
+    normal_label="CMD", insert_label="EDIT",
+    clear_key=key_char("c")))         # normal-mode: clear the query
+
 import datetime
 d = sc.datepicker(datetime.date.today(), sc.DatePickerOpts(week_start=sc.WeekStart.MONDAY))
 # -> datetime.date

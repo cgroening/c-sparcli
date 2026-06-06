@@ -45,8 +45,8 @@ from .input import (ConfirmOpts, DatePickerOpts, History, NumberOpts,
                     filter_alnum, filter_alpha, filter_decimal,
                     filter_digits, filter_no_space, input_available,
                     number_input, password_input, text_input, textarea)
-from .keys import (KeyChord, Shortcuts, key_alt, key_ctrl, key_down, key_enter,
-                   key_fn, key_left, key_right, key_tab, key_up)
+from .keys import (KeyChord, Shortcuts, key_alt, key_char, key_ctrl, key_down,
+                   key_enter, key_fn, key_left, key_right, key_tab, key_up)
 from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      allow_ansi, badge, clear_line, panel, print_, println,
                      rule, set_allow_ansi, strip_ansi, truncate, version,
@@ -119,7 +119,7 @@ __all__ = [
     "filter_digits", "filter_decimal", "filter_alpha", "filter_alnum",
     "filter_no_space",
     # shortcuts / keys / theme
-    "Shortcuts", "KeyChord", "key_ctrl", "key_fn", "key_alt",
+    "Shortcuts", "KeyChord", "key_ctrl", "key_fn", "key_alt", "key_char",
     "key_left", "key_right", "key_up", "key_down", "key_enter", "key_tab",
     "Theme",
     "set_theme",

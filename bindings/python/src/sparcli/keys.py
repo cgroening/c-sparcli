@@ -29,6 +29,16 @@ def key_ctrl(letter: str) -> KeyChord:
     return KeyChord(h)
 
 
+def key_char(letter: str) -> KeyChord:
+    """A bare character chord (no modifiers), e.g. ``key_char('c')``. Useful for
+    the modal fuzzy finder's ``clear_key`` or bare-letter shortcuts."""
+    h = ffi.new("ScKeyChord *")
+    h[0].key = lib.SC_KEY_CHAR
+    h[0].codepoint = ord(letter[:1])
+    h[0].mods = 0
+    return KeyChord(h)
+
+
 def key_fn(n: int) -> KeyChord:
     """A function-key chord; ``n`` in 1..12 → F1..F12."""
     h = ffi.new("ScKeyChord *")

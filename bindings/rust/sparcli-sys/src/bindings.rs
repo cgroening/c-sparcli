@@ -3347,10 +3347,30 @@ pub struct ScFuzzyOpts {
     pub order_desc: bool,
     #[doc = " Pre-fill the query field on the next run; `NULL` = empty."]
     pub initial_query: *const ::std::os::raw::c_char,
+    #[doc = " Enable a modal normal/insert mode. Off by default: every key types into\n the query field as usual. When on, the finder has a **normal** mode\n (bare-letter shortcuts fire, `j`/`k`/`g`/`G` navigate) and an **insert**\n mode (keys edit the query). Toggle with `i` (→ insert) and `Esc`\n (→ normal); `Esc` in normal mode cancels. The active mode is shown in the\n query line (color + badge)."]
+    pub modal: bool,
+    #[doc = " Modal: start in insert mode instead of normal mode (the default)."]
+    pub start_in_insert: bool,
+    #[doc = " Chord that enters insert mode (normal mode); zero-init = `i`."]
+    pub insert_key: ScKeyChord,
+    #[doc = " Chord that leaves insert mode / cancels in normal mode;\nzero-init = `Esc`."]
+    pub normal_key: ScKeyChord,
+    #[doc = " Normal-mode chord that clears the query field; zero-init = disabled."]
+    pub clear_key: ScKeyChord,
+    #[doc = " Hide the NORMAL/INSERT badge (the field is still tinted per mode)."]
+    pub hide_mode_badge: bool,
+    #[doc = " Normal-mode badge text; `NULL` = \"NORMAL\"."]
+    pub normal_label: *const ::std::os::raw::c_char,
+    #[doc = " Insert-mode badge text; `NULL` = \"INSERT\"."]
+    pub insert_label: *const ::std::os::raw::c_char,
+    #[doc = " Badge + query-field style in normal mode; zero-init = bold white on\nblue."]
+    pub mode_normal_style: ScTextStyle,
+    #[doc = " Badge + query-field style in insert mode; zero-init = bold black on\ngreen."]
+    pub mode_insert_style: ScTextStyle,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 712usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 816usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
@@ -3428,6 +3448,25 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, order_desc) - 696usize];
     ["Offset of field: ScFuzzyOpts::initial_query"]
         [::std::mem::offset_of!(ScFuzzyOpts, initial_query) - 704usize];
+    ["Offset of field: ScFuzzyOpts::modal"][::std::mem::offset_of!(ScFuzzyOpts, modal) - 712usize];
+    ["Offset of field: ScFuzzyOpts::start_in_insert"]
+        [::std::mem::offset_of!(ScFuzzyOpts, start_in_insert) - 713usize];
+    ["Offset of field: ScFuzzyOpts::insert_key"]
+        [::std::mem::offset_of!(ScFuzzyOpts, insert_key) - 716usize];
+    ["Offset of field: ScFuzzyOpts::normal_key"]
+        [::std::mem::offset_of!(ScFuzzyOpts, normal_key) - 728usize];
+    ["Offset of field: ScFuzzyOpts::clear_key"]
+        [::std::mem::offset_of!(ScFuzzyOpts, clear_key) - 740usize];
+    ["Offset of field: ScFuzzyOpts::hide_mode_badge"]
+        [::std::mem::offset_of!(ScFuzzyOpts, hide_mode_badge) - 752usize];
+    ["Offset of field: ScFuzzyOpts::normal_label"]
+        [::std::mem::offset_of!(ScFuzzyOpts, normal_label) - 760usize];
+    ["Offset of field: ScFuzzyOpts::insert_label"]
+        [::std::mem::offset_of!(ScFuzzyOpts, insert_label) - 768usize];
+    ["Offset of field: ScFuzzyOpts::mode_normal_style"]
+        [::std::mem::offset_of!(ScFuzzyOpts, mode_normal_style) - 776usize];
+    ["Offset of field: ScFuzzyOpts::mode_insert_style"]
+        [::std::mem::offset_of!(ScFuzzyOpts, mode_insert_style) - 796usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3558,7 +3597,7 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = " Runs the interactive finder.\n\n Typing edits the query; arrow keys / Ctrl-N / Ctrl-P move the cursor;\n Enter selects the highlighted row; Esc or Ctrl-C cancels.\n\n @param fuzzy      Finder to run.\n @param out_index  Receives the chosen item's original add-order index.\n @return           `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
+    #[doc = " Runs the interactive finder.\n\n Typing edits the query; arrow keys, Tab/Shift-Tab and Ctrl-N / Ctrl-P move\n the cursor; Enter selects the highlighted row; Esc or Ctrl-C cancels. With\n `opts.modal` the key handling is split into normal/insert modes (see\n `ScFuzzyOpts.modal`).\n\n @param fuzzy      Finder to run.\n @param out_index  Receives the chosen item's original add-order index.\n @return           `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
     pub fn sc_fuzzy_run(fuzzy: *mut ScFuzzy, out_index: *mut usize) -> ScInputStatus;
 }
 extern "C" {

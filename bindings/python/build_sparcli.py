@@ -991,6 +991,16 @@ typedef struct {
     size_t order_column;
     bool order_desc;
     const char *initial_query;
+    bool modal;
+    bool start_in_insert;
+    ScKeyChord insert_key;
+    ScKeyChord normal_key;
+    ScKeyChord clear_key;
+    bool hide_mode_badge;
+    const char *normal_label;
+    const char *insert_label;
+    ScTextStyle mode_normal_style;
+    ScTextStyle mode_insert_style;
     ...;
 } ScFuzzyOpts;
 typedef struct ScFuzzy ScFuzzy;

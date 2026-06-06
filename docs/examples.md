@@ -172,7 +172,7 @@ Larger end-to-end programs that combine many widgets:
 | `c/apps/repl_minimal` | The smallest REPL: a prompt loop with Up/Down history. |
 | `c/apps/repl_demo` | A task-manager REPL built on the argument parser (split + implicit reset + history). |
 | `c/apps/repl_dashboard` | A fixed live header above an interactive prompt, with a shortcut action bar. |
-| `c/apps/todo_fuzzy` | A mini todo app on the fuzzy finder: day sections, time-ordered table, per-cell status colors + a rich priority badge, multi-select with a checkbox column (Space / Ctrl-A / Ctrl-S), and Ctrl-D/Ctrl-X actions on the checked set in a re-run loop. |
+| `c/apps/todo_fuzzy` | A mini todo app on the fuzzy finder: day sections, time-ordered table, per-cell status colors + a rich priority badge, multi-select with a checkbox column, and done/delete actions on the checked set in a re-run loop. Uses the modal (vim-style) mode: normal mode acts on bare keys (`d` done, `x` delete, `c` clear, `j`/`k` move, space check), `i` enters insert mode to type a filter, `Esc` returns; the query line is badged + tinted per mode. |
 
 Run them with `make run-example EX=c/apps/repl_demo` (in a real terminal).
 

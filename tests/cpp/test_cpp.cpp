@@ -585,6 +585,16 @@ static void test_fuzzy_wrapper() {
     g.add_row_rich(cells);
     CHECK(g.label(0) && *g.label(0) == "HIGH",
           "fuzzy++: add_row_rich flattens spans");
+
+    // Modal opts (incl. a bare-char clear key) construct cleanly.
+    Fuzzy m{ FuzzyOpts{
+        .modal = true, .start_in_insert = true,
+        .clear_key = key_char('c'),
+        .normal_label = "CMD",
+        .mode_normal_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                               SC_ANSI_COLOR_BLUE } } };
+    m.add("x").add("y");
+    CHECK(!m.has_selection(), "fuzzy++: modal opts build");
 }
 
 static void test_diff_wrapper() {

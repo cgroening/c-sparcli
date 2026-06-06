@@ -293,6 +293,14 @@ if let Some(checked) = todo.run_multi()? { /* Vec<usize> of checked rows */ }
 // check_all / checked_count, set_cursor / set_label / set_row / set_row_style,
 // id_at / cursor_id. Full demo: examples/c/apps/todo_fuzzy.c.
 
+// Modal (vim-style) mode: normal mode fires bare-letter shortcuts + j/k/g/G,
+// insert mode (press `i`) types a filter, `Esc` toggles back; the query line is
+// badged + tinted per mode. Build bare-char chords with key_char.
+let mut modal = Fuzzy::new(FuzzyOpts::new()
+    .modal()                                   // .start_in_insert() to flip
+    .mode_labels("CMD", "EDIT")                // badge text per mode
+    .clear_key(key_char('c')));                // normal-mode: clear the query
+
 // Process-wide defaults every widget inherits (per-call opts still win):
 Theme::new().accent(Color::MAGENTA).marker("➜ ").apply();   // reset_theme() clears
 

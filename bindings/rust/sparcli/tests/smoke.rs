@@ -93,6 +93,26 @@ fn fuzzy_has_no_selection_before_run() {
 }
 
 #[test]
+fn fuzzy_modal_opts_build() {
+    use sparcli::{key_char, Attr, Style};
+    // The modal builders construct cleanly (no TTY, so just the plumbing).
+    let mut fz = Fuzzy::new(
+        FuzzyOpts::new()
+            .modal()
+            .start_in_insert()
+            .mode_labels("CMD", "EDIT")
+            .mode_styles(
+                Style::new().attr(Attr::BOLD).fg(Color::WHITE).bg(Color::BLUE),
+                Style::new().fg(Color::BLACK).bg(Color::GREEN),
+            )
+            .clear_key(key_char('c')),
+    );
+    fz.add("alpha").add("beta");
+    assert!(!fz.has_selection());
+    assert_eq!(key_char('c').name(), "c");
+}
+
+#[test]
 fn fuzzy_sections_multi_and_styles() {
     use sparcli::FuzzyOrder;
     let mut fz = Fuzzy::new(

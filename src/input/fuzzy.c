@@ -59,11 +59,19 @@ struct ScFuzzy {
     size_t top;            /**< First visible entry (scroll offset). */
     size_t pending_cursor; /**< add-order seed cursor (SIZE_MAX = none). */
     bool   multi;          /**< active run is multi-select. */
+    bool   insert_mode;    /**< modal: currently in insert mode (else normal). */
 };
 
 static const char *const DEFAULT_HINT =
     "type to filter \xc2\xb7 \xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
     "enter select \xc2\xb7 esc cancel";
+
+/* Modal default hints (per mode). \xc2\xb7 = "·", \xe2\x86\x91/\xe2\x86\x93 = ↑/↓ */
+static const char *const HINT_NORMAL =
+    "i insert \xc2\xb7 j/k move \xc2\xb7 enter select \xc2\xb7 esc cancel";
+static const char *const HINT_INSERT =
+    "type to filter \xc2\xb7 \xe2\x86\x91/\xe2\x86\x93 move \xc2\xb7 "
+    "enter select \xc2\xb7 esc normal";
 
 
 static void copy_opts_strings(ScFuzzy *self);
@@ -427,6 +435,39 @@ void sc_fuzzy_free(ScFuzzy *self) {
     free(self);
 }
 
+/** Chord that enters insert mode (zero-init = `i`). */
+static ScKeyChord resolve_insert_key(const ScFuzzy *self) {
+    ScKeyChord k = self->opts.insert_key;
+    if (k.key == SC_KEY_NONE && k.codepoint == 0) {
+        return (ScKeyChord){ .key = SC_KEY_CHAR, .codepoint = 'i' };
+    }
+    return k;
+}
+
+/** Chord that leaves insert mode / cancels in normal mode (zero-init = Esc). */
+static ScKeyChord resolve_normal_key(const ScFuzzy *self) {
+    ScKeyChord k = self->opts.normal_key;
+    if (k.key == SC_KEY_NONE && k.codepoint == 0) {
+        return (ScKeyChord){ .key = SC_KEY_ESC };
+    }
+    return k;
+}
+
+/** Engine predicate: suppress bare-letter shortcuts while in insert mode. */
+static bool fuzzy_suppress_chars(void *state) {
+    const ScFuzzy *self = state;
+    return self->opts.modal && self->insert_mode;
+}
+
+/** Empties the query field in place (no realloc, cannot fail). */
+static void clear_query(ScFuzzy *self) {
+    self->query.len = 0;
+    self->query.cursor = 0;
+    if (self->query.buf) {
+        self->query.buf[0] = '\0';
+    }
+}
+
 /** Shared setup + prompt loop for single/multi runs. Leaves `matches`/`cursor`
     intact for the caller to read results; the caller frees the query editor. */
 static ScInputStatus fuzzy_begin(ScFuzzy *self, bool multi) {
@@ -443,6 +484,9 @@ static ScInputStatus fuzzy_begin(ScFuzzy *self, bool multi) {
     self->multi = multi;
     self->cursor = 0;
     self->top = 0;
+    /* Non-modal finders always "type" (insert-like); modal ones start in the
+     * configured mode (normal by default). */
+    self->insert_mode = self->opts.modal ? self->opts.start_in_insert : true;
     refilter(self);
     if (self->pending_cursor != SIZE_MAX) {
         sc_fuzzy_set_cursor(self, self->pending_cursor);
@@ -452,6 +496,9 @@ static ScInputStatus fuzzy_begin(ScFuzzy *self, bool multi) {
         .render = fuzzy_render,
         .on_key = fuzzy_on_key,
         .paste = SC_PASTE_TEXT,
+        .capture_escape = self->opts.modal,
+        .suppress_char_shortcuts =
+            self->opts.modal ? fuzzy_suppress_chars : NULL,
     };
     ScPromptShortcuts sk = {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
@@ -563,6 +610,7 @@ ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
     }
     self->cursor = 0;
     self->top = 0;
+    self->insert_mode = self->opts.modal ? self->opts.start_in_insert : true;
     refilter(self);
     ScRendered *rendered = fuzzy_render(self);
     sc_le_free(&self->query);
@@ -588,6 +636,8 @@ static void copy_opts_strings(ScFuzzy *self) {
     opts->checkbox_off = sc_dup_opt_str(opts->checkbox_off);
     opts->empty_text = sc_dup_opt_str(opts->empty_text);
     opts->initial_query = sc_dup_opt_str(opts->initial_query);
+    opts->normal_label = sc_dup_opt_str(opts->normal_label);
+    opts->insert_label = sc_dup_opt_str(opts->insert_label);
 
     if (opts->headers && opts->n_cols > 0) {
         char **headers = calloc(opts->n_cols, sizeof *headers);
@@ -611,6 +661,8 @@ static void free_opts_strings(ScFuzzy *self) {
     free((char *)opts->checkbox_off);
     free((char *)opts->empty_text);
     free((char *)opts->initial_query);
+    free((char *)opts->normal_label);
+    free((char *)opts->insert_label);
     if (opts->headers) {
         for (size_t c = 0; c < opts->n_cols; c++) {
             free((char *)opts->headers[c]);
@@ -860,10 +912,36 @@ static ScRendered *fuzzy_render(void *state) {
             stacked = framed;
         }
     }
+    const char *default_hint = DEFAULT_HINT;
+    if (self->opts.modal) {
+        default_hint = self->insert_mode ? HINT_INSERT : HINT_NORMAL;
+    }
     return sc_compose_hint(stacked,
-                           self->opts.hint ? self->opts.hint : DEFAULT_HINT,
+                           self->opts.hint ? self->opts.hint : default_hint,
                            self->opts.hint_layout, self->opts.hint_pos,
                            self->opts.hint_style);
+}
+
+/** Resolved badge / field style for the active modal mode. */
+static ScTextStyle mode_style_of(const ScFuzzy *self) {
+    if (self->insert_mode) {
+        return sc_style_set(self->opts.mode_insert_style)
+            ? self->opts.mode_insert_style
+            : (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_BLACK,
+                             SC_ANSI_COLOR_GREEN };
+    }
+    return sc_style_set(self->opts.mode_normal_style)
+        ? self->opts.mode_normal_style
+        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                         SC_ANSI_COLOR_BLUE };
+}
+
+/** Badge label for the active modal mode. */
+static const char *mode_label_of(const ScFuzzy *self) {
+    if (self->insert_mode) {
+        return self->opts.insert_label ? self->opts.insert_label : "INSERT";
+    }
+    return self->opts.normal_label ? self->opts.normal_label : "NORMAL";
 }
 
 /** Builds the query/prompt line (query field scrolls when long). */
@@ -872,6 +950,17 @@ static ScRendered *render_query_line(ScFuzzy *self) {
     if (!text) {
         return NULL;
     }
+
+    /* Modal mode badge (e.g. " NORMAL ") on a colored bar, plus a space. */
+    int badge_w = 0;
+    if (self->opts.modal && !self->opts.hide_mode_badge) {
+        char badge[40];
+        int n = snprintf(badge, sizeof badge, " %s ", mode_label_of(self));
+        sc_text_append(text, badge, mode_style_of(self));
+        sc_text_append(text, " ", (ScTextStyle){ 0 });
+        badge_w = (int)sc_utf8_string_length(badge, (size_t)n) + 1;
+    }
+
     const char *prompt = self->opts.prompt ? self->opts.prompt : "Search";
     ScTextStyle prompt_style = sc_style_set(self->opts.prompt_style)
         ? self->opts.prompt_style
@@ -893,11 +982,17 @@ static ScRendered *render_query_line(ScFuzzy *self) {
     // Query field = line width − prompt − space − counter.
     int prompt_w = (int)sc_utf8_string_length(prompt, strlen(prompt));
     int counter_w = (int)sc_utf8_string_length(counter, strlen(counter));
-    int field = sc_terminal_width() - prompt_w - 1 - counter_w;
+    int field = sc_terminal_width() - badge_w - prompt_w - 1 - counter_w;
     if (field < 1) {
         field = 1;
     }
-    sc_le_render_into(&self->query, text, (ScTextStyle){ 0 },
+    /* Tint the query field with the mode's signature color (modal only). */
+    ScTextStyle field_style = { 0 };
+    if (self->opts.modal) {
+        ScTextStyle ms = mode_style_of(self);
+        field_style.fg = ms.bg.index != 0 ? ms.bg : ms.fg;
+    }
+    sc_le_render_into(&self->query, text, field_style,
                       self->opts.cursor_style, NULL, NULL, (ScTextStyle){ 0 },
                       field);
 
@@ -1399,11 +1494,93 @@ static void toggle_section_displayed(ScFuzzy *self) {
     toggle_range(self, lo, hi);
 }
 
-static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
-    (void)cancel;
-    ScFuzzy *self = state;
+/** Moves the cursor to the next selectable entry (cycling unless `no_cycle`). */
+static void cursor_down(ScFuzzy *self) {
+    size_t n = next_selectable(self, self->cursor);
+    if (n != SIZE_MAX) {
+        self->cursor = n;
+    } else if (!self->opts.no_cycle) {
+        size_t f = first_selectable(self);
+        if (f != SIZE_MAX) { self->cursor = f; }
+    }
+}
 
-    if (self->multi && !(key.mods & SC_MOD_PASTED)) {
+/** Moves the cursor to the previous selectable entry (cycling unless
+    `no_cycle`). */
+static void cursor_up(ScFuzzy *self) {
+    size_t p = prev_selectable(self, self->cursor);
+    if (p != SIZE_MAX) {
+        self->cursor = p;
+    } else if (!self->opts.no_cycle) {
+        size_t l = last_selectable(self);
+        if (l != SIZE_MAX) { self->cursor = l; }
+    }
+}
+
+/** Keeps the cursor row within the visible viewport. */
+static void scroll_to_cursor(ScFuzzy *self) {
+    size_t visible = (size_t)self->max_visible;
+    if (self->cursor < self->top) {
+        self->top = self->cursor;
+    } else if (self->cursor >= self->top + visible) {
+        self->top = self->cursor - visible + 1;
+    }
+}
+
+/**
+ * Handles modal mode switching (normal/insert) for non-pasted keys. Returns
+ * true when the key was consumed (the caller should stop). May set `*cancel`
+ * (Esc in normal mode).
+ */
+static bool fuzzy_mode_switch(ScFuzzy *self, ScKey key, bool *cancel) {
+    if (!self->opts.modal || (key.mods & SC_MOD_PASTED)) {
+        return false;
+    }
+    if (self->insert_mode) {
+        if (sc_key_chord_matches(key, resolve_normal_key(self))) {
+            self->insert_mode = false;   // Esc: insert → normal
+            return true;
+        }
+        return false;
+    }
+    // Normal mode.
+    if (sc_key_chord_matches(key, resolve_insert_key(self))) {
+        self->insert_mode = true;        // i: normal → insert
+        return true;
+    }
+    if (self->opts.clear_key.key != 0
+        && sc_key_chord_matches(key, self->opts.clear_key)) {
+        clear_query(self);
+        self->cursor = 0;
+        refilter(self);
+        return true;
+    }
+    if (sc_key_chord_matches(key, resolve_normal_key(self))) {
+        *cancel = true;                  // Esc in normal mode cancels
+        return true;
+    }
+    return false;
+}
+
+static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
+    ScFuzzy *self = state;
+    bool pasted = key.mods & SC_MOD_PASTED;
+
+    if (fuzzy_mode_switch(self, key, cancel)) {
+        return;
+    }
+
+    // Ctrl-N / Ctrl-P move the cursor in both modes (also for the non-modal
+    // finder - matches the documented behavior).
+    if (!pasted && key.type == SC_KEY_CHAR && (key.mods & SC_MOD_CTRL)
+        && (key.codepoint == 'n' || key.codepoint == 'p')) {
+        if (key.codepoint == 'n') { cursor_down(self); }
+        else                      { cursor_up(self); }
+        scroll_to_cursor(self);
+        return;
+    }
+
+    if (self->multi && !pasted) {
         if (self->opts.toggle_all_key.key != 0
             && sc_key_chord_matches(key, self->opts.toggle_all_key)) {
             toggle_range(self, 0, self->match_n);
@@ -1414,7 +1591,9 @@ static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             toggle_section_displayed(self);
             return;
         }
-        if (key.type == SC_KEY_CHAR && key.codepoint == ' ') {
+        // Space toggles the cursor row, except while typing in insert mode.
+        if (key.type == SC_KEY_CHAR && key.codepoint == ' '
+            && !(self->opts.modal && self->insert_mode)) {
             if (self->selectable_n > 0) {
                 Row *r = &self->rows[self->matches[self->cursor].index];
                 r->checked = !r->checked;
@@ -1423,47 +1602,55 @@ static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         }
     }
 
-    switch (key.type) {
-        case SC_KEY_UP:
-        case SC_KEY_BACKTAB: {
-            size_t p = prev_selectable(self, self->cursor);
-            if (p != SIZE_MAX) {
-                self->cursor = p;
-            } else if (!self->opts.no_cycle) {
-                size_t l = last_selectable(self);
-                if (l != SIZE_MAX) { self->cursor = l; }
-            }
-            break;
-        }
-        case SC_KEY_DOWN:
-        case SC_KEY_TAB: {
-            size_t n = next_selectable(self, self->cursor);
-            if (n != SIZE_MAX) {
-                self->cursor = n;
-            } else if (!self->opts.no_cycle) {
+    // Normal-mode (command) keys: bare j/k/g/G navigate; other bare characters
+    // are ignored (they do not type into the query).
+    bool command_mode = self->opts.modal && !self->insert_mode && !pasted;
+    if (command_mode && key.type == SC_KEY_CHAR && key.mods == 0) {
+        switch (key.codepoint) {
+            case 'j': cursor_down(self); break;
+            case 'k': cursor_up(self);   break;
+            case 'g': {
                 size_t f = first_selectable(self);
                 if (f != SIZE_MAX) { self->cursor = f; }
+                break;
             }
-            break;
+            case 'G': {
+                size_t l = last_selectable(self);
+                if (l != SIZE_MAX) { self->cursor = l; }
+                break;
+            }
+            default:
+                return;   // ignore other characters in normal mode
         }
+        scroll_to_cursor(self);
+        return;
+    }
+
+    switch (key.type) {
+        case SC_KEY_UP:
+        case SC_KEY_BACKTAB:
+            cursor_up(self);
+            break;
+        case SC_KEY_DOWN:
+        case SC_KEY_TAB:
+            cursor_down(self);
+            break;
         case SC_KEY_ENTER:
             if (self->selectable_n > 0) {
                 *done = true;
             }
             return;
         default:
+            if (command_mode) {
+                return;   // normal mode: never edit the query
+            }
             if (sc_le_handle(&self->query, key)) {
                 self->cursor = 0;
                 refilter(self);
             }
             return;
     }
-    size_t visible = (size_t)self->max_visible;
-    if (self->cursor < self->top) {
-        self->top = self->cursor;
-    } else if (self->cursor >= self->top + visible) {
-        self->top = self->cursor - visible + 1;
-    }
+    scroll_to_cursor(self);
 }
 
 /**

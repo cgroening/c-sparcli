@@ -1846,6 +1846,11 @@ inline KeyChord key_ctrl(char letter) { return sc_key_ctrl(letter); }
 inline KeyChord key_fn(int n)         { return sc_key_fn(n); }
 /** Alt/Meta + letter chord, e.g. `key_alt('e')`. @see sc_key_alt */
 inline KeyChord key_alt(char letter)  { return sc_key_alt(letter); }
+/** Bare character chord (no modifiers), e.g. `key_char('c')`. Useful for the
+    modal fuzzy finder's `clear_key` or bare-letter shortcuts. */
+inline KeyChord key_char(char letter) {
+    return KeyChord{ SC_KEY_CHAR, static_cast<uint32_t>(letter), 0 };
+}
 /** Chord for a named key, e.g. `key_special(SC_KEY_LEFT)`. @see sc_key_special */
 inline KeyChord key_special(ScKeyType k) { return sc_key_special(k); }
 /** Arrow / Enter / Tab chords (for e.g. Left=back, Right=forward navigation). */

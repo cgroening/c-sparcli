@@ -368,6 +368,13 @@ if (auto checked = todo.run_multi()) { /* std::vector<size_t> of checked rows */
 // set_checked / check_all / checked_count, set_cursor / set_label / set_row /
 // set_row_style, id_at / cursor_id. Demo: examples/c/apps/todo_fuzzy.c.
 
+// Modal (vim-style) mode: normal mode fires bare-letter shortcuts + j/k/g/G,
+// insert mode (press `i`) types a filter, `Esc` toggles back; the query line is
+// badged + tinted per mode. key_char builds a bare (no-modifier) chord.
+Fuzzy modal({ .modal = true,            // .start_in_insert = true to flip
+              .clear_key = key_char('c'),   // normal-mode: clear the query
+              .normal_label = "CMD", .insert_label = "EDIT" });
+
 bool m = fuzzy_match("to", "Tokyo");      // pure, no TTY
 set_theme({ .accent = magenta() });  reset_theme();   // InputTheme theme();
 

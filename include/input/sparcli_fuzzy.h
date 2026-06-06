@@ -188,6 +188,48 @@ typedef struct ScFuzzyOpts {
 
     /** Pre-fill the query field on the next run; `NULL` = empty. */
     const char *initial_query;
+
+    /* ---- Modal normal/insert mode (vim-style; opt-in) ---- */
+
+    /**
+     * Enable a modal normal/insert mode. Off by default: every key types into
+     * the query field as usual. When on, the finder has a **normal** mode
+     * (bare-letter shortcuts fire, `j`/`k`/`g`/`G` navigate) and an **insert**
+     * mode (keys edit the query). Toggle with `i` (→ insert) and `Esc`
+     * (→ normal); `Esc` in normal mode cancels. The active mode is shown in the
+     * query line (color + badge).
+     */
+    bool modal;
+
+    /** Modal: start in insert mode instead of normal mode (the default). */
+    bool start_in_insert;
+
+    /** Chord that enters insert mode (normal mode); zero-init = `i`. */
+    ScKeyChord insert_key;
+
+    /** Chord that leaves insert mode / cancels in normal mode;
+        zero-init = `Esc`. */
+    ScKeyChord normal_key;
+
+    /** Normal-mode chord that clears the query field; zero-init = disabled. */
+    ScKeyChord clear_key;
+
+    /** Hide the NORMAL/INSERT badge (the field is still tinted per mode). */
+    bool hide_mode_badge;
+
+    /** Normal-mode badge text; `NULL` = "NORMAL". */
+    const char *normal_label;
+
+    /** Insert-mode badge text; `NULL` = "INSERT". */
+    const char *insert_label;
+
+    /** Badge + query-field style in normal mode; zero-init = bold white on
+        blue. */
+    ScTextStyle mode_normal_style;
+
+    /** Badge + query-field style in insert mode; zero-init = bold black on
+        green. */
+    ScTextStyle mode_insert_style;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */
@@ -341,8 +383,10 @@ SPARCLI_EXPORT void sc_fuzzy_set_row_style(
 /**
  * Runs the interactive finder.
  *
- * Typing edits the query; arrow keys / Ctrl-N / Ctrl-P move the cursor;
- * Enter selects the highlighted row; Esc or Ctrl-C cancels.
+ * Typing edits the query; arrow keys, Tab/Shift-Tab and Ctrl-N / Ctrl-P move
+ * the cursor; Enter selects the highlighted row; Esc or Ctrl-C cancels. With
+ * `opts.modal` the key handling is split into normal/insert modes (see
+ * `ScFuzzyOpts.modal`).
  *
  * @param fuzzy      Finder to run.
  * @param out_index  Receives the chosen item's original add-order index.

@@ -11,13 +11,18 @@
  *   - multi-select with a dedicated checkbox column
  *     (Space toggles, Ctrl-A all, Ctrl-S the current day)
  *   - stable task ids so actions survive deletes/reorders
- *   - action shortcuts (Ctrl-D done, Ctrl-X delete) applied to the checked
- *     set in a re-run loop, mutating rows live (set_disabled/set_row_style/
- *     remove)
+ *   - action shortcuts applied to the checked set in a re-run loop, mutating
+ *     rows live (set_disabled/set_row_style/remove)
  *   - an empty-state line when the filter matches nothing
+ *   - a modal normal/insert mode (vim-style): the finder starts in normal
+ *     mode where bare keys act (d done, x delete, c clear, j/k move, space
+ *     check); press i to enter insert mode and type a filter, Esc to return.
+ *     The query line shows the mode (color + NORMAL/INSERT badge). The same
+ *     actions also have Ctrl- chords that work in both modes.
  *
- * Type to filter, Space to check, Ctrl-D/Ctrl-X to act on the checked tasks,
- * Enter to finish, Esc to cancel.
+ * Normal mode: d done · x delete · c clear · j/k move · space check · i insert.
+ * Insert mode: type to filter · Esc back to normal. Enter finishes, Esc (in
+ * normal mode) cancels.
  */
 
 #include <sparcli.h>
@@ -39,14 +44,21 @@ static const char *const HEADERS[N_COLS] = { "Time", "Task", "Status" };
  * the fired shortcut id on each run (-1 = normal Enter). Caller frees it. */
 static ScFuzzy *build_finder(int *out_action) {
     static const ScShortcut SHORTCUTS[] = {
-        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd',
-                     .mods = SC_MOD_CTRL },
+        /* Normal-mode actions: bare keys (no modifier). In insert mode these
+         * letters type into the query instead of firing. */
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd' },
           .id = ACT_DONE, .mode = SC_SHORTCUT_RETURN,
           .hint_label = "done" },
-        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'x',
-                     .mods = SC_MOD_CTRL },
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'x' },
           .id = ACT_DELETE, .mode = SC_SHORTCUT_RETURN,
           .hint_label = "delete" },
+        /* Ctrl- alternates that fire in both normal and insert mode. */
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd',
+                     .mods = SC_MOD_CTRL },
+          .id = ACT_DONE, .mode = SC_SHORTCUT_RETURN },
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'x',
+                     .mods = SC_MOD_CTRL },
+          .id = ACT_DELETE, .mode = SC_SHORTCUT_RETURN },
     };
 
     ScFuzzy *f = sc_fuzzy_new((ScFuzzyOpts){
@@ -58,6 +70,11 @@ static ScFuzzy *build_finder(int *out_action) {
         .multi           = true,
         .checkbox_column = true,
         .section_counts  = true,
+        /* Modal vim-style mode: start in normal mode (bare keys act), press i
+         * to type a filter, Esc to return. 'c' clears the query in normal
+         * mode. The query line is tinted + badged per mode (default colors). */
+        .modal           = true,
+        .clear_key       = { .key = SC_KEY_CHAR, .codepoint = 'c' },
         .order           = SC_FUZZY_ORDER_COLUMN,  /* chronological per day */
         .order_column    = COL_TIME,
         /* Hover (cursor row): black text on the accent background. On the

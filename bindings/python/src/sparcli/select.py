@@ -198,6 +198,16 @@ class FuzzyOpts:
     order_column: int = 0
     order_desc: bool = False
     initial_query: str | None = None
+    modal: bool = False
+    start_in_insert: bool = False
+    insert_key: KeyChord | None = None
+    normal_key: KeyChord | None = None
+    clear_key: KeyChord | None = None
+    hide_mode_badge: bool = False
+    normal_label: str | None = None
+    insert_label: str | None = None
+    mode_normal_style: Style = field(default_factory=Style)
+    mode_insert_style: Style = field(default_factory=Style)
 
     def _fill(self, c, arena: list) -> None:
         c.prompt = cstr(arena, self.prompt)
@@ -243,6 +253,19 @@ class FuzzyOpts:
         c.order_column = self.order_column
         c.order_desc = self.order_desc
         c.initial_query = cstr(arena, self.initial_query)
+        c.modal = self.modal
+        c.start_in_insert = self.start_in_insert
+        if self.insert_key is not None:
+            c.insert_key = self.insert_key.value
+        if self.normal_key is not None:
+            c.normal_key = self.normal_key.value
+        if self.clear_key is not None:
+            c.clear_key = self.clear_key.value
+        c.hide_mode_badge = self.hide_mode_badge
+        c.normal_label = cstr(arena, self.normal_label)
+        c.insert_label = cstr(arena, self.insert_label)
+        apply_style(c.mode_normal_style, self.mode_normal_style)
+        apply_style(c.mode_insert_style, self.mode_insert_style)
 
 
 class Fuzzy:

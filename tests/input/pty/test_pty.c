@@ -656,6 +656,185 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 45: {
+            /* Modal, normal mode: bare 'j' navigates down (does not type),
+               Enter selects -> Rent (index 1). The heap badge label is freed
+               right after new() - it must have been copied (ASan check). */
+            char *label = strdup("NORM");
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true, .normal_label = label });
+            free(label);
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 46: {
+            /* Modal: 'i' enters insert, "Ren" filters to Rent, Enter picks
+               it (index 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .modal = true });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 47: {
+            /* Modal, start in insert: Esc returns to normal (does NOT cancel),
+               then Down + Enter selects Rent (index 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true, .start_in_insert = true });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 48: {
+            /* Modal, normal mode: a bare 'x' RETURN shortcut (id 5) fires
+               without a modifier. */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_CHAR, .codepoint = 'x' },
+                  .id = 5, .mode = SC_SHORTCUT_RETURN },
+            };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true, .shortcuts = sk, .n_shortcuts = 1,
+                .out_shortcut_id = &act });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && act == 5);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 49: {
+            /* Modal, insert mode: the bare 'x' shortcut is suppressed - 'x'
+               types into the query and filters to "xtra" (index 1); the
+               shortcut never fires (act stays -1). */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_CHAR, .codepoint = 'x' },
+                  .id = 5, .mode = SC_SHORTCUT_RETURN },
+            };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true, .start_in_insert = true,
+                .shortcuts = sk, .n_shortcuts = 1, .out_shortcut_id = &act });
+            sc_fuzzy_add(fz, "alpha");
+            sc_fuzzy_add(fz, "xtra");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && act == -1 && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 50: {
+            /* Non-modal: Ctrl-N moves the cursor down (the documented
+               behavior), Enter selects Rent (index 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ 0 });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 51: {
+            /* Modal, normal mode: starts pre-filtered to "Gro" (Groceries);
+               the bare clear key 'c' empties the query so all rows show again,
+               the cursor snaps to the first row (Rent, index 0), Enter picks
+               it - proving the clear happened (else it would pick index 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true, .initial_query = "Gro",
+                .clear_key = { .key = SC_KEY_CHAR, .codepoint = 'c' } });
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 0);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 52: {
+            /* Modal, normal mode: bare 'k' moves up; from the first row it
+               cycles to the last (Utilities, index 2). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .modal = true });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 2);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 53: {
+            /* Modal, normal mode: bare 'G' jumps to the last row (index 2). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .modal = true });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 2);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 54: {
+            /* Modal, normal mode: j,j moves to the last row, then 'g' jumps
+               back to the first (index 0) - so 'g' is what makes it 0. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .modal = true });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 0);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 55: {
+            /* Non-modal: Ctrl-P moves the cursor up; from the first row it
+               cycles to the last (index 2). Complements fuzzy-ctrl-n-nav. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ 0 });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 2);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 56: {
+            /* Modal with an overridden insert key 'a': 'a' enters insert mode,
+               "Ren" filters to Rent, Enter picks it (index 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true,
+                .insert_key = { .key = SC_KEY_CHAR, .codepoint = 'a' } });
+            sc_fuzzy_add(fz, "Groceries");
+            sc_fuzzy_add(fz, "Rent");
+            sc_fuzzy_add(fz, "Utilities");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -714,6 +893,18 @@ static const Case CASES[] = {
     { "fuzzy-order-column", "\r" },                 /* sorted: 09:00 first */
     { "fuzzy-initial-query", "\r" },                /* pre-filtered to Rent */
     { "fuzzy-multi-shortcut", " \x04" },            /* space, Ctrl-D (id 7) */
+    { "modal-normal-nav", "j\r" },                  /* normal: j down -> Rent */
+    { "modal-insert-filter", "iRen\r" },            /* i, type, enter -> Rent */
+    { "modal-esc-normal", "\x1b\x1b[B\r" },         /* esc->normal, down, enter */
+    { "modal-bare-shortcut", "x" },                 /* normal: bare 'x' fires */
+    { "modal-insert-types-key", "x\r" },            /* insert: 'x' types -> xtra */
+    { "fuzzy-ctrl-n-nav", "\x0e\r" },               /* Ctrl-N down -> Rent */
+    { "modal-clear-query", "c\r" },                 /* normal: 'c' clears query */
+    { "modal-vim-k", "k\r" },                       /* normal: k up cycles -> last */
+    { "modal-vim-G", "G\r" },                       /* normal: G -> last */
+    { "modal-vim-g", "jjg\r" },                     /* j,j to last, g -> first */
+    { "fuzzy-ctrl-p-nav", "\x10\r" },               /* Ctrl-P up cycles -> last */
+    { "modal-custom-keys", "aRen\r" },              /* custom insert key 'a' */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

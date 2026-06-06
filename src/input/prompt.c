@@ -125,10 +125,12 @@ static bool editor_key_matches(
 /**
  * Matches custom shortcuts before the widget's own keys. Returns true when a
  * shortcut fired (the caller skips `on_key`); sets `*done` when the prompt
- * should end.
+ * should end. When `allow_char_chords` is false, a matched shortcut bound to a
+ * bare printable character (no modifiers) is ignored so the key reaches the
+ * widget as text (modal insert mode).
  */
 static bool dispatch_shortcut(
-    ScPromptShortcuts *shortcuts, ScKey key, bool *done
+    ScPromptShortcuts *shortcuts, ScKey key, bool *done, bool allow_char_chords
 ) {
     if (!shortcuts || shortcuts->count == 0) {
         return false;
@@ -137,6 +139,10 @@ static bool dispatch_shortcut(
         sc_shortcut_find(key, shortcuts->items, shortcuts->count);
     if (!hit) {
         return false;
+    }
+    if (!allow_char_chords && hit->chord.key == SC_KEY_CHAR
+        && hit->chord.mods == 0) {
+        return false;   // bare-letter shortcut suppressed (insert mode)
     }
     if (hit->mode == SC_SHORTCUT_CALLBACK) {
         bool keep_open =
@@ -187,9 +193,17 @@ ScInputStatus sc_prompt_run(
         switch (key.type) {
             case SC_KEY_NONE:        // EOF / read error
             case SC_KEY_CTRL_C:
-            case SC_KEY_ESC:
                 cancel = true;
                 continue;
+            case SC_KEY_ESC:
+                // Esc cancels unless the widget opts to handle it itself
+                // (e.g. leave a modal insert mode); then it falls through to
+                // the normal dispatch chain and reaches on_key.
+                if (!vtable->capture_escape) {
+                    cancel = true;
+                    continue;
+                }
+                break;
             case SC_KEY_RESIZE:
                 // Terminal reflowed: drop the stale region and repaint fresh.
                 sc_screen_clear(&screen);
@@ -225,7 +239,11 @@ ScInputStatus sc_prompt_run(
 
         // Custom shortcuts before the widget's own keys (an explicit binding
         // shadows a built-in use of that key); cancel keys above always win.
-        if (dispatch_shortcut(shortcuts, key, &done)) {
+        // In modal insert mode bare-letter shortcuts are suppressed so they
+        // type into the field instead of firing.
+        bool allow_char_chords = !(vtable->suppress_char_shortcuts
+                                   && vtable->suppress_char_shortcuts(state));
+        if (dispatch_shortcut(shortcuts, key, &done, allow_char_chords)) {
             continue;
         }
 

@@ -518,6 +518,24 @@ typedef struct ScPromptVTable {
      */
     char *(*edit_get)(void *state);
     void  (*edit_set)(void *state, const char *text);
+
+    /**
+     * When true, the engine does NOT treat a bare `SC_KEY_ESC` as cancel: it
+     * forwards Esc through the normal dispatch chain (shortcuts → on_key), so
+     * the widget can repurpose Esc (e.g. leave a modal insert mode) and decide
+     * itself when to set `*cancel`. Ctrl-C and EOF still always cancel.
+     * Zero-init = false = today's behavior (Esc cancels).
+     */
+    bool capture_escape;
+
+    /**
+     * Optional predicate: when set and it returns true, the engine skips
+     * shortcuts whose chord is a bare printable character (`SC_KEY_CHAR` with
+     * no modifiers) so those keys reach `on_key` as text instead of firing.
+     * Used by the modal fuzzy finder to suppress bare-letter shortcuts while in
+     * insert mode. NULL / false = all shortcuts dispatch as usual.
+     */
+    bool (*suppress_char_shortcuts)(void *state);
 } ScPromptVTable;
 
 /**
