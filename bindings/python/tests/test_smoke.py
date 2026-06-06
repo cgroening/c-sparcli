@@ -620,3 +620,39 @@ def test_multiprogress():
         mp.update(a, 100, 100)
         mp.update(b, 50, 100)
         mp.set_label(b, "b2")
+
+
+def test_form_construction_and_getters():
+    import datetime
+    f = sc.Form(sc.FormOpts(title="Contact"))
+    f.row_begin()
+    name = f.add_text("Name", "Ada",
+                      sc.FieldOpts(width_mode=sc.FieldWidthMode.PCT, width=50))
+    qty = f.add_number("Qty", 7)
+    tier = f.add_select("Tier", ["Bronze", "Silver", "Gold"], 2)
+    tags = f.add_multiselect("Tags", ["a", "b", "c"], [0, 2])
+    ok = f.add_bool("OK", True)
+    when = f.add_date("When", datetime.date(2026, 5, 15))
+
+    assert (name, qty, tier, tags, ok, when) == (0, 1, 2, 3, 4, 5)
+    assert f.get_string(name) == "Ada"
+    assert f.get_number(qty) == 7.0
+    assert f.get_bool(ok) is True
+    assert f.get_choice(tier) == 2
+    assert f.get_checked(tags) == [0, 2]
+    assert f.get_date(when) == datetime.date(2026, 5, 15)
+    assert f.get_date(name) is None
+    f.close()
+
+
+def test_form_multiline_keeps_newlines():
+    with sc.Form(sc.FormOpts(editor="true")) as f:
+        f.add_text("Notes", "x\ny", sc.FieldOpts(multiline=True))
+        assert f.get_string(0) == "x\ny"
+
+
+def test_form_run_unavailable_without_tty():
+    # Off a TTY (SPARCLI_NO_TTY) run() returns False, never grabbing the keyboard.
+    with sc.Form() as f:
+        f.add_text("Name", "x")
+        assert f.run() is False

@@ -239,6 +239,30 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 `input_available()` reports whether a prompt can run (useful to fall back to a default in non-interactive contexts). Setting the env var `SPARCLI_NO_TTY=1` forces `False` / the no-TTY error even when a terminal is attached – the pytest suite uses this so prompts never grab a real terminal.
 
+### Form (grid layout)
+
+`sc.Form` builds a grid of fields; `run()` then the `get_*` getters.
+`FieldOpts`/`FormOpts` are dataclasses; dates use `datetime.date`. (The
+per-field `validate` callback is not exposed.)
+
+```python
+import datetime
+import sparcli as sc
+
+with sc.Form(sc.FormOpts(title="Contact")) as f:
+    f.row_begin()
+    name = f.add_text("Name", "Ada",
+                      sc.FieldOpts(width_mode=sc.FieldWidthMode.PCT, width=50))
+    tier = f.add_select("Tier", ["Bronze", "Silver", "Gold"], 1)
+    f.add_multiselect("Tags", ["vip", "net-30"], [0])
+    f.add_date("Since")
+    f.add_text("Notes", "", sc.FieldOpts(multiline=True))  # Enter/Ctrl-G → $EDITOR
+    if f.run():
+        who  = f.get_string(name)
+        tags = f.get_checked(2)
+        d    = f.get_date(3)   # datetime.date | None
+```
+
 ### Input history (REPLs)
 
 `sc.History` gives the text input ↑/↓ recall of previous entries; submitted lines are recorded automatically and can persist across runs in the XDG state directory (`app="myapp"` → `~/.local/state/myapp/history`) or an explicit `file=...`. As a context manager it saves on exit.

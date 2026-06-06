@@ -645,8 +645,45 @@ static void test_process_wrapper() {
     CHECK(sink.exit_code() == 0, "process: result survives a move");
 }
 
+// Headless coverage of the Form wrapper (construction + initial getters).
+static void test_form_wrapper() {
+    Form f{ FormOpts{ .title = "Contact", .accent = sparcli::cyan() } };
+    f.row_begin();
+    int name = f.add_text("Name", "Ada",
+        FieldOpts{ .width_mode = SC_FWIDTH_PCT, .width = 50 });
+    int qty  = f.add_number("Qty", 7);
+    int tier = f.add_select("Tier", { "Bronze", "Silver", "Gold" }, 2);
+    int tags = f.add_multiselect("Tags", { "a", "b", "c" }, { 0, 2 });
+    int ok   = f.add_bool("OK", true);
+
+    CHECK(name == 0 && qty == 1 && tier == 2 && tags == 3 && ok == 4,
+          "form++: field indices in add order");
+    CHECK(f.get_string(name) == "Ada", "form++: text getter");
+    CHECK(f.get_number(qty) == 7.0, "form++: number getter");
+    CHECK(f.get_bool(ok), "form++: bool getter");
+    CHECK(f.get_choice(tier) == 2, "form++: select getter");
+    auto checked = f.get_checked(tags);
+    CHECK(checked.size() == 2 && checked[0] == 0 && checked[1] == 2,
+          "form++: multiselect getter");
+
+    std::tm seed{};
+    seed.tm_year = 2026 - 1900; seed.tm_mon = 4; seed.tm_mday = 15;
+    int when = f.add_date("When", seed);
+    auto d = f.get_date(when);
+    CHECK(d && d->tm_year == 2026 - 1900 && d->tm_mon == 4 && d->tm_mday == 15,
+          "form++: date getter");
+    CHECK(!f.get_date(name).has_value(), "form++: get_date on non-date = none");
+
+    // A multiline field opening an external editor constructs cleanly.
+    Form m{ FormOpts{ .editor = "true" } };
+    m.add_text("Notes", "x\ny", FieldOpts{ .multiline = true });
+    CHECK(m.get_string(0) == std::string("x\ny"),
+          "form++: multiline keeps newlines");
+}
+
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
+    test_form_wrapper();
     test_table_owns_temporaries();
     test_table_null_cell();
     test_table_survives_move();

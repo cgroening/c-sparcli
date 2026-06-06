@@ -418,6 +418,28 @@ if (sc.fired() == 1) { /* F2 → edit s2.label(...) / s2.set_label(...) */ }
 
 A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open unless its lambda returns `false` (it must not open another prompt). For live edits use `Select::cursor/label/set_label/remove` and `Fuzzy::cursor_index/remove`; `Fuzzy::has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter). `Esc` / `Ctrl-C` stay reserved.
 
+### Form (grid layout)
+
+`Form` wraps `sc_form`: add fields row by row, `run()`, then read values back.
+`FieldOpts`/`FormOpts` are aliases of the C opts (set `validate` as a raw
+function pointer if needed); dates use `std::tm`.
+
+```cpp
+Form f({ .title = "Contact", .accent = cyan() });
+f.row_begin();
+int name = f.add_text("Name", "Ada", { .width_mode = SC_FWIDTH_PCT, .width = 50 });
+int tier = f.add_select("Tier", { "Bronze", "Silver", "Gold" }, 1, { .col_span = 2 });
+f.add_multiselect("Tags", { "vip", "net-30" }, { 0 });
+f.add_date("Since", {});
+f.add_text("Notes", "", { .multiline = true });   // Enter / Ctrl-G open $EDITOR
+if (f.run()) {
+    auto who  = f.get_string(name);
+    auto t    = f.get_choice(tier);
+    auto tags = f.get_checked(2);
+    if (auto d = f.get_date(3)) { /* std::tm */ }
+}
+```
+
 ### Rich prompts
 
 For partial styling (e.g. only the old name italic), set `prompt_text` (a borrowed `ScText *`, overrides the string prompt) or `prompt_markup = true` on any input opts. Works inline and boxed.

@@ -107,6 +107,10 @@ using FuzzyOpts       = ScFuzzyOpts;
 using DatePickerOpts  = ScDatePickerOpts;
 using InputTheme      = ScInputTheme;
 using HistoryOpts     = ScHistoryOpts;
+using FormOpts        = ScFormOpts;
+using FieldOpts       = ScFieldOpts;
+using FieldType       = ScFieldType;
+using FieldWidthMode  = ScFieldWidthMode;
 
 // ── Color helpers (avoid the C SC_ANSI_COLOR_* compound-literal macros, which
 //    are non-standard in C++; the functional accessors below are equivalent) ──
@@ -2300,6 +2304,119 @@ public:
 private:
     ScFuzzy* p_;
     std::size_t count_ = 0;   // rows added (sizes the run_multi buffer)
+};
+
+/**
+ * Owning, move-only grid-layout form (wraps `ScForm`). Add fields row by row
+ * (`row_begin`, `add_*`, `add_skip`), `run()` it, then read values back.
+ * Labels/choices/initials are copied by the C side. To set per-field options
+ * (width, spans, height, required, multiline, validate, …) pass a `FieldOpts`
+ * (an alias of the C `ScFieldOpts`). @see sc_form_new, sc_form_run.
+ */
+class Form {
+public:
+    /** Allocates a form. @throws std::bad_alloc */
+    explicit Form(FormOpts opts = {}) : p_(sc_form_new(opts)) {
+        if (!p_) throw std::bad_alloc();
+    }
+    ~Form() { sc_form_free(p_); }
+    Form(Form&& o) noexcept : p_(o.p_) { o.p_ = nullptr; }
+    Form& operator=(Form&& o) noexcept {
+        if (this != &o) { sc_form_free(p_); p_ = o.p_; o.p_ = nullptr; }
+        return *this;
+    }
+    Form(const Form&) = delete;
+    Form& operator=(const Form&) = delete;
+
+    /** Starts a new grid row. @see sc_form_row_begin */
+    Form& row_begin() { sc_form_row_begin(detail::live(p_)); return *this; }
+    /** Placeholder under a col/row-spanning field. @see sc_form_add_skip */
+    Form& add_skip() { sc_form_add_skip(detail::live(p_)); return *this; }
+
+    /** Adds a text field; returns its index. @see sc_form_add_text */
+    int add_text(std::string_view label, std::string_view initial = "",
+                 FieldOpts opts = {}) {
+        return sc_form_add_text(detail::live(p_), detail::z(label).c_str(),
+                                detail::z(initial).c_str(), opts);
+    }
+    /** Adds a number field; returns its index. @see sc_form_add_number */
+    int add_number(std::string_view label, double initial = 0,
+                   FieldOpts opts = {}) {
+        return sc_form_add_number(detail::live(p_), detail::z(label).c_str(),
+                                  initial, opts);
+    }
+    /** Adds a bool field; returns its index. @see sc_form_add_bool */
+    int add_bool(std::string_view label, bool initial = false,
+                 FieldOpts opts = {}) {
+        return sc_form_add_bool(detail::live(p_), detail::z(label).c_str(),
+                                initial, opts);
+    }
+    /** Adds a single-choice field; returns its index. @see sc_form_add_select */
+    int add_select(std::string_view label,
+                   const std::vector<std::string>& choices,
+                   std::size_t initial = 0, FieldOpts opts = {}) {
+        std::vector<const char*> ptrs;
+        ptrs.reserve(choices.size());
+        for (const auto& c : choices) ptrs.push_back(c.c_str());
+        return sc_form_add_select(detail::live(p_), detail::z(label).c_str(),
+                                  ptrs.data(), ptrs.size(), initial, opts);
+    }
+    /** Adds a multi-choice field; returns its index.
+        @see sc_form_add_multiselect */
+    int add_multiselect(std::string_view label,
+                        const std::vector<std::string>& choices,
+                        const std::vector<std::size_t>& checked = {},
+                        FieldOpts opts = {}) {
+        std::vector<const char*> ptrs;
+        ptrs.reserve(choices.size());
+        for (const auto& c : choices) ptrs.push_back(c.c_str());
+        return sc_form_add_multiselect(
+            detail::live(p_), detail::z(label).c_str(), ptrs.data(),
+            ptrs.size(), checked.data(), checked.size(), opts);
+    }
+    /** Adds a date field; returns its index. @see sc_form_add_date */
+    int add_date(std::string_view label, std::tm initial = {},
+                 FieldOpts opts = {}) {
+        return sc_form_add_date(detail::live(p_), detail::z(label).c_str(),
+                                initial, opts);
+    }
+
+    /** Runs the form. @return true on submit, false on cancel/no-TTY. */
+    bool run() { return sc_form_run(detail::live(p_)) == SC_INPUT_OK; }
+
+    /** Current text of `field` (empty if out of range). */
+    std::string_view get_string(int field) const {
+        const char* s = sc_form_get_string(detail::live(p_), field);
+        return s ? std::string_view(s) : std::string_view();
+    }
+    double get_number(int field) const {
+        return sc_form_get_number(detail::live(p_), field);
+    }
+    bool get_bool(int field) const {
+        return sc_form_get_bool(detail::live(p_), field);
+    }
+    std::size_t get_choice(int field) const {
+        return sc_form_get_choice(detail::live(p_), field);
+    }
+    /** Checked add-order indices of a multiselect field. */
+    std::vector<std::size_t> get_checked(int field) const {
+        std::size_t n = sc_form_get_checked(detail::live(p_), field, nullptr, 0);
+        std::vector<std::size_t> out(n);
+        if (n) sc_form_get_checked(detail::live(p_), field, out.data(), n);
+        return out;
+    }
+    /** Picked date of a date field, or `std::nullopt` if not a date field. */
+    std::optional<std::tm> get_date(int field) const {
+        std::tm out{};
+        if (sc_form_get_date(detail::live(p_), field, &out)) return out;
+        return std::nullopt;
+    }
+
+    /** Borrowed underlying `ScForm*` (escape hatch); not owned. */
+    ScForm* get() { return p_; }
+
+private:
+    ScForm* p_;
 };
 
 }  // namespace sparcli

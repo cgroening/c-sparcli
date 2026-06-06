@@ -182,3 +182,22 @@ class ByteUnit(IntEnum):
     SI = 0          # 1000-based: KB, MB, GB
     IEC = 1         # 1024-based: KiB, MiB, GiB
     IEC_SHORT = 2   # 1024-based with short labels: K, M, G
+
+
+class FieldType(IntEnum):
+    """Kind of a :class:`sparcli.Form` field."""
+
+    TEXT = 0
+    NUMBER = 1
+    BOOL = 2
+    SELECT = 3
+    MULTISELECT = 4
+    DATE = 5
+
+
+class FieldWidthMode(IntEnum):
+    """How a form field's grid-column width is sized."""
+
+    AUTO = 0    #: share the leftover width equally
+    PCT = 1     #: ``width`` percent of the available row width
+    FIXED = 2   #: ``width`` columns

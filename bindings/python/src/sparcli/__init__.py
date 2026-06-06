@@ -32,9 +32,10 @@ from .capture import (Live, PadOpts, Rendered, align_str, align_text, capture,
 from .color import Color, Palette, color_by_name
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BgExtent, BorderType,
-                    ByteUnit, HintLayout, HintPos, ListMarker, LogLevel,
-                    PathKind, Position, ProgressType, SpinnerType,
-                    SuggestMatch, SuggestMode, VAlign, WeekStart, WidthMode)
+                    ByteUnit, FieldType, FieldWidthMode, HintLayout, HintPos,
+                    ListMarker, LogLevel, PathKind, Position, ProgressType,
+                    SpinnerType, SuggestMatch, SuggestMode, VAlign, WeekStart,
+                    WidthMode)
 from .log import (Logger, log_add_file, log_debug, log_error,
                   log_hide_timestamps, log_info, log_level, log_reset,
                   log_set_level, log_warning)
@@ -53,6 +54,7 @@ from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      version_string)
 from .progress import (ProgressBar, ProgressBarOpts, Spinner, SpinnerOpts,
                        Thresholds)
+from .form import FieldOpts, Form, FormOpts
 from .select import (Fuzzy, FuzzyOpts, FuzzyOrder, Select, SelectOpts,
                      fuzzy_match)
 from .structures import (Kv, KvOpts, List, ListItem, ListOpts, Tree, TreeNode,
@@ -74,7 +76,7 @@ __all__ = [
     # enums
     "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",
-    "WidthMode", "BgExtent",
+    "WidthMode", "BgExtent", "FieldType", "FieldWidthMode",
     "SuggestMode", "SuggestMatch", "AnsiMode", "PathKind",
     # errors
     "SparcliError", "SparcliInputUnavailable",
@@ -116,6 +118,7 @@ __all__ = [
     "calc_eval",
     "NumberOpts", "textarea", "TextareaOpts", "datepicker", "DatePickerOpts",
     "Select", "SelectOpts", "Fuzzy", "FuzzyOpts", "FuzzyOrder", "fuzzy_match",
+    "Form", "FormOpts", "FieldOpts",
     "filter_digits", "filter_decimal", "filter_alpha", "filter_alnum",
     "filter_no_space",
     # shortcuts / keys / theme

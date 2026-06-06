@@ -80,6 +80,7 @@ _SOURCES = [
     "input/select.c",
     "input/fuzzy.c",
     "input/datepicker.c",
+    "input/form.c",
     "input/history.c",
     "output/pager.c",
     "output/live.c",
@@ -1063,6 +1064,66 @@ typedef struct {
     ...;
 } ScDatePickerOpts;
 ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts);
+
+/* ── Form ──────────────────────────────────────────────────────────────── */
+typedef enum { SC_FWIDTH_AUTO = 0, SC_FWIDTH_PCT, SC_FWIDTH_FIXED }
+    ScFieldWidthMode;
+typedef struct {
+    ScFieldWidthMode width_mode;
+    int width;
+    int col_span;
+    int row_span;
+    int height;
+    bool required;
+    bool multiline;
+    const char *help;
+    ...;
+} ScFieldOpts;
+typedef struct {
+    const char *title;
+    ScTextStyle title_style;
+    ScColor accent;
+    const char *hint;
+    ScHintLayout hint_layout;
+    ScHintPosition hint_pos;
+    ScTextStyle hint_style;
+    ScTextStyle summary_style;
+    bool hide_summary;
+    const ScShortcut *shortcuts;
+    size_t n_shortcuts;
+    int *out_shortcut_id;
+    const char *editor;
+    ScKeyChord editor_key;
+    ...;
+} ScFormOpts;
+typedef struct ScForm ScForm;
+ScForm *sc_form_new(ScFormOpts opts);
+void sc_form_row_begin(ScForm *form);
+int sc_form_add_text(ScForm *form, const char *label, const char *initial,
+                     ScFieldOpts opts);
+int sc_form_add_number(ScForm *form, const char *label, double initial,
+                       ScFieldOpts opts);
+int sc_form_add_bool(ScForm *form, const char *label, bool initial,
+                     ScFieldOpts opts);
+int sc_form_add_select(ScForm *form, const char *label,
+                       const char *const *choices, size_t n, size_t initial,
+                       ScFieldOpts opts);
+int sc_form_add_multiselect(ScForm *form, const char *label,
+                            const char *const *choices, size_t n,
+                            const size_t *checked_indices, size_t n_checked,
+                            ScFieldOpts opts);
+int sc_form_add_date(ScForm *form, const char *label, struct tm initial,
+                     ScFieldOpts opts);
+void sc_form_add_skip(ScForm *form);
+ScInputStatus sc_form_run(ScForm *form);
+const char *sc_form_get_string(const ScForm *form, int field);
+double sc_form_get_number(const ScForm *form, int field);
+bool sc_form_get_bool(const ScForm *form, int field);
+size_t sc_form_get_choice(const ScForm *form, int field);
+size_t sc_form_get_checked(const ScForm *form, int field, size_t *out,
+                           size_t cap);
+bool sc_form_get_date(const ScForm *form, int field, struct tm *out);
+void sc_form_free(ScForm *form);
 """
 )
 

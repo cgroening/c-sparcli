@@ -3720,6 +3720,257 @@ extern "C" {
     #[doc = " Prompts the user to pick a date from a month calendar.\n\n Arrow keys move by day/week; PageUp/PageDown (or `<`/`>`) change month;\n Shift+PageUp/PageDown change year; Enter selects; Esc or Ctrl-C cancels.\n Month/year jumps keep the selected day, clamped to the target month's last\n valid day (e.g. Jan 31 -> Feb 28).\n\n `io` is in/out: its `tm_year`/`tm_mon`/`tm_mday` seed the initial view\n (a zeroed `struct tm` starts at today). On `SC_INPUT_OK` it is overwritten\n with the picked date (normalized via `mktime`).\n\n @param io    In: initial date. Out: picked date. Must not be `NULL`.\n @param opts  Rendering options.\n @return      `SC_INPUT_OK`, `SC_INPUT_CANCELLED`, or `SC_INPUT_ERROR`."]
     pub fn sc_datepicker(io: *mut tm, opts: ScDatePickerOpts) -> ScInputStatus;
 }
+pub const ScFieldType_SC_FIELD_TEXT: ScFieldType = 0;
+pub const ScFieldType_SC_FIELD_NUMBER: ScFieldType = 1;
+pub const ScFieldType_SC_FIELD_BOOL: ScFieldType = 2;
+#[doc = "< Single choice from a list."]
+pub const ScFieldType_SC_FIELD_SELECT: ScFieldType = 3;
+#[doc = "< Multiple choices (checkboxes)."]
+pub const ScFieldType_SC_FIELD_MULTISELECT: ScFieldType = 4;
+#[doc = "< Calendar date (month-grid picker)."]
+pub const ScFieldType_SC_FIELD_DATE: ScFieldType = 5;
+#[doc = " Field editor kind."]
+pub type ScFieldType = ::std::os::raw::c_uint;
+#[doc = "< Share the leftover width equally."]
+pub const ScFieldWidthMode_SC_FWIDTH_AUTO: ScFieldWidthMode = 0;
+#[doc = "< `width` percent of the available row width."]
+pub const ScFieldWidthMode_SC_FWIDTH_PCT: ScFieldWidthMode = 1;
+#[doc = "< `width` columns."]
+pub const ScFieldWidthMode_SC_FWIDTH_FIXED: ScFieldWidthMode = 2;
+#[doc = " How a field's grid-column width is sized."]
+pub type ScFieldWidthMode = ::std::os::raw::c_uint;
+#[doc = " Validation callback. Return `true` to accept `value`; on `false`, set\n `*err` to a short message (borrowed, shown in red below the editor) and the\n editor stays open. Used by text/number fields."]
+pub type ScFieldValidate = ::std::option::Option<
+    unsafe extern "C" fn(
+        value: *const ::std::os::raw::c_char,
+        ctx: *mut ::std::os::raw::c_void,
+        err: *mut *const ::std::os::raw::c_char,
+    ) -> bool,
+>;
+#[doc = " Per-field layout and behaviour. Zero-init selects sensible defaults: auto\n width, span 1x1, one content line, optional (not required), rounded border.\n\n Grid sizing: a field's column width is driven by single-column fields\n (`col_span == 1`) anchored in that column - the last one wins. A spanning\n field (`col_span > 1`) just sums the columns it covers; a spanning field\n (`row_span > 1`) fills the height of the rows it covers."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScFieldOpts {
+    #[doc = " Column width mode; zero-init = AUTO."]
+    pub width_mode: ScFieldWidthMode,
+    #[doc = " Percent (PCT) or column count (FIXED); ignored for AUTO."]
+    pub width: ::std::os::raw::c_int,
+    #[doc = " Columns spanned; zero-init = 1."]
+    pub col_span: ::std::os::raw::c_int,
+    #[doc = " Rows spanned; zero-init = 1."]
+    pub row_span: ::std::os::raw::c_int,
+    #[doc = " Content lines inside the box; zero-init = 1."]
+    pub height: ::std::os::raw::c_int,
+    #[doc = " Block form submit until non-empty / changed."]
+    pub required: bool,
+    #[doc = " Text field only: the value may contain newlines. The box shows it across\n its content lines and the field is edited via the external editor\n (`ScFormOpts.editor_key`, default Ctrl-G) instead of an inline editor."]
+    pub multiline: bool,
+    #[doc = " One-line help shown in the editor region; may be NULL."]
+    pub help: *const ::std::os::raw::c_char,
+    #[doc = " Box border; zero-init type = rounded."]
+    pub border: ScBorderStyle,
+    #[doc = " Optional validation (text/number); NULL = none."]
+    pub validate: ScFieldValidate,
+    pub validate_ctx: *mut ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScFieldOpts"][::std::mem::size_of::<ScFieldOpts>() - 72usize];
+    ["Alignment of ScFieldOpts"][::std::mem::align_of::<ScFieldOpts>() - 8usize];
+    ["Offset of field: ScFieldOpts::width_mode"]
+        [::std::mem::offset_of!(ScFieldOpts, width_mode) - 0usize];
+    ["Offset of field: ScFieldOpts::width"][::std::mem::offset_of!(ScFieldOpts, width) - 4usize];
+    ["Offset of field: ScFieldOpts::col_span"]
+        [::std::mem::offset_of!(ScFieldOpts, col_span) - 8usize];
+    ["Offset of field: ScFieldOpts::row_span"]
+        [::std::mem::offset_of!(ScFieldOpts, row_span) - 12usize];
+    ["Offset of field: ScFieldOpts::height"][::std::mem::offset_of!(ScFieldOpts, height) - 16usize];
+    ["Offset of field: ScFieldOpts::required"]
+        [::std::mem::offset_of!(ScFieldOpts, required) - 20usize];
+    ["Offset of field: ScFieldOpts::multiline"]
+        [::std::mem::offset_of!(ScFieldOpts, multiline) - 21usize];
+    ["Offset of field: ScFieldOpts::help"][::std::mem::offset_of!(ScFieldOpts, help) - 24usize];
+    ["Offset of field: ScFieldOpts::border"][::std::mem::offset_of!(ScFieldOpts, border) - 32usize];
+    ["Offset of field: ScFieldOpts::validate"]
+        [::std::mem::offset_of!(ScFieldOpts, validate) - 56usize];
+    ["Offset of field: ScFieldOpts::validate_ctx"]
+        [::std::mem::offset_of!(ScFieldOpts, validate_ctx) - 64usize];
+};
+#[doc = " Options for the whole form. Zero-init friendly."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScFormOpts {
+    #[doc = " Heading shown above the grid; may be NULL."]
+    pub title: *const ::std::os::raw::c_char,
+    #[doc = " Style of the title; zero-init = bold."]
+    pub title_style: ScTextStyle,
+    #[doc = " Highlight color of the active box / editor; zero-init = cyan."]
+    pub accent: ScColor,
+    #[doc = " Key-hint footer override; NULL = sensible default."]
+    pub hint: *const ::std::os::raw::c_char,
+    #[doc = " Key-hint footer layout / placement / style."]
+    pub hint_layout: ScHintLayout,
+    pub hint_pos: ScHintPosition,
+    pub hint_style: ScTextStyle,
+    #[doc = " Style of the persistent summary line."]
+    pub summary_style: ScTextStyle,
+    #[doc = " Suppress the post-submit summary line."]
+    pub hide_summary: bool,
+    #[doc = " Custom key shortcuts (borrowed, must outlive the run)."]
+    pub shortcuts: *const ScShortcut,
+    pub n_shortcuts: usize,
+    pub out_shortcut_id: *mut ::std::os::raw::c_int,
+    #[doc = " External editor for `multiline` fields. `editor` is the command\n (NULL = `$VISUAL`/`$EDITOR`/nvim/vi); `editor_key` opens it on the active\n multiline field (zero-init = Ctrl-G). No effect without a multiline field."]
+    pub editor: *const ::std::os::raw::c_char,
+    pub editor_key: ScKeyChord,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 152usize];
+    ["Alignment of ScFormOpts"][::std::mem::align_of::<ScFormOpts>() - 8usize];
+    ["Offset of field: ScFormOpts::title"][::std::mem::offset_of!(ScFormOpts, title) - 0usize];
+    ["Offset of field: ScFormOpts::title_style"]
+        [::std::mem::offset_of!(ScFormOpts, title_style) - 8usize];
+    ["Offset of field: ScFormOpts::accent"][::std::mem::offset_of!(ScFormOpts, accent) - 28usize];
+    ["Offset of field: ScFormOpts::hint"][::std::mem::offset_of!(ScFormOpts, hint) - 40usize];
+    ["Offset of field: ScFormOpts::hint_layout"]
+        [::std::mem::offset_of!(ScFormOpts, hint_layout) - 48usize];
+    ["Offset of field: ScFormOpts::hint_pos"]
+        [::std::mem::offset_of!(ScFormOpts, hint_pos) - 52usize];
+    ["Offset of field: ScFormOpts::hint_style"]
+        [::std::mem::offset_of!(ScFormOpts, hint_style) - 56usize];
+    ["Offset of field: ScFormOpts::summary_style"]
+        [::std::mem::offset_of!(ScFormOpts, summary_style) - 76usize];
+    ["Offset of field: ScFormOpts::hide_summary"]
+        [::std::mem::offset_of!(ScFormOpts, hide_summary) - 96usize];
+    ["Offset of field: ScFormOpts::shortcuts"]
+        [::std::mem::offset_of!(ScFormOpts, shortcuts) - 104usize];
+    ["Offset of field: ScFormOpts::n_shortcuts"]
+        [::std::mem::offset_of!(ScFormOpts, n_shortcuts) - 112usize];
+    ["Offset of field: ScFormOpts::out_shortcut_id"]
+        [::std::mem::offset_of!(ScFormOpts, out_shortcut_id) - 120usize];
+    ["Offset of field: ScFormOpts::editor"][::std::mem::offset_of!(ScFormOpts, editor) - 128usize];
+    ["Offset of field: ScFormOpts::editor_key"]
+        [::std::mem::offset_of!(ScFormOpts, editor_key) - 136usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScForm {
+    _unused: [u8; 0],
+}
+extern "C" {
+    #[doc = " Creates a form. Opts strings are copied. Returns NULL on OOM."]
+    pub fn sc_form_new(opts: ScFormOpts) -> *mut ScForm;
+}
+extern "C" {
+    #[doc = " Starts a new grid row. Call before adding the row's fields."]
+    pub fn sc_form_row_begin(form: *mut ScForm);
+}
+extern "C" {
+    #[doc = " Adds a field to the current row. Returns the field index (>= 0) used by the\n getters, or -1 on error. `label` and `initial` are copied."]
+    pub fn sc_form_add_text(
+        form: *mut ScForm,
+        label: *const ::std::os::raw::c_char,
+        initial: *const ::std::os::raw::c_char,
+        opts: ScFieldOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn sc_form_add_number(
+        form: *mut ScForm,
+        label: *const ::std::os::raw::c_char,
+        initial: f64,
+        opts: ScFieldOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn sc_form_add_bool(
+        form: *mut ScForm,
+        label: *const ::std::os::raw::c_char,
+        initial: bool,
+        opts: ScFieldOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Single-choice field. `choices` (and each string) are copied; `initial` is the\n preselected index (clamped to range). The editor opens a scrollable list\n below the grid; Enter selects."]
+    pub fn sc_form_add_select(
+        form: *mut ScForm,
+        label: *const ::std::os::raw::c_char,
+        choices: *const *const ::std::os::raw::c_char,
+        n: usize,
+        initial: usize,
+        opts: ScFieldOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Multi-choice field. `choices` are copied; `checked_indices` (length\n `n_checked`, may be NULL) preselects entries. The editor opens a checkbox\n list below the grid; Space toggles, Enter confirms."]
+    pub fn sc_form_add_multiselect(
+        form: *mut ScForm,
+        label: *const ::std::os::raw::c_char,
+        choices: *const *const ::std::os::raw::c_char,
+        n: usize,
+        checked_indices: *const usize,
+        n_checked: usize,
+        opts: ScFieldOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Date field. `initial` seeds the picker (a zeroed `struct tm` starts at\n today). The editor opens a month grid below the grid: arrows move by\n day/week, PageUp/Down or `<`/`>` change month, Shift+PageUp/Down change year,\n Enter picks. Read back with `sc_form_get_date`."]
+    pub fn sc_form_add_date(
+        form: *mut ScForm,
+        label: *const ::std::os::raw::c_char,
+        initial: tm,
+        opts: ScFieldOpts,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " Adds a skip placeholder covering a cell of a col/row-spanning field."]
+    pub fn sc_form_add_skip(form: *mut ScForm);
+}
+extern "C" {
+    #[doc = " Runs the form interactively. On `SC_INPUT_OK` the edited values are readable\n with the getters below. Returns `SC_INPUT_CANCELLED` on Esc/Ctrl-C and\n `SC_INPUT_ERROR` when no terminal is available."]
+    pub fn sc_form_run(form: *mut ScForm) -> ScInputStatus;
+}
+extern "C" {
+    #[doc = " Current text of a field (borrowed; valid until the form is freed/edited)."]
+    pub fn sc_form_get_string(
+        form: *const ScForm,
+        field: ::std::os::raw::c_int,
+    ) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " Numeric value of a number field (0 for non-number / invalid index)."]
+    pub fn sc_form_get_number(form: *const ScForm, field: ::std::os::raw::c_int) -> f64;
+}
+extern "C" {
+    #[doc = " Boolean value of a bool field (false for non-bool / invalid index)."]
+    pub fn sc_form_get_bool(form: *const ScForm, field: ::std::os::raw::c_int) -> bool;
+}
+extern "C" {
+    #[doc = " Selected index of a single-select field (0 for non-select/invalid)."]
+    pub fn sc_form_get_choice(form: *const ScForm, field: ::std::os::raw::c_int) -> usize;
+}
+extern "C" {
+    #[doc = " Checked indices of a multiselect field, written (add-order) into `out` up to\n `cap`. Returns the total checked count (may exceed `cap`). `out` may be NULL\n to query the count."]
+    pub fn sc_form_get_checked(
+        form: *const ScForm,
+        field: ::std::os::raw::c_int,
+        out: *mut usize,
+        cap: usize,
+    ) -> usize;
+}
+extern "C" {
+    #[doc = " Picked date of a date field, written to `*out` (normalized via mktime).\n Returns false for a non-date field or invalid index."]
+    pub fn sc_form_get_date(
+        form: *const ScForm,
+        field: ::std::os::raw::c_int,
+        out: *mut tm,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " Frees the form and all owned strings. NULL-safe."]
+    pub fn sc_form_free(form: *mut ScForm);
+}
 #[doc = "< Configuration files (`~/.config`)."]
 pub const ScPathKind_SC_PATH_CONFIG: ScPathKind = 0;
 #[doc = "< Persistent application data (`~/.local/share`)."]

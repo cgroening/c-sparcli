@@ -2114,6 +2114,256 @@ pub fn datepicker(
     }
 }
 
+/* ── Form ────────────────────────────────────────────────────────────────── */
+
+repr_enum!(
+    /// How a field's grid-column width is sized.
+    FieldWidthMode {
+        Auto = ffi::ScFieldWidthMode_SC_FWIDTH_AUTO,
+        Pct = ffi::ScFieldWidthMode_SC_FWIDTH_PCT,
+        Fixed = ffi::ScFieldWidthMode_SC_FWIDTH_FIXED,
+    } default Auto
+);
+
+/// Per-field layout and behaviour. All fields are optional (zero-init defaults).
+///
+/// The C `validate` callback is intentionally not exposed here.
+#[derive(Default, Clone)]
+pub struct FieldOpts {
+    pub width_mode: FieldWidthMode,
+    /// Percent (Pct) or column count (Fixed); ignored for Auto.
+    pub width: i32,
+    /// Columns spanned (0 = 1).
+    pub col_span: i32,
+    /// Rows spanned (0 = 1).
+    pub row_span: i32,
+    /// Content lines inside the box (0 = 1).
+    pub height: i32,
+    pub required: bool,
+    /// Text field: multi-line value edited via the external editor.
+    pub multiline: bool,
+    /// One-line help shown in the editor region.
+    pub help: Option<String>,
+    /// Box border (zero = rounded).
+    pub border: BorderStyle,
+}
+
+/// Builds an `ffi::ScFieldOpts`; the returned `CString` (if any) backs `help`
+/// and must outlive the FFI call.
+fn field_ffi(o: &FieldOpts) -> (ffi::ScFieldOpts, Option<CString>) {
+    let help = o.help.as_deref().map(cstring);
+    let mut f: ffi::ScFieldOpts = unsafe { mem::zeroed() };
+    f.width_mode = o.width_mode.raw();
+    f.width = o.width;
+    f.col_span = o.col_span;
+    f.row_span = o.row_span;
+    f.height = o.height;
+    f.required = o.required;
+    f.multiline = o.multiline;
+    f.help = help.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+    f.border = o.border.raw();
+    (f, help)
+}
+
+/// Options for a [`Form`].
+#[derive(Default)]
+pub struct FormOpts {
+    pub title: Option<String>,
+    pub title_style: Style,
+    pub accent: Color,
+    pub hint: Option<String>,
+    pub hint_layout: HintLayout,
+    pub hint_pos: HintPos,
+    pub hint_style: Style,
+    pub summary_style: Style,
+    pub hide_summary: bool,
+    /// External editor command for multiline fields (None = $VISUAL/$EDITOR).
+    pub editor: Option<String>,
+    /// Key that opens the editor (None = Ctrl-G).
+    pub editor_key: Option<Chord>,
+}
+
+/// An owning grid-layout form. Add fields row by row, [`run`](Form::run) it,
+/// then read values back with the `get_*` methods.
+pub struct Form {
+    ptr: *mut ffi::ScForm,
+    count: usize,
+}
+
+impl Form {
+    pub fn new(opts: FormOpts) -> Form {
+        let title = opts.title.as_deref().map(cstring);
+        let hint = opts.hint.as_deref().map(cstring);
+        let editor = opts.editor.as_deref().map(cstring);
+        let mut o: ffi::ScFormOpts = unsafe { mem::zeroed() };
+        o.title = title.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        o.title_style = opts.title_style.raw();
+        o.accent = opts.accent.raw();
+        o.hint = hint.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        o.hint_layout = opts.hint_layout.raw();
+        o.hint_pos = opts.hint_pos.raw();
+        o.hint_style = opts.hint_style.raw();
+        o.summary_style = opts.summary_style.raw();
+        o.hide_summary = opts.hide_summary;
+        o.editor = editor.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        if let Some(c) = opts.editor_key {
+            o.editor_key = c.0;
+        }
+        // Strings are copied by the C side, so the temporaries above suffice.
+        let ptr = unsafe { ffi::sc_form_new(o) };
+        assert!(!ptr.is_null(), "sc_form_new: out of memory");
+        Form { ptr, count: 0 }
+    }
+
+    /// Starts a new grid row.
+    pub fn row_begin(&mut self) -> &mut Self {
+        unsafe { ffi::sc_form_row_begin(self.ptr) };
+        self
+    }
+    /// Placeholder under a col/row-spanning field.
+    pub fn add_skip(&mut self) -> &mut Self {
+        unsafe { ffi::sc_form_add_skip(self.ptr) };
+        self
+    }
+
+    /// Adds a text field; returns its index.
+    pub fn add_text(&mut self, label: &str, initial: &str,
+                    opts: FieldOpts) -> usize {
+        let l = cstring(label);
+        let i = cstring(initial);
+        let (fo, _h) = field_ffi(&opts);
+        let idx = unsafe {
+            ffi::sc_form_add_text(self.ptr, l.as_ptr(), i.as_ptr(), fo)
+        };
+        self.count += 1;
+        idx as usize
+    }
+    /// Adds a number field; returns its index.
+    pub fn add_number(&mut self, label: &str, initial: f64,
+                      opts: FieldOpts) -> usize {
+        let l = cstring(label);
+        let (fo, _h) = field_ffi(&opts);
+        let idx =
+            unsafe { ffi::sc_form_add_number(self.ptr, l.as_ptr(), initial, fo) };
+        self.count += 1;
+        idx as usize
+    }
+    /// Adds a bool field; returns its index.
+    pub fn add_bool(&mut self, label: &str, initial: bool,
+                    opts: FieldOpts) -> usize {
+        let l = cstring(label);
+        let (fo, _h) = field_ffi(&opts);
+        let idx =
+            unsafe { ffi::sc_form_add_bool(self.ptr, l.as_ptr(), initial, fo) };
+        self.count += 1;
+        idx as usize
+    }
+    /// Adds a single-choice field; returns its index.
+    pub fn add_select(&mut self, label: &str, choices: &[&str],
+                      initial: usize, opts: FieldOpts) -> usize {
+        let l = cstring(label);
+        let cs: Vec<CString> = choices.iter().map(|s| cstring(s)).collect();
+        let ptrs: Vec<*const c_char> = cs.iter().map(|c| c.as_ptr()).collect();
+        let (fo, _h) = field_ffi(&opts);
+        let idx = unsafe {
+            ffi::sc_form_add_select(self.ptr, l.as_ptr(), ptrs.as_ptr(),
+                                    ptrs.len(), initial, fo)
+        };
+        self.count += 1;
+        idx as usize
+    }
+    /// Adds a multi-choice field; returns its index.
+    pub fn add_multiselect(&mut self, label: &str, choices: &[&str],
+                           checked: &[usize], opts: FieldOpts) -> usize {
+        let l = cstring(label);
+        let cs: Vec<CString> = choices.iter().map(|s| cstring(s)).collect();
+        let ptrs: Vec<*const c_char> = cs.iter().map(|c| c.as_ptr()).collect();
+        let (fo, _h) = field_ffi(&opts);
+        let idx = unsafe {
+            ffi::sc_form_add_multiselect(self.ptr, l.as_ptr(), ptrs.as_ptr(),
+                                         ptrs.len(), checked.as_ptr(),
+                                         checked.len(), fo)
+        };
+        self.count += 1;
+        idx as usize
+    }
+    /// Adds a date field; returns its index. `initial = None` seeds today.
+    pub fn add_date(&mut self, label: &str, initial: Option<Date>,
+                    opts: FieldOpts) -> usize {
+        let l = cstring(label);
+        let (fo, _h) = field_ffi(&opts);
+        let mut tm: ffi::tm = unsafe { mem::zeroed() };
+        if let Some(d) = initial {
+            tm.tm_year = d.year - 1900;
+            tm.tm_mon = d.month as c_int - 1;
+            tm.tm_mday = d.day as c_int;
+        }
+        let idx =
+            unsafe { ffi::sc_form_add_date(self.ptr, l.as_ptr(), tm, fo) };
+        self.count += 1;
+        idx as usize
+    }
+
+    /// Runs the form. `Ok(true)` = submitted, `Ok(false)` = cancelled.
+    pub fn run(&mut self) -> Result<bool> {
+        status(unsafe { ffi::sc_form_run(self.ptr) })
+    }
+
+    /// Current text of `field`, or `None` if out of range.
+    pub fn get_string(&self, field: usize) -> Option<String> {
+        let p = unsafe { ffi::sc_form_get_string(self.ptr, field as c_int) };
+        if p.is_null() {
+            None
+        } else {
+            Some(unsafe {
+                std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned()
+            })
+        }
+    }
+    pub fn get_number(&self, field: usize) -> f64 {
+        unsafe { ffi::sc_form_get_number(self.ptr, field as c_int) }
+    }
+    pub fn get_bool(&self, field: usize) -> bool {
+        unsafe { ffi::sc_form_get_bool(self.ptr, field as c_int) }
+    }
+    pub fn get_choice(&self, field: usize) -> usize {
+        unsafe { ffi::sc_form_get_choice(self.ptr, field as c_int) }
+    }
+    /// Checked add-order indices of a multiselect field.
+    pub fn get_checked(&self, field: usize) -> Vec<usize> {
+        let f = field as c_int;
+        let n = unsafe {
+            ffi::sc_form_get_checked(self.ptr, f, std::ptr::null_mut(), 0)
+        };
+        let mut out = vec![0usize; n];
+        if n > 0 {
+            unsafe {
+                ffi::sc_form_get_checked(self.ptr, f, out.as_mut_ptr(), n);
+            }
+        }
+        out
+    }
+    /// Picked date of a date field, or `None` if not a date field.
+    pub fn get_date(&self, field: usize) -> Option<Date> {
+        let mut tm: ffi::tm = unsafe { mem::zeroed() };
+        if unsafe { ffi::sc_form_get_date(self.ptr, field as c_int, &mut tm) } {
+            Some(Date {
+                year: tm.tm_year + 1900,
+                month: (tm.tm_mon + 1) as u32,
+                day: tm.tm_mday as u32,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl Drop for Form {
+    fn drop(&mut self) {
+        unsafe { ffi::sc_form_free(self.ptr) };
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

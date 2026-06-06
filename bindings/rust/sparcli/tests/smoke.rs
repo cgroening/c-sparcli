@@ -928,3 +928,42 @@ fn multiprogress_smoke() {
     mp.set_label(b, "b2");
     mp.end();
 }
+
+#[test]
+fn form_construction_and_getters() {
+    use sparcli::{Date, FieldOpts, FieldWidthMode, Form, FormOpts};
+    let mut f = Form::new(FormOpts {
+        title: Some("Contact".into()),
+        ..Default::default()
+    });
+    f.row_begin();
+    let name = f.add_text("Name", "Ada", FieldOpts {
+        width_mode: FieldWidthMode::Pct, width: 50, ..Default::default()
+    });
+    let qty = f.add_number("Qty", 7.0, FieldOpts::default());
+    let tier = f.add_select("Tier", &["Bronze", "Silver", "Gold"], 2,
+                            FieldOpts::default());
+    let tags = f.add_multiselect("Tags", &["a", "b", "c"], &[0, 2],
+                                 FieldOpts::default());
+    let ok = f.add_bool("OK", true, FieldOpts::default());
+    let when = f.add_date("When",
+        Some(Date { year: 2026, month: 5, day: 15 }), FieldOpts::default());
+
+    assert_eq!((name, qty, tier, tags, ok, when), (0, 1, 2, 3, 4, 5));
+    assert_eq!(f.get_string(name).as_deref(), Some("Ada"));
+    assert_eq!(f.get_number(qty), 7.0);
+    assert!(f.get_bool(ok));
+    assert_eq!(f.get_choice(tier), 2);
+    assert_eq!(f.get_checked(tags), vec![0, 2]);
+    assert_eq!(f.get_date(when), Some(Date { year: 2026, month: 5, day: 15 }));
+    assert_eq!(f.get_date(name), None);
+
+    // A multiline field with an external editor configured builds cleanly.
+    let mut m = Form::new(FormOpts {
+        editor: Some("true".into()),
+        ..Default::default()
+    });
+    m.add_text("Notes", "x\ny", FieldOpts { multiline: true,
+                                            ..Default::default() });
+    assert_eq!(m.get_string(0).as_deref(), Some("x\ny"));
+}

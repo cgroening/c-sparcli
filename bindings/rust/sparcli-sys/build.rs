@@ -53,6 +53,7 @@ const SOURCES: &[&str] = &[
     "src/input/select.c",
     "src/input/fuzzy.c",
     "src/input/datepicker.c",
+    "src/input/form.c",
     "src/input/history.c",
     "src/app/paths.c",
     "src/app/error.c",

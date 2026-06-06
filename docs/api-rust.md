@@ -324,6 +324,30 @@ if let Some(d) = datepicker(None, DatePickerOpts::new().prompt("Date"))? {
 let pure = fuzzy_match("ab", "cab");          // (bool, score), no TTY
 ```
 
+### Form (grid layout)
+
+`Form` builds a grid of fields; `run()` then the `get_*` getters. `FieldOpts`/
+`FormOpts` are plain builder structs; dates use `Date`. (The per-field
+`validate` callback is not exposed.)
+
+```rust
+use sparcli::{Form, FormOpts, FieldOpts, FieldWidthMode};
+let mut f = Form::new(FormOpts { title: Some("Contact".into()), ..Default::default() });
+f.row_begin();
+let name = f.add_text("Name", "Ada",
+    FieldOpts { width_mode: FieldWidthMode::Pct, width: 50, ..Default::default() });
+let tier = f.add_select("Tier", &["Bronze", "Silver", "Gold"], 1, FieldOpts::default());
+f.add_multiselect("Tags", &["vip", "net-30"], &[0], FieldOpts::default());
+f.add_date("Since", None, FieldOpts::default());
+f.add_text("Notes", "", FieldOpts { multiline: true, ..Default::default() });
+if f.run()? {
+    let _who  = f.get_string(name);
+    let _t    = f.get_choice(tier);
+    let _tags = f.get_checked(2);
+    if let Some(d) = f.get_date(3) { let _ = d; }   // sparcli::Date
+}
+```
+
 ### Custom shortcuts
 
 Bind extra keys (Ctrl-letter / F1–F12 / Alt) on any widget. RETURN-mode ends the prompt and reports an id via `fired()`; CALLBACK-mode runs a closure and keeps the prompt open unless it returns `false`.
