@@ -49,16 +49,17 @@ make lint         # static analysis: cppcheck + clang-tidy (.clang-tidy config;
 make fuzz         # random-input fuzzing of the markup parser, key decoder,
                   # ANSI sanitizer, argument parser/splitter + calculator under
                   # ASan/UBSan (FUZZ_ITERS / FUZZ_SEED overridable). The serde
-                  # parsers (JSON/CSV) are fuzzed by `make serde-fuzz` instead.
-make serde-qa     # COMPLETE serde gate (own gate, NOT in `make test`/`qa`):
-                  # test-serde (-Werror) + serde-sanitize + serde-fuzz +
-                  # serde-cpp. Run after any src/serde/ change.
+                  # parsers (JSON/CSV) are fuzzed by `make qa-serde-fuzz` instead.
+make qa-serde     # COMPLETE serde gate (own gate, NOT in `make test`/`qa`):
+                  # test-serde (-Werror) + qa-serde-sanitize + qa-serde-fuzz +
+                  # qa-serde-cpp. Run after any src/serde/ change.
 make test-serde   # serde data-model + format round-trip suite (headless)
-make serde-sanitize / serde-fuzz / serde-cpp  # ASan/UBSan run / parser fuzzing
-                  # (JSON+CSV) / C++ wrapper assertion suite
+make qa-serde-sanitize / qa-serde-fuzz / qa-serde-cpp  # ASan/UBSan run / parser
+                  # fuzzing (JSON+CSV) / C++ wrapper assertion suite
 make test-view    # VIEW layer suite (ScValue + Markdown render → widgets);
                   # headless, opt-in (outside make test/qa, like serde).
-make view-sanitize  # the view suite under ASan/UBSan.
+make qa-view      # COMPLETE view gate (own gate, NOT in `make test`/`qa`):
+                  # test-view (-Werror) + qa-view-sanitize + qa-view-cpp.
 make EXTRA_CFLAGS=-Werror   # treat warnings as errors (propagates to sub-makes)
 make examples            # build all C + C++ examples (examples/{c,cpp}/**)
 make run-example EX=<lang>/<group>/<name>   # build+run one example; dispatches
@@ -1393,7 +1394,7 @@ The fuzzer found (and led to the fix of) a pre-existing out-of-bounds read in `s
 
 ## Serde (`src/serde/`)
 
-Structured **read+write** parsers (JSON, CSV, TOML, YAML, Markdown) over one shared model. Data-only layer: no terminal output/input. Depends on `core` (+ `app/error` for the pretty-error bridge), compiles into `libsparcli.a`, but is **opt-in** (`#include <serde/sparcli_serde.h>` / `.hpp`, **not** in the `sparcli.h` umbrella) and has **own gates outside `make qa`** (`make serde-qa`). **C + C++ only** (the C sources still compile into the Rust/Python libs, but those bindings don't wrap serde - they have `serde`/`argparse`/etc.). Full reference: `docs/api-serde.md`.
+Structured **read+write** parsers (JSON, CSV, TOML, YAML, Markdown) over one shared model. Data-only layer: no terminal output/input. Depends on `core` (+ `app/error` for the pretty-error bridge), compiles into `libsparcli.a`, but is **opt-in** (`#include <serde/sparcli_serde.h>` / `.hpp`, **not** in the `sparcli.h` umbrella) and has **own gates outside `make qa`** (`make qa-serde`). **C + C++ only** (the C sources still compile into the Rust/Python libs, but those bindings don't wrap serde - they have `serde`/`argparse`/etc.). Full reference: `docs/api-serde.md`.
 
 - **Shared `ScValue` tree** (`sparcli_value.h`): `SC_VALUE_NULL/BOOL/INT(int64)/FLOAT(double)/STRING/ARRAY/OBJECT/DATETIME`. Constructors `sc_value_*`, accessors `sc_value_as_*`/`_get`/`_at`/`_key_at` (return false/NULL on type mismatch - null-tolerant navigation), mutators `sc_value_push`/`_set`/`_remove`/`_remove_at` (push/set **transfer ownership** of the child, no deep copy; set replaces in place, objects keep insertion order), `sc_value_free` frees recursively. **Convenience:** `sc_value_get_{bool,int,float,string}_or(obj,key,fallback)`, `sc_value_path(root,"a.b.0.c")` (dotted; object keys + array indices), `sc_value_clone` (deep copy), `sc_value_merge(base,overlay)` (deep config overlay). JSON/TOML/YAML all parse into / write from it - **format conversion = parse-one/write-the-other**. CSV and Markdown have their own models.
 - **`ScParseError`** (`sparcli_parse_error.h`): caller-stack struct (line/column/message[]/snippet[], no alloc - like `sc_args_split`'s err). Every `sc_<fmt>_parse(src, len, ScParseError *err)` returns NULL + fills `err`. Bridge `sc_parse_error_to_error()` → `ScError` (exit 2) for `sc_die`.
@@ -1409,7 +1410,7 @@ Structured **read+write** parsers (JSON, CSV, TOML, YAML, Markdown) over one sha
 | Aspect | Detail |
 |--------|--------|
 | Source layout | `value.c`, `buf.c`, `parse_error.c`, `json.c`, `csv.c`, `toml.c`, `yaml.c`, `markdown.c`; appended to `SRC` via `SERDE_SRC` |
-| Gates (NOT in `make test`/`qa`) | `make test-serde` (logic), `serde-sanitize` (ASan/UBSan), `serde-fuzz` (all 5 parsers, libFuzzer-compatible), `serde-cpp` (C++ under sanitizers), aggregated by **`make serde-qa`**. Run after any `src/serde/` change |
+| Gates (NOT in `make test`/`qa`) | `make test-serde` (logic), `qa-serde-sanitize` (ASan/UBSan), `qa-serde-fuzz` (all 5 parsers, libFuzzer-compatible), `qa-serde-cpp` (C++ under sanitizers), aggregated by **`make qa-serde`**. Run after any `src/serde/` change |
 | Robustness | All parsers depth-limited + fuzzed 200k clean (the YAML fuzzer caught a flow-sequence non-advancing infinite-loop/OOM - fixed with a cursor-progress guard). `make lint` (clang-tidy, part of `qa`) now covers serde: use `calloc` for string-dup helpers + keep stack pops provably in-bounds |
 | Limitations (deliberate) | numbers `double`/`int64` only (no lossless decimal lexeme); TOML datetimes as strings; YAML subset; Markdown = structure only; **parse→write is data- but NOT comment/format-preserving** (readers accept `#` comments but drop them - not an "edit config in place" tool); no CLI serde subcommands (deferred) |
 | Tests / examples | `tests/serde/` (`test_{value,json,csv,toml,yaml,markdown}.c`), `tests/cpp/test_serde_cpp.cpp`, `tests/fuzz/fuzz_{json,csv,toml,yaml,markdown}.c`; `examples/c/data/`, `examples/cpp/data/` |
@@ -1418,7 +1419,7 @@ Structured **read+write** parsers (JSON, CSV, TOML, YAML, Markdown) over one sha
 
 ## View (`src/view/`)
 
-Renders the **serde data models to the terminal** — the bridge between the data layer and the output widgets. Depends on **both** serde and output, so (like serde) it is **opt-in and NOT in the `sparcli.h` umbrella**: `#include <view/sparcli_view.h>`. Compiled into `libsparcli.a`; own gate `make test-view` (+ `view-sanitize`), outside `make test`/`qa`. This is the layer added so a renderer of serde types never forces serde into the `sparcli.h` umbrella nor a serde dependency into `output`.
+Renders the **serde data models to the terminal** — the bridge between the data layer and the output widgets. Depends on **both** serde and output, so (like serde) it is **opt-in and NOT in the `sparcli.h` umbrella**: `#include <view/sparcli_view.h>`. Compiled into `libsparcli.a`; own gate `make qa-view` (`test-view` + `qa-view-sanitize` + `qa-view-cpp`), outside `make test`/`qa`. This is the layer added so a renderer of serde types never forces serde into the `sparcli.h` umbrella nor a serde dependency into `output`.
 
 - **ScValue pretty-print** (`value_render.c`, `view/sparcli_value_render.h`): jq-style colored, indented dump of any `ScValue`.
   ```c
@@ -1440,5 +1441,5 @@ Renders the **serde data models to the terminal** — the bridge between the dat
 |--------|--------|
 | Scope | Not full CommonMark — covers the common constructs. Paragraph text is emitted styled and relies on the **terminal's own line wrapping**; lists/tables wrap to `width` |
 | Layering | Block rendering (paragraphs/lists/code/tables) is done in the view layer; the serde markdown parser supplies only the front-matter split + heading/section tree, so the view consumes `sc_md_section_*` + the section body text |
-| Tests | `tests/view/test_view.c` (`make test-view`; assertion-based on ANSI-stripped output), `make view-sanitize` (ASan/UBSan) |
+| Tests | `tests/view/test_view.c` (`make test-view`; assertion-based on ANSI-stripped output), `make qa-view-sanitize` (ASan/UBSan), aggregated by **`make qa-view`** |
 | Bindings | C/C++ focused (like serde); Rust/Python don't wrap the view layer (they have `serde`/their own renderers). The C sources still compile into those libs |

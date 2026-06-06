@@ -41,6 +41,17 @@ make EXTRA_CFLAGS=-Werror
 
 The suites split along the output/input boundary. Everything except `make test-input` (which needs a real terminal) runs headless.
 
+### `test` vs `qa` – two tiers, not synonyms
+
+The targets come in two tiers, and they are **not** content-equivalent — `test ⊂ qa`:
+
+- **`test*`** is the *fast functional* tier: build the test binaries and run them (optionally `-Werror`). "Do the checks pass?" Quick; what you run constantly while developing.
+- **`qa*`** is the *full pre-commit battery*: it runs the matching `test` tier with `-Werror` **and then adds** the heavy gates — sanitizers (ASan/UBSan), ThreadSanitizer, static analysis (cppcheck/clang-tidy), fuzzing, and the language bindings. "Is this commit-ready?" Much slower.
+
+Concretely, `make qa` literally begins with `make test EXTRA_CFLAGS=-Werror` and layers the heavy gates on top (see the list below), so running `make test` covers a strict subset of what `make qa` does. The same relationship holds per opt-in area: `test-serde ⊂ qa-serde` and `test-view ⊂ qa-view`.
+
+**Naming convention.** The main gate is `make qa`; the opt-in data layers get sibling area gates `make qa-serde` and `make qa-view`, with their individual steps under the same prefix (`qa-serde-sanitize`, `qa-serde-fuzz`, `qa-serde-cpp`, `qa-view-sanitize`, `qa-view-cpp`). Plain functional runners keep the `test-*` name (`test-serde`, `test-view`).
+
 ### `make test` – full non-interactive suite
 
 The canonical "is everything OK?" command. Runs all headless gates in order – `test-output-check`, `test-input ARGS=--logic`, `test-input-style-check`, `test-input-pty`, `test-app`, `test-args`, `test-cpp`, `test-cli-check`, `test-cli-pty` – and fails if any does. Command-line overrides propagate, so `make test EXTRA_CFLAGS=-Werror` builds every gate with warnings as errors. The interactive widget suite (`make test-input`) needs a real TTY and is **not** included. The individual targets it chains are documented below.
@@ -256,23 +267,33 @@ make lint
 
 ### `make fuzz` – random-input fuzzing of the parsers (ASan/UBSan)
 
-Feeds the external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`), the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`), and the argument parser/line splitter (`sc_args_parse` / `sc_args_split`) plus the calculator (`sc_calc_eval`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer). The serde-layer parsers (JSON, CSV, TOML, YAML, Markdown) are fuzzed separately by `make serde-fuzz` (part of `make serde-qa`, not `make fuzz`/`qa`).
+Feeds the external parsers – the inline-markup parser (`sc_markup_parse`), the key decoder (`sc_key_decode`), the ANSI sanitizer (`sc_sanitize_copy` / `sc_strip_ansi`), and the argument parser/line splitter (`sc_args_parse` / `sc_args_split`) plus the calculator (`sc_calc_eval`) – with pseudo-random byte sequences under ASan/UBSan. The sanitizer harness additionally asserts its output contract (no ESC/control bytes when disallowed, output never longer than the input). Deterministic by default; tune with `FUZZ_ITERS` / `FUZZ_SEED`. The harnesses in `tests/fuzz/` expose a libFuzzer-compatible `LLVMFuzzerTestOneInput`, so they can also run under a real libFuzzer toolchain (`-DSPARCLI_LIBFUZZER -fsanitize=fuzzer,address`; Apple clang does not ship libFuzzer). The serde-layer parsers (JSON, CSV, TOML, YAML, Markdown) are fuzzed separately by `make qa-serde-fuzz` (part of `make qa-serde`, not `make fuzz`/`qa`).
 
 ```sh
 make fuzz                              # 200k inputs per parser, seed 1
 make fuzz FUZZ_ITERS=1000000 FUZZ_SEED=42
 ```
 
-### The serde suite (`make serde-qa`)
+### The serde suite (`make qa-serde`)
 
-The serde layer (`src/serde/` – the JSON/CSV/TOML/YAML/Markdown read+write parsers over `ScValue`) has its **own** test gates, deliberately kept out of `make test`/`make qa` so the data-parser work is validated independently of the terminal library. Run `make serde-qa` after any `src/serde/` change; it chains:
+The serde layer (`src/serde/` – the JSON/CSV/TOML/YAML/Markdown read+write parsers over `ScValue`) has its **own** QA gate, deliberately kept out of `make test`/`make qa` so the data-parser work is validated independently of the terminal library. Run `make qa-serde` after any `src/serde/` change; it chains:
 
 - `make test-serde` – the data-model + format round-trip logic suite (`tests/serde/`, headless, built `-Werror`),
-- `make serde-sanitize` – the same suite under AddressSanitizer + UBSan,
-- `make serde-fuzz` – random-input fuzzing of all five parsers (libFuzzer-compatible, `FUZZ_ITERS`/`FUZZ_SEED` as above),
-- `make serde-cpp` – the C++ wrapper assertion suite (`tests/cpp/test_serde_cpp.cpp`) under the sanitizers.
+- `make qa-serde-sanitize` – the same suite under AddressSanitizer + UBSan,
+- `make qa-serde-fuzz` – random-input fuzzing of all five parsers (libFuzzer-compatible, `FUZZ_ITERS`/`FUZZ_SEED` as above),
+- `make qa-serde-cpp` – the C++ wrapper assertion suite (`tests/cpp/test_serde_cpp.cpp`) under the sanitizers.
 
 `make lint` (part of `make qa`) does cover `src/serde/`, so still run it on serde changes. The serde suite uses logic + round-trip assertions (no golden files), and the `examples/{c,cpp}/data/` examples double as a secondary check (`make examples`). Full API: [`api-serde.md`](api-serde.md).
+
+### The view suite (`make qa-view`)
+
+The view layer (`src/view/` – renders the serde `ScValue`/Markdown models to the terminal through the widget stack) is opt-in like serde and has its own QA gate, also outside `make test`/`make qa`. Run `make qa-view` after any `src/view/` change; it chains:
+
+- `make test-view` – the render logic suite (`tests/view/`, headless, built `-Werror`),
+- `make qa-view-sanitize` – the same suite under AddressSanitizer + UBSan,
+- `make qa-view-cpp` – the C++ wrapper assertion suite (`tests/cpp/test_view_cpp.cpp`) under the sanitizers.
+
+Since the view layer depends on **both** serde and output, run `make qa-serde` as well when a change touches both.
 
 ### Golden-file workflow
 
@@ -294,9 +315,13 @@ Copy-paste block to validate a change.
 make qa
 
 # 1b. If you touched the serde layer (src/serde/), run its separate gate. It is
-#     deliberately NOT part of `make qa`: test-serde (-Werror) + serde-sanitize
-#     (ASan/UBSan) + serde-fuzz (all five parsers) + serde-cpp (C++ wrapper).
-make serde-qa
+#     deliberately NOT part of `make qa`: test-serde (-Werror) + qa-serde-sanitize
+#     (ASan/UBSan) + qa-serde-fuzz (all five parsers) + qa-serde-cpp (C++ wrapper).
+make qa-serde
+
+# 1c. If you touched the view layer (src/view/), run its separate gate (also NOT
+#     part of `make qa`): test-view (-Werror) + qa-view-sanitize + qa-view-cpp.
+make qa-view
 
 # 2. If you changed rendering on purpose, regenerate + review + commit the golden:
 make test-output-golden

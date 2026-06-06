@@ -4,7 +4,7 @@
 // Verifies the wrapper's value-adds over the C serde API: RAII ownership
 // (move-only, no double-free under ASan), std::optional accessors, the
 // ParseError exception with line/column, and JSON round-tripping. Built and
-// run under AddressSanitizer/UBSan by `make serde-cpp`.
+// run under AddressSanitizer/UBSan by `make qa-serde-cpp`.
 
 #include <serde/sparcli_serde.hpp>
 

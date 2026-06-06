@@ -91,7 +91,7 @@ Everything a complete command-line application needs around the widgets; overvie
 
 ### Structured data (serde)
 
-An opt-in `serde/` layer of read/write parsers over one shared `ScValue` tree (C and C++ only); full reference in [`docs/api-serde.md`](docs/api-serde.md). Included via `<serde/sparcli_serde.h>` / `.hpp`, **not** by `<sparcli.h>`, and gated separately (`make serde-qa`).
+An opt-in `serde/` layer of read/write parsers over one shared `ScValue` tree (C and C++ only); full reference in [`docs/api-serde.md`](docs/api-serde.md). Included via `<serde/sparcli_serde.h>` / `.hpp`, **not** by `<sparcli.h>`, and gated separately (`make qa-serde`).
 
 - **JSON, TOML, YAML** (documented subset) – read and write over the shared model, so converting between them is parse-one/write-the-other (`sc_json_*`, `sc_toml_*`, `sc_yaml_*`).
 - **CSV/TSV** – RFC-4180 reader+writer with quoted fields, ragged rows and header lookup (`sc_csv_*`); the same parser the `sparcli table` CLI uses.
@@ -513,7 +513,7 @@ See **[`docs/development.md`](docs/development.md)** for the full build/test/ in
 - **Python bindings** – ✅ ship in [`bindings/python/`](bindings/python/) (the cffi API-mode `sparcli` package; see [`docs/api-python.md`](docs/api-python.md)).
 - **Command-line tool** – ✅ ships as the `sparcli` binary ([`cli/`](cli/); every widget as a shell subcommand with zsh completion; see [`docs/cli.md`](docs/cli.md)).
 - **CLI application framework** – ✅ argument parser (`sc_args_*`, [docs](docs/api-framework.md)), logging (`sc_log_*`), pretty errors (`sc_die`), XDG paths, pager and OSC-8 hyperlinks.
-- **Structured data (serde)** – ✅ the opt-in `serde/` layer: JSON/CSV/TOML/YAML/Markdown readers and writers over a shared `ScValue` model, in C and the C++ wrapper, with its own `make serde-qa` gate; see [`docs/api-serde.md`](docs/api-serde.md).
+- **Structured data (serde)** – ✅ the opt-in `serde/` layer: JSON/CSV/TOML/YAML/Markdown readers and writers over a shared `ScValue` model, in C and the C++ wrapper, with its own `make qa-serde` gate; see [`docs/api-serde.md`](docs/api-serde.md).
 - **CLI on the args module** – migrate [`cli/`](cli/) from `getopt_long` + hand-written usage strings to the argument parser (`sc_args_*`) once its API has stabilized through real-world use. This would remove the duplicated option/usage/completion definitions and give `sparcli --help` widget-rendered output. Deferred on purpose: the CLI is stable and golden-tested; coupling it to a brand-new API would force follow-up changes on every API adjustment.
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
 - **`examples/` directory** – ✅ self-contained, copy-pasteable examples for every component in all four languages, grouped by language and area; see [`docs/examples.md`](docs/examples.md).

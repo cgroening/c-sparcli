@@ -1,6 +1,6 @@
 // test_view_cpp.cpp - assertion suite for the opt-in, serde-dependent C++
 // wrappers: sparcli::Config (app/sparcli_config.hpp) and the sparcli::view
-// renderers (view/sparcli_view.hpp). Built + run by `make view-cpp` under
+// renderers (view/sparcli_view.hpp). Built + run by `make qa-view-cpp` under
 // AddressSanitizer/UBSan.
 
 #include <app/sparcli_config.hpp>

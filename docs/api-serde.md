@@ -13,7 +13,7 @@ It is **opt-in and separate** from the rest of the library:
 - It depends only on the core utilities (and `app/error` for the pretty-error
   bridge); it never touches the output/input stack.
 - It ships in the same `libsparcli` as everything else, but has its own test
-  gates (`make serde-qa`), kept out of `make test`/`make qa`.
+  gates (`make qa-serde`), kept out of `make test`/`make qa`.
 - **C and C++ only.** Rust has `serde`/`toml`/`serde_yaml` and Python its own
   ecosystem, so those bindings deliberately don't wrap this layer.
 
@@ -523,8 +523,8 @@ The **view layer** (`src/view/`, header `view/sparcli_view.h`, C++
 `view/sparcli_view.hpp`) renders the serde data models *to the terminal* — the
 bridge between this data layer and the output widgets. It depends on **both**
 serde and the output stack, so, like serde itself, it is **opt-in and not in the
-`sparcli.h` umbrella**; it has its own gate `make test-view` (+ `view-sanitize`,
-`view-cpp`), outside `make test`/`qa`.
+`sparcli.h` umbrella**; it has its own gate `make qa-view` (`make test-view` +
+`qa-view-sanitize` + `qa-view-cpp`), outside `make test`/`qa`.
 
 **Pretty-print an `ScValue`** (jq-style, colored):
 
@@ -570,13 +570,13 @@ The serde sources compile into `libsparcli`, but the suite is **separate** from
 `make test`/`make qa`:
 
 ```sh
-make test-serde      # data-model + format round-trip logic suite (headless)
-make serde-sanitize  # the suite under AddressSanitizer + UBSan
-make serde-fuzz      # random-input fuzzing of all five parsers (ASan/UBSan)
-make serde-cpp       # the C++ wrapper assertion suite under the sanitizers
-make serde-qa        # all of the above – the parser-layer counterpart to `make qa`
+make test-serde         # data-model + format round-trip logic suite (headless)
+make qa-serde-sanitize  # the suite under AddressSanitizer + UBSan
+make qa-serde-fuzz      # random-input fuzzing of all five parsers (ASan/UBSan)
+make qa-serde-cpp       # the C++ wrapper assertion suite under the sanitizers
+make qa-serde           # all of the above – the parser-layer counterpart to `make qa`
 ```
 
-Run `make serde-qa` after any change under `src/serde/`. See
+Run `make qa-serde` after any change under `src/serde/`. See
 [`docs/development.md`](development.md) for the full workflow and
 [`docs/examples.md`](examples.md) for the runnable `data/` examples.
