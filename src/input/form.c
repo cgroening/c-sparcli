@@ -67,6 +67,7 @@ struct ScForm {
     char       *hint;        /**< Owned. */
     char       *editor;      /**< Owned external-editor command, or NULL. */
     ScColor     accent;
+    ScColor     edit_bg;     /**< Background of the below-grid editor box. */
 
     /* Run state. */
     int          active;
@@ -197,6 +198,8 @@ ScForm *sc_form_new(ScFormOpts opts) {
     self->hint = sc_dup_opt_str(opts.hint);
     self->editor = sc_dup_opt_str(opts.editor);
     self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
+    self->edit_bg = opts.edit_bg.index ? opts.edit_bg
+                                       : sc_color_from_rgb(43, 43, 43);  // gray
     self->cur_row = -1;
     self->active = 0;
     return self;
@@ -896,16 +899,22 @@ static ScRendered *build_edit_box(ScForm *self, const Field *a, int box_w) {
     sc_text_free(body);
 
     ScPanelOpts po = {
-        .border = { .type = SC_BORDER_ROUNDED, .color = self->accent },
+        .border = { .type = SC_BORDER_ROUNDED, .color = self->accent,
+                    .bg = self->edit_bg },
+        .bg = self->edit_bg,
         .title = { .text = a->label, .halign = SC_ALIGN_LEFT, .pad = 1,
                    .style = { SC_TEXT_ATTR_BOLD, self->accent,
-                              SC_ANSI_COLOR_NONE } },
+                              self->edit_bg } },
         .padding = { .left = 1, .right = 1 },
         .width = box_w,
     };
     ScRendered *framed = sc_capture_panel_rendered(r_body, po);
     if (!framed) { return r_body; }   /* fall back to the unframed body */
     sc_rendered_free(r_body);
+
+    /* Separator rule above the editor box (matches the box width + accent). */
+    ScRendered *r_rule = sc_capture_rule_str(NULL, (ScRuleOpts){
+        .type = SC_BORDER_SINGLE, .color = self->edit_bg, .width = box_w });
 
     /* Hint (+ validation error for text/number) stacked dim below the box. */
     ScText *below = sc_text_new();
@@ -922,11 +931,21 @@ static ScRendered *build_edit_box(ScForm *self, const Field *a, int box_w) {
     ScRendered *r_hint = sc_capture_text(below);
     sc_text_free(below);
 
-    const ScRendered *parts[2] = { framed, r_hint };
-    ScRendered *out = sc_vstack(parts, 2, 0);
+    /* Box + hint hug each other (gap 0); the rule sits one line above. */
+    const ScRendered *bh[2] = { framed, r_hint };
+    ScRendered *box = sc_vstack(bh, 2, 0);
     sc_rendered_free(framed);
     sc_rendered_free(r_hint);
-    return out;
+
+    if (r_rule && box) {
+        const ScRendered *parts[2] = { r_rule, box };
+        ScRendered *out = sc_vstack(parts, 2, 1);
+        sc_rendered_free(r_rule);
+        sc_rendered_free(box);
+        return out;
+    }
+    sc_rendered_free(r_rule);
+    return box;
 }
 
 /**

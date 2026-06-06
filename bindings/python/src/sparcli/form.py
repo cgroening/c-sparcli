@@ -62,6 +62,7 @@ class FormOpts:
     shortcuts: Shortcuts | None = None
     editor: str | None = None          #: external editor for multiline fields
     editor_key: KeyChord | None = None  #: opens the editor (None = Ctrl-G)
+    edit_bg: Color = Color.NONE        #: editor-box background (default: gray)
 
     def _fill(self, c, arena: list) -> None:
         c.title = cstr(arena, self.title)
@@ -76,6 +77,7 @@ class FormOpts:
         c.editor = cstr(arena, self.editor)
         if self.editor_key is not None:
             c.editor_key = self.editor_key.value
+        apply_color(c.edit_bg, self.edit_bg)
 
 
 class Form:

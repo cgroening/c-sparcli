@@ -2206,6 +2206,8 @@ pub struct FormOpts {
     pub editor: Option<String>,
     /// Key that opens the editor (None = Ctrl-G).
     pub editor_key: Option<Chord>,
+    /// Background of the editor box below the grid (default: a subtle gray).
+    pub edit_bg: Color,
 }
 
 /// An owning grid-layout form. Add fields row by row, [`run`](Form::run) it,
@@ -2235,6 +2237,7 @@ impl Form {
         if let Some(c) = opts.editor_key {
             o.editor_key = c.0;
         }
+        o.edit_bg = opts.edit_bg.raw();
         // Strings are copied by the C side, so the temporaries above suffice.
         let ptr = unsafe { ffi::sc_form_new(o) };
         assert!(!ptr.is_null(), "sc_form_new: out of memory");

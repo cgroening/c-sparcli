@@ -3833,10 +3833,12 @@ pub struct ScFormOpts {
     #[doc = " External editor for `multiline` fields. `editor` is the command\n (NULL = `$VISUAL`/`$EDITOR`/nvim/vi); `editor_key` opens it on the active\n multiline field (zero-init = Ctrl-G). No effect without a multiline field."]
     pub editor: *const ::std::os::raw::c_char,
     pub editor_key: ScKeyChord,
+    #[doc = " Background of the editor box shown below the grid; zero = gray."]
+    pub edit_bg: ScColor,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 152usize];
+    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 160usize];
     ["Alignment of ScFormOpts"][::std::mem::align_of::<ScFormOpts>() - 8usize];
     ["Offset of field: ScFormOpts::title"][::std::mem::offset_of!(ScFormOpts, title) - 0usize];
     ["Offset of field: ScFormOpts::title_style"]
@@ -3864,6 +3866,8 @@ const _: () = {
     ["Offset of field: ScFormOpts::editor"][::std::mem::offset_of!(ScFormOpts, editor) - 128usize];
     ["Offset of field: ScFormOpts::editor_key"]
         [::std::mem::offset_of!(ScFormOpts, editor_key) - 136usize];
+    ["Offset of field: ScFormOpts::edit_bg"]
+        [::std::mem::offset_of!(ScFormOpts, edit_bg) - 148usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

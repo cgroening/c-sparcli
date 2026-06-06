@@ -1097,6 +1097,7 @@ typedef struct {
     int *out_shortcut_id;
     const char *editor;
     ScKeyChord editor_key;
+    ScColor edit_bg;
     ...;
 } ScFormOpts;
 typedef struct ScForm ScForm;

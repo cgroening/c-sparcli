@@ -151,6 +151,11 @@ typedef struct ScFormOpts {
      */
     const char *editor;
     ScKeyChord editor_key;
+
+    /** Background of the editor box shown below the grid while editing a field.
+        Zero-init = a subtle gray default; set a named/RGB color
+        (`sc_color_from_rgb(...)`) to customize the tone. */
+    ScColor edit_bg;
 } ScFormOpts;
 
 /** Opaque form handle. */
