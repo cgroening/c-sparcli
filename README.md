@@ -3,7 +3,7 @@
 A C11 library for **styled terminal output**, **interactive prompts** and **CLI applications**:
 
 - panels, tables, rules, columns, lists, trees, key/value blocks, alerts, badges, progress bars, spinners and live-updating dashboards;
-- confirm, text, password, number, textarea, select, fuzzy and date-picker prompts – every one extensible with custom keyboard shortcuts;
+- confirm, text, password, number, textarea, select, fuzzy, date-picker prompts and a grid-layout form – every one extensible with custom keyboard shortcuts;
 - an application framework: argument parser ("clap for C"), logging, pretty errors, XDG paths, pager integration and REPL building blocks.
 
 Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, safe, idiomatic **Rust** and **Python** bindings, and a **`sparcli` command-line tool** that exposes everything to the shell (zsh/bash).
@@ -71,7 +71,7 @@ The full reference for every output component lives in [`docs/api-c.md`](docs/ap
 
 The full reference for every input widget lives in [`docs/api-c.md`](docs/api-c.md#input-widgets); a per-widget overview is in [Input widgets](#input-widgets).
 
-- **Interactive prompts**: confirm, text/password, number, textarea, single & multi select, fuzzy finder, and a date picker – each with a non-TTY fallback.
+- **Interactive prompts**: confirm, text/password, number, textarea, single & multi select, fuzzy finder, a date picker, and a grid-layout **form** (framed fields with widths/spans, 2D navigation, multiline fields edited in `$EDITOR`) – each with a non-TTY fallback.
 - **Custom keyboard shortcuts** on every prompt (Ctrl-letter / F1–F12 / Alt) bound to return-an-action or live callbacks, plus **rich prompts** (mix styles, e.g. a partly-italic label) ([docs](docs/api-c.md#custom-shortcuts)).
 - **Input history**: ↑/↓ recall of previous entries in the text input, with optional persistence in the XDG state directory (`sc_history_*`).
 
@@ -321,6 +321,7 @@ Interactive prompts that drive a real terminal in raw mode. Each returns an `ScI
 | **Select** | `sc_select_*` | Single- or multi-choice list with a scrolling viewport. |
 | **Fuzzy finder** | `sc_fuzzy_*` | Incremental fuzzy search; optional table view. |
 | **Date picker** | `sc_datepicker` | Month-grid calendar; day/week/month/year navigation. |
+| **Form** | `sc_form_*` | Grid-layout form: framed fields (text/number/bool/select/multiselect/date) with per-field width and col/row spans, 2D navigation, in-place editing below the grid; multiline fields open `$EDITOR`. |
 | **Input history** | `sc_history_*` | ↑/↓ recall of previous entries in the text input; optional persistence in the XDG state directory (REPL building block). |
 | **Theme** | `sc_input_set_theme` | Process-wide style defaults inherited by every input widget. |
 

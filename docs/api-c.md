@@ -1202,6 +1202,36 @@ bool      sc_fuzzy_match(const char *pattern, const char *str, int *score);  /* 
 
 **Opts lifetime (handle widgets):** `sc_select_new` / `sc_fuzzy_new` **copy** their opts string fields (prompt, markers, checkbox glyphs, hint, fuzzy headers, `empty_text`, `initial_query`, `normal_label` / `insert_label`) and item labels are copied by `sc_*_add` (rich `ScText` cells are deep-copied), so the caller's buffers only need to live until the respective call returns. Only `shortcuts` and `prompt_text` stay **borrowed** and must outlive the run.
 
+### Form (grid layout)
+
+A **form** lays out several fields as framed boxes in a row/column raster, navigated in 2D and edited one field at a time in a region below the grid. It is one interactive session (a single `sc_form_run`) — do **not** nest it inside another prompt.
+
+```c
+ScForm *sc_form_new(ScFormOpts opts);   /* opts strings copied */
+void sc_form_row_begin(ScForm *f);      /* start a grid row */
+int  sc_form_add_text  (ScForm *f, const char *label, const char *initial, ScFieldOpts o); /* → field index */
+int  sc_form_add_number(ScForm *f, const char *label, double initial, ScFieldOpts o);
+int  sc_form_add_bool  (ScForm *f, const char *label, bool initial, ScFieldOpts o);
+int  sc_form_add_select(ScForm *f, const char *label, const char *const *choices, size_t n, size_t initial, ScFieldOpts o);
+int  sc_form_add_multiselect(ScForm *f, const char *label, const char *const *choices, size_t n, const size_t *checked_idx, size_t n_checked, ScFieldOpts o);
+int  sc_form_add_date  (ScForm *f, const char *label, struct tm initial, ScFieldOpts o); /* zeroed tm = today */
+void sc_form_add_skip  (ScForm *f);     /* placeholder under a col/row-spanning field */
+ScInputStatus sc_form_run(ScForm *f);   /* Ctrl-D submit (enforces required), Esc cancel */
+const char *sc_form_get_string(const ScForm *f, int field);
+double      sc_form_get_number(const ScForm *f, int field);
+bool        sc_form_get_bool  (const ScForm *f, int field);
+size_t      sc_form_get_choice(const ScForm *f, int field);                      /* single-select index */
+size_t      sc_form_get_checked(const ScForm *f, int field, size_t *out, size_t cap); /* multiselect → count */
+bool        sc_form_get_date  (const ScForm *f, int field, struct tm *out);
+void        sc_form_free(ScForm *f);
+```
+
+**Layout** mirrors the table model — rows of cells with `ScFieldOpts.col_span` / `row_span` and `sc_form_add_skip` placeholders for spanned cells. Per-field width is `ScFieldWidthMode` (`SC_FWIDTH_AUTO` / `_PCT` / `_FIXED` with `width`); it is a **shared column grid**, so a column has one width, taken from the **last** single-column field anchored in it (a spanning field just sums its columns). `height` sets a field's content lines; a `row_span` field fills the spanned rows.
+
+**Interaction:** arrows move the active box in 2D (it gets an `accent`-colored border); Tab/Shift-Tab cycle. **Enter** opens the field's editor in an `accent`-framed box **below** the grid (the box keeps showing the committed value); a second **Enter** validates + saves and the grid re-renders; **Esc** discards the edit (Esc in navigation cancels the form). Bool fields toggle in place with Space/Enter. select/multiselect open a scrollable list (Space toggles a checkbox); date opens a month grid. **Ctrl-D** submits and first enforces `ScFieldOpts.required` (empty text/number or zero-checked multiselect blocks submit and jumps to the field).
+
+**Multiline text** (`ScFieldOpts.multiline`): the value may hold newlines (shown across the box) and is edited via the **external editor** — **Enter** or `ScFormOpts.editor_key` (zero-init = Ctrl-G) opens `ScFormOpts.editor` (NULL = `$VISUAL`/`$EDITOR`/nvim/vi). Optional per-field `ScFieldOpts.validate` keeps the inline editor open with a red error line. Strings are copied; `shortcuts` stays borrowed. Bindings: C++ `sparcli::Form`, Rust `sparcli::Form`, Python `sc.Form`. Example: `examples/c/apps/form_demo.c`.
+
 ```c
 /* Custom shortcuts (any widget) – bind extra keys to actions. See "Custom shortcuts". */
 ScKeyChord sc_key_ctrl(char letter);   /* ^letter (Ctrl-C/H/I/J/M not bindable) */
