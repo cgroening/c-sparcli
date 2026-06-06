@@ -939,41 +939,71 @@ static ScRendered *build_edit_region(ScForm *self, int box_w) {
 
 enum { DIR_LEFT, DIR_RIGHT, DIR_UP, DIR_DOWN };
 
+/** Gap between two non-overlapping half-open ranges [a0,a1) and [b0,b1);
+ *  0 when they touch or overlap. */
+static int range_gap(int a0, int a1, int b0, int b1) {
+    if (b0 >= a1) { return b0 - a1; }
+    if (a0 >= b1) { return a0 - b1; }
+    return 0;   /* overlapping */
+}
+
 /** Returns the field index reached by moving `dir` from the active field.
  *
- *  Finds the nearest field in the requested direction by cell-center distance,
- *  not a strict same-row/same-column scan. This stays robust when a field's
- *  visible box width (its ScFieldWidthMode) differs from its grid col_span -
- *  e.g. a full-width-looking title that occupies only grid column 0 is still
- *  reachable from a field two columns over. The primary axis (row for up/down,
- *  column for left/right) dominates; the cross axis breaks ties. */
+ *  Edge-based spatial navigation over the cell grid: a candidate qualifies only
+ *  when it lies wholly beyond the active field's edge in the travel direction
+ *  (its near edge is at/after the active field's far edge), so a field can never
+ *  be reached "sideways". Among the qualifying fields the nearest one in the
+ *  travel axis wins; ties prefer cross-axis overlap (the field lined up with the
+ *  active one), then the top-/left-most candidate. This stays correct for spans
+ *  - a row_span field is ranked by its top edge, not a shifted center, and a
+ *  wide col_span field two columns over is not mistaken for the next column -
+ *  while remaining robust when a field's visible box width (its
+ *  ScFieldWidthMode) differs from its grid col_span. */
 static int neighbor(const ScForm *self, int dir) {
     const Field *a = &self->fields[self->active];
-    long a_rc = 2L * a->row + a->row_span;   /* row center ×2 */
-    long a_cc = 2L * a->col + a->col_span;   /* col center ×2 */
+    int a_r0 = a->row, a_r1 = a->row + a->row_span;   /* rows [r0, r1) */
+    int a_c0 = a->col, a_c1 = a->col + a->col_span;   /* cols [c0, c1) */
     int best = self->active;
     long best_score = -1;
     for (size_t i = 0; i < self->count; i++) {
         if ((int)i == self->active) { continue; }
         const Field *f = &self->fields[i];
-        long f_rc = 2L * f->row + f->row_span;
-        long f_cc = 2L * f->col + f->col_span;
-        long primary, secondary;
+        int f_r0 = f->row, f_r1 = f->row + f->row_span;
+        int f_c0 = f->col, f_c1 = f->col + f->col_span;
+        bool row_overlap = (f_r0 < a_r1 && a_r0 < f_r1);
+        bool col_overlap = (f_c0 < a_c1 && a_c0 < f_c1);
+        long primary, secondary, tertiary;
         switch (dir) {
-            case DIR_UP:
-                if (f_rc >= a_rc) { continue; }
-                primary = a_rc - f_rc; secondary = labs(a_cc - f_cc); break;
-            case DIR_DOWN:
-                if (f_rc <= a_rc) { continue; }
-                primary = f_rc - a_rc; secondary = labs(a_cc - f_cc); break;
+            case DIR_RIGHT:
+                if (f_c0 < a_c1) { continue; }
+                primary = f_c0 - a_c1;
+                secondary = row_overlap
+                    ? 0 : range_gap(a_r0, a_r1, f_r0, f_r1) + 1;
+                tertiary = f_r0;
+                break;
             case DIR_LEFT:
-                if (f_cc >= a_cc) { continue; }
-                primary = a_cc - f_cc; secondary = labs(a_rc - f_rc); break;
-            default:   /* DIR_RIGHT */
-                if (f_cc <= a_cc) { continue; }
-                primary = f_cc - a_cc; secondary = labs(a_rc - f_rc); break;
+                if (f_c1 > a_c0) { continue; }
+                primary = a_c0 - f_c1;
+                secondary = row_overlap
+                    ? 0 : range_gap(a_r0, a_r1, f_r0, f_r1) + 1;
+                tertiary = f_r0;
+                break;
+            case DIR_DOWN:
+                if (f_r0 < a_r1) { continue; }
+                primary = f_r0 - a_r1;
+                secondary = col_overlap
+                    ? 0 : range_gap(a_c0, a_c1, f_c0, f_c1) + 1;
+                tertiary = f_c0;
+                break;
+            default:   /* DIR_UP */
+                if (f_r1 > a_r0) { continue; }
+                primary = a_r0 - f_r1;
+                secondary = col_overlap
+                    ? 0 : range_gap(a_c0, a_c1, f_c0, f_c1) + 1;
+                tertiary = f_c0;
+                break;
         }
-        long score = primary * 100000L + secondary;
+        long score = primary * 1000000L + secondary * 1000L + tertiary;
         if (best_score < 0 || score < best_score) {
             best_score = score; best = (int)i;
         }

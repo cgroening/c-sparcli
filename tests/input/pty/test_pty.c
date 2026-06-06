@@ -1022,6 +1022,49 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 72: {
+            /* Right must step A -> B -> C across the row, NOT into the wide
+               col_span select E below. From B, Right reaches C (col 2); a
+               center-distance metric would wrongly pick E. Edit C: "c" -> "cZ". */
+            static const char *const opt[] = { "x", "y" };
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_add_text(f, "B", "b", (ScFieldOpts){ 0 });
+            int fc = sc_form_add_text(f, "C", "c", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "D", "d", (ScFieldOpts){ 0 });
+            sc_form_add_select(f, "E", opt, 2, 0,
+                (ScFieldOpts){ .col_span = 2 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, fc);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "cZ") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 73: {
+            /* Down must step A -> G -> N down column 0, landing on the row_span
+               field N (rows 2-3, col 0), NOT its col-1 neighbour P. A
+               center-distance metric shifts N's center down and wrongly picks P.
+               Edit N: "n" -> "nZ". */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "G", "g", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            int n = sc_form_add_text(f, "N", "n",
+                (ScFieldOpts){ .row_span = 2, .height = 2 });
+            sc_form_add_text(f, "P", "p", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_skip(f);
+            sc_form_add_text(f, "Q", "q", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, n);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "nZ") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1107,6 +1150,8 @@ static const Case CASES[] = {
     { "form-tab-edit-advance", "\rX\tY\r\x04" }, /* edit A, Tab commits+edits B */
     { "form-tab-bool-focus", "\rX\t \x04" },     /* Tab onto bool: focus, not toggle */
     { "form-nav-robust", "\x1b[B\x1b[C\x1b[C\x1b[A\rZ\r\x04" }, /* up reaches title */
+    { "form-nav-right-spans", "\x1b[C\x1b[C\rZ\r\x04" }, /* right skips wide col_span */
+    { "form-nav-down-spans", "\x1b[B\x1b[B\rZ\r\x04" },  /* down hits row_span field */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 
