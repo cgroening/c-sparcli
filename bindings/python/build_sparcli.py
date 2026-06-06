@@ -1089,6 +1089,7 @@ typedef struct {
     ScTextStyle hint_style;
     ScTextStyle summary_style;
     bool hide_summary;
+    bool no_cycle;
     const ScShortcut *shortcuts;
     size_t n_shortcuts;
     int *out_shortcut_id;

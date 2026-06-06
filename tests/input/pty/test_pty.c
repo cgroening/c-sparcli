@@ -1065,6 +1065,62 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 74: {
+            /* Goal column is preserved past a wide col_span cell: from C (col 2)
+               Down lands on E (col_span 2, covers col 2), Down again must keep
+               column 2 -> H, not snap left to F/G. Edit H: "h" -> "hZ". */
+            static const char *const opt[] = { "x", "y" };
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_add_text(f, "B", "b", (ScFieldOpts){ 0 });
+            sc_form_add_text(f, "C", "c", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "D", "d", (ScFieldOpts){ 0 });
+            sc_form_add_select(f, "E", opt, 2, 0,
+                (ScFieldOpts){ .col_span = 2 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "F", "f", (ScFieldOpts){ 0 });
+            sc_form_add_text(f, "G", "g", (ScFieldOpts){ 0 });
+            int h = sc_form_add_text(f, "H", "h", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, h);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "hZ") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 75: {
+            /* Cycling on by default: Up from the top field wraps to the bottom
+               field in the same column. Edit C: "c" -> "cZ". */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "B", "b", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            int fc = sc_form_add_text(f, "C", "c", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, fc);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "cZ") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 76: {
+            /* no_cycle: Up at the top field does nothing, so the edit lands on A
+               itself. "a" -> "aZ" (with cycling it would have edited C). */
+            ScForm *f = sc_form_new((ScFormOpts){ .no_cycle = true });
+            sc_form_row_begin(f);
+            int a = sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "B", "b", (ScFieldOpts){ 0 });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "C", "c", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, a);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "aZ") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1152,6 +1208,9 @@ static const Case CASES[] = {
     { "form-nav-robust", "\x1b[B\x1b[C\x1b[C\x1b[A\rZ\r\x04" }, /* up reaches title */
     { "form-nav-right-spans", "\x1b[C\x1b[C\rZ\r\x04" }, /* right skips wide col_span */
     { "form-nav-down-spans", "\x1b[B\x1b[B\rZ\r\x04" },  /* down hits row_span field */
+    { "form-nav-goal-col", "\x1b[C\x1b[C\x1b[B\x1b[B\rZ\r\x04" }, /* col kept past span */
+    { "form-nav-cycle", "\x1b[A\rZ\r\x04" },             /* up wraps to bottom */
+    { "form-nav-no-cycle", "\x1b[A\rZ\r\x04" },          /* up at top stays put */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

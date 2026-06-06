@@ -69,6 +69,8 @@ struct ScForm {
 
     /* Run state. */
     int          active;
+    int          goal_col;   /**< Preferred column kept across vertical moves. */
+    int          goal_row;   /**< Preferred row kept across horizontal moves. */
     bool         editing;
     ScLineEditor ed;
     bool         ed_active;
@@ -939,74 +941,75 @@ static ScRendered *build_edit_region(ScForm *self, int box_w) {
 
 enum { DIR_LEFT, DIR_RIGHT, DIR_UP, DIR_DOWN };
 
-/** Gap between two non-overlapping half-open ranges [a0,a1) and [b0,b1);
- *  0 when they touch or overlap. */
-static int range_gap(int a0, int a1, int b0, int b1) {
-    if (b0 >= a1) { return b0 - a1; }
-    if (a0 >= b1) { return a0 - b1; }
-    return 0;   /* overlapping */
+/** Distance from a goal column to field `f`'s column range; 0 when it covers
+ *  the goal. Used as the cross-axis anchor for vertical moves so the original
+ *  column is preserved while stepping past wide col_span cells. */
+static int col_score(const Field *f, int goal) {
+    if (f->col <= goal && goal < f->col + f->col_span) { return 0; }
+    return goal < f->col ? f->col - goal : goal - (f->col + f->col_span - 1);
+}
+
+/** Distance from a goal row to field `f`'s row range; 0 when it covers it.
+ *  Cross-axis anchor for horizontal moves (preserves the row past row_span). */
+static int row_score(const Field *f, int goal) {
+    if (f->row <= goal && goal < f->row + f->row_span) { return 0; }
+    return goal < f->row ? f->row - goal : goal - (f->row + f->row_span - 1);
 }
 
 /** Returns the field index reached by moving `dir` from the active field.
  *
- *  Edge-based spatial navigation over the cell grid: a candidate qualifies only
- *  when it lies wholly beyond the active field's edge in the travel direction
- *  (its near edge is at/after the active field's far edge), so a field can never
- *  be reached "sideways". Among the qualifying fields the nearest one in the
- *  travel axis wins; ties prefer cross-axis overlap (the field lined up with the
- *  active one), then the top-/left-most candidate. This stays correct for spans
- *  - a row_span field is ranked by its top edge, not a shifted center, and a
- *  wide col_span field two columns over is not mistaken for the next column -
- *  while remaining robust when a field's visible box width (its
- *  ScFieldWidthMode) differs from its grid col_span. */
+ *  Edge-based spatial navigation over the cell grid with a remembered "goal"
+ *  column (vertical moves) / row (horizontal moves): the primary axis steps to
+ *  the nearest cell beyond the active field's edge, while the cross axis keeps
+ *  the goal coordinate so e.g. descending column 2 past a wide col_span cell
+ *  lands back in column 2 rather than snapping to the left. Phase 0 searches
+ *  strictly in `dir`; if nothing qualifies and cycling is enabled (the default,
+ *  unless `ScFormOpts.no_cycle`), phase 1 wraps to the opposite edge. Ranking by
+ *  cell edges (not centers) keeps spans correct, and works even when a field's
+ *  visible box width (ScFieldWidthMode) differs from its grid col_span. */
 static int neighbor(const ScForm *self, int dir) {
     const Field *a = &self->fields[self->active];
     int a_r0 = a->row, a_r1 = a->row + a->row_span;   /* rows [r0, r1) */
     int a_c0 = a->col, a_c1 = a->col + a->col_span;   /* cols [c0, c1) */
+    bool vert = (dir == DIR_UP || dir == DIR_DOWN);
     int best = self->active;
-    long best_score = -1;
-    for (size_t i = 0; i < self->count; i++) {
-        if ((int)i == self->active) { continue; }
-        const Field *f = &self->fields[i];
-        int f_r0 = f->row, f_r1 = f->row + f->row_span;
-        int f_c0 = f->col, f_c1 = f->col + f->col_span;
-        bool row_overlap = (f_r0 < a_r1 && a_r0 < f_r1);
-        bool col_overlap = (f_c0 < a_c1 && a_c0 < f_c1);
-        long primary, secondary, tertiary;
-        switch (dir) {
-            case DIR_RIGHT:
-                if (f_c0 < a_c1) { continue; }
-                primary = f_c0 - a_c1;
-                secondary = row_overlap
-                    ? 0 : range_gap(a_r0, a_r1, f_r0, f_r1) + 1;
-                tertiary = f_r0;
-                break;
-            case DIR_LEFT:
-                if (f_c1 > a_c0) { continue; }
-                primary = a_c0 - f_c1;
-                secondary = row_overlap
-                    ? 0 : range_gap(a_r0, a_r1, f_r0, f_r1) + 1;
-                tertiary = f_r0;
-                break;
-            case DIR_DOWN:
-                if (f_r0 < a_r1) { continue; }
-                primary = f_r0 - a_r1;
-                secondary = col_overlap
-                    ? 0 : range_gap(a_c0, a_c1, f_c0, f_c1) + 1;
-                tertiary = f_c0;
-                break;
-            default:   /* DIR_UP */
-                if (f_r1 > a_r0) { continue; }
-                primary = a_r0 - f_r1;
-                secondary = col_overlap
-                    ? 0 : range_gap(a_c0, a_c1, f_c0, f_c1) + 1;
-                tertiary = f_c0;
-                break;
+    int max_phase = self->opts.no_cycle ? 1 : 2;
+    for (int phase = 0; phase < max_phase; phase++) {
+        long best_score = -1;
+        for (size_t i = 0; i < self->count; i++) {
+            if ((int)i == self->active) { continue; }
+            const Field *f = &self->fields[i];
+            int f_r0 = f->row, f_r1 = f->row + f->row_span;
+            int f_c0 = f->col, f_c1 = f->col + f->col_span;
+            long dist;
+            if (phase == 0) {     /* strictly beyond the active edge in `dir` */
+                if (dir == DIR_DOWN)       { if (f_r0 < a_r1) { continue; }
+                                             dist = f_r0 - a_r1; }
+                else if (dir == DIR_UP)    { if (f_r1 > a_r0) { continue; }
+                                             dist = a_r0 - f_r1; }
+                else if (dir == DIR_RIGHT) { if (f_c0 < a_c1) { continue; }
+                                             dist = f_c0 - a_c1; }
+                else                       { if (f_c1 > a_c0) { continue; }
+                                             dist = a_c0 - f_c1; }
+            } else {              /* wrap: nearest field at the opposite edge */
+                if (dir == DIR_DOWN)       { if (f_r0 >= a_r1) { continue; }
+                                             dist = f_r0; }
+                else if (dir == DIR_UP)    { if (f_r1 <= a_r0) { continue; }
+                                             dist = self->rows - f_r1; }
+                else if (dir == DIR_RIGHT) { if (f_c0 >= a_c1) { continue; }
+                                             dist = f_c0; }
+                else                       { if (f_c1 <= a_c0) { continue; }
+                                             dist = self->cols - f_c1; }
+            }
+            long cross = vert ? col_score(f, self->goal_col)
+                              : row_score(f, self->goal_row);
+            long minor = vert ? f_c0 : f_r0;
+            long score = dist * 10000L + cross * 100L + minor;
+            if (best_score < 0 || score < best_score) {
+                best_score = score; best = (int)i;
+            }
         }
-        long score = primary * 1000000L + secondary * 1000L + tertiary;
-        if (best_score < 0 || score < best_score) {
-            best_score = score; best = (int)i;
-        }
+        if (best != self->active) { break; }   /* found one this phase */
     }
     return best;
 }
@@ -1137,6 +1140,29 @@ static void commit_edit(ScForm *self) {
     self->edit_err = NULL;
 }
 
+/** Focuses field `idx` and resets the navigation goal to its top-left cell.
+ *  Used for non-directional jumps (Tab, required-field jump, edit-advance,
+ *  initial focus); arrow moves preserve the goal instead. */
+static void form_focus(ScForm *self, int idx) {
+    self->active = idx;
+    self->goal_col = self->fields[idx].col;
+    self->goal_row = self->fields[idx].row;
+}
+
+/** Arrow-key move: steps to the neighbour in `dir` and updates the goal of the
+ *  axis we travelled along while preserving the cross-axis goal (so vertical
+ *  moves keep the column, horizontal moves keep the row). */
+static void nav_move(ScForm *self, int dir) {
+    int next = neighbor(self, dir);
+    if (next == self->active) { return; }
+    self->active = next;
+    if (dir == DIR_UP || dir == DIR_DOWN) {
+        self->goal_row = self->fields[next].row;   /* goal_col preserved */
+    } else {
+        self->goal_col = self->fields[next].col;   /* goal_row preserved */
+    }
+}
+
 /** Commits the field currently being edited; returns true when edit mode was
  *  left (success). Text/number validation can fail and keep the editor open. */
 static bool edit_commit_current(ScForm *self) {
@@ -1160,8 +1186,8 @@ static bool edit_commit_current(ScForm *self) {
  *  so the user lands on them in navigation mode. */
 static void edit_advance(ScForm *self, int step) {
     if (!edit_commit_current(self)) { return; }   /* stay on validation error */
-    self->active =
-        (self->active + step + (int)self->count) % (int)self->count;
+    form_focus(self,
+        (self->active + step + (int)self->count) % (int)self->count);
     if (self->fields[self->active].type != SC_FIELD_BOOL) {
         begin_edit(self);   /* multiline: begin_edit returns early = focus only */
     }
@@ -1248,16 +1274,16 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
 
     /* Navigation mode. */
     switch (key.type) {
-        case SC_KEY_LEFT:  self->active = neighbor(self, DIR_LEFT);  return;
-        case SC_KEY_RIGHT: self->active = neighbor(self, DIR_RIGHT); return;
-        case SC_KEY_UP:    self->active = neighbor(self, DIR_UP);    return;
-        case SC_KEY_DOWN:  self->active = neighbor(self, DIR_DOWN);  return;
+        case SC_KEY_LEFT:  nav_move(self, DIR_LEFT);  return;
+        case SC_KEY_RIGHT: nav_move(self, DIR_RIGHT); return;
+        case SC_KEY_UP:    nav_move(self, DIR_UP);    return;
+        case SC_KEY_DOWN:  nav_move(self, DIR_DOWN);  return;
         case SC_KEY_TAB:
-            self->active = (self->active + 1) % (int)self->count;
+            form_focus(self, (self->active + 1) % (int)self->count);
             return;
         case SC_KEY_BACKTAB:
-            self->active =
-                (self->active - 1 + (int)self->count) % (int)self->count;
+            form_focus(self,
+                (self->active - 1 + (int)self->count) % (int)self->count);
             return;
         case SC_KEY_ENTER:
             begin_edit(self);
@@ -1266,7 +1292,7 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             for (size_t i = 0; i < self->count; i++) {
                 if (field_required_unmet(&self->fields[i])) {
                     self->form_err = "please fill in the required fields";
-                    self->active = (int)i;
+                    form_focus(self, (int)i);
                     return;
                 }
             }
@@ -1339,7 +1365,7 @@ ScInputStatus sc_form_run(ScForm *self) {
         return SC_INPUT_ERROR;
     }
     form_finalize(self);
-    self->active = 0;
+    form_focus(self, 0);
     self->editing = false;
     self->ed_active = false;
     self->edit_err = NULL;

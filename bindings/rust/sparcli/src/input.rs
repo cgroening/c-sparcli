@@ -2177,6 +2177,9 @@ pub struct FormOpts {
     pub hint_style: Style,
     pub summary_style: Style,
     pub hide_summary: bool,
+    /// Stop at the grid edges instead of wrapping arrow navigation (default:
+    /// arrows cycle around the edges; Tab/Shift-Tab always cycle).
+    pub no_cycle: bool,
     /// External editor command for multiline fields (None = $VISUAL/$EDITOR).
     pub editor: Option<String>,
     /// Key that opens the editor (None = Ctrl-G).
@@ -2205,6 +2208,7 @@ impl Form {
         o.hint_style = opts.hint_style.raw();
         o.summary_style = opts.summary_style.raw();
         o.hide_summary = opts.hide_summary;
+        o.no_cycle = opts.no_cycle;
         o.editor = editor.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         if let Some(c) = opts.editor_key {
             o.editor_key = c.0;

@@ -3816,6 +3816,8 @@ pub struct ScFormOpts {
     pub summary_style: ScTextStyle,
     #[doc = " Suppress the post-submit summary line."]
     pub hide_summary: bool,
+    #[doc = " Disable arrow-key cycling (default: arrows wrap around the grid edges)."]
+    pub no_cycle: bool,
     #[doc = " Custom key shortcuts (borrowed, must outlive the run)."]
     pub shortcuts: *const ScShortcut,
     pub n_shortcuts: usize,
@@ -3843,6 +3845,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFormOpts, summary_style) - 76usize];
     ["Offset of field: ScFormOpts::hide_summary"]
         [::std::mem::offset_of!(ScFormOpts, hide_summary) - 96usize];
+    ["Offset of field: ScFormOpts::no_cycle"]
+        [::std::mem::offset_of!(ScFormOpts, no_cycle) - 97usize];
     ["Offset of field: ScFormOpts::shortcuts"]
         [::std::mem::offset_of!(ScFormOpts, shortcuts) - 104usize];
     ["Offset of field: ScFormOpts::n_shortcuts"]

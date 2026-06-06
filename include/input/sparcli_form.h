@@ -122,6 +122,14 @@ typedef struct ScFormOpts {
     /** Suppress the post-submit summary line. */
     bool hide_summary;
 
+    /**
+     * Disable arrow-key cycling. By default the active box wraps around the grid
+     * edges (Down past the last row returns to the top in the same column, Right
+     * past the last column returns to the first in the same row, etc.); set this
+     * to stop at the edges instead. Tab/Shift-Tab always cycle.
+     */
+    bool no_cycle;
+
     /** Custom key shortcuts (borrowed, must outlive the run). */
     const ScShortcut *shortcuts;
     size_t n_shortcuts;

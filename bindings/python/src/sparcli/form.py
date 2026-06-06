@@ -56,6 +56,7 @@ class FormOpts:
     hint_style: Style = field(default_factory=Style)
     summary_style: Style = field(default_factory=Style)
     hide_summary: bool = False
+    no_cycle: bool = False             #: stop at grid edges (default: arrows wrap)
     shortcuts: Shortcuts | None = None
     editor: str | None = None          #: external editor for multiline fields
     editor_key: KeyChord | None = None  #: opens the editor (None = Ctrl-G)
@@ -68,6 +69,7 @@ class FormOpts:
                   self.hint_style, arena)
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
+        c.no_cycle = self.no_cycle
         fill_shortcuts(c, self.shortcuts, arena)
         c.editor = cstr(arena, self.editor)
         if self.editor_key is not None:
