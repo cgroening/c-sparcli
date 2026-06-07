@@ -3885,6 +3885,8 @@ pub struct ScFormOpts {
     pub hide_summary: bool,
     #[doc = " Disable arrow-key cycling (default: arrows wrap around the grid edges)."]
     pub no_cycle: bool,
+    #[doc = " Open the initial field's editor as soon as the form starts."]
+    pub autoedit: bool,
     #[doc = " Custom key shortcuts (borrowed, must outlive the run)."]
     pub shortcuts: *const ScShortcut,
     pub n_shortcuts: usize,
@@ -3922,6 +3924,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFormOpts, hide_summary) - 96usize];
     ["Offset of field: ScFormOpts::no_cycle"]
         [::std::mem::offset_of!(ScFormOpts, no_cycle) - 97usize];
+    ["Offset of field: ScFormOpts::autoedit"]
+        [::std::mem::offset_of!(ScFormOpts, autoedit) - 98usize];
     ["Offset of field: ScFormOpts::shortcuts"]
         [::std::mem::offset_of!(ScFormOpts, shortcuts) - 104usize];
     ["Offset of field: ScFormOpts::n_shortcuts"]

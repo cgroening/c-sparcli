@@ -1421,6 +1421,11 @@ ScInputStatus sc_form_run(ScForm *self) {
     free(self->list_checked);
     self->list_checked = NULL;
 
+    if (self->opts.autoedit
+        && self->fields[self->active].type != SC_FIELD_BOOL) {
+        begin_edit(self);   // open the initial field's editor (skip bool toggle)
+    }
+
     bool has_editor = form_has_multiline(self);
     ScPromptVTable vtable = {
         .render = form_render,

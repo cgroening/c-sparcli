@@ -2266,6 +2266,10 @@ pub struct FormOpts {
     /// Stop at the grid edges instead of wrapping arrow navigation (default:
     /// arrows cycle around the edges; Tab/Shift-Tab always cycle).
     pub no_cycle: bool,
+    /// Open the editor for the initial field as soon as the form starts instead
+    /// of starting in navigation mode (e.g. type a new record's title right
+    /// away). No effect on a bool field; multiline text fields are only focused.
+    pub autoedit: bool,
     /// External editor command for multiline fields (None = $VISUAL/$EDITOR).
     pub editor: Option<String>,
     /// Key that opens the editor (None = Ctrl-G).
@@ -2328,6 +2332,7 @@ impl Form {
         o.summary_style = opts.summary_style.raw();
         o.hide_summary = opts.hide_summary;
         o.no_cycle = opts.no_cycle;
+        o.autoedit = opts.autoedit;
         o.editor = editor.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         if let Some(c) = opts.editor_key {
             o.editor_key = c.0;

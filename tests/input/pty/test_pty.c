@@ -1181,6 +1181,17 @@ static int child_case(int c) {
             sc_fuzzy_free(f);
             return ok ? 0 : 1;
         }
+        case 81: {
+            /* Form autoedit: the editor is already open at start (seeded "a"),
+               so typing "X" -> "aX" with no leading Enter, then Ctrl-D submits. */
+            ScForm *f = sc_form_new((ScFormOpts){ .autoedit = true });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "aX") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1275,6 +1286,7 @@ static const Case CASES[] = {
     { "form-date-clear", "\r\x7f\x04" },          /* edit, Backspace clears, submit */
     { "form-date-optional-empty", "\x04" },       /* optional date starts empty */
     { "fuzzy-refresh", "\x12zzz\r" },     /* ^R adds+refreshes, filter, select */
+    { "form-autoedit", "X\x04" },         /* editor open at start: type X, Ctrl-D */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

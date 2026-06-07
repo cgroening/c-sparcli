@@ -59,6 +59,7 @@ class FormOpts:
     summary_style: Style = field(default_factory=Style)
     hide_summary: bool = False
     no_cycle: bool = False             #: stop at grid edges (default: arrows wrap)
+    autoedit: bool = False             #: open the initial field's editor at start
     shortcuts: Shortcuts | None = None
     editor: str | None = None          #: external editor for multiline fields
     editor_key: KeyChord | None = None  #: opens the editor (None = Ctrl-G)
@@ -76,6 +77,7 @@ class FormOpts:
         apply_style(c.summary_style, self.summary_style)
         c.hide_summary = self.hide_summary
         c.no_cycle = self.no_cycle
+        c.autoedit = self.autoedit
         fill_shortcuts(c, self.shortcuts, arena)
         c.editor = cstr(arena, self.editor)
         if self.editor_key is not None:

@@ -139,6 +139,15 @@ typedef struct ScFormOpts {
      */
     bool no_cycle;
 
+    /**
+     * Open the editor for the initial field as soon as the form starts, instead
+     * of starting in navigation mode (e.g. type a new record's title right
+     * away). No effect on a bool field (it would toggle the value); multiline
+     * text fields are only focused (their external editor still opens via
+     * `editor_key`). Zero-init = off (start in navigation mode).
+     */
+    bool autoedit;
+
     /** Custom key shortcuts (borrowed, must outlive the run). */
     const ScShortcut *shortcuts;
     size_t n_shortcuts;
