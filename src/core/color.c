@@ -93,19 +93,61 @@ static const struct {
     { NULL,                SC_ANSI_COLOR_NONE },
 };
 
+#define SC_N_NAMED (sizeof(sc_named_colors) / sizeof(sc_named_colors[0]))
+
+/**
+ * Runtime overrides, parallel to @ref sc_named_colors (one slot per entry,
+ * incl. the trailing NULL sentinel, which is never used). A zero-init slot
+ * (`index == 0` / `SC_ANSI_COLOR_NONE`) means "no override". Set-once before
+ * spawning threads, like the input theme and the global logger; the resolver
+ * itself only reads it.
+ */
+static ScColor g_palette_overrides[SC_N_NAMED];
+
+/** Returns the table index for `name` (length-delimited), or -1 if unknown. */
+static int sc_named_index(const char *name, size_t length) {
+    for (int i = 0; sc_named_colors[i].name; i++) {
+        if (strlen(sc_named_colors[i].name) == length
+            && memcmp(name, sc_named_colors[i].name, length) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 /** Length-delimited name lookup; see header for the resolution rules. */
 bool sc_color_by_name_n(const char *name, size_t length, ScColor *out) {
     if (name == NULL || out == NULL) {
         return false;
     }
-    for (int i = 0; sc_named_colors[i].name; i++) {
-        if (strlen(sc_named_colors[i].name) == length
-            && memcmp(name, sc_named_colors[i].name, length) == 0) {
-            *out = sc_named_colors[i].color;
-            return true;
-        }
+    int i = sc_named_index(name, length);
+    if (i < 0) {
+        return false;
     }
-    return false;
+    *out = g_palette_overrides[i].index != 0
+         ? g_palette_overrides[i]
+         : sc_named_colors[i].color;
+    return true;
+}
+
+bool sc_palette_set(const char *name, ScColor color) {
+    if (name == NULL) {
+        return false;
+    }
+    int i = sc_named_index(name, strlen(name));
+    if (i < 0) {
+        return false;
+    }
+    g_palette_overrides[i] = color;   /* index == 0 clears the override */
+    return true;
+}
+
+bool sc_palette_get(const char *name, ScColor *out) {
+    return sc_color_by_name(name, out);
+}
+
+void sc_palette_reset(void) {
+    memset(g_palette_overrides, 0, sizeof g_palette_overrides);
 }
 
 /** NUL-terminated name lookup; delegates to @ref sc_color_by_name_n. */

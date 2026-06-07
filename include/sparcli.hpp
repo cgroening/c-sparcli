@@ -215,6 +215,19 @@ namespace palette {
     inline Color info() { return rgb(148, 225, 239); }
     inline Color hint() { return rgb(170, 170, 170); }
     inline Color unused() { return rgb(98, 98, 98); }
+
+    // Runtime overrides: recolor a name at runtime (honored by sc_color_by_name
+    // and thus markup/CLI/args, plus widget defaults that resolve a palette
+    // name, e.g. the fuzzy accent). Set-once before spawning threads.
+    inline bool set(const char *name, Color color) {
+        return sc_palette_set(name, color);
+    }
+    inline std::optional<Color> get(const char *name) {
+        Color c{};
+        return sc_palette_get(name, &c) ? std::optional<Color>(c)
+                                        : std::nullopt;
+    }
+    inline void reset() { sc_palette_reset(); }
 }  // namespace palette
 
 namespace detail {

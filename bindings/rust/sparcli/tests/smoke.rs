@@ -74,6 +74,18 @@ fn fuzzy_match_pure() {
 }
 
 #[test]
+fn palette_runtime_override() {
+    use sparcli::palette;
+    assert_eq!(palette::get("accent"), Some(palette::ACCENT));
+    assert!(palette::set("accent", Color::RED));
+    assert_eq!(palette::get("accent"), Some(Color::RED));
+    assert_eq!(Color::by_name("accent"), Some(Color::RED));
+    assert!(!palette::set("definitely-not-a-color", Color::RED));
+    palette::reset();
+    assert_eq!(palette::get("accent"), Some(palette::ACCENT));
+}
+
+#[test]
 fn chord_names() {
     assert_eq!(key_fn(2).name(), "F2");
     assert_eq!(key_ctrl('e').name(), "^E");

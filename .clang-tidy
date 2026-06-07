@@ -25,6 +25,11 @@
 #    readability and (in C++) rely on declaration order for designated
 #    initializers, so repacking them to shave padding would hurt the API; they
 #    are passed by value once per call, where the padding does not matter.
+#  - clang-analyzer-optin.core.EnumCastOutOfRange: a false positive for our
+#    flag enums. `ScTextAttribute` is documented as a bitmask meant to be
+#    OR-combined (`SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_BOLD`); the resulting value
+#    is intentionally not a single enumerator, which this checker (added in a
+#    recent clang) wrongly flags wherever such a literal is used.
 Checks: >
   bugprone-*,
   clang-analyzer-*,
@@ -35,7 +40,8 @@ Checks: >
   -cert-err33-c,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -clang-analyzer-security.ArrayBound,
-  -clang-analyzer-optin.performance.Padding
+  -clang-analyzer-optin.performance.Padding,
+  -clang-analyzer-optin.core.EnumCastOutOfRange
 WarningsAsErrors: ''
 HeaderFilterRegex: '(include|src)/.*'
 FormatStyle: none

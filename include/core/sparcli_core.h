@@ -389,6 +389,39 @@ SPARCLI_EXPORT bool sc_color_by_name_n(
     const char *name, size_t length, ScColor *out
 );
 
+/**
+ * Overrides the color a name resolves to at runtime.
+ *
+ * Recolors any name accepted by @ref sc_color_by_name (the eight ANSI names and
+ * the named RGB palette, e.g. `"accent"`, `"accent_dark"`, `"error"`). The
+ * override is honored by every name-based consumer — @ref sc_color_by_name and
+ * thus markup (`[accent]`), the `sparcli` CLI (`--color accent`) and the args
+ * parser (`SC_ARG_COLOR`) — and by widget defaults that resolve a palette name
+ * (e.g. the fuzzy finder's accent). Pass a zero-init / `SC_ANSI_COLOR_NONE`
+ * color to clear a single override.
+ *
+ * Note: this is the *name → color* palette, distinct from a widget's `accent`
+ * field. To recolor the input widgets directly use
+ * `sc_input_set_theme(&(ScInputTheme){ .accent = ... })`.
+ *
+ * Thread-safety: set-once before spawning threads (like the input theme and the
+ * global logger); resolution itself is read-only.
+ *
+ * @param name   Color name (case-sensitive); must not be `NULL`.
+ * @param color  New value (or `SC_ANSI_COLOR_NONE` to clear the override).
+ * @return       `true` when `name` is a known color name, `false` otherwise.
+ */
+SPARCLI_EXPORT bool sc_palette_set(const char *name, ScColor color);
+
+/**
+ * Current effective value for `name` (override if set, else the built-in
+ * default). Equivalent to @ref sc_color_by_name; provided for symmetry.
+ */
+SPARCLI_EXPORT bool sc_palette_get(const char *name, ScColor *out);
+
+/** Clears every runtime palette override, restoring the built-in defaults. */
+SPARCLI_EXPORT void sc_palette_reset(void);
+
 
 /* ── Functional variants of the SC_ANSI_COLOR_* macros (FFI-friendly) ── */
 

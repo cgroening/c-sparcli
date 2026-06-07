@@ -215,6 +215,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_filters.c \
                  tests/input/logic/test_calc.c \
                  tests/input/logic/test_sanitize.c \
+                 tests/input/logic/test_palette.c \
                  tests/input/logic/test_suggest.c \
                  tests/input/logic/test_history.c \
                  tests/input/logic/test_form.c \

@@ -64,6 +64,16 @@ impl Color {
     }
 }
 
+impl PartialEq for Color {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.index == other.0.index
+            && self.0.r == other.0.r
+            && self.0.g == other.0.g
+            && self.0.b == other.0.b
+    }
+}
+impl Eq for Color {}
+
 /// Text attribute flags; combine with `|`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Attr(pub(crate) u32);
@@ -470,6 +480,31 @@ pub mod palette {
     pub const INFO: Color = Color::rgb(148, 225, 239);
     pub const HINT: Color = Color::rgb(170, 170, 170);
     pub const UNUSED: Color = Color::rgb(98, 98, 98);
+
+    use sparcli_sys as ffi;
+    use super::cstring;
+
+    /// Overrides the color a *name* resolves to at runtime.
+    ///
+    /// Recolors any name accepted by [`Color::by_name`](super::Color::by_name)
+    /// (the eight ANSI names and this palette, e.g. `"accent"`, `"accent_dark"`).
+    /// The override is honored by markup (`[accent]`), the CLI (`--color accent`)
+    /// and widget defaults that resolve a palette name (e.g. the fuzzy accent).
+    /// Pass [`Color::NONE`](super::Color::NONE) to clear a single override.
+    /// Set-once before spawning threads. Returns `false` for an unknown name.
+    pub fn set(name: &str, color: Color) -> bool {
+        unsafe { ffi::sc_palette_set(cstring(name).as_ptr(), color.raw()) }
+    }
+
+    /// Current effective value for *name* (override or default), or `None`.
+    pub fn get(name: &str) -> Option<Color> {
+        super::Color::by_name(name)
+    }
+
+    /// Clears every runtime palette override, restoring the defaults.
+    pub fn reset() {
+        unsafe { ffi::sc_palette_reset() }
+    }
 }
 
 /// A growable arena of `CString`s that backs the borrowed `*const c_char`

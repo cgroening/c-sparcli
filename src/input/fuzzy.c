@@ -154,7 +154,12 @@ ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts) {
     }
     self->opts = opts;
     copy_opts_strings(self);
-    self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
+    /* Default accent resolves the runtime palette "accent" (overridable via
+       sc_palette_set), falling back to ANSI cyan; explicit opts/theme win. */
+    ScColor pal_accent;
+    self->accent = opts.accent.index ? opts.accent
+                 : (sc_color_by_name("accent", &pal_accent) ? pal_accent
+                                                            : SC_ANSI_COLOR_CYAN);
     self->max_visible = opts.max_visible > 0 ? opts.max_visible : 10;
     self->pending_cursor = SIZE_MAX;
     return self;

@@ -95,7 +95,7 @@ panel_str("hi", PanelOpts{ .border = { SC_BORDER_ROUNDED, palette::accent() },
 alert_text(SC_ALERT_ERROR, *markup::parse("[error]disk full[/]"));   // markup names too
 ```
 
-Names mirror the macros lower-cased: `palette::accent()`, `palette::error()`, `palette::orange()`, `palette::red_vivid()`, `palette::bg_selected()`, … In string contexts (markup tags) the eight plain hue names stay ANSI; see `docs/api-c.md`.
+Names mirror the macros lower-cased: `palette::accent()`, `palette::error()`, `palette::orange()`, `palette::red_vivid()`, `palette::bg_selected()`, … In string contexts (markup tags) the eight plain hue names stay ANSI; see `docs/api-c.md`. **Runtime override:** `palette::set("accent", color)` / `palette::get("accent")` (→ `std::optional<Color>`) / `palette::reset()` recolor a name at runtime — honored by markup, the CLI and palette-name widget defaults (e.g. the fuzzy accent). Set once before spawning threads.
 
 All `ScColor`/`ScTextStyle` enum/macro constants (`SC_TEXT_ATTR_*`, `SC_BORDER_*`, `SC_ALIGN_*`, …) are plain enums and work as-is.
 

@@ -180,6 +180,9 @@ typedef struct {
 ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
 ScColor sc_color_none(void);
 bool sc_color_by_name(const char *name, ScColor *out);
+bool sc_palette_set(const char *name, ScColor color);
+bool sc_palette_get(const char *name, ScColor *out);
+void sc_palette_reset(void);
 void sc_print(const char *raw_str, ScTextStyle style);
 void sc_println(const char *raw_str, ScTextStyle style);
 void sc_version(int *major, int *minor, int *patch);

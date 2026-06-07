@@ -397,6 +397,18 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
+    #[doc = " Overrides the color a name resolves to at runtime. Honored by\n sc_color_by_name (markup/CLI/args) and palette-name widget defaults.\n Pass SC_ANSI_COLOR_NONE to clear. Returns false for an unknown name."]
+    pub fn sc_palette_set(name: *const ::std::os::raw::c_char, color: ScColor) -> bool;
+}
+extern "C" {
+    #[doc = " Current effective value for a name (override or default)."]
+    pub fn sc_palette_get(name: *const ::std::os::raw::c_char, out: *mut ScColor) -> bool;
+}
+extern "C" {
+    #[doc = " Clears every runtime palette override, restoring the defaults."]
+    pub fn sc_palette_reset();
+}
+extern "C" {
     #[doc = " These eight functions return the predefined ANSI color constants as\n regular function calls. Use them from bindings that cannot consume\n the `SC_ANSI_COLOR_*` compound-literal macros (Python via ctypes/cffi,\n Rust via bindgen for the macro values, etc.).\n\n The C-side macros remain available for native callers; they are\n equivalent."]
     pub fn sc_color_none() -> ScColor;
 }

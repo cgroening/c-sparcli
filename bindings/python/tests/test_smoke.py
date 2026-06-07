@@ -158,6 +158,18 @@ def test_color_by_name():
     assert sc.color_by_name("definitely-not-a-color") is None
 
 
+def test_palette_runtime_override():
+    try:
+        assert sc.Palette.set("accent", sc.Color.RED)
+        assert sc.color_by_name("accent") == sc.Color.RED
+        assert sc.Palette.get("accent") == sc.Color.RED
+        # Unknown names are rejected.
+        assert not sc.Palette.set("definitely-not-a-color", sc.Color.RED)
+    finally:
+        sc.Palette.reset()
+    assert sc.color_by_name("accent") == sc.Palette.ACCENT
+
+
 # ── render & capture ──────────────────────────────────────────────
 def _plain(rendered: sc.Rendered) -> list[str]:
     return [sc.strip_ansi(line) for line in rendered.lines]

@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
         { "Number Format",  test_number_format,  0 },
         { "Calculator",     test_calc,           0 },
         { "ANSI Sanitizer", test_sanitize,       0 },
+        { "Palette",        test_palette,        0 },
         { "Suggest Dropdown", test_suggest,      0 },
         { "Input History",  test_history,        0 },
         { "Form (logic)",   test_form,           0 },

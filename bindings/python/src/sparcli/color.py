@@ -136,3 +136,33 @@ class Palette:
     INFO = Color.rgb(148, 225, 239)
     HINT = Color.rgb(170, 170, 170)
     UNUSED = Color.rgb(98, 98, 98)
+
+    @staticmethod
+    def set(name: str, color: Color) -> bool:
+        """Override the color a *name* resolves to at runtime.
+
+        Recolors any name accepted by :func:`color_by_name` (the eight ANSI
+        names and the palette, e.g. ``"accent"``, ``"accent_dark"``). The
+        override is honored by markup (``[accent]``), the CLI (``--color
+        accent``) and widget defaults that resolve a palette name (e.g. the
+        fuzzy accent). Pass :data:`Color.NONE` to clear a single override.
+        Set-once before spawning threads. Returns ``False`` for unknown names.
+        """
+        from ._ffi import cstr, ffi, lib
+
+        arena: list = []
+        c = ffi.new("ScColor *")
+        c.index, c.r, c.g, c.b = color.index, color.r, color.g, color.b
+        return bool(lib.sc_palette_set(cstr(arena, name), c[0]))
+
+    @staticmethod
+    def get(name: str) -> Color | None:
+        """Current effective value for *name* (override or default), or ``None``."""
+        return color_by_name(name)
+
+    @staticmethod
+    def reset() -> None:
+        """Clear every runtime palette override, restoring the defaults."""
+        from ._ffi import lib
+
+        lib.sc_palette_reset()
