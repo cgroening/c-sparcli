@@ -156,6 +156,19 @@ typedef struct ScFormOpts {
         Zero-init = a subtle gray default; set a named/RGB color
         (`sc_color_from_rgb(...)`) to customize the tone. */
     ScColor edit_bg;
+
+    /** Full-screen mode: compose `[valign-pad][header][grid]` filling the
+        terminal height (for a consistent shell alongside a fullscreen finder).
+        Run inside an `sc_altscreen_begin` session. The grid is fixed-size (no
+        auto-grow); only the alignment/header are added. */
+    bool fullscreen;
+
+    /** Vertical alignment of the (header + grid) block (fullscreen only). */
+    ScVAlign valign;
+
+    /** Optional header pinned above the grid (fullscreen only); borrowed,
+        library-rendered. Must outlive the run. */
+    const struct ScRendered *header;
 } ScFormOpts;
 
 /** Opaque form handle. */

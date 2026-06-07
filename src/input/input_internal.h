@@ -489,6 +489,17 @@ static inline ScRendered *sc_stack_below(ScRendered *top, ScRendered *bottom) {
     return stacked;
 }
 
+/**
+ * Full-screen composition (prompt.c): returns `[top_pad blank][header][body]`,
+ * padded so the (header + body) block sits top/middle/bottom within the terminal
+ * height per `valign`. `header` is borrowed (may be NULL); `body` is consumed.
+ * Used by the fuzzy/form fullscreen mode so the block grows + re-aligns each
+ * frame as the body changes. Returns `body` unchanged when there is nothing to
+ * add (no header and TOP / no free rows).
+ */
+ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
+                                  ScVAlign valign);
+
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
 

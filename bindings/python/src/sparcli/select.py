@@ -9,7 +9,7 @@ from enum import IntEnum
 from ._ffi import apply_box, apply_color, apply_style, cstr, ffi, lib
 from ._inputcommon import (fill_hint, fill_prompt_text, fill_shortcuts, result)
 from .color import Color
-from .enums import HintLayout, HintPos
+from .enums import HintLayout, HintPos, VAlign
 from .keys import KeyChord, Shortcuts
 from .style import BoxStyle, Style
 from .table import TableOpts
@@ -169,6 +169,9 @@ class FuzzyOpts:
     stretch_columns: int = 0  #: table cols that fill a bounded box width (mask)
     max_height: int = 0       #: cap finder height in rows (scrolls); 0 = auto-fit
     no_scrollbar: bool = False  #: suppress the right-edge scrollbar (on by default)
+    fullscreen: bool = False  #: fill the terminal; grow then scroll (use altscreen)
+    valign: VAlign = VAlign.TOP  #: block alignment in fullscreen
+    header: "Rendered | None" = None  #: pinned header (fullscreen); borrowed
     prompt_style: Style = field(default_factory=Style)
     selected_style: Style = field(default_factory=Style)
     cursor_style: Style = field(default_factory=Style)
@@ -228,6 +231,9 @@ class FuzzyOpts:
         c.stretch_columns = self.stretch_columns
         c.max_height = self.max_height
         c.no_scrollbar = self.no_scrollbar
+        c.fullscreen = self.fullscreen
+        c.valign = int(self.valign)
+        c.header = self.header._ptr if self.header is not None else ffi.NULL
         apply_style(c.prompt_style, self.prompt_style)
         apply_style(c.selected_style, self.selected_style)
         apply_style(c.cursor_style, self.cursor_style)

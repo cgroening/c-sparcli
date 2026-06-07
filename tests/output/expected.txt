@@ -619,6 +619,8 @@ frame content still drawn                     yes
 --- Live 9. Multi-row reserve park (always = true) ---
 parks at the first reserved row               yes
 rewind lands on the frame top                 yes
+--- Live 10. Alt-screen session (off-TTY no-op) ---
+emits nothing off a terminal                  yes
 ════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════ [1mKey-Value Pairs[0m ════════════════════════════════

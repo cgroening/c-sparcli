@@ -1,20 +1,18 @@
 /*
  * fullscreen_app.c
  *
- * A full-screen (alternate-screen) app shell built from the live display:
+ * A full-screen (alternate-screen) app shell - minimal app code:
  *
- *   - sc_live (alt_screen) owns the screen; a title PANEL is pinned as the
- *     header (the live frame). The subtitle is a rich ScText line shown either
- *     on the panel's bottom border or below the panel (SUBTITLE_BELOW).
- *   - The interactive widget runs in the reserved rows below the header
- *     (prompt_rows), with hide_summary = true so it erases itself cleanly.
- *   - The whole header+content block is vertically aligned via the VALIGN knob
- *     (ScLiveOpts.valign) - visible only when the content does NOT fill the
- *     screen, i.e. with CONTENT_HEIGHT > 0.
- *   - The app switches between a FUZZY finder and a FORM: Enter (or ^F) on an
- *     item opens the form to edit it; the form returns to the finder.
- *   - The finder fills the reserved height (max_height) and scrolls (with a
- *     right-edge scrollbar) once items exceed it; ^R appends an item live.
+ *   - sc_altscreen_begin()/end() owns the alternate screen for the whole loop
+ *     (no flicker when switching widgets).
+ *   - The widgets run with `fullscreen = true` + a pinned `header` (a captured
+ *     panel) + `valign`: each frame they compose [valign-pad][header][body] and
+ *     fill the terminal. The FUZZY finder grows with its items up to the screen
+ *     height, then scrolls (right-edge scrollbar); the leftover space is placed
+ *     by VALIGN (below the finder for TOP, above the header for BOTTOM, or
+ *     both for MIDDLE).
+ *   - Enter (or ^F) on an item opens the FORM to edit it; ^R adds an item live;
+ *     esc quits.
  *
  * Build + run in a real terminal:
  *   make run-example EX=c/apps/fullscreen_app
@@ -28,21 +26,19 @@
 
 /* ── Knobs you can change ────────────────────────────────────── */
 
-/* Vertical alignment of the whole header+content block within the screen.
-   Has a VISIBLE effect only when the block does not fill the screen, i.e. when
-   CONTENT_HEIGHT > 0 below. Try SC_VALIGN_MIDDLE or SC_VALIGN_BOTTOM. */
-static const ScVAlign VALIGN = SC_VALIGN_MIDDLE;
+/* Vertical alignment of the whole header+content block (SC_VALIGN_TOP / MIDDLE
+   / BOTTOM): fills below the finder (TOP), above the header (BOTTOM) or both
+   (MIDDLE). Visible while the finder is shorter than the screen. */
+static const ScVAlign VALIGN = SC_VALIGN_TOP;
 
-/* Height of the content (finder/form) region in rows. 0 = fill the screen
-   below the header (scroll when items exceed it). A positive value caps it -
-   and then VALIGN can center/bottom-align the whole block. */
-static const int CONTENT_HEIGHT = 0;
-
-/* true  = subtitle is a rich ScText line BELOW the panel.
-   false = subtitle sits on the panel's bottom border (also ScText). */
+/* true = the YYY legend is a line BELOW the header panel;
+   false = it sits on the panel's bottom border. */
 static const bool SUBTITLE_BELOW = true;
 
 /* ────────────────────────────────────────────────────────────── */
+
+/* Shorthand: a foreground text style (no background). */
+#define FG(attr, color) ((ScTextStyle){ (attr), (color), SC_ANSI_COLOR_NONE })
 
 enum { ACT_FORM = 1, ACT_REFRESH = 2 };   /* shortcut ids */
 
@@ -60,61 +56,78 @@ static bool on_refresh(int id, void *user) {
     return true;   /* keep the finder open */
 }
 
-/* Header panel rows: 3 (border+content+border), plus 1 for a subtitle below. */
-static int header_rows(void) { return SUBTITLE_BELOW ? 4 : 3; }
-
-/** Header: a full-width title panel + a rich ScText `subtitle`, placed on the
- *  panel border or below it (SUBTITLE_BELOW). Returns the live frame. */
-static ScRendered *header(const ScText *subtitle) {
-    ScPanelOpts po = {
-        .border = { .type = SC_BORDER_ROUNDED, .color = SC_COLOR_ACCENT },
-        .full_width = true,
-        .title = { .text = "mdtask shell", .halign = SC_ALIGN_LEFT, .pad = 1,
-                   .style = { SC_TEXT_ATTR_BOLD, SC_COLOR_ACCENT,
-                              SC_ANSI_COLOR_NONE } },
-    };
-    if (!SUBTITLE_BELOW) {
-        /* ScText subtitle on the bottom border (panels honor rich_text). */
-        po.subtitle = (ScTitle){ .rich_text = subtitle,
-                                 .halign = SC_ALIGN_RIGHT,
-                                 .pad = 1, .pos = SC_POSITION_BOTTOM };
-    }
-    ScRendered *panel =
-        sc_capture_panel_str("Press the listed keys to act.", po);
-    if (!SUBTITLE_BELOW || !subtitle) {
-        return panel;
-    }
-    /* Stack the rich subtitle as its own line below the panel. */
-    ScRendered *sub = sc_capture_text(subtitle);
-    const ScRendered *parts[2] = { panel, sub };
-    ScRendered *out = sc_vstack(parts, 2, 0);
-    sc_rendered_free(sub);
-    if (out) { sc_rendered_free(panel); return out; }
-    return panel;
-}
-
-/** Builds the rich subtitle line for the current state. */
-static ScText *subtitle_for(bool finder, const char *selected) {
+/* The "Fullscreen Example - XXX" content line, in mixed colors/styles. */
+static ScText *title_line(bool finder, int count, const char *selected) {
     ScText *t = sc_text_new();
-    ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
-                        SC_ANSI_COLOR_NONE };
-    ScTextStyle accent = { SC_TEXT_ATTR_BOLD, SC_COLOR_ACCENT,
-                           SC_ANSI_COLOR_NONE };
+    sc_text_append(t, "Fullscreen Example",
+                   FG(SC_TEXT_ATTR_BOLD, SC_COLOR_ACCENT));
+    sc_text_append(t, " - ", FG(SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE));
     if (finder) {
-        sc_text_append(t, "enter/^F edit \xc2\xb7 ^R refresh \xc2\xb7 esc quit",
-                       dim);
+        sc_text_append(t, "finder", FG(SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_GREEN));
+        char c[32];
+        snprintf(c, sizeof c, "  %d tasks", count);
+        sc_text_append(t, c, FG(SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_CYAN));
     } else {
-        sc_text_append(t, "editing ", dim);
-        sc_text_append(t, selected, accent);
-        sc_text_append(t, "  \xc2\xb7  ^D save \xc2\xb7 esc back", dim);
+        sc_text_append(t, "editing ",
+                       FG(SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_YELLOW));
+        sc_text_append(t, selected, FG(SC_TEXT_ATTR_BOLD, SC_COLOR_ACCENT));
     }
     return t;
 }
 
-/** Runs the fuzzy finder. Returns the status, writes the fired shortcut id (or
- *  -1) to *fired, and on a normal submit copies the chosen label into `sel`. */
-static ScInputStatus run_finder(int *fired, int reserve, char *sel,
-                                size_t cap) {
+/* The YYY legend line, in mixed colors/styles. */
+static ScText *legend_line(bool finder) {
+    ScText *t = sc_text_new();
+    ScTextStyle dim = FG(SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE);
+    ScTextStyle key = FG(SC_TEXT_ATTR_BOLD, SC_COLOR_ACCENT);
+    ScTextStyle red = FG(SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED);
+    if (finder) {
+        sc_text_append(t, "enter ", key); sc_text_append(t, "edit", dim);
+        sc_text_append(t, "  \xc2\xb7  ", dim);
+        sc_text_append(t, "^R ", key);    sc_text_append(t, "refresh", dim);
+        sc_text_append(t, "  \xc2\xb7  ", dim);
+        sc_text_append(t, "esc ", red);   sc_text_append(t, "quit", dim);
+    } else {
+        sc_text_append(t, "^D ", key);  sc_text_append(t, "save", dim);
+        sc_text_append(t, "  \xc2\xb7  ", dim);
+        sc_text_append(t, "esc ", red); sc_text_append(t, "back", dim);
+    }
+    return t;
+}
+
+/** Builds the pinned header: a rounded full-width panel whose content is the
+ *  "Fullscreen Example - XXX" line, plus the YYY legend (below / on border). */
+static ScRendered *build_header(bool finder, int count, const char *selected) {
+    ScText *title = title_line(finder, count, selected);
+    ScText *legend = legend_line(finder);
+
+    ScPanelOpts po = {
+        .border = { .type = SC_BORDER_ROUNDED, .color = SC_COLOR_ACCENT },
+        .full_width = true,
+        .padding = { .left = 1, .right = 1 },
+    };
+    if (!SUBTITLE_BELOW) {
+        po.subtitle = (ScTitle){ .rich_text = legend, .halign = SC_ALIGN_RIGHT,
+                                 .pad = 1, .pos = SC_POSITION_BOTTOM };
+    }
+    ScRendered *panel = sc_capture_panel_text(title, po);
+    ScRendered *out = panel;
+    if (SUBTITLE_BELOW) {
+        ScRendered *sub = sc_capture_text(legend);
+        const ScRendered *parts[2] = { panel, sub };
+        ScRendered *joined = sc_vstack(parts, 2, 0);
+        sc_rendered_free(sub);
+        if (joined) { sc_rendered_free(panel); out = joined; }
+    }
+    sc_text_free(title);
+    sc_text_free(legend);
+    return out;
+}
+
+/** Runs the fuzzy finder full-screen under `hdr`. On a normal submit copies the
+ *  chosen label into `sel`; writes the fired shortcut id (or -1) to *fired. */
+static ScInputStatus run_finder(int *fired, char *sel, size_t cap,
+                                const ScRendered *hdr) {
     Ctx ctx = { .next = 6 };
     ScShortcut sk[] = {
         { .chord = sc_key_ctrl('f'), .id = ACT_FORM,
@@ -125,9 +138,10 @@ static ScInputStatus run_finder(int *fired, int reserve, char *sel,
     };
     ScFuzzy *f = sc_fuzzy_new((ScFuzzyOpts){
         .prompt          = "Find",
-        /* Fill the reserved height; scroll once items exceed it. */
-        .max_height      = reserve,
-        .hide_summary    = true,               /* required: no leftovers */
+        .fullscreen      = true,        /* grow to fill, then scroll */
+        .valign          = VALIGN,
+        .header          = hdr,
+        .hide_summary    = true,
         .shortcuts       = sk,
         .n_shortcuts     = 2,
         .out_shortcut_id = fired,
@@ -143,17 +157,20 @@ static ScInputStatus run_finder(int *fired, int reserve, char *sel,
     size_t idx = 0;
     ScInputStatus st = sc_fuzzy_run(f, &idx);
     if (st == SC_INPUT_OK) {
-        const char *lbl = sc_fuzzy_label(f, idx);   /* selected / cursor row */
+        const char *lbl = sc_fuzzy_label(f, idx);
         snprintf(sel, cap, "%s", lbl ? lbl : "?");
     }
     sc_fuzzy_free(f);
     return st;
 }
 
-/** Runs the edit form, prefilled with the selected task title. */
-static ScInputStatus run_form(const char *task) {
+/** Runs the edit form full-screen under `hdr`, prefilled with `task`. */
+static ScInputStatus run_form(const char *task, const ScRendered *hdr) {
     ScForm *form = sc_form_new((ScFormOpts){ .accent = SC_COLOR_ACCENT,
-                                             .hide_summary = true });
+                                             .hide_summary = true,
+                                             .fullscreen = true,
+                                             .valign = VALIGN,
+                                             .header = hdr });
     ScFieldOpts full = { .width_mode = SC_FWIDTH_PCT, .width = 100 };
     sc_form_row_begin(form);
     sc_form_add_text(form, "Title", task, full);
@@ -170,42 +187,26 @@ int main(void) {
         return 0;
     }
 
-    /* CONTENT_HEIGHT > 0 caps the content (then VALIGN centers the block);
-       0 fills the screen below the header, with one slack row so the finder
-       never scrolls the header off the top. */
-    int reserve = CONTENT_HEIGHT > 0
-        ? CONTENT_HEIGHT
-        : sc_term_height() - header_rows() - 1;
-    if (reserve < 4) { reserve = 4; }
+    sc_altscreen_begin();   /* owns the alt screen for the whole loop */
 
-    ScLive *live = sc_live_begin((ScLiveOpts){
-        .alt_screen  = true,
-        .prompt_rows = reserve,
-        .valign      = VALIGN,   /* whole-block alignment (set VALIGN above) */
-    });
-
-    bool finder = true;            /* start in the fuzzy finder */
-    char selected[48] = "Task 1";  /* last chosen item (edited by the form) */
+    bool finder = true;
+    char selected[48] = "Task 1";
     bool running = true;
     while (running) {
-        ScText *sub = subtitle_for(finder, selected);
-        ScRendered *h = header(sub);
-        sc_live_update(live, h);
-        sc_rendered_free(h);
-        sc_text_free(sub);
-
+        ScRendered *hdr = build_header(finder, 5, selected);
         if (finder) {
             int fired = -1;
-            ScInputStatus st = run_finder(&fired, reserve, selected,
-                                          sizeof selected);
+            ScInputStatus st =
+                run_finder(&fired, selected, sizeof selected, hdr);
             if (st != SC_INPUT_OK) { running = false; }   /* esc quits */
             else { finder = false; }   /* Enter or ^F: edit the selected item */
         } else {
-            run_form(selected);   /* Ctrl-D saves, Esc cancels */
-            finder = true;        /* back to the finder */
+            run_form(selected, hdr);   /* Ctrl-D saves, Esc cancels */
+            finder = true;
         }
+        sc_rendered_free(hdr);
     }
 
-    sc_live_end(live);
+    sc_altscreen_end();
     return 0;
 }

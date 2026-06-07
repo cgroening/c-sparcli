@@ -1256,6 +1256,17 @@ private:
     ScLive* l_;
 };
 
+/** RAII alternate-screen session: enters the alt screen on construction and
+ *  restores on destruction. Run fullscreen widgets (Fuzzy/Form with
+ *  `fullscreen = true`) inside its scope. @see sc_altscreen_begin */
+class AltScreen {
+public:
+    AltScreen() { sc_altscreen_begin(); }
+    ~AltScreen() { sc_altscreen_end(); }
+    AltScreen(const AltScreen&) = delete;
+    AltScreen& operator=(const AltScreen&) = delete;
+};
+
 /**
  * Structured error report rendered as a red alert panel: message, cause
  * chain, hint and exit code. The pretty replacement for

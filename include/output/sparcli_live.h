@@ -115,6 +115,23 @@ typedef struct ScLiveOpts {
 
 
 /**
+ * Enters / leaves the alternate screen (a thin full-screen "session"): on begin
+ * the alternate screen buffer is entered, the cursor homed and hidden; on end
+ * the cursor is shown and the previous screen restored. Writes to
+ * `sc_output_stream()`; a **no-op off a terminal** (pipes / CI).
+ *
+ * This owns the screen for an app that runs interactive widgets full-screen:
+ * open it once around the loop, run widgets with `fullscreen = true` (they draw
+ * a pinned header + aligned, growing body into the active screen), then end it.
+ * Switching widgets does not flicker because the screen stays entered. Cursor
+ * and screen are restored on `atexit` / SIGINT/TERM/HUP/QUIT, like `sc_live`.
+ * One session at a time (a second `begin` is a no-op until `end`).
+ */
+SPARCLI_EXPORT void sc_altscreen_begin(void);
+SPARCLI_EXPORT void sc_altscreen_end(void);
+
+
+/**
  * Starts a live session on the calling thread's `sc_output_stream()`.
  *
  * The target stream is captured at this call; later captures or stream

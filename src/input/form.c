@@ -552,9 +552,15 @@ static ScRendered *form_render(void *state) {
     sc_rendered_free(grid);
     sc_rendered_free(edit);
 
-    return sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
-                           self->opts.hint_layout, self->opts.hint_pos,
-                           self->opts.hint_style);
+    ScRendered *frame =
+        sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
+                        self->opts.hint_layout, self->opts.hint_pos,
+                        self->opts.hint_style);
+    if (self->opts.fullscreen) {
+        frame = sc_fullscreen_compose(frame, self->opts.header,
+                                      self->opts.valign);
+    }
+    return frame;
 }
 
 /** Builds the value string shown inside a field box. */

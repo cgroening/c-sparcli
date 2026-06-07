@@ -145,4 +145,18 @@ void style_form(void) {
         sc_form_add_text(f, "Tag", "vip", (ScFieldOpts){ 0 });
         show_form("form: multiline field (newlines shown in the box)", f);
     }
+
+    /* Fullscreen: a pinned header + valign MIDDLE. The grid is centered within
+       the terminal height (24 off-TTY) - the leading blank rows are the top
+       half of the free space; the borrowed header sits above the grid. */
+    {
+        ScRendered *hdr = sc_capture_str("== form header ==");
+        ScForm *f = sc_form_new((ScFormOpts){
+            .fullscreen = true, .valign = SC_VALIGN_MIDDLE, .header = hdr });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Title", "Apple",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 100 });
+        show_form("form: fullscreen header + valign middle", f);
+        sc_rendered_free(hdr);
+    }
 }

@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from ._ffi import apply_color, apply_style, cstr, ffi, lib
 from ._inputcommon import fill_hint, fill_shortcuts
 from .color import Color
-from .enums import FieldWidthMode, HintLayout, HintPos
+from .enums import FieldWidthMode, HintLayout, HintPos, VAlign
 from .keys import KeyChord, Shortcuts
 from .style import Style
 
@@ -63,6 +63,9 @@ class FormOpts:
     editor: str | None = None          #: external editor for multiline fields
     editor_key: KeyChord | None = None  #: opens the editor (None = Ctrl-G)
     edit_bg: Color = Color.NONE        #: editor-box background (default: gray)
+    fullscreen: bool = False  #: fill the terminal (header + valign; use altscreen)
+    valign: VAlign = VAlign.TOP  #: block alignment in fullscreen
+    header: "Rendered | None" = None  #: pinned header (fullscreen); borrowed
 
     def _fill(self, c, arena: list) -> None:
         c.title = cstr(arena, self.title)
@@ -78,6 +81,9 @@ class FormOpts:
         if self.editor_key is not None:
             c.editor_key = self.editor_key.value
         apply_color(c.edit_bg, self.edit_bg)
+        c.fullscreen = self.fullscreen
+        c.valign = int(self.valign)
+        c.header = self.header._ptr if self.header is not None else ffi.NULL
 
 
 class Form:

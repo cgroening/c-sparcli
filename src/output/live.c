@@ -61,6 +61,9 @@ static bool cleanup_atexit_registered = false;
 static bool cleanup_handlers_installed = false;
 static struct sigaction cleanup_old_actions[N_CLEANUP_SIGNALS];
 
+/* Stream of the active alt-screen session (sc_altscreen_begin), or NULL. */
+static FILE *altscreen_out = NULL;
+
 
 /* ── Internal helpers (call order) ──────────────────────────────────────── */
 
@@ -72,6 +75,7 @@ static void end_emitting_session(ScLive *live);
 static void end_buffered_session(ScLive *live);
 
 static void cleanup_register(const ScLive *live);
+    static void cleanup_arm(int fd, bool show_cursor, bool leave_alt);
     static void cleanup_install_handlers(void);
         static void cleanup_on_signal(int signum);
             static void cleanup_restore_terminal(void);
@@ -167,6 +171,33 @@ void sc_live_end(ScLive *live) {
     fflush(live->stream);
     free(live->last_frame);
     free(live);
+}
+
+void sc_altscreen_begin(void) {
+    if (altscreen_out) {
+        return;   // one session at a time
+    }
+    FILE *out = sc_output_stream();
+    int fd = fileno(out);
+    if (sc_no_tty_override() || fd < 0 || !isatty(fd)) {
+        return;   // no-op off a terminal (CI / pipes)
+    }
+    altscreen_out = out;
+    fputs(LIVE_ALT_SCREEN_ENTER, out);
+    fputs(LIVE_CURSOR_HIDE, out);
+    fflush(out);
+    cleanup_arm(fd, true, true);
+}
+
+void sc_altscreen_end(void) {
+    if (!altscreen_out) {
+        return;
+    }
+    fputs(LIVE_CURSOR_SHOW, altscreen_out);
+    fputs(LIVE_ALT_SCREEN_LEAVE, altscreen_out);
+    fflush(altscreen_out);
+    cleanup_unregister();
+    altscreen_out = NULL;
 }
 
 /** Enters the terminal modes requested by the opts (alt screen, cursor). */
@@ -347,27 +378,26 @@ static void end_buffered_session(ScLive *live) {
 
 /* ── Cleanup safety (atexit + interrupt signals) ────────────────────────── */
 
-/** Records the terminal state to restore and installs the cleanup hooks. */
-static void cleanup_register(const ScLive *live) {
-    int fd = fileno(live->stream);
-    if (fd < 0) {
-        return;
-    }
-    bool hides_cursor = !live->opts.show_cursor;
-    bool uses_alt_screen = live->opts.alt_screen;
-    if (!hides_cursor && !uses_alt_screen) {
+/** Arms the crash/atexit restore for the given terminal state. */
+static void cleanup_arm(int fd, bool show_cursor, bool leave_alt) {
+    if (fd < 0 || (!show_cursor && !leave_alt)) {
         return;   // nothing to restore on abnormal exit
     }
-
     cleanup_fd = fd;
-    cleanup_show_cursor = hides_cursor;
-    cleanup_leave_alt = uses_alt_screen;
+    cleanup_show_cursor = show_cursor;
+    cleanup_leave_alt = leave_alt;
 
     if (!cleanup_atexit_registered) {
         atexit(cleanup_on_exit);
         cleanup_atexit_registered = true;
     }
     cleanup_install_handlers();
+}
+
+/** Records the terminal state to restore and installs the cleanup hooks. */
+static void cleanup_register(const ScLive *live) {
+    cleanup_arm(fileno(live->stream), !live->opts.show_cursor,
+                live->opts.alt_screen);
 }
 
 /** Installs the interrupt-signal handlers, saving the previous ones. */

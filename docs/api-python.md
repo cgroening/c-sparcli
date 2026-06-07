@@ -154,6 +154,16 @@ with sc.Live() as live:                       # Live(alt_screen=True) = fullscre
     # update() also takes a Text or Table; update_table(table, opts) for opts.
     # Live(prompt_rows=n) reserves rows below the frame for a REPL prompt.
 
+# Alt-screen session for full-screen widgets (no flicker on switch). Fuzzy/Form
+# take fullscreen=True + valign + a borrowed header (a Rendered that must outlive
+# the run); the finder grows then scrolls, the leftover space is valign-placed.
+header = sc.capture.string("My App")
+with sc.altscreen():
+    fz = sc.Fuzzy(sc.FuzzyOpts(
+        fullscreen=True, valign=sc.VAlign.MIDDLE, header=header))
+    fz.add("alpha").add("beta")
+    fz.run()                                  # or a Form with the same options
+
 # Pretty errors: message + causes + hint + exit code as a red panel.
 # die() raises SystemExit (never calls the C exit()), so cleanup runs.
 sc.ErrorReport("Config could not be loaded") \

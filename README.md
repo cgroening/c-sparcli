@@ -58,7 +58,7 @@ Ships with **Rich-compatible inline markup**, a header-only **C++ wrapper**, saf
 The full reference for every output component lives in [`docs/api-c.md`](docs/api-c.md); a per-widget overview is in [Output widgets](#output-widgets).
 
 - **Large set of widgets**: panels, tables, rules, side-by-side columns, lists, trees, key/value blocks, alerts, badges, progress bars, spinners.
-- **Live display & dashboards**: re-render a composed frame in place (`sc_live_*`) – build dashboards from any widgets that update continuously, in-place or on the fullscreen alternate screen ([docs](docs/api-c.md#live-display)).
+- **Live display & dashboards**: re-render a composed frame in place (`sc_live_*`) – build dashboards from any widgets that update continuously, in-place or on the fullscreen alternate screen. A thin alt-screen session (`sc_altscreen_begin`/`_end`) hosts **full-screen widgets**: the fuzzy finder and the form run with a pinned header and vertical alignment, growing to fill the screen then scrolling ([docs](docs/api-c.md#live-display)).
 - **Multi-progress**: several progress bars updated together in place for concurrent tasks (`sc_multiprogress_*`), buffered to the final stack off a terminal. *(C, C++, Rust, Python)*
 - **Diff rendering**: colored unified diff of two texts (`sc_diff_*`) – `@@` hunks, red/green `-`/`+` lines. *(C, C++, Rust, Python)*
 - **Human-readable formatting**: file sizes, durations, relative time, grouped/compact numbers and percentages (`sc_humanize_*`, e.g. `1536 → "1.5 KB"`, `93 → "1m 33s"`), locale-aware separators. *(C, C++, Rust, Python)*

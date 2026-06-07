@@ -717,6 +717,23 @@
     [0mBos[0m[1m[4m[36mto[0mn[0m
   [2mi insert · j/k move · enter select · esc cancel[0m
 
+[2mfuzzy list: fullscreen header + valign middle[0m
+  
+  
+  
+  
+  
+  
+  
+  == header ==
+  [1m[36mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m
+  [1m[36m‣ [0m[1m[36mTokyo[0m
+    [0mToronto[0m
+    [0mLondon[0m
+    [0mBoston[0m
+    [0mLisbon[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
 ════════════════════════════════════════════════════════════════════════════════
 
 ═════════════════════════════════ [1mDate Picker[0m ══════════════════════════════════
@@ -1010,6 +1027,22 @@
 [36m╰[0m[36m──────────────────────────────────────────────[0m[36m╯[0m╰[0m──────────────────────────────[0m╯[0m
 
 [2menter / ^G open in editor[0m
+[2m↑↓←→ move · enter edit · ctrl-d submit · esc cancel[0m
+
+[2mform: fullscreen header + valign middle[0m
+
+
+
+
+
+
+
+== form header ==
+[36m╭[0m[36m─[0m [0m[1m[36mTitle[0m [0m[36m──────────────────────────────────────────────────────────────────────[0m[36m╮[0m
+[36m│[0mApple[0m                                                                         [36m│[0m
+[36m╰[0m[36m──────────────────────────────────────────────────────────────────────────────[0m[36m╯[0m
+
+[2menter to edit[0m
 [2m↑↓←→ move · enter edit · ctrl-d submit · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════

@@ -12,6 +12,55 @@
 static atomic_bool g_prompt_active = false;
 
 
+ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
+                                  ScVAlign valign) {
+    if (!body) {
+        return body;
+    }
+    int rows = sc_term_height();
+    int header_h = header ? (int)header->line_count : 0;
+    int free_rows = rows - header_h - (int)body->line_count;
+    if (free_rows < 0) { free_rows = 0; }
+    int top_pad = valign == SC_VALIGN_MIDDLE ? free_rows / 2
+                : valign == SC_VALIGN_BOTTOM ? free_rows : 0;
+
+    // block = [header][body], or just body when there is no header.
+    ScRendered *block = body;
+    bool block_is_new = false;
+    if (header) {
+        const ScRendered *parts[2] = { header, body };
+        ScRendered *joined = sc_vstack(parts, 2, 0);
+        if (joined) { block = joined; block_is_new = true; }
+    }
+    if (top_pad <= 0) {
+        if (block_is_new) { sc_rendered_free(body); }
+        return block;
+    }
+
+    // Prepend `top_pad` blank lines (a string of top_pad-1 newlines).
+    char *buf = calloc((size_t)top_pad, 1);
+    if (buf) {
+        for (int i = 0; i < top_pad - 1; i++) { buf[i] = '\n'; }
+    }
+    ScRendered *pad = sc_capture_str(buf ? buf : "");
+    free(buf);
+    if (!pad) {                          // OOM: skip the padding
+        if (block_is_new) { sc_rendered_free(body); }
+        return block;
+    }
+    const ScRendered *parts[2] = { pad, block };
+    ScRendered *out = sc_vstack(parts, 2, 0);
+    sc_rendered_free(pad);
+    if (!out) {                          // OOM: fall back to the block
+        if (block_is_new) { sc_rendered_free(body); }
+        return block;
+    }
+    if (block_is_new) { sc_rendered_free(block); }
+    sc_rendered_free(body);
+    return out;
+}
+
+
 /**
  * Builds a dim one-line footer listing the labeled shortcuts (e.g.
  * `^X delete  ·  F2 help`), or NULL when none carry a `hint_label`. The engine

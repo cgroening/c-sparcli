@@ -184,6 +184,22 @@ for percent in (0..=100).step_by(10) {
 }
 live.end();   // or implicit on drop
 
+// Alt-screen session for full-screen widgets (RAII: ends on drop, no flicker
+// on switch). Fuzzy/Form take .fullscreen()/.valign()/.header(&Rendered) - the
+// borrowed header must outlive the run; the finder grows then scrolls.
+{
+    let _screen = sparcli::AltScreen::begin();
+    let header = sparcli::capture::str("My App");
+    let mut f = sparcli::Fuzzy::new(
+        sparcli::FuzzyOpts::new()
+            .fullscreen()
+            .valign(sparcli::VAlign::Middle)
+            .header(&header),
+    );
+    f.add("alpha").add("beta");
+    let _ = f.run();   // or a Form with the same options
+}   // drop restores the previous screen
+
 // Pretty errors: message + causes + hint + exit code as a red panel
 sparcli::ErrorReport::new("Config could not be loaded")
     .cause("file not found: ~/.config/app/config.toml")

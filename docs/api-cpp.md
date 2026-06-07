@@ -271,6 +271,20 @@ auto log = paths::file(SC_PATH_STATE, "myapp", "logs/run.log");
     // live.update(my_text);  live.update(my_table, TableOpts{ ... });
 }                                      // destructor restores the terminal
 
+// RAII alt-screen session for full-screen widgets (no flicker on switch).
+// Fuzzy/Form take fullscreen + valign + a BORROWED header (the Rendered must
+// outlive the run) and fill the screen: the finder grows then scrolls, the
+// leftover space is placed by valign.
+{
+    AltScreen screen;                  // enters the alt screen; restores on drop
+    Rendered header = capture::panel("My App", PanelOpts{ .full_width = true });
+    FuzzyOpts opts{ .fullscreen = true, .valign = SC_VALIGN_MIDDLE,
+                    .header = header.get() };
+    Fuzzy f(opts);
+    f.add("alpha").add("beta");
+    f.run();                           // or a Form with the same fields
+}                                      // restores the previous screen
+
 // Pretty errors: message + causes + hint + exit code as a red panel
 ErrorReport("Config could not be loaded")
     .cause("file not found: ~/.config/app/config.toml")

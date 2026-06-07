@@ -27,8 +27,8 @@ from .app import (ErrorReport, Pager, app_dir, app_file, cache_dir,
 from .diff import DiffOpts, diff, diff_rendered
 from .humanize import HumanizeOpts
 from .multiprogress import MultiProgress, MultiProgressOpts
-from .capture import (Live, PadOpts, Rendered, align_str, align_text, capture,
-                      pad_str, pad_text, vstack)
+from .capture import (Live, PadOpts, Rendered, align_str, align_text,
+                      altscreen, capture, pad_str, pad_text, vstack)
 from .color import Color, Palette, color_by_name
 from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BgExtent, BorderType,
@@ -103,6 +103,7 @@ __all__ = [
     # capture / compose
     "capture", "Rendered", "PadOpts", "vstack", "pad_str", "pad_text",
     "Live",
+    "altscreen",
     "align_str", "align_text",
     # progress
     "ProgressBar", "ProgressBarOpts", "Thresholds", "Spinner", "SpinnerOpts",

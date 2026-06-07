@@ -1610,6 +1610,10 @@ impl Rendered {
         unsafe { (*self.ptr).line_count }
     }
 
+    pub(crate) fn as_ptr(&self) -> *const ffi::ScRendered {
+        self.ptr
+    }
+
     /// Prints with padding.
     pub fn pad(&self, opts: PadOpts) {
         unsafe { ffi::sc_pad_print(self.ptr, opts.raw()) };
@@ -1879,6 +1883,27 @@ impl LiveOpts {
 /// }
 /// live.end();
 /// ```
+/// RAII alternate-screen session: enters the alt screen on `begin` and restores
+/// on drop. Run fullscreen widgets (`FuzzyOpts::fullscreen` / `FormOpts`) inside
+/// its scope. No-op off a terminal.
+pub struct AltScreen {
+    _private: (),
+}
+
+impl AltScreen {
+    /// Enters the alternate screen (cursor homed + hidden).
+    pub fn begin() -> AltScreen {
+        unsafe { ffi::sc_altscreen_begin() };
+        AltScreen { _private: () }
+    }
+}
+
+impl Drop for AltScreen {
+    fn drop(&mut self) {
+        unsafe { ffi::sc_altscreen_end() };
+    }
+}
+
 pub struct Live {
     ptr: *mut ffi::ScLive,
 }

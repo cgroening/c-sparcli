@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import weakref
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from ._ffi import cstr, ffi, lib
@@ -245,3 +246,19 @@ class Live:
 
     def __exit__(self, *exc) -> None:
         self.end()
+
+
+@contextmanager
+def altscreen():
+    """Alternate-screen session context manager: enters the alt screen (cursor
+    homed + hidden) on entry and restores on exit. Run fullscreen widgets
+    (``FuzzyOpts(fullscreen=True)`` / ``FormOpts``) inside it. No-op off a TTY.
+
+    >>> with sc.altscreen():
+    ...     idx = sc.Fuzzy(opts=sc.FuzzyOpts(fullscreen=True, header=hdr)).run()
+    """
+    lib.sc_altscreen_begin()
+    try:
+        yield
+    finally:
+        lib.sc_altscreen_end()

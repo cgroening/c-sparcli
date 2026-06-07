@@ -6,10 +6,12 @@
 
 use crate::error::{Error, Result};
 use crate::style::{
-    cstring, BorderStyle, BoxStyle, Color, HintLayout, HintPos, Style,
+    cstring, BorderStyle, BoxStyle, Color, HintLayout, HintPos, Style, VAlign,
 };
+use crate::output::Rendered;
 use crate::text::Text;
 use sparcli_sys as ffi;
+use std::ptr::NonNull;
 
 use std::cell::Cell;
 use std::ffi::CString;
@@ -1631,6 +1633,15 @@ pub struct FuzzyOpts {
     pub normal_key: Option<Chord>,
     /// Normal-mode chord that clears the query (default: disabled).
     pub clear_key: Option<Chord>,
+    /// Full-screen mode: the finder fills the terminal, its list grows with the
+    /// items up to the available height (minus `header`) and only then scrolls;
+    /// the leftover space is placed by `valign`. Run inside an [`AltScreen`].
+    pub fullscreen: bool,
+    /// Vertical alignment of the (header + finder) block (fullscreen only).
+    pub valign: VAlign,
+    /// Header pinned above the finder (fullscreen only). Borrowed: the
+    /// [`Rendered`] must outlive the run. Set with [`FuzzyOpts::header`].
+    pub header: Option<NonNull<ffi::ScRendered>>,
 }
 
 impl FuzzyOpts {
@@ -1668,6 +1679,22 @@ impl FuzzyOpts {
         self
     }
     /// Suppress the right-edge scrollbar (kept on by default while scrolling).
+    /// Enables full-screen mode (grow then scroll, header + valign).
+    pub fn fullscreen(mut self) -> Self {
+        self.fullscreen = true;
+        self
+    }
+    /// Sets the vertical alignment of the block (fullscreen only).
+    pub fn valign(mut self, v: VAlign) -> Self {
+        self.valign = v;
+        self
+    }
+    /// Pins a borrowed header above the finder (fullscreen only). The
+    /// [`Rendered`] must outlive the run.
+    pub fn header(mut self, header: &Rendered) -> Self {
+        self.header = NonNull::new(header.as_ptr() as *mut ffi::ScRendered);
+        self
+    }
     pub fn no_scrollbar(mut self) -> Self {
         self.no_scrollbar = true;
         self
@@ -1835,6 +1862,9 @@ impl Fuzzy {
         o.stretch_columns = opts.stretch_columns;
         o.max_height = opts.max_height;
         o.no_scrollbar = opts.no_scrollbar;
+        o.fullscreen = opts.fullscreen;
+        o.valign = opts.valign.raw();
+        o.header = opts.header.map_or(std::ptr::null(), |p| p.as_ptr());
         o.table_opts = opts.table_opts.raw(&mut arena);
         o.multi = opts.multi;
         o.checkbox_column = opts.checkbox_column;
@@ -2242,6 +2272,37 @@ pub struct FormOpts {
     pub editor_key: Option<Chord>,
     /// Background of the editor box below the grid (default: a subtle gray).
     pub edit_bg: Color,
+    /// Full-screen mode: compose [valign-pad][header][grid] filling the terminal
+    /// (consistent shell alongside a fullscreen finder). Run inside an
+    /// [`AltScreen`](crate::AltScreen).
+    pub fullscreen: bool,
+    /// Vertical alignment of the (header + grid) block (fullscreen only).
+    pub valign: VAlign,
+    /// Header pinned above the grid (fullscreen only). Borrowed: the
+    /// [`Rendered`] must outlive the run.
+    pub header: Option<NonNull<ffi::ScRendered>>,
+}
+
+impl FormOpts {
+    pub fn new() -> Self {
+        FormOpts::default()
+    }
+    /// Enables full-screen mode (header + valign over the terminal).
+    pub fn fullscreen(mut self) -> Self {
+        self.fullscreen = true;
+        self
+    }
+    /// Sets the vertical alignment of the block (fullscreen only).
+    pub fn valign(mut self, v: VAlign) -> Self {
+        self.valign = v;
+        self
+    }
+    /// Pins a borrowed header above the grid (fullscreen only). The
+    /// [`Rendered`] must outlive the run.
+    pub fn header(mut self, header: &Rendered) -> Self {
+        self.header = NonNull::new(header.as_ptr() as *mut ffi::ScRendered);
+        self
+    }
 }
 
 /// An owning grid-layout form. Add fields row by row, [`run`](Form::run) it,
@@ -2272,6 +2333,9 @@ impl Form {
             o.editor_key = c.0;
         }
         o.edit_bg = opts.edit_bg.raw();
+        o.fullscreen = opts.fullscreen;
+        o.valign = opts.valign.raw();
+        o.header = opts.header.map_or(std::ptr::null(), |p| p.as_ptr());
         // Strings are copied by the C side, so the temporaries above suffice.
         let ptr = unsafe { ffi::sc_form_new(o) };
         assert!(!ptr.is_null(), "sc_form_new: out of memory");

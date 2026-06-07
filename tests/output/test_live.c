@@ -244,6 +244,30 @@ void test_live(void) {
         print_contains("rewind lands on the frame top", bytes, "\033[2A");
         free(buffer);
     }
+
+    /* ── 10. Alt-screen session is a no-op off a terminal ── */
+    printf("--- Live 10. Alt-screen session (off-TTY no-op) ---\n");
+    {
+        char *buffer = NULL;
+        size_t size = 0;
+        FILE *mem = open_memstream(&buffer, &size);
+        if (!mem) {
+            printf("open_memstream failed\n");
+            return;
+        }
+
+        FILE *saved = sc_output_stream();
+        sc_output_set_stream(mem);
+        sc_altscreen_begin();   /* memstream is not a TTY -> no escapes */
+        sc_altscreen_end();
+        sc_output_set_stream(saved);
+        fclose(mem);
+
+        /* Off a terminal the session emits nothing (and is safe to call). */
+        printf("emits nothing off a terminal                  %s\n",
+               size == 0 ? "yes" : "no");
+        free(buffer);
+    }
 }
 
 /**

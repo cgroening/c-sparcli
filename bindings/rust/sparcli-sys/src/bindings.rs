@@ -2037,6 +2037,12 @@ extern "C" {
     #[doc = " Ends the live session and frees the handle.\n\n Terminal sessions restore the cursor and (in `alt_screen` mode) the\n previous screen content; the final frame stays visible unless\n `transient` was set. Non-terminal sessions print the buffered final\n frame once.\n\n @param live  Live session; `NULL`-safe. The handle is freed."]
     pub fn sc_live_end(live: *mut ScLive);
 }
+extern "C" {
+    #[doc = " Enters the alternate screen (cursor homed + hidden); no-op off a TTY."]
+    pub fn sc_altscreen_begin();
+    #[doc = " Leaves the alternate screen and restores the cursor."]
+    pub fn sc_altscreen_end();
+}
 #[doc = " Options for the diff renderer. Zero-init = 3 lines of context, the\n  default red/green/cyan colors and `old`/`new` header labels."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3398,10 +3404,16 @@ pub struct ScFuzzyOpts {
     pub max_height: ::std::os::raw::c_int,
     #[doc = " Suppress the right-edge scrollbar (on by default while scrolling)."]
     pub no_scrollbar: bool,
+    #[doc = " Full-screen mode: fill the terminal, grow then scroll, header+valign."]
+    pub fullscreen: bool,
+    #[doc = " Vertical alignment of the header+finder block (fullscreen only)."]
+    pub valign: ScVAlign,
+    #[doc = " Borrowed header pinned above the finder (fullscreen only)."]
+    pub header: *const ScRendered,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 832usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 848usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
@@ -3504,6 +3516,12 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, max_height) - 824usize];
     ["Offset of field: ScFuzzyOpts::no_scrollbar"]
         [::std::mem::offset_of!(ScFuzzyOpts, no_scrollbar) - 828usize];
+    ["Offset of field: ScFuzzyOpts::fullscreen"]
+        [::std::mem::offset_of!(ScFuzzyOpts, fullscreen) - 829usize];
+    ["Offset of field: ScFuzzyOpts::valign"]
+        [::std::mem::offset_of!(ScFuzzyOpts, valign) - 832usize];
+    ["Offset of field: ScFuzzyOpts::header"]
+        [::std::mem::offset_of!(ScFuzzyOpts, header) - 840usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3876,10 +3894,16 @@ pub struct ScFormOpts {
     pub editor_key: ScKeyChord,
     #[doc = " Background of the editor box shown below the grid; zero = gray."]
     pub edit_bg: ScColor,
+    #[doc = " Full-screen mode: compose [valign-pad][header][grid] (consistent shell)."]
+    pub fullscreen: bool,
+    #[doc = " Vertical alignment of the header+grid block (fullscreen only)."]
+    pub valign: ScVAlign,
+    #[doc = " Borrowed header pinned above the grid (fullscreen only)."]
+    pub header: *const ScRendered,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 160usize];
+    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 176usize];
     ["Alignment of ScFormOpts"][::std::mem::align_of::<ScFormOpts>() - 8usize];
     ["Offset of field: ScFormOpts::title"][::std::mem::offset_of!(ScFormOpts, title) - 0usize];
     ["Offset of field: ScFormOpts::title_style"]
@@ -3909,6 +3933,12 @@ const _: () = {
         [::std::mem::offset_of!(ScFormOpts, editor_key) - 136usize];
     ["Offset of field: ScFormOpts::edit_bg"]
         [::std::mem::offset_of!(ScFormOpts, edit_bg) - 148usize];
+    ["Offset of field: ScFormOpts::fullscreen"]
+        [::std::mem::offset_of!(ScFormOpts, fullscreen) - 156usize];
+    ["Offset of field: ScFormOpts::valign"]
+        [::std::mem::offset_of!(ScFormOpts, valign) - 160usize];
+    ["Offset of field: ScFormOpts::header"]
+        [::std::mem::offset_of!(ScFormOpts, header) - 168usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

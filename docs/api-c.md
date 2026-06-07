@@ -1091,6 +1091,8 @@ void    sc_live_end(ScLive *live);   /* restore terminal + free the handle */
 | `transient` | Erase the live region on end instead of leaving the final frame; off-terminal it suppresses the final-frame output |
 | `always` | Emit the redraw escape codes even when the output stream is not a terminal |
 | `prompt_rows` | Rows reserved **below** the frame for an interactive prompt (REPL dashboards): after every update the cursor parks at column 0 of the first reserved row, where e.g. `sc_text_input` (with `hide_summary = true`) runs and erases itself; the next update rewinds over frame + reserve together. Reserve as many rows as the prompt draws. Zero-init = 0 = classic behavior. See `examples/c/apps/repl_dashboard.c` |
+| `valign` | Vertical alignment of the whole block on the **alt screen** (`SC_VALIGN_TOP` default / `MIDDLE` / `BOTTOM`): pads with leading blank rows so the frame (+ reserve) sits top/middle/bottom. Ignored off the alt screen |
+| `valign_fixed_header` | With `valign`, pin the frame at the top and align only the reserved region beneath it (a gap between header and prompt) instead of the whole block |
 
 ```c
 ScLive *live = sc_live_begin((ScLiveOpts){ 0 });
@@ -1119,6 +1121,26 @@ sc_live_end(live);   /* leaves the final frame on screen */
 - **Cleanup safety:** cursor visibility and the alternate screen are restored via `atexit` on clean exits and on SIGINT/SIGTERM/SIGHUP/SIGQUIT (the signal is then re-raised). Crash signals (SIGSEGV/SIGABRT) are deliberately not trapped - after a crash in `alt_screen` mode, run `reset`.
 - **One session per terminal** at a time; `sc_live_end` frees the handle (no separate `_free`). `sc_live_end(NULL)` is safe.
 - **Composing with a prompt** (`prompt_rows`): the live display and an input widget can share the terminal - the dashboard redraws in place above, the prompt runs in the reserved rows below. The prompt must hide its summary line; its self-erase returns the cursor exactly to where the live display parked it, keeping both regions' arithmetic stable across the loop.
+
+### Alt-screen session
+
+```c
+void sc_altscreen_begin(void);
+void sc_altscreen_end(void);
+```
+
+A thin standalone alternate-screen scope (enter the alt screen + home and hide the cursor / leave and restore), separate from `sc_live`. It does **not** draw — it just **owns the screen** for an app loop that runs **full-screen widgets** (`ScFuzzyOpts.fullscreen` / `ScFormOpts.fullscreen`): open it once, run the widgets, then end it. Switching widgets never flickers because the screen stays entered, and each widget composes its own pinned header + `valign` + body each frame. A **no-op off a terminal** (CI/pipes). Cursor and screen are restored on `atexit` / SIGINT/TERM/HUP/QUIT, like `sc_live`. One session at a time. See `examples/c/apps/fullscreen_app.c`.
+
+```c
+sc_altscreen_begin();
+while (running) {
+    ScRendered *header = build_header(state);      /* a captured panel */
+    /* run a fuzzy finder or a form with .fullscreen = true, .header = header,
+       .valign = SC_VALIGN_MIDDLE - each fills the screen, grows then scrolls */
+    sc_rendered_free(header);
+}
+sc_altscreen_end();
+```
 
 Run the demos with `make run-example EX=live_demo` and `make run-example EX=repl_dashboard`.
 
@@ -1230,7 +1252,7 @@ void        sc_form_free(ScForm *f);
 
 **Interaction:** arrows move the active box in 2D (it gets an `accent`-colored border); Tab/Shift-Tab cycle. **Enter** opens the field's editor in an `accent`-framed box **below** the grid (the box keeps showing the committed value); a second **Enter** validates + saves and the grid re-renders; **Esc** discards the edit (Esc in navigation cancels the form). Bool fields toggle in place with Space/Enter. select/multiselect open a scrollable list (Space toggles a checkbox); date opens a month grid. **Ctrl-D** submits and first enforces `ScFieldOpts.required` (empty text/number or zero-checked multiselect blocks submit and jumps to the field).
 
-**Multiline text** (`ScFieldOpts.multiline`): the value may hold newlines (shown across the box) and is edited via the **external editor** — **Enter** or `ScFormOpts.editor_key` (zero-init = Ctrl-G) opens `ScFormOpts.editor` (NULL = `$VISUAL`/`$EDITOR`/nvim/vi). Optional per-field `ScFieldOpts.validate` keeps the inline editor open with a red error line. Strings are copied; `shortcuts` stays borrowed. Bindings: C++ `sparcli::Form`, Rust `sparcli::Form`, Python `sc.Form`. Example: `examples/c/apps/form_demo.c`.
+**Multiline text** (`ScFieldOpts.multiline`): the value may hold newlines (shown across the box) and is edited via the **external editor** — **Enter** or `ScFormOpts.editor_key` (zero-init = Ctrl-G) opens `ScFormOpts.editor` (NULL = `$VISUAL`/`$EDITOR`/nvim/vi). Optional per-field `ScFieldOpts.validate` keeps the inline editor open with a red error line. **Full-screen mode** (`ScFormOpts.fullscreen` + a borrowed `header` `ScRendered *` + `valign`): composes `[valign-pad][header][grid]` filling the terminal for a consistent shell alongside a full-screen finder (the grid is fixed-size — no auto-grow); run inside an `sc_altscreen_begin` session. Strings are copied; `shortcuts` and `header` stay borrowed. Bindings: C++ `sparcli::Form`, Rust `sparcli::Form`, Python `sc.Form`. Examples: `examples/c/apps/form_demo.c`, `examples/c/apps/fullscreen_app.c`.
 
 ```c
 /* Custom shortcuts (any widget) – bind extra keys to actions. See "Custom shortcuts". */
@@ -1493,6 +1515,12 @@ Opaque handle. Ranks items by `sc_fuzzy_match` on each keystroke; matched charac
 | `search_columns` | Bitmask of columns the query searches (bit `c` = column `c`); `0` = all (default). Table view only; a row matches when any selected column matches |
 | `table_opts` | Passed through to the table renderer (border, header, …); the cursor-row background defaults to `accent`, overridable via `selected_style.bg` |
 | `box` (`ScBoxStyle`) | Background / frame / width for the finder (query + results): `bg` fills behind rows (borderless ok), `width_mode` (default `content` + `min_width`/`max_width`) / `fixed`/`full`, `bg_extent`; the list cursor row becomes a full-width bar when `selected_style.bg` is set |
+| `max_height` | Cap the finder height in rows so the result list scrolls within it; `0` auto-fits the terminal. Set it to a live dashboard's `prompt_rows` reserve |
+| `no_scrollbar` | Suppress the right-edge scrollbar (drawn by default while the list scrolls); the `↑ x–y/total ↓` text indicator still shows |
+| `stretch_columns` | Bitmask of table columns that absorb the slack when `box` resolves wider than the natural table (`full`/`fixed`/`content`+`max_width`); `0` = content-sized. Table view only |
+| `fullscreen` | Full-screen mode: the finder fills the terminal, its list **grows with the items** up to the available height (terminal − `header` − chrome) then scrolls; the leftover space is placed by `valign`. Run inside an `sc_altscreen_begin` session |
+| `valign` | Vertical alignment of the (header + finder) block (fullscreen only): `TOP` fills below the finder, `BOTTOM` above the header, `MIDDLE` both — recomputed each frame as the list grows |
+| `header` | Borrowed `ScRendered *` pinned above the finder (fullscreen only); e.g. a captured panel. Must outlive the run |
 | `prompt_style` / `selected_style` / `cursor_style` / `counter_style` | Styles |
 | `cursor_marker` / `marker` | List cursor / other-row prefixes |
 | `summary_style` / `hide_summary`, `hint` / `hint_layout` / `hint_style` | As above |

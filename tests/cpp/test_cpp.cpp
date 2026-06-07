@@ -597,6 +597,25 @@ static void test_fuzzy_wrapper() {
     CHECK(!m.has_selection(), "fuzzy++: modal opts build");
 }
 
+static void test_fullscreen_wrapper() {
+    // A pinned header (borrowed); declared first so it outlives the widgets.
+    Rendered header = capture::str("== header ==");
+
+    Fuzzy f{ FuzzyOpts{ .prompt = "Find", .fullscreen = true,
+                        .valign = SC_VALIGN_MIDDLE, .header = header.get() } };
+    f.add("alpha").add("beta");
+    CHECK(!f.has_selection(), "fuzzy++: fullscreen opts build");
+
+    Form form{ FormOpts{ .fullscreen = true, .valign = SC_VALIGN_BOTTOM,
+                         .header = header.get() } };
+    form.row_begin();
+    int t = form.add_text("Title", "x");
+    CHECK(form.get_string(t) == "x", "form++: fullscreen opts build");
+
+    { AltScreen screen; }   // no-op off a terminal; just exercises begin/drop
+    CHECK(true, "altscreen++: scope constructs/destructs");
+}
+
 static void test_diff_wrapper() {
     std::string out = render([] {
         diff("a\nb\nc\n", "a\nB\nc\n", DiffOpts{ .context = 0 });
@@ -706,6 +725,7 @@ int main() {
     test_parity_helpers();
     test_humanize_wrapper();
     test_fuzzy_wrapper();
+    test_fullscreen_wrapper();
     test_diff_wrapper();
     test_multiprogress_wrapper();
     test_process_wrapper();

@@ -113,6 +113,39 @@ fn fuzzy_modal_opts_build() {
 }
 
 #[test]
+fn fullscreen_opts_and_altscreen_build() {
+    use sparcli::{AltScreen, Form, FormOpts, VAlign};
+    // A pinned header (borrowed for the run); must outlive the widgets.
+    let header = capture::str("== header ==");
+
+    let mut fz = Fuzzy::new(
+        FuzzyOpts::new()
+            .prompt("Find")
+            .fullscreen()
+            .valign(VAlign::Middle)
+            .header(&header),
+    );
+    fz.add("alpha").add("beta");
+    assert!(!fz.has_selection());
+
+    let mut form = Form::new(
+        FormOpts::new()
+            .fullscreen()
+            .valign(VAlign::Bottom)
+            .header(&header),
+    );
+    form.row_begin();
+    let title = form.add_text("Title", "x", Default::default());
+    assert_eq!(form.get_string(title).as_deref(), Some("x"));
+
+    // The alt-screen session is a no-op off a terminal (SPARCLI_NO_TTY); just
+    // verify begin/drop are callable and don't disturb the run-once widgets.
+    {
+        let _screen = AltScreen::begin();
+    }
+}
+
+#[test]
 fn fuzzy_sections_multi_and_styles() {
     use sparcli::FuzzyOrder;
     let mut fz = Fuzzy::new(

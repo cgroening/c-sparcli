@@ -90,6 +90,27 @@ def test_fuzzy_modal_opts():
     assert fz.has_selection() is False
 
 
+def test_fullscreen_opts_and_altscreen():
+    # A pinned header (borrowed for the run); exercises the fullscreen/valign/
+    # header _fill path on both widgets + the alt-screen context manager.
+    header = sc.capture.string("== header ==")
+
+    fz = sc.Fuzzy(sc.FuzzyOpts(
+        prompt="Find", fullscreen=True, valign=sc.VAlign.MIDDLE, header=header))
+    fz.add("alpha").add("beta")
+    assert fz.has_selection() is False
+
+    form = sc.Form(sc.FormOpts(
+        fullscreen=True, valign=sc.VAlign.BOTTOM, header=header))
+    form.row_begin()
+    field = form.add_text("Title", "x")
+    assert form.get_string(field) == "x"
+
+    # No-op off a terminal (conftest sets SPARCLI_NO_TTY); just verify it runs.
+    with sc.altscreen():
+        pass
+
+
 def test_fuzzy_rich_and_styled_rows():
     style = sc.Style(fg=sc.Color.RED)
     g = sc.Fuzzy(sc.FuzzyOpts(table=True, headers=["Status", "Task"]))

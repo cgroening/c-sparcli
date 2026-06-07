@@ -322,4 +322,17 @@ void style_fuzzy(void) {
     style_show("fuzzy list: modal badge hidden (field tint only)",
                sc_fuzzy_frame(m4, "to"));
     sc_fuzzy_free(m4);
+
+    /* Fullscreen: a pinned header + valign MIDDLE. With a short list the block
+       is centered within the terminal height (24 off-TTY) - the leading blank
+       rows are the top half of the free space. */
+    ScRendered *hdr = sc_capture_str("== header ==");
+    ScFuzzy *fsv = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .fullscreen = true, .valign = SC_VALIGN_MIDDLE,
+        .header = hdr });
+    for (size_t m = 0; m < n; m++) { sc_fuzzy_add(fsv, cities[m]); }
+    style_show("fuzzy list: fullscreen header + valign middle",
+               sc_fuzzy_frame(fsv, ""));
+    sc_fuzzy_free(fsv);
+    sc_rendered_free(hdr);
 }

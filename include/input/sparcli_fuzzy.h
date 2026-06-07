@@ -259,6 +259,29 @@ typedef struct ScFuzzyOpts {
      * text indicator. Set this to suppress the bar and keep only the text line.
      */
     bool no_scrollbar;
+
+    /**
+     * Full-screen mode: the finder fills the terminal height. Its result list
+     * grows with the items up to the available height (terminal minus the
+     * `header` and chrome) and only then scrolls; the leftover space is
+     * distributed by `valign`. Intended to run inside an `sc_altscreen_begin`
+     * session (the session owns the alternate screen; the finder draws into it).
+     */
+    bool fullscreen;
+
+    /**
+     * Vertical alignment of the (header + finder) block within the terminal
+     * (fullscreen only): `SC_VALIGN_TOP` fills below the finder, `SC_VALIGN_BOTTOM`
+     * above the header, `SC_VALIGN_MIDDLE` both. Recomputed each frame so a
+     * growing list stays aligned.
+     */
+    ScVAlign valign;
+
+    /**
+     * Optional header pinned above the finder (fullscreen only); borrowed,
+     * library-rendered (e.g. a captured panel + subtitle). Must outlive the run.
+     */
+    const struct ScRendered *header;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */

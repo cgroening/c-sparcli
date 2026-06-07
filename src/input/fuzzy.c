@@ -183,6 +183,17 @@ static int fuzzy_chrome_rows(const ScFuzzy *self) {
    terminal height so a standalone finder never overflows the screen. */
 static size_t effective_visible(const ScFuzzy *self) {
     int chrome = fuzzy_chrome_rows(self);
+    if (self->opts.fullscreen) {
+        /* Grow to fill below the pinned header, then scroll. */
+        int header_h = self->opts.header
+            ? (int)self->opts.header->line_count : 0;
+        int cap = sc_terminal_height() - header_h;
+        if (self->opts.max_height > 0 && self->opts.max_height < cap) {
+            cap = self->opts.max_height;
+        }
+        int avail = cap - chrome;
+        return avail < 1 ? 1 : (size_t)avail;
+    }
     if (self->opts.max_height > 0) {
         int avail = self->opts.max_height - chrome;
         return avail < 1 ? 1 : (size_t)avail;
@@ -1035,10 +1046,17 @@ static ScRendered *fuzzy_render(void *state) {
     if (self->opts.modal) {
         default_hint = self->insert_mode ? HINT_INSERT : HINT_NORMAL;
     }
-    return sc_compose_hint(stacked,
+    ScRendered *frame = sc_compose_hint(stacked,
                            self->opts.hint ? self->opts.hint : default_hint,
                            self->opts.hint_layout, self->opts.hint_pos,
                            self->opts.hint_style);
+    if (self->opts.fullscreen) {
+        /* Pin the header above and align the block; recomputed each frame so a
+           growing list re-aligns and fills the screen. */
+        frame = sc_fullscreen_compose(frame, self->opts.header,
+                                      self->opts.valign);
+    }
+    return frame;
 }
 
 /** Resolved badge / field style for the active modal mode. */

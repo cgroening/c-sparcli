@@ -623,6 +623,8 @@ void sc_live_update_str(ScLive *live, const char *str);
 void sc_live_update_text(ScLive *live, const ScText *text);
 void sc_live_update_table(ScLive *live, const ScTableData *table, ScTableOpts opts);
 void sc_live_end(ScLive *live);
+void sc_altscreen_begin(void);
+void sc_altscreen_end(void);
 
 typedef enum {
     SC_LOG_DEBUG = 0, SC_LOG_INFO, SC_LOG_WARN, SC_LOG_ERROR, SC_LOG_OFF
@@ -1011,6 +1013,9 @@ typedef struct {
     uint64_t stretch_columns;
     int max_height;
     bool no_scrollbar;
+    bool fullscreen;
+    ScVAlign valign;
+    const ScRendered *header;
     ...;
 } ScFuzzyOpts;
 typedef struct ScFuzzy ScFuzzy;
@@ -1108,6 +1113,9 @@ typedef struct {
     const char *editor;
     ScKeyChord editor_key;
     ScColor edit_bg;
+    bool fullscreen;
+    ScVAlign valign;
+    const ScRendered *header;
     ...;
 } ScFormOpts;
 typedef struct ScForm ScForm;
