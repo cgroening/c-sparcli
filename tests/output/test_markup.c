@@ -21,7 +21,8 @@ void test_markup(void) {
     sc_markup_println(
         "[bold]bold[/]  [italic]italic[/]  [dim]dim[/]  "
         "[underline]underline[/]  [u]u-alias[/]  "
-        "[bold italic underline]all three[/]"
+        "[strike]strike[/]  [s]s-alias[/]  "
+        "[bold italic underline]all three[/]  [dim strike]dim+strike[/]"
     );
 
     printf("\n");

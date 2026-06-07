@@ -5,6 +5,7 @@ pub const SC_ANSI_ESCAPE_CODE_BOLD: &[u8; 5] = b"\x1B[1m\0";
 pub const SC_ANSI_ESCAPE_CODE_DIM: &[u8; 5] = b"\x1B[2m\0";
 pub const SC_ANSI_ESCAPE_CODE_ITALIC: &[u8; 5] = b"\x1B[3m\0";
 pub const SC_ANSI_ESCAPE_CODE_UNDERLINE: &[u8; 5] = b"\x1B[4m\0";
+pub const SC_ANSI_ESCAPE_CODE_STRIKE: &[u8; 5] = b"\x1B[9m\0";
 pub type __int64_t = ::std::os::raw::c_longlong;
 pub type __darwin_time_t = ::std::os::raw::c_long;
 pub type __darwin_off_t = __int64_t;
@@ -114,6 +115,7 @@ pub const ScTextAttribute_SC_TEXT_ATTR_BOLD: ScTextAttribute = 1;
 pub const ScTextAttribute_SC_TEXT_ATTR_DIM: ScTextAttribute = 2;
 pub const ScTextAttribute_SC_TEXT_ATTR_ITALIC: ScTextAttribute = 4;
 pub const ScTextAttribute_SC_TEXT_ATTR_UNDER: ScTextAttribute = 8;
+pub const ScTextAttribute_SC_TEXT_ATTR_STRIKE: ScTextAttribute = 16;
 #[doc = " Text attribute flags for terminal output (none, bold, etc.).\n\n Each flag occupies exactly one bit so styles can be combined with |.\n\n Example:\n @code\n SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC  =  0b0001 | 0b0010  =  0b0011\n @endcode"]
 pub type ScTextAttribute = ::std::os::raw::c_uint;
 #[doc = " Namespace type for `ScTextAttribute` - groups all flags under dot notation.\n\n Copy `ScTextAttributeNs_` locally to get a short alias:\n\n @code\n ScTextAttributeNs attr = ScTextAttributeNs_;\n sc_print(\"hi\", (ScTextStyle){ attr.BOLD | attr.ITALIC, ... });\n // vs.\n sc_print(\"hi\", (ScTextStyle){\n     SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_ITALIC, ... });\n @endcode"]
@@ -125,10 +127,11 @@ pub struct ScTextAttributeNs {
     pub DIM: ScTextAttribute,
     pub ITALIC: ScTextAttribute,
     pub UNDER: ScTextAttribute,
+    pub STRIKE: ScTextAttribute,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScTextAttributeNs"][::std::mem::size_of::<ScTextAttributeNs>() - 20usize];
+    ["Size of ScTextAttributeNs"][::std::mem::size_of::<ScTextAttributeNs>() - 24usize];
     ["Alignment of ScTextAttributeNs"][::std::mem::align_of::<ScTextAttributeNs>() - 4usize];
     ["Offset of field: ScTextAttributeNs::NONE"]
         [::std::mem::offset_of!(ScTextAttributeNs, NONE) - 0usize];
@@ -140,6 +143,8 @@ const _: () = {
         [::std::mem::offset_of!(ScTextAttributeNs, ITALIC) - 12usize];
     ["Offset of field: ScTextAttributeNs::UNDER"]
         [::std::mem::offset_of!(ScTextAttributeNs, UNDER) - 16usize];
+    ["Offset of field: ScTextAttributeNs::STRIKE"]
+        [::std::mem::offset_of!(ScTextAttributeNs, STRIKE) - 20usize];
 };
 #[doc = " Represents a terminal color, either as a named ANSI color or RGB."]
 #[repr(C)]

@@ -23,6 +23,7 @@ SPARCLI_BEGIN_DECLS
 #define SC_ANSI_ESCAPE_CODE_DIM       "\033[2m" /**< Enables dim (faint) text */
 #define SC_ANSI_ESCAPE_CODE_ITALIC    "\033[3m" /**< Enables italic text */
 #define SC_ANSI_ESCAPE_CODE_UNDERLINE "\033[4m" /**< Enables underlined text */
+#define SC_ANSI_ESCAPE_CODE_STRIKE    "\033[9m" /**< Enables struck-through text */
 /** @} */
 
 /**
@@ -41,6 +42,7 @@ typedef enum ScTextAttribute {
     SC_TEXT_ATTR_DIM    = 1 << 1,
     SC_TEXT_ATTR_ITALIC = 1 << 2,
     SC_TEXT_ATTR_UNDER  = 1 << 3,
+    SC_TEXT_ATTR_STRIKE = 1 << 4,
 } ScTextAttribute;
 
 /**
@@ -57,7 +59,7 @@ typedef enum ScTextAttribute {
  * @endcode
  */
 typedef struct ScTextAttributeNs {
-    ScTextAttribute NONE, BOLD, DIM, ITALIC, UNDER;
+    ScTextAttribute NONE, BOLD, DIM, ITALIC, UNDER, STRIKE;
 } ScTextAttributeNs;
 
 /**

@@ -268,6 +268,18 @@ fn capture_text_markup() {
 }
 
 #[test]
+fn strike_attribute() {
+    use sparcli::Attr;
+    // STRIKE = 1 << 4 renders the ANSI strike code (ESC[9m), via the Attr flag
+    // and the [strike] markup tag.
+    let mut t = Text::new();
+    t.append("done", Style::new().attr(Attr::STRIKE));
+    assert!(capture::text(&t).lines().join("\n").contains("\x1b[9m"));
+    let m = Text::markup("[strike]x[/]  [s]y[/]");
+    assert!(capture::text(&m).lines().join("\n").contains("\x1b[9m"));
+}
+
+#[test]
 fn markup_backtick_inline_code() {
     // Backtick spans render in magenta (ESC[35m) with the backticks removed;
     // \` escapes a literal backtick.

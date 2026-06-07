@@ -875,6 +875,7 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[bold]` | `SC_TEXT_ATTR_BOLD` |
 | `[italic]` | `SC_TEXT_ATTR_ITALIC` |
 | `[underline]` / `[u]` | `SC_TEXT_ATTR_UNDER` |
+| `[strike]` / `[s]` | `SC_TEXT_ATTR_STRIKE` |
 | `[dim]` | `SC_TEXT_ATTR_DIM` |
 | `[red]` … `[white]` `[black]` | foreground named color |
 | `[on red]` … `[on white]` | background named color |

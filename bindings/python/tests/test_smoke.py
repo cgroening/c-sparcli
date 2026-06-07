@@ -227,6 +227,17 @@ def test_capture_markup_text():
     assert t.visible_width >= len("Err ok")
 
 
+def test_strike_attribute():
+    # SC_TEXT_ATTR_STRIKE = 1 << 4; renders the ANSI strike code (ESC[9m),
+    # via the Attr flag, the Style.strike() shortcut, and the [strike] markup.
+    assert int(sc.Attr.STRIKE) == 16
+    t = sc.Text()
+    t.append("done", sc.Style.strike())
+    assert "\x1b[9m" in "\n".join(sc.capture.text(t).lines)
+    m = sc.Text.from_markup("[strike]x[/]  [s]y[/]")
+    assert "\x1b[9m" in "\n".join(sc.capture.text(m).lines)
+
+
 def test_markup_backtick_inline_code():
     # Backtick spans render in magenta (ESC[35m) with the backticks removed;
     # \` escapes a literal backtick.

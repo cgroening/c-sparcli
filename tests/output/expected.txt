@@ -857,7 +857,7 @@ left column   │   [36m────────────[0m[36m [0m[1m
 ════════════════════════════════════ [1mMarkup[0m ════════════════════════════════════
 
 --- Markup 1. basic styles ---
-[1mbold[0m  [0m[3mitalic[0m  [0m[2mdim[0m  [0m[4munderline[0m  [0m[4mu-alias[0m  [0m[1m[3m[4mall three[0m
+[1mbold[0m  [0m[3mitalic[0m  [0m[2mdim[0m  [0m[4munderline[0m  [0m[4mu-alias[0m  [0m[9mstrike[0m  [0m[9ms-alias[0m  [0m[1m[3m[4mall three[0m  [0m[2m[9mdim+strike[0m
 
 --- Markup 2. named fg colors ---
 [31mred[0m  [0m[32mgreen[0m  [0m[33myellow[0m  [0m[34mblue[0m  [0m[35mmagenta[0m  [0m[36mcyan[0m  [0m[37mwhite[0m  [0m[30mblack[0m

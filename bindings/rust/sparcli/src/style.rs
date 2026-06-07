@@ -84,6 +84,7 @@ impl Attr {
     pub const DIM: Attr = Attr(2);
     pub const ITALIC: Attr = Attr(4);
     pub const UNDERLINE: Attr = Attr(8);
+    pub const STRIKE: Attr = Attr(16);
 }
 
 impl std::ops::BitOr for Attr {

@@ -17,6 +17,7 @@ class Attr(IntFlag):
     DIM = 2
     ITALIC = 4
     UNDERLINE = 8
+    STRIKE = 16
 
 
 class BorderType(IntEnum):

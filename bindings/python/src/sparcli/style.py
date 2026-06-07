@@ -39,6 +39,10 @@ class Style:
     ) -> "Style":
         return cls(Attr.UNDERLINE, fg, bg)
 
+    @classmethod
+    def strike(cls, fg: Color = Color.NONE, bg: Color = Color.NONE) -> "Style":
+        return cls(Attr.STRIKE, fg, bg)
+
 
 @dataclass
 class BorderStyle:

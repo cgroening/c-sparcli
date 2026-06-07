@@ -182,7 +182,7 @@ Groups (53 colors): standard hues (`SC_COLOR_RED`, `_ORANGE`, `_YELLOW`, `_GREEN
 Bitmask – combine with `|`:
 
 ```c
-SC_TEXT_ATTR_NONE | SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_ITALIC | SC_TEXT_ATTR_UNDER
+SC_TEXT_ATTR_NONE | SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_ITALIC | SC_TEXT_ATTR_UNDER | SC_TEXT_ATTR_STRIKE
 ```
 
 ### ScTextStyle
@@ -1110,6 +1110,7 @@ Rich-compatible inline markup. Parse a string into an `ScText *` or print direct
 | `[bold]` | `SC_TEXT_ATTR_BOLD` |
 | `[italic]` | `SC_TEXT_ATTR_ITALIC` |
 | `[underline]` / `[u]` | `SC_TEXT_ATTR_UNDER` |
+| `[strike]` / `[s]` | `SC_TEXT_ATTR_STRIKE` (`\033[9m`) |
 | `[dim]` | `SC_TEXT_ATTR_DIM` |
 | `[red]` … `[white]` `[black]` | foreground named color |
 | `[on red]` … `[on white]` | background named color |

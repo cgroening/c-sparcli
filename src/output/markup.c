@@ -469,6 +469,8 @@ static bool is_recognized_close_name(const char *name, size_t length) {
         { "underline", 9 },
         { "u",         1 },
         { "dim",       3 },
+        { "strike",    6 },
+        { "s",         1 },
         { NULL,        0 },
     };
 
@@ -730,6 +732,14 @@ static bool apply_attribute_token(
     }
     if (length == 3 && memcmp(token, "dim", 3) == 0) {
         out->attr |= SC_TEXT_ATTR_DIM;
+        return true;
+    }
+    if (length == 6 && memcmp(token, "strike", 6) == 0) {
+        out->attr |= SC_TEXT_ATTR_STRIKE;
+        return true;
+    }
+    if (length == 1 && memcmp(token, "s", 1) == 0) {
+        out->attr |= SC_TEXT_ATTR_STRIKE;
         return true;
     }
     return false;

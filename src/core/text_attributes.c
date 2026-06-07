@@ -14,6 +14,7 @@ const ScTextAttributeNs ScTextAttributeNs_ = {
     .DIM    = SC_TEXT_ATTR_DIM,
     .ITALIC = SC_TEXT_ATTR_ITALIC,
     .UNDER  = SC_TEXT_ATTR_UNDER,
+    .STRIKE = SC_TEXT_ATTR_STRIKE,
 };
 
 /**
@@ -28,6 +29,7 @@ static const struct {
     { SC_TEXT_ATTR_DIM,    SC_ANSI_ESCAPE_CODE_DIM       },
     { SC_TEXT_ATTR_ITALIC, SC_ANSI_ESCAPE_CODE_ITALIC    },
     { SC_TEXT_ATTR_UNDER,  SC_ANSI_ESCAPE_CODE_UNDERLINE },
+    { SC_TEXT_ATTR_STRIKE, SC_ANSI_ESCAPE_CODE_STRIKE    },
 };
 
 /**
