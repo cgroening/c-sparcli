@@ -251,6 +251,14 @@ typedef struct ScFuzzyOpts {
      * indicator, the box frame and the hint footer.
      */
     int max_height;
+
+    /**
+     * Opt out of the right-edge scrollbar. By default a vertical scrollbar
+     * (track + thumb) is drawn to the right of the results whenever the list
+     * scrolls (more matches than fit), alongside the `↑ first–last/total ↓`
+     * text indicator. Set this to suppress the bar and keep only the text line.
+     */
+    bool no_scrollbar;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */

@@ -168,6 +168,7 @@ class FuzzyOpts:
     search_columns: int = 0
     stretch_columns: int = 0  #: table cols that fill a bounded box width (mask)
     max_height: int = 0       #: cap finder height in rows (scrolls); 0 = auto-fit
+    no_scrollbar: bool = False  #: suppress the right-edge scrollbar (on by default)
     prompt_style: Style = field(default_factory=Style)
     selected_style: Style = field(default_factory=Style)
     cursor_style: Style = field(default_factory=Style)
@@ -226,6 +227,7 @@ class FuzzyOpts:
         c.search_columns = self.search_columns
         c.stretch_columns = self.stretch_columns
         c.max_height = self.max_height
+        c.no_scrollbar = self.no_scrollbar
         apply_style(c.prompt_style, self.prompt_style)
         apply_style(c.selected_style, self.selected_style)
         apply_style(c.cursor_style, self.cursor_style)

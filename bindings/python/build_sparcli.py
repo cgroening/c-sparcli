@@ -1010,6 +1010,7 @@ typedef struct {
     ScTextStyle mode_insert_style;
     uint64_t stretch_columns;
     int max_height;
+    bool no_scrollbar;
     ...;
 } ScFuzzyOpts;
 typedef struct ScFuzzy ScFuzzy;

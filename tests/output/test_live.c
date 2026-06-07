@@ -212,6 +212,38 @@ void test_live(void) {
         print_contains("frame content still drawn", bytes, "header");
         free(buffer);
     }
+
+    /* ── 9. Multi-row reserve parks at the FIRST reserved row ── */
+    printf("--- Live 9. Multi-row reserve park (always = true) ---\n");
+    {
+        char *buffer = NULL;
+        size_t size = 0;
+        FILE *mem = open_memstream(&buffer, &size);
+        if (!mem) {
+            printf("open_memstream failed\n");
+            return;
+        }
+
+        FILE *saved = sc_output_stream();
+        sc_output_set_stream(mem);
+        ScLive *live = sc_live_begin((ScLiveOpts){
+            .always = true, .prompt_rows = 3,   /* 3 reserved rows */
+        });
+        sc_live_update_str(live, "a\nb");        /* 2-line frame */
+        sc_live_update_str(live, "a\nB");
+        sc_live_end(live);
+        sc_output_set_stream(saved);
+        fclose(mem);
+
+        const char *bytes = buffer ? buffer : "";
+        /* The prompt draws downward INTO the reserve, so the cursor parks at
+           the first reserved row: exactly one newline past the frame, NOT three
+           (`\033[J\n\r`, not `\033[J\n\n\n\r`). */
+        print_contains("parks at the first reserved row", bytes, "\033[J\n\r");
+        /* The rewind spans only frame-top..park (2 frame lines -> up 2). */
+        print_contains("rewind lands on the frame top", bytes, "\033[2A");
+        free(buffer);
+    }
 }
 
 /**

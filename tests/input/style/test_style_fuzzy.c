@@ -143,6 +143,30 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(mh, ""));
     sc_fuzzy_free(mh);
 
+    /* Table view, capped height: the scrollbar appears on the right too. */
+    ScFuzzy *mt = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .table = true, .headers = headers, .n_cols = 3,
+        .max_height = 7 });
+    sc_fuzzy_add_row(mt, (const char *[]){ "Tokyo",  "Japan",    "37" }, 3);
+    sc_fuzzy_add_row(mt, (const char *[]){ "Delhi",  "India",    "32" }, 3);
+    sc_fuzzy_add_row(mt, (const char *[]){ "London", "UK",       "9"  }, 3);
+    sc_fuzzy_add_row(mt, (const char *[]){ "Paris",  "France",   "11" }, 3);
+    sc_fuzzy_add_row(mt, (const char *[]){ "Lisbon", "Portugal", "3"  }, 3);
+    style_show("fuzzy table: max_height 7 clamps + scrollbar",
+               sc_fuzzy_frame(mt, ""));
+    sc_fuzzy_free(mt);
+
+    /* Full-width box + scrolling: the scrollbar sits flush at the right edge
+     * (just left of the frame), not next to the narrow content. */
+    ScFuzzy *fws = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "City", .max_height = 6,
+        .box = { .enabled = true, .width_mode = SC_WIDTH_FULL,
+                 .border = { .type = SC_BORDER_ROUNDED } } });
+    for (size_t k = 0; k < n; k++) { sc_fuzzy_add(fws, cities[k]); }
+    style_show("fuzzy list: full-width box, scrollbar flush right",
+               sc_fuzzy_frame(fws, ""));
+    sc_fuzzy_free(fws);
+
     /* List view, widget background without a frame: rows inherit it and the
      * cursor row is a full-width bar (selected_style.bg). */
     ScFuzzy *j = sc_fuzzy_new((ScFuzzyOpts){

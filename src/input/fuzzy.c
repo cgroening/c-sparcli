@@ -177,17 +177,19 @@ static int fuzzy_chrome_rows(const ScFuzzy *self) {
     return rows;
 }
 
-/* Visible result rows: max_visible, clamped so the whole finder fits within
-   opts.max_height (or the terminal height when max_height is 0). */
+/* Visible result rows. With an explicit `max_height` the finder EXPANDS to fill
+   that many rows (minus chrome) and scrolls beyond - so it grows up to the cap.
+   Without it, the default `max_visible` viewport applies, clamped to the
+   terminal height so a standalone finder never overflows the screen. */
 static size_t effective_visible(const ScFuzzy *self) {
-    size_t vis = self->max_visible > 0 ? (size_t)self->max_visible : 10;
-    int cap = self->opts.max_height > 0 ? self->opts.max_height
-                                        : sc_terminal_height();
-    if (cap > 0) {
-        int avail = cap - fuzzy_chrome_rows(self);
-        if (avail < 1) { avail = 1; }
-        if ((size_t)avail < vis) { vis = (size_t)avail; }
+    int chrome = fuzzy_chrome_rows(self);
+    if (self->opts.max_height > 0) {
+        int avail = self->opts.max_height - chrome;
+        return avail < 1 ? 1 : (size_t)avail;
     }
+    size_t vis = self->max_visible > 0 ? (size_t)self->max_visible : 10;
+    int avail = sc_terminal_height() - chrome;
+    if (avail > 0 && (size_t)avail < vis) { vis = (size_t)avail; }
     return vis < 1 ? 1 : vis;
 }
 
@@ -881,6 +883,52 @@ static void refilter(ScFuzzy *self) {
     }
 }
 
+/**
+ * Appends a 1-column vertical scrollbar (a leading gap + track/thumb glyph) to
+ * the right of every line of `body`, padding each line to the body width first.
+ * The thumb spans the body height `h`, sized/positioned from the scroll window
+ * (`window` of `total` items, offset `top`). Consumes `body`, returns a new
+ * `ScRendered` (or the original on failure). Body lines are library-generated
+ * (already past the trust boundary), so they are appended raw to keep their ANSI.
+ */
+static ScRendered *attach_scrollbar(ScRendered *body, int width, size_t top,
+                                    size_t total, size_t window) {
+    if (!body || body->line_count == 0 || total == 0) {
+        return body;
+    }
+    size_t h = body->line_count;
+    if (width < body->max_column_width) { width = body->max_column_width; }
+    size_t thumb = (h * window + total - 1) / total;   /* ceil */
+    if (thumb < 1) { thumb = 1; }
+    if (thumb > h) { thumb = h; }
+    size_t span = (total > window) ? total - window : 0;
+    size_t pos = 0;
+    if (span > 0 && h > thumb) {
+        pos = (top * (h - thumb) + span / 2) / span;   /* rounded */
+        if (pos > h - thumb) { pos = h - thumb; }
+    }
+
+    ScText *t = sc_text_new();
+    if (!t) { return body; }
+    ScTextStyle none = { 0 };
+    ScTextStyle dim = { SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    for (size_t i = 0; i < h; i++) {
+        const char *line = body->lines[i] ? body->lines[i] : "";
+        sc_text_append_raw(t, line, none);
+        int vis = body->column_widths ? body->column_widths[i] : width;
+        for (int p = vis; p < width; p++) { sc_text_append_raw(t, " ", none); }
+        sc_text_append_raw(t, " ", none);   /* gap before the bar */
+        bool on_thumb = (i >= pos && i < pos + thumb);
+        sc_text_append(t, on_thumb ? "\xe2\x96\x88" : "\xe2\x96\x91", dim); /* █ ░ */
+        if (i + 1 < h) { sc_text_append_raw(t, "\n", none); }
+    }
+    ScRendered *out = sc_capture_text(t);
+    sc_text_free(t);
+    if (!out) { return body; }
+    sc_rendered_free(body);
+    return out;
+}
+
 static ScRendered *fuzzy_render(void *state) {
     ScFuzzy *self = state;
     ScRendered *query = render_query_line(self);
@@ -903,20 +951,29 @@ static ScRendered *fuzzy_render(void *state) {
         body_w = render_list_width(self);   /* measured before rendering */
     }
 
+    /* Right-edge scrollbar (on by default while the list scrolls): reserve two
+       columns (gap + bar) inside the interior so the box still fits. */
+    size_t sb_window = effective_visible(self);
+    bool sb = self->match_n > sb_window && !self->opts.no_scrollbar;
+    int sb_cols = sb ? 2 : 0;
+
     int content_w = query_w;
     if (scroll_w > content_w) { content_w = scroll_w; }
     if (body_w > content_w) { content_w = body_w; }
+    content_w += sb_cols;
     ScBoxLayout layout = sc_box_layout(self->opts.box, content_w,
                                        sc_terminal_width(), SC_WIDTH_CONTENT);
     bool fill = self->opts.box.bg_extent != SC_BG_EXTENT_TEXT;
 
+    int body_target = layout.interior_w - sb_cols;
+    if (body_target < 1) { body_target = 1; }
     if (!self->opts.table) {
-        body = render_list(self, layout.interior_w, fill);
+        body = render_list(self, body_target, fill);
     } else if (self->opts.stretch_columns && body
-               && layout.interior_w > body->max_column_width) {
+               && body_target > body->max_column_width) {
         /* Box is wider than the natural table: re-render filling the interior,
            the surplus going to the stretch columns. */
-        ScRendered *wide = render_table(self, layout.interior_w);
+        ScRendered *wide = render_table(self, body_target);
         if (wide) {
             sc_rendered_free(body);
             body = wide;
@@ -926,6 +983,12 @@ static ScRendered *fuzzy_render(void *state) {
         sc_rendered_free(query);
         sc_rendered_free(scroll);
         return NULL;
+    }
+    if (sb) {
+        /* Pad to the box interior so the bar sits flush at the right edge (just
+           left of the frame) even when the body is narrower than the box. */
+        body = attach_scrollbar(body, body_target, self->top, self->match_n,
+                                sb_window);
     }
 
     /* Empty-state line when nothing matches the current query. */

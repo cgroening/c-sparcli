@@ -567,10 +567,34 @@
 
 [2mfuzzy list: max_height 6 clamps + scrolls[0m
   [1m[36mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m
-  [1m[36m‣ [0m[1m[36mTokyo[0m
-    [0mToronto[0m
-    [0mLondon[0m
+  [1m[36m‣ [0m[1m[36mTokyo[0m[0m [0m [0m [0m [0m [0m [0m [0m[2m█[0m
+    [0mToronto[0m[0m [0m [0m [0m [0m [0m[2m█[0m
+    [0mLondon[0m[0m [0m [0m [0m [0m [0m [0m[2m░[0m
   [2m    1-3/5 ↓[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy table: max_height 7 clamps + scrollbar[0m
+  [1m[36mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m
+  ┌[0m──────[0m┬[0m───────[0m┬[0m────[0m┐[0m[0m [0m[2m█[0m
+  │[0m[1mCity[0m  │[0m[1mCountry[0m│[0m[1mPop.[0m│[0m[0m [0m[2m█[0m
+  ├[0m──────[0m┼[0m───────[0m┼[0m────[0m┤[0m[0m [0m[2m█[0m
+  │[0m[46mTokyo[0m[46m [0m│[0m[46mJapan[0m[46m  [0m│[0m[46m37[0m[46m  [0m│[0m[0m [0m[2m█[0m
+  ├[0m──────[0m┼[0m───────[0m┼[0m────[0m┤[0m[0m [0m[2m█[0m
+  │[0mDelhi[0m │[0mIndia[0m  │[0m32[0m  │[0m[0m [0m[2m█[0m
+  ├[0m──────[0m┼[0m───────[0m┼[0m────[0m┤[0m[0m [0m[2m█[0m
+  │[0mLondon[0m│[0mUK[0m     │[0m9[0m   │[0m[0m [0m[2m█[0m
+  ├[0m──────[0m┼[0m───────[0m┼[0m────[0m┤[0m[0m [0m[2m█[0m
+  │[0mParis[0m │[0mFrance[0m │[0m11[0m  │[0m[0m [0m[2m░[0m
+  └[0m──────[0m┴[0m───────[0m┴[0m────[0m┘[0m[0m [0m[2m░[0m
+  [2m    1-4/5 ↓[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy list: full-width box, scrollbar flush right[0m
+  ╭[0m──────────────────────────────────────────────────────────────────────────────[0m╮[0m
+  │[0m [1m[36mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m[0m                                                                │[0m
+  │[0m [1m[36m‣ [0m[1m[36mTokyo[0m[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m[2m█[0m[0m │[0m
+  │[0m [2m    1-1/5 ↓[0m[0m                                                                  │[0m
+  ╰[0m──────────────────────────────────────────────────────────────────────────────[0m╯[0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy list: black widget bg, magenta full-width cursor bar[0m

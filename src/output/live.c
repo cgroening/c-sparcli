@@ -30,8 +30,12 @@ struct ScLive {
     /** `true` = the latest frame is kept for the final print on end. */
     bool store_frames;
 
-    /** Lines drawn by the previous update (cursor-up arithmetic). */
+    /** Total rows drawn by the previous update (frame + pads + reserve). */
     int prev_lines;
+
+    /** Rows from the parked cursor up to the region top (the cursor parks at
+        the first reserved row, where the prompt draws downward). */
+    int prev_up;
 
     /** Newline-joined copy of the latest frame; printed by `sc_live_end`. */
     char *last_frame;
@@ -221,9 +225,9 @@ static void draw_frame(ScLive *live, const ScRendered *frame) {
         }
     }
 
-    // Rewind to the top-left of the previously drawn region.
-    if (live->prev_lines > 1) {
-        fprintf(out, "\033[%dA", live->prev_lines - 1);
+    // Rewind from the parked cursor (the first reserved row) to the region top.
+    if (live->prev_up > 0) {
+        fprintf(out, "\033[%dA", live->prev_up);
     }
     if (live->prev_lines > 0) {
         fputc('\r', out);
@@ -248,14 +252,17 @@ static void draw_frame(ScLive *live, const ScRendered *frame) {
         fputc('\n', out);
         fputs(LIVE_ERASE_LINE_END, out);
     }
-    fputs(LIVE_ERASE_BELOW, out);
+    fputs(LIVE_ERASE_BELOW, out);   // clear the reserve area (below the frame)
 
-    // Park the cursor at the start of the reserved prompt region.
-    for (int i = 0; i < reserve; i++) {
-        fputc('\n', out);
-    }
+    // Park at the FIRST reserved row so the prompt draws downward into the
+    // reserve (one newline past the frame); the prompt owns the rest of it.
+    int up_to_top = top_pad + (int)count + mid_gap;
     if (reserve > 0) {
+        fputc('\n', out);
         fputc('\r', out);
+        live->prev_up = up_to_top;            /* park = first reserved row */
+    } else {
+        live->prev_up = up_to_top - 1;        /* park = last frame line */
     }
 
     live->prev_lines = top_pad + (int)count + mid_gap + reserve;
@@ -321,12 +328,13 @@ static void erase_region(ScLive *live) {
     if (live->prev_lines <= 0) {
         return;
     }
-    if (live->prev_lines > 1) {
-        fprintf(out, "\033[%dA", live->prev_lines - 1);
+    if (live->prev_up > 0) {   /* up from the park to the region top */
+        fprintf(out, "\033[%dA", live->prev_up);
     }
     fputc('\r', out);
     fputs(LIVE_ERASE_BELOW, out);
     live->prev_lines = 0;
+    live->prev_up = 0;
 }
 
 /** Ends a buffered (non-terminal) session: prints the final frame once. */

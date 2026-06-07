@@ -616,6 +616,9 @@ updated frame content drawn                   yes
 --- Live 8. Vertical alignment (always = true) ---
 leading blank rows for bottom valign          yes
 frame content still drawn                     yes
+--- Live 9. Multi-row reserve park (always = true) ---
+parks at the first reserved row               yes
+rewind lands on the frame top                 yes
 ════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════ [1mKey-Value Pairs[0m ════════════════════════════════

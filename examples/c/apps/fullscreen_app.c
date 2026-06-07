@@ -26,10 +26,8 @@
 #include <string.h>
 
 
-/* Rows reserved below the header for the widget (sized to the taller of the
- * fuzzy finder and the form). The fuzzy finder caps itself to this via
- * max_height; the form's grid fits within it. */
-enum { RESERVE = 14 };
+/* The title/subtitle panel is 3 rows (top border + content + bottom border). */
+enum { HEADER_ROWS = 3 };
 
 enum { ACT_FORM = 1, ACT_REFRESH = 2 };   /* shortcut ids */
 
@@ -64,7 +62,7 @@ static ScRendered *header(const char *subtitle) {
 
 /** Runs the fuzzy finder in the reserved region. Returns the prompt status and
  *  writes the fired shortcut id (or -1) to *fired. */
-static ScInputStatus run_finder(int *fired) {
+static ScInputStatus run_finder(int *fired, int reserve) {
     Ctx ctx = { .next = 6 };
     ScShortcut sk[] = {
         { .chord = sc_key_ctrl('f'), .id = ACT_FORM,
@@ -75,7 +73,9 @@ static ScInputStatus run_finder(int *fired) {
     };
     ScFuzzy *f = sc_fuzzy_new((ScFuzzyOpts){
         .prompt          = "Find",
-        .max_height      = RESERVE,            /* scroll within the reserve */
+        /* Fill the screen below the header; scroll only once items exceed it.
+           Pass a smaller fixed value here to cap the finder height instead. */
+        .max_height      = reserve,
         .hide_summary    = true,               /* required: no leftovers */
         .shortcuts       = sk,
         .n_shortcuts     = 2,
@@ -115,10 +115,19 @@ int main(void) {
         return 0;
     }
 
+    /* Reserve the whole area below the header for the widget, so the finder
+       fills the screen and only scrolls when its items exceed it. Header and
+       content stay together (whole-block is the default valign scope). */
+    /* Leave one row of slack below so the finder filling its full height never
+       scrolls the terminal and pushes the header off the top. */
+    int reserve = sc_term_height() - HEADER_ROWS - 1;
+    if (reserve < 4) { reserve = 4; }
+
     ScLive *live = sc_live_begin((ScLiveOpts){
         .alt_screen  = true,
-        .prompt_rows = RESERVE,
-        .valign      = SC_VALIGN_MIDDLE,   /* center the whole block */
+        .prompt_rows = reserve,
+        /* whole-block valign is the default; with a full-height reserve the
+           block already fills the screen, header joined to the content. */
     });
 
     bool finder = true;   /* start in the fuzzy finder */
@@ -131,7 +140,7 @@ int main(void) {
 
         if (finder) {
             int fired = -1;
-            ScInputStatus st = run_finder(&fired);
+            ScInputStatus st = run_finder(&fired, reserve);
             if (st != SC_INPUT_OK) { running = false; }      /* esc quits */
             else if (fired == ACT_FORM) { finder = false; }  /* ^F -> form */
         } else {

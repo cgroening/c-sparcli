@@ -1581,6 +1581,9 @@ pub struct FuzzyOpts {
     /// overflowing; `0` (default) auto-fits the terminal. Set to the reserved
     /// rows when running inside a live dashboard.
     pub max_height: i32,
+    /// Suppress the right-edge scrollbar (shown by default while the list
+    /// scrolls); the `↑ x–y/total ↓` text indicator still shows.
+    pub no_scrollbar: bool,
     /// Table-view rendering options (border, header style, padding, …).
     pub table_opts: crate::output::TableOpts,
     /// Multi-select: Space toggles, run via [`Fuzzy::run_multi`].
@@ -1662,6 +1665,11 @@ impl FuzzyOpts {
     /// Caps the finder height in rows (scrolls within); 0 = auto-fit terminal.
     pub fn max_height(mut self, rows: i32) -> Self {
         self.max_height = rows;
+        self
+    }
+    /// Suppress the right-edge scrollbar (kept on by default while scrolling).
+    pub fn no_scrollbar(mut self) -> Self {
+        self.no_scrollbar = true;
         self
     }
     /// Sets the table-view rendering options.
@@ -1826,6 +1834,7 @@ impl Fuzzy {
         o.search_columns = opts.search_columns;
         o.stretch_columns = opts.stretch_columns;
         o.max_height = opts.max_height;
+        o.no_scrollbar = opts.no_scrollbar;
         o.table_opts = opts.table_opts.raw(&mut arena);
         o.multi = opts.multi;
         o.checkbox_column = opts.checkbox_column;

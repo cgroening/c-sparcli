@@ -3396,6 +3396,8 @@ pub struct ScFuzzyOpts {
     pub stretch_columns: u64,
     #[doc = " Cap the finder height in rows so it scrolls; 0 = auto-fit terminal."]
     pub max_height: ::std::os::raw::c_int,
+    #[doc = " Suppress the right-edge scrollbar (on by default while scrolling)."]
+    pub no_scrollbar: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -3500,6 +3502,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, stretch_columns) - 816usize];
     ["Offset of field: ScFuzzyOpts::max_height"]
         [::std::mem::offset_of!(ScFuzzyOpts, max_height) - 824usize];
+    ["Offset of field: ScFuzzyOpts::no_scrollbar"]
+        [::std::mem::offset_of!(ScFuzzyOpts, no_scrollbar) - 828usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
