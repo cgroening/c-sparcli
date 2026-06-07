@@ -900,6 +900,10 @@ ScRendered *sc_confirm_frame(
 ScRendered *sc_text_entry_frame(const ScTextEntryCfg *cfg);
 ScRendered *sc_select_frame(ScSelect *select);
 ScRendered *sc_fuzzy_frame(ScFuzzy *fuzzy, const char *query);
+
+/* Test accessor: the current scroll offset (first visible display entry). Used
+   by the PTY suite to assert the viewport position mid-run. */
+size_t sc_fuzzy_scroll_top(const ScFuzzy *fuzzy);
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);
 ScRendered *sc_form_frame(ScForm *form);
 ScRendered *sc_form_frame_edit(ScForm *form, int field);

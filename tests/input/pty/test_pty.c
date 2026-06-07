@@ -9,6 +9,7 @@
  */
 
 #include "sparcli.h"
+#include "input/input_internal.h"   /* sc_fuzzy_scroll_top for the scroll guard */
 
 #if defined(__APPLE__)
 #  include <util.h>
@@ -62,6 +63,14 @@ static bool fuzzy_add_cb(int id, void *user) {
     sc_fuzzy_add(f, "zzz");
     sc_fuzzy_refresh(f);
     return true;   // keep the finder open
+}
+
+/** Callback-mode shortcut: captures the live scroll offset, then ends the run. */
+static size_t g_captured_top = SIZE_MAX;
+static bool capture_top_cb(int id, void *user) {
+    (void)id;
+    g_captured_top = sc_fuzzy_scroll_top((const ScFuzzy *)user);
+    return false;   // end the prompt
 }
 
 /** Returns 0 when the widget produced the expected value, else non-zero. */
@@ -1250,6 +1259,32 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 86: {
+            /* Scroll guard: with a section header above the first row, scrolling
+               down then back up to the first selectable row must bring the
+               header into view (top == 0), not stop one row below it. A small
+               max_height forces scrolling; no_cycle makes Up stop at the top. */
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_CHAR, .codepoint = 'x' }, .id = 1,
+                  .mode = SC_SHORTCUT_CALLBACK, .on_fire = capture_top_cb },
+            };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .prompt = "Tasks", .max_height = 6, .no_cycle = true,
+                .shortcuts = sk, .n_shortcuts = 1 });
+            sk[0].user = fz;
+            sc_fuzzy_add_section(fz, "A");                /* 0 (header) */
+            for (int i = 0; i < 12; i++) {
+                char b[16];
+                snprintf(b, sizeof b, "item %d", i);
+                sc_fuzzy_add(fz, b);                      /* 1..12 */
+            }
+            g_captured_top = SIZE_MAX;
+            size_t pick = 99;
+            sc_fuzzy_run(fz, &pick);
+            int ok = (g_captured_top == 0);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1349,6 +1384,11 @@ static const Case CASES[] = {
     { "fuzzy-section-shift-tab", "\t\x1b[Z\r" }, /* Tab -> B, Shift-Tab -> A (x) */
     { "fuzzy-section-tab-cycle", "\t\t\t\r" },  /* A->B->C->A cycle (x) */
     { "fuzzy-section-styled", "\t\r" },          /* styled section: Tab -> B, z */
+    /* scroll down 12, back up 12 (no_cycle clamps), x captures top == 0 */
+    { "fuzzy-scroll-section-top",
+      "\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B"
+      "\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A"
+      "x" },
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

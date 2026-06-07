@@ -724,6 +724,10 @@ void sc_fuzzy_refresh(ScFuzzy *self) {
     }
 }
 
+size_t sc_fuzzy_scroll_top(const ScFuzzy *self) {
+    return self ? self->top : 0;
+}
+
 ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
     if (!self || self->count == 0) {
         return NULL;
@@ -994,13 +998,8 @@ static void refilter(ScFuzzy *self) {
 
     clamp_cursor_selectable(self);
 
-    size_t visible = effective_visible(self);
-    if (self->cursor < self->top) {
-        self->top = self->cursor;
-    } else if (self->cursor >= self->top + visible) {
-        self->top = self->cursor - visible + 1;
-    }
-    if (self->match_n <= visible) {
+    scroll_to_cursor(self);   /* anchors a leading section header into view */
+    if (self->match_n <= effective_visible(self)) {
         self->top = 0;
     }
 }
@@ -1791,11 +1790,18 @@ static void cursor_up(ScFuzzy *self) {
     }
 }
 
-/** Keeps the cursor row within the visible viewport. */
+/** Keeps the cursor row within the visible viewport. When the cursor sits just
+    below its section header, the viewport anchors to the header (it can't land on
+    one - headers are non-selectable) so reaching a group's first row reveals the
+    group title and the scrollbar/▲ indicator sit at the very top. */
 static void scroll_to_cursor(ScFuzzy *self) {
     size_t visible = effective_visible(self);
-    if (self->cursor < self->top) {
-        self->top = self->cursor;
+    size_t anchor = self->cursor;
+    while (anchor > 0 && self->matches[anchor - 1].is_section) {
+        anchor--;
+    }
+    if (anchor < self->top) {
+        self->top = anchor;
     } else if (self->cursor >= self->top + visible) {
         self->top = self->cursor - visible + 1;
     }
