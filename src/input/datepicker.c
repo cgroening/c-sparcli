@@ -51,6 +51,8 @@ static void date_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static void shift_year(DateState *self, int delta);
 
 
+SC_DEFINE_HINT_INDENT(date_hint_indent, DateState)
+
 ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
     if (!io) {
         return SC_INPUT_ERROR;
@@ -61,6 +63,7 @@ ScInputStatus sc_datepicker(struct tm *io, ScDatePickerOpts opts) {
     ScPromptVTable vtable = {
         .render = date_render,
         .on_key = date_on_key,
+        .hint_indent = date_hint_indent,
     };
     ScPromptShortcuts sk = {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
@@ -176,7 +179,8 @@ static ScRendered *date_render(void *state) {
     const char *hint = self->opts.hint ? self->opts.hint
         : (self->opts.allow_clear ? DEFAULT_HINT_CLEAR : DEFAULT_HINT);
     return sc_compose_hint(body, hint, self->opts.hint_layout,
-                           self->opts.hint_pos, self->opts.hint_style);
+                           self->opts.hint_pos, self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
 }
 
 /** Appends the weekday header row, rotated to start on `week_start`. */

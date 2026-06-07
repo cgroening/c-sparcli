@@ -141,6 +141,8 @@ void sc_select_remove(ScSelect *self, size_t index) {
     reframe(self);   // keep the (possibly clamped) cursor within the viewport
 }
 
+SC_DEFINE_HINT_INDENT(select_hint_indent, ScSelect)
+
 ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
     if (!self || !indices || !count_io || self->count == 0) {
         return SC_INPUT_ERROR;
@@ -149,6 +151,7 @@ ScInputStatus sc_select_run(ScSelect *self, size_t *indices, size_t *count_io) {
     ScPromptVTable vtable = {
         .render = select_render,
         .on_key = select_on_key,
+        .hint_indent = select_hint_indent,
     };
     ScPromptShortcuts sk = {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
@@ -329,7 +332,8 @@ static ScRendered *select_render(void *state) {
         }
     }
     return sc_compose_hint(body, hint, self->opts.hint_layout,
-                           self->opts.hint_pos, self->opts.hint_style);
+                           self->opts.hint_pos, self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
 }
 
 /**

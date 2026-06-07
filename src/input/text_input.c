@@ -160,6 +160,12 @@ ScInputStatus sc_text_input(const char *prompt, char **out,
     return sc_text_entry(&cfg, out);
 }
 
+/* Text-entry keeps the box on state->box (not state->opts), so it defines its
+   own hint-indent accessor rather than using SC_DEFINE_HINT_INDENT. */
+static int text_hint_indent(void *st) {
+    return sc_box_content_left(((TextState *)st)->box);
+}
+
 ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
     if (!cfg || (!cfg->prompt && !cfg->prompt_text) || !out) {
         return SC_INPUT_ERROR;
@@ -177,6 +183,7 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
         .paste = SC_PASTE_TEXT,
         .edit_get = text_edit_get,
         .edit_set = text_edit_set,
+        .hint_indent = text_hint_indent,
     };
     ScPromptShortcuts sk = {
         cfg->shortcuts, cfg->n_shortcuts, cfg->out_shortcut_id
@@ -264,7 +271,8 @@ static ScRendered *render_inline(TextState *self) {
         : inline_body_classic(self);
     return sc_compose_hint(body,
                            self->hint ? self->hint : text_default_hint(self),
-                           self->hint_layout, self->hint_pos, self->hint_style);
+                           self->hint_layout, self->hint_pos, self->hint_style,
+                           sc_box_content_left(self->box));
 }
 
 /** Classic single-block body: value line, ghost text, counter, error. */
@@ -411,7 +419,8 @@ static ScRendered *render_boxed(TextState *self) {
     ScRendered *body = stack_error_line(self, panel);
     return sc_compose_hint(body,
                            self->hint ? self->hint : text_default_hint(self),
-                           self->hint_layout, self->hint_pos, self->hint_style);
+                           self->hint_layout, self->hint_pos, self->hint_style,
+                           sc_box_content_left(self->box));
 }
 
 /**

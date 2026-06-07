@@ -555,7 +555,7 @@ static ScRendered *form_render(void *state) {
     ScRendered *frame =
         sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
                         self->opts.hint_layout, self->opts.hint_pos,
-                        self->opts.hint_style);
+                        self->opts.hint_style, 0);   /* form has no box */
     if (self->opts.fullscreen) {
         frame = sc_fullscreen_compose(frame, self->opts.header,
                                       self->opts.valign);

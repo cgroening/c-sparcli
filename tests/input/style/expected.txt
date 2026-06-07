@@ -26,7 +26,7 @@
   │[0m[43m  ? [0m[0m[43mSave changes?[0m[0m[43m   [0m[0m[43m[1m[30m[42m [0m[0m[43m[1m[30m[42mYes[0m[0m[43m[1m[30m[42m [0m[0m[43m [0m[0m[43m[2m [0m[0m[43m[2mNo[0m[0m[43m[2m [0m[0m[43m  [0m│[0m
   │[0m[43m                                [0m│[0m
   ╰[0m────────────────────────────────[0m╯[0m
-  [2m←/→ toggle · enter confirm · esc cancel[0m
+     [2m←/→ toggle · enter confirm · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -84,50 +84,50 @@
   ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m
   │[0m A[0md[0ma[0m [0mL[0mo[0mv[0me[0ml[0ma[0mc[0me[0m[30m[47m [0m              │[0m
   ╰[0m─────────────────────[0m [0m[2m(12)[0m [0m─[0m╯[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 [2mboxed: fixed width 30, counter with max[0m
   ╭[0m─[0m [0mTweet[0m [0m────────────────────[0m╮[0m
   │[0m h[0me[0ml[0ml[0mo[0m [0mw[0mo[0mr[0ml[0md[0m[30m[47m [0m               │[0m
   ╰[0m──────────────────[0m [0m[2m(11/40)[0m [0m─[0m╯[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 [2mboxed: counter hidden[0m
   ╭[0m─[0m [0mNote[0m [0m─────────────────────[0m╮[0m
   │[0m n[0mo[0m [0mc[0mo[0mu[0mn[0mt[0me[0mr[0m[30m[47m [0m                │[0m
   ╰[0m────────────────────────────[0m╯[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 [2mboxed: bg fills title + counter captions[0m
   ╭[0m─[0m[48;2;40;44;60m [0m[48;2;40;44;60mName[0m[48;2;40;44;60m [0m─────────────────────[0m╮[0m
   │[0m[48;2;40;44;60m A[0m[48;2;40;44;60md[0m[48;2;40;44;60ma[0m[48;2;40;44;60m[30m[47m [0m[48;2;40;44;60m                       [0m│[0m
   ╰[0m───────────────────[0m[48;2;40;44;60m [0m[2m[48;2;40;44;60m(3/24)[0m[48;2;40;44;60m [0m─[0m╯[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 [2mboxed: double border + cyan prompt[0m
   [34m╔[0m[34m═[0m [0m[1m[36mHost[0m [0m[34m═════════════════════[0m[34m╗[0m
   [34m║[0m l[0mo[0mc[0ma[0ml[0mh[0mo[0ms[0mt[0m[30m[47m [0m                 [34m║[0m
   [34m╚[0m[34m═══════════════════[0m [0m[2m(9/24)[0m [0m[34m═[0m[34m╝[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 [2mboxed: password, fixed width 30[0m
   ╭[0m─[0m [0mPassword[0m [0m─────────────────[0m╮[0m
   │[0m *[0m*[0m*[0m*[0m*[0m*[0m*[0m[30m[47m [0m                   │[0m
   ╰[0m──────────────────────[0m [0m[2m(7)[0m [0m─[0m╯[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 [2mboxed: full width (default), flush-left[0m
 ╭[0m─[0m [0mSearch[0m [0m─────────────────────────────────────────────────────────────────────[0m╮[0m
 │[0m q[0mu[0me[0mr[0my[0m[30m[47m [0m                                                                       │[0m
 ╰[0m────────────────────────────────────────────────────────────────────────[0m [0m[2m(5)[0m [0m─[0m╯[0m
-[2menter submit · esc cancel[0m
+  [2menter submit · esc cancel[0m
 
 [2mboxed: hint_layout stacked (footer one per line)[0m
   ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m
   │[0m A[0md[0ma[0m[30m[47m [0m                       │[0m
   ╰[0m──────────────────────[0m [0m[2m(3)[0m [0m─[0m╯[0m
-  [2menter submit[0m
-  [2mesc cancel[0m
+    [2menter submit[0m
+    [2mesc cancel[0m
 
 [2mboxed: hint_layout hidden (no footer)[0m
   ╭[0m─[0m [0mName[0m [0m─────────────────────[0m╮[0m
@@ -204,7 +204,7 @@
   │[0m   [0mcherry-pick[0m              │[0m
   │[0m   [0m[2m… +2 more[0m                │[0m
   ╰[0m────────────────────────────[0m╯[0m
-  [2m↑/↓ choose · tab/enter accept · esc cancel[0m
+    [2m↑/↓ choose · tab/enter accept · esc cancel[0m
 
 [2mrich prompt: inline markup (italic name)[0m
   Rename [0m[3mApple[0m to[0m [0mA[0mp[0mp[0ml[0me[0m[30m[47m [0m
@@ -215,7 +215,7 @@
   ╭[0m─[0m [0mRename [0m[3mApple[0m to[0m [0m────────────────[0m╮[0m
   │[0m A[0mp[0mp[0ml[0me[0m[30m[47m [0m                           │[0m
   ╰[0m────────────────────────────[0m [0m[2m(5)[0m [0m─[0m╯[0m
-  [2menter submit · esc cancel[0m
+    [2menter submit · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -240,19 +240,19 @@
   ╭[0m─[0m [0mQuantity[0m [0m───────────────[0m╮[0m
   │[0m 4[0m2[0m[30m[47m [0m                      │[0m
   ╰[0m────────────────[0m [0m[2m[0-100][0m [0m─[0m╯[0m
-  [2m↑/↓ adjust · enter submit · esc cancel[0m
+    [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 [2mnumber: boxed, bg fills title + range captions[0m
   ╭[0m─[0m[48;2;40;44;60m [0m[48;2;40;44;60mQuantity[0m[48;2;40;44;60m [0m───────────────[0m╮[0m
   │[0m[48;2;40;44;60m 4[0m[48;2;40;44;60m2[0m[48;2;40;44;60m[30m[47m [0m[48;2;40;44;60m                      [0m│[0m
   ╰[0m────────────────[0m[48;2;40;44;60m [0m[2m[48;2;40;44;60m[0-100][0m[48;2;40;44;60m [0m─[0m╯[0m
-  [2m↑/↓ adjust · enter submit · esc cancel[0m
+    [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 [2mnumber: boxed, double border + cyan prompt[0m
   [34m╔[0m[34m═[0m [0m[1m[36mPort[0m [0m[34m═════════════════════[0m[34m╗[0m
   [34m║[0m 8[0m0[0m8[0m0[0m[30m[47m [0m                      [34m║[0m
   [34m╚[0m[34m════════════════[0m [0m[2m[1-65535][0m [0m[34m═[0m[34m╝[0m
-  [2m↑/↓ adjust · enter submit · esc cancel[0m
+    [2m↑/↓ adjust · enter submit · esc cancel[0m
 
 [2mcalculator: live preview of a valid expression[0m
   Amount[0m [0m=[0m1[0m,[0m5[0m+[0m2[0m*[0m3[0m[30m[47m [0m[2m = 7,50[0m
@@ -271,7 +271,7 @@
   ╭[0m─[0m [0mAmount[0m [0m─────────────────────────[0m╮[0m
   │[0m =[0m1[0m0[0m0[0m/[0m3[0m[30m[47m [0m[2m = 33,33[0m                  │[0m
   ╰[0m──────────────────────────────────[0m╯[0m
-  [2menter accept result · esc cancel[0m
+    [2menter accept result · esc cancel[0m
 
 [2mcalculator: hint advertises '= calc' when enabled[0m
   Amount[0m [0m5[0m.[0m0[0m0[0m[30m[47m [0m
@@ -295,7 +295,7 @@
   ╭[0m─[0m [0mAmount[0m [0m─────────────────────────────[0m╮[0m
   │[0m 3[0m,[0m3[0m3[0m[30m[47m [0m[2m = 3,333333333[0m                  │[0m
   ╰[0m──────────────────────────────────────[0m╯[0m
-  [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
+    [2m↑/↓ adjust · = calc · enter submit · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -312,21 +312,21 @@
   │[0m s[0me[0mc[0mo[0mn[0md[0m [0ml[0mi[0mn[0me[0m                      │[0m
   │[0m t[0mh[0mi[0mr[0md[0m [0ml[0mi[0mn[0me[0m[30m[47m [0m                      │[0m
   ╰[0m──────────────────────────────────[0m╯[0m
-  [2mctrl-d submit · enter newline · esc cancel[0m
+    [2mctrl-d submit · enter newline · esc cancel[0m
 
 [2mtextarea: boxed double border + cyan prompt[0m
   [34m╔[0m[34m═[0m [0m[1m[36mDescription[0m [0m[34m════════════════════════[0m[34m╗[0m
   [34m║[0m l[0mo[0mr[0me[0mm[0m [0mi[0mp[0ms[0mu[0mm[0m                          [34m║[0m
   [34m║[0m d[0mo[0ml[0mo[0mr[0m [0ms[0mi[0mt[0m [0ma[0mm[0me[0mt[0m[30m[47m [0m                      [34m║[0m
   [34m╚[0m[34m══════════════════════════════════════[0m[34m╝[0m
-  [2mctrl-d submit · enter newline · esc cancel[0m
+    [2mctrl-d submit · enter newline · esc cancel[0m
 
 [2mtextarea: boxed full width (flush-left)[0m
 ╭[0m─[0m [0mBody[0m [0m───────────────────────────────────────────────────────────────────────[0m╮[0m
 │[0m s[0mp[0ma[0mn[0mn[0mi[0mn[0mg[0m [0mt[0mh[0me[0m [0mw[0mh[0mo[0ml[0me[0m [0mt[0me[0mr[0mm[0mi[0mn[0ma[0ml[0m [0mw[0mi[0md[0mt[0mh[0m                                            │[0m
 │[0m s[0me[0mc[0mo[0mn[0md[0m [0ml[0mi[0mn[0me[0m[30m[47m [0m                                                                 │[0m
 ╰[0m──────────────────────────────────────────────────────────────────────────────[0m╯[0m
-[2mctrl-d submit · enter newline · esc cancel[0m
+  [2mctrl-d submit · enter newline · esc cancel[0m
 
 [2mtextarea: long line soft-wraps inside the box[0m
   ╭[0m─[0m [0mWrap[0m [0m─────────────────────────[0m╮[0m
@@ -335,7 +335,7 @@
   │[0m e[0m [0mt[0mh[0me[0m [0mn[0ma[0mr[0mr[0mo[0mw[0m [0mb[0mo[0mx[0m [0mi[0mn[0ms[0mt[0me[0ma[0md[0m [0mo[0mf[0m [0mo[0mv[0m │[0m
   │[0m e[0mr[0mf[0ml[0mo[0mw[0mi[0mn[0mg[0m [0mi[0mt[0ms[0m [0mr[0mi[0mg[0mh[0mt[0m [0mb[0mo[0mr[0md[0me[0mr[0m.[0m[30m[47m [0m   │[0m
   ╰[0m────────────────────────────────[0m╯[0m
-  [2mctrl-d submit · enter newline · esc cancel[0m
+    [2mctrl-d submit · enter newline · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -389,7 +389,7 @@
   │[0m   [0mCherry[0m[0m                   │[0m
   │[0m   [0mDate[0m[0m                     │[0m
   ╰[0m────────────────────────────[0m╯[0m
-  [2m↑/↓ move · enter select · esc cancel[0m
+    [2m↑/↓ move · enter select · esc cancel[0m
 
 [2mboxed: double cyan border, blue bg, padding 1/2, margin l2[0m
     [36m╔[0m[36m══════════════════════════════[0m[36m╗[0m
@@ -401,7 +401,7 @@
     [36m║[0m[44m    [0m[0m[44mDate[0m[0m[44m                      [0m[36m║[0m
     [36m║[0m[44m                              [0m[36m║[0m
     [36m╚[0m[36m══════════════════════════════[0m[36m╝[0m
-  [2m↑/↓ move · enter select · esc cancel[0m
+       [2m↑/↓ move · enter select · esc cancel[0m
 
 [2mborderless bg: black widget bg, magenta full-width cursor bar[0m
    [0m          [0m [0m
@@ -411,7 +411,7 @@
    [0m[40m   [0m[0m[40mCherry[0m[0m[40m [0m [0m
    [0m[40m   [0m[0m[40mDate[0m[0m[40m   [0m [0m
    [0m          [0m [0m
-  [2m↑/↓ move · enter select · esc cancel[0m
+   [2m↑/↓ move · enter select · esc cancel[0m
 
 [2mbg_extent=text: cursor background hugs the text[0m
   Pick one[0m
@@ -430,7 +430,7 @@
    [0m[44m   [0m[0m[44mCherry[0m[0m[44m               [0m [0m
    [0m[44m   [0m[0m[44mDate[0m[0m[44m                 [0m [0m
    [0m                        [0m [0m
-  [2m↑/↓ move · enter select · esc cancel[0m
+   [2m↑/↓ move · enter select · esc cancel[0m
 
 [2mwidth fixed 24, blue bg, rounded frame[0m
   ╭[0m──────────────────────[0m╮[0m
@@ -440,7 +440,7 @@
   │[0m[44m   [0m[0m[44mCherry[0m[0m[44m             [0m│[0m
   │[0m[44m   [0m[0m[44mDate[0m[0m[44m               [0m│[0m
   ╰[0m──────────────────────[0m╯[0m
-  [2m↑/↓ move · enter select · esc cancel[0m
+    [2m↑/↓ move · enter select · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -524,7 +524,7 @@
   │[0m   [0m[1m[4m[38;2;140;210;204mTo[0mronto[0m[0m                  │[0m
   │[0m   [0mBos[0m[1m[4m[38;2;140;210;204mto[0mn[0m[0m                   │[0m
   ╰[0m────────────────────────────[0m╯[0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+    [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy table: boxed thick green border, black bg, padding h2[0m
   [32m┏[0m[32m━━━━━━━━━━━━━━━━━━━━━━━━━[0m[32m┓[0m
@@ -537,7 +537,7 @@
   [32m┃[0m[40m  │[0m[0m[40mLondon[0m[0m[40m│[0m[0m[40mUK[0m[0m[40m     │[0m[0m[40m9.0[0m[0m[40m │[0m[0m[40m  [0m[32m┃[0m
   [32m┃[0m[40m  └[0m[0m[40m──────[0m[0m[40m┴[0m[0m[40m───────[0m[0m[40m┴[0m[0m[40m────[0m[0m[40m┘[0m[0m[40m  [0m[32m┃[0m
   [32m┗[0m[32m━━━━━━━━━━━━━━━━━━━━━━━━━[0m[32m┛[0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+     [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy table: width 60, col 0 stretches to fill[0m
   ╭[0m──────────────────────────────────────────────────────────[0m╮[0m
@@ -550,7 +550,7 @@
   │[0m │[0mLondon[0m                                   │[0mUK[0m     │[0m9.0[0m │[0m[0m │[0m
   │[0m └[0m─────────────────────────────────────────[0m┴[0m───────[0m┴[0m────[0m┘[0m[0m │[0m
   ╰[0m──────────────────────────────────────────────────────────[0m╯[0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+    [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy table: full-width box, col 0 fills to the frame[0m
   ╭[0m──────────────────────────────────────────────────────────────────────────────[0m╮[0m
@@ -563,7 +563,7 @@
   │[0m │[0mLondon[0m                                                       │[0mUK[0m     │[0m9.0[0m │[0m[0m │[0m
   │[0m └[0m─────────────────────────────────────────────────────────────[0m┴[0m───────[0m┴[0m────[0m┘[0m[0m │[0m
   ╰[0m──────────────────────────────────────────────────────────────────────────────[0m╯[0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+    [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy list: max_height 6 clamps + scrolls[0m
   [1m[38;2;140;210;204mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m
@@ -595,7 +595,7 @@
   │[0m [1m[38;2;140;210;204m‣ [0m[1m[38;2;140;210;204mTokyo[0m[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m[2m█[0m[0m │[0m
   │[0m [2m    1-1/5 ↓[0m[0m                                                                  │[0m
   ╰[0m──────────────────────────────────────────────────────────────────────────────[0m╯[0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+    [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy list: black widget bg, magenta full-width cursor bar[0m
    [0m                [0m [0m
@@ -606,7 +606,7 @@
    [0m[40m   [0m[0m[40mB[0m[0m[40m[1m[4m[38;2;140;210;204mo[0m[0m[40mston[0m[0m[40m       [0m [0m
    [0m[40m   [0m[0m[40mLisb[0m[0m[40m[1m[4m[38;2;140;210;204mo[0m[0m[40mn[0m[0m[40m       [0m [0m
    [0m                [0m [0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy list: borderless blue bg, fixed width 28[0m
    [0m                          [0m [0m
@@ -615,7 +615,7 @@
    [0m[44m   [0m[0m[44m[1m[4m[38;2;140;210;204mTo[0m[0m[44mronto[0m[0m[44m                [0m [0m
    [0m[44m   [0m[0m[44mBos[0m[0m[44m[1m[4m[38;2;140;210;204mto[0m[0m[44mn[0m[0m[44m                 [0m [0m
    [0m                          [0m [0m
-  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
 [2mfuzzy list: sections + counts, query=''[0m
   [1m[38;2;140;210;204mTasks[0m [0m[30m[47m [0m[2m  (3/3)[0m
@@ -874,7 +874,7 @@
   [36m║[0m 18[0m [0m19[0m [0m20[0m [0m21[0m [0m22[0m [0m23[0m [0m24[0m[0m [36m║[0m
   [36m║[0m 25[0m [0m26[0m [0m27[0m [0m28[0m [0m29[0m [0m30[0m [0m31[0m[0m [36m║[0m
   [36m╚[0m[36m══════════════════════[0m[36m╝[0m
-  [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
+    [2m←/→/↑/↓ move · pgup/pgdn month · shift+pgup/pgdn year · enter select · esc cancel[0m
 
 ════════════════════════════════════════════════════════════════════════════════
 

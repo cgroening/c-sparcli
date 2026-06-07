@@ -101,6 +101,8 @@ static size_t first_selectable(const ScFuzzy *self);
 static size_t last_selectable(const ScFuzzy *self);
 static size_t prev_selectable(const ScFuzzy *self, size_t from);
 static size_t next_selectable(const ScFuzzy *self, size_t from);
+static void section_jump(ScFuzzy *self, int dir);
+static void scroll_to_cursor(ScFuzzy *self);
 static void grow_rows(ScFuzzy *self);
 static void free_row(Row *row);
 static ScText *clone_text(const ScText *src);
@@ -518,6 +520,8 @@ static void clear_query(ScFuzzy *self) {
     }
 }
 
+SC_DEFINE_HINT_INDENT(fuzzy_hint_indent, ScFuzzy)
+
 /** Shared setup + prompt loop for single/multi runs. Leaves `matches`/`cursor`
     intact for the caller to read results; the caller frees the query editor. */
 static ScInputStatus fuzzy_begin(ScFuzzy *self, bool multi) {
@@ -549,6 +553,7 @@ static ScInputStatus fuzzy_begin(ScFuzzy *self, bool multi) {
         .capture_escape = self->opts.modal,
         .suppress_char_shortcuts =
             self->opts.modal ? fuzzy_suppress_chars : NULL,
+        .hint_indent = fuzzy_hint_indent,
     };
     ScPromptShortcuts sk = {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id
@@ -788,6 +793,42 @@ static size_t next_selectable(const ScFuzzy *self, size_t from) {
         if (entry_selectable(self, i)) { return i; }
     }
     return SIZE_MAX;
+}
+
+/**
+ * Moves the cursor to the first selectable row of the next (`dir > 0`) or
+ * previous (`dir < 0`) section, cycling around the ends. No-op without sections
+ * or matches. Each shown group starts with a header followed by ≥1 row, so the
+ * cursor always lands on a selectable entry. Bound to Tab / Shift-Tab.
+ */
+static void section_jump(ScFuzzy *self, int dir) {
+    if (self->match_n == 0) {
+        return;
+    }
+    size_t total = 0;   /* number of section headers in the display list */
+    size_t cur = 0;     /* 0-based ordinal of the cursor's section */
+    for (size_t i = 0; i < self->match_n; i++) {
+        if (self->matches[i].is_section) {
+            if (i <= self->cursor) { cur = total; }
+            total++;
+        }
+    }
+    if (total == 0) {
+        return;
+    }
+    size_t step = (dir > 0) ? 1 : total - 1;   /* -1 mod total, unsigned */
+    size_t target = (cur + step) % total;
+    size_t ord = 0;
+    for (size_t i = 0; i < self->match_n; i++) {
+        if (!self->matches[i].is_section) { continue; }
+        if (ord == target) {
+            size_t sel = next_selectable(self, i);
+            if (sel != SIZE_MAX) { self->cursor = sel; }
+            break;
+        }
+        ord++;
+    }
+    scroll_to_cursor(self);
 }
 
 /* Active sort context for the qsort comparator (single prompt session). */
@@ -1054,7 +1095,8 @@ static ScRendered *fuzzy_render(void *state) {
     ScRendered *frame = sc_compose_hint(stacked,
                            self->opts.hint ? self->opts.hint : default_hint,
                            self->opts.hint_layout, self->opts.hint_pos,
-                           self->opts.hint_style);
+                           self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
     if (self->opts.fullscreen) {
         /* Pin the header above and align the block; recomputed each frame so a
            growing list re-aligns and fills the screen. */
@@ -1777,12 +1819,26 @@ static void fuzzy_on_key(void *state, ScKey key, bool *done, bool *cancel) {
 
     switch (key.type) {
         case SC_KEY_UP:
-        case SC_KEY_BACKTAB:
             cursor_up(self);
             break;
         case SC_KEY_DOWN:
-        case SC_KEY_TAB:
             cursor_down(self);
+            break;
+        case SC_KEY_TAB:
+            // With sections, Tab jumps to the next section (cycling); without
+            // sections it falls back to moving the cursor down one row.
+            if (self->has_sections && self->match_n > 0) {
+                section_jump(self, +1);
+                return;
+            }
+            cursor_down(self);
+            break;
+        case SC_KEY_BACKTAB:
+            if (self->has_sections && self->match_n > 0) {
+                section_jump(self, -1);
+                return;
+            }
+            cursor_up(self);
             break;
         case SC_KEY_ENTER:
             if (self->selectable_n > 0) {

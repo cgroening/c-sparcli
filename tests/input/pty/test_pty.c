@@ -1192,6 +1192,46 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 82: {
+            /* Tab jumps to the next section's first row: from x (idx 1) Tab
+               lands on z (idx 4, first row of section B). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+            sc_fuzzy_add_section(fz, "A"); sc_fuzzy_add(fz, "x");  /* 0,1 */
+            sc_fuzzy_add(fz, "y");                                 /* 2 */
+            sc_fuzzy_add_section(fz, "B"); sc_fuzzy_add(fz, "z");  /* 3,4 */
+            sc_fuzzy_add(fz, "w");                                 /* 5 */
+            sc_fuzzy_add_section(fz, "C"); sc_fuzzy_add(fz, "q");  /* 6,7 */
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 4);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 83: {
+            /* Shift-Tab to the previous section: Tab -> B, Shift-Tab -> A's
+               first row (x, idx 1). */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+            sc_fuzzy_add_section(fz, "A"); sc_fuzzy_add(fz, "x");  /* 0,1 */
+            sc_fuzzy_add_section(fz, "B"); sc_fuzzy_add(fz, "z");  /* 2,3 */
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 84: {
+            /* Tab cycles past the last section back to the first: 3 Tabs from
+               section A wrap A->B->C->A, landing on x (idx 1) again. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+            sc_fuzzy_add_section(fz, "A"); sc_fuzzy_add(fz, "x");  /* 0,1 */
+            sc_fuzzy_add_section(fz, "B"); sc_fuzzy_add(fz, "z");  /* 2,3 */
+            sc_fuzzy_add_section(fz, "C"); sc_fuzzy_add(fz, "q");  /* 4,5 */
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1287,6 +1327,9 @@ static const Case CASES[] = {
     { "form-date-optional-empty", "\x04" },       /* optional date starts empty */
     { "fuzzy-refresh", "\x12zzz\r" },     /* ^R adds+refreshes, filter, select */
     { "form-autoedit", "X\x04" },         /* editor open at start: type X, Ctrl-D */
+    { "fuzzy-section-tab", "\t\r" },           /* Tab -> next section (z) */
+    { "fuzzy-section-shift-tab", "\t\x1b[Z\r" }, /* Tab -> B, Shift-Tab -> A (x) */
+    { "fuzzy-section-tab-cycle", "\t\t\t\r" },  /* A->B->C->A cycle (x) */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

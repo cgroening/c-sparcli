@@ -183,6 +183,67 @@ static inline ScBoxLayout sc_box_layout(
 }
 
 /**
+ * Left offset of a box's content area: `margin.left + border + left padding`.
+ * Used to indent the hint footer so it lines up under the framed content.
+ * Returns 0 when the box is inactive (inline widget). Mirrors `sc_box_layout`'s
+ * activation test and border/padding resolution.
+ */
+static inline int sc_box_content_left(ScBoxStyle box) {
+    bool active = box.enabled || box.border.type != SC_BORDER_NONE
+        || box.bg.index != 0 || sc_edges_any(box.padding)
+        || sc_edges_any(box.margin) || box.width > 0
+        || box.width_mode != SC_WIDTH_DEFAULT
+        || box.min_width > 0 || box.max_width > 0;
+    if (!active) {
+        return 0;
+    }
+    bool border_drawn = box.enabled || box.border.type != SC_BORDER_NONE;
+    ScEdges padding = sc_box_padding(box.padding);
+    return box.margin.left + (border_drawn ? 1 : 0) + padding.left;
+}
+
+/**
+ * Defines a `static int name(void *st)` that returns the box content-left for a
+ * widget whose state struct exposes `opts.box`. Wire it into the vtable's
+ * `hint_indent` so the engine aligns the labeled-shortcut footer with the
+ * framed content. (Text-entry keeps the box on `state->box` and defines its
+ * own accessor.)
+ */
+#define SC_DEFINE_HINT_INDENT(name, type) \
+    static int name(void *st) { \
+        return sc_box_content_left(((type *)st)->opts.box); \
+    }
+
+/**
+ * Prepends `left` spaces to every line of `r` (updating the per-line and max
+ * widths), so a captured block lines up under a framed content column. Mutates
+ * and returns `r`; `left <= 0` or NULL `r` is a no-op. On a per-line allocation
+ * failure that line is left unchanged.
+ */
+static inline ScRendered *sc_indent_rendered(ScRendered *r, int left) {
+    if (!r || left <= 0) {
+        return r;
+    }
+    for (size_t i = 0; i < r->line_count; i++) {
+        const char *old = r->lines[i] ? r->lines[i] : "";
+        size_t old_len = strlen(old);
+        char *line = malloc((size_t)left + old_len + 1);
+        if (!line) {
+            continue;
+        }
+        memset(line, ' ', (size_t)left);
+        memcpy(line + left, old, old_len + 1);
+        free(r->lines[i]);
+        r->lines[i] = line;
+        if (r->column_widths) {
+            r->column_widths[i] += left;
+        }
+    }
+    r->max_column_width += left;
+    return r;
+}
+
+/**
  * Appends `target_w - used_cols` background-styled spaces to `text`, extending
  * a line to the widget width. No-op when the line already meets the width.
  * Used to fill row backgrounds / highlight bars to the full widget width.
@@ -460,12 +521,21 @@ static inline ScRendered *sc_hint_place(
  * Composes a widget's `body` frame with its key-hint footer: builds the hint
  * per `layout`, then places it per `pos`. Consumes `body`; returns the final
  * frame. The single call every widget makes after assembling its body.
+ *
+ * `indent` left-pads the hint block (e.g. to line up under a framed content
+ * column, via `sc_box_content_left`) for TOP/BOTTOM positions only; LEFT/RIGHT
+ * hints sit beside the widget and ignore it. Pass 0 for no indent.
  */
 static inline ScRendered *sc_compose_hint(
     ScRendered *body, const char *hint, ScHintLayout layout,
-    ScHintPosition pos, ScTextStyle style
+    ScHintPosition pos, ScTextStyle style, int indent
 ) {
-    return sc_hint_place(body, sc_hint_render(hint, layout, style), pos);
+    ScRendered *h = sc_hint_render(hint, layout, style);
+    ScHintPosition rp = sc_hint_pos_resolved(pos);
+    if (indent > 0 && (rp == SC_HINT_POS_TOP || rp == SC_HINT_POS_BOTTOM)) {
+        h = sc_indent_rendered(h, indent);
+    }
+    return sc_hint_place(body, h, pos);
 }
 
 /**
@@ -561,6 +631,15 @@ typedef struct ScPromptVTable {
      * NULL = only the configured chord opens the editor.
      */
     bool (*wants_editor)(void *state, ScKey key);
+
+    /**
+     * Optional: columns to indent the engine's labeled-shortcut footer so it
+     * lines up under the widget's framed content (typically
+     * `sc_box_content_left(box)`). NULL / 0 = footer at column 0 (today's
+     * behavior). The widget's own key-hint is indented separately via
+     * `sc_compose_hint`'s `indent` argument.
+     */
+    int (*hint_indent)(void *state);
 } ScPromptVTable;
 
 /**

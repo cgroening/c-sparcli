@@ -234,7 +234,12 @@ ScInputStatus sc_prompt_run(
         *shortcuts->out_id = -1;   // -1 = normal submit / cancel
     }
     // Built once: the labeled-shortcut footer is constant for the whole run.
+    // Indent it (also once) to line up under the widget's framed content.
     ScRendered *shortcut_hint = build_shortcut_hint(shortcuts);
+    if (shortcut_hint && vtable->hint_indent) {
+        shortcut_hint = sc_indent_rendered(shortcut_hint,
+                                           vtable->hint_indent(state));
+    }
 
     ScScreen screen = { 0 };
     bool done = false;

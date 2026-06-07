@@ -30,6 +30,8 @@ static ScRendered *confirm_render(void *state);
 static void confirm_on_key(void *state, ScKey key, bool *done, bool *cancel);
 
 
+SC_DEFINE_HINT_INDENT(confirm_hint_indent, ConfirmState)
+
 ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts) {
     if (!question || !out) {
         return SC_INPUT_ERROR;
@@ -40,6 +42,7 @@ ScInputStatus sc_confirm(const char *question, bool *out, ScConfirmOpts opts) {
     ScPromptVTable vtable = {
         .render = confirm_render,
         .on_key = confirm_on_key,
+        .hint_indent = confirm_hint_indent,
     };
     ScPromptShortcuts sk = {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
@@ -116,7 +119,8 @@ static ScRendered *confirm_render(void *state) {
     return sc_compose_hint(body,
                            self->opts.hint ? self->opts.hint : DEFAULT_HINT,
                            self->opts.hint_layout, self->opts.hint_pos,
-                           self->opts.hint_style);
+                           self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
 }
 
 /** Appends one option, styled selected or unselected. */

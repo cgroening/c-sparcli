@@ -86,6 +86,8 @@ static ScTextStyle resolve_error_style(const NumberState *self);
 static ScTextStyle resolve_warn_style(const NumberState *self);
 
 
+SC_DEFINE_HINT_INDENT(number_hint_indent, NumberState)
+
 ScInputStatus sc_number_input(const char *prompt, double *out,
                               ScNumberOpts opts) {
     if (!prompt || !out) {
@@ -102,6 +104,7 @@ ScInputStatus sc_number_input(const char *prompt, double *out,
         .render = number_render,
         .on_key = number_on_key,
         .paste = SC_PASTE_TEXT,
+        .hint_indent = number_hint_indent,
     };
     ScPromptShortcuts sk = {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
@@ -220,7 +223,8 @@ static ScRendered *number_render(void *state) {
     body = stack_calc_error(self, body);
     body = stack_calc_warning(self, body);
     return sc_compose_hint(body, number_hint(self), self->opts.hint_layout,
-                           self->opts.hint_pos, self->opts.hint_style);
+                           self->opts.hint_pos, self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
 }
 
 /** Inline body: "prompt value [= preview]  [min-max]". */

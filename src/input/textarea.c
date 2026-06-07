@@ -45,6 +45,8 @@ static size_t prev_b(const char *buf, size_t off);
 static size_t next_b(const char *buf, size_t len, size_t off);
 
 
+SC_DEFINE_HINT_INDENT(ta_hint_indent, Textarea)
+
 ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
     if (!prompt || !out) {
         return SC_INPUT_ERROR;
@@ -62,6 +64,7 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
         .paste = SC_PASTE_MULTILINE,
         .edit_get = ta_edit_get,
         .edit_set = ta_edit_set,
+        .hint_indent = ta_hint_indent,
     };
     ScPromptShortcuts sk = {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
@@ -172,7 +175,8 @@ static ScRendered *render_inline(const Textarea *self) {
     ScRendered *body = sc_capture_text(text);
     sc_text_free(text);
     return sc_compose_hint(body, ta_hint(self), self->opts.hint_layout,
-                           self->opts.hint_pos, self->opts.hint_style);
+                           self->opts.hint_pos, self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
 }
 
 /** Boxed: content inside a panel (prompt = top title), footer stacked below. */
@@ -226,7 +230,8 @@ static ScRendered *render_boxed(const Textarea *self) {
         return NULL;
     }
     return sc_compose_hint(panel, ta_hint(self), self->opts.hint_layout,
-                           self->opts.hint_pos, self->opts.hint_style);
+                           self->opts.hint_pos, self->opts.hint_style,
+                           sc_box_content_left(self->opts.box));
 }
 
 /**
