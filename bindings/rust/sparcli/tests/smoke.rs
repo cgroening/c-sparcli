@@ -1062,4 +1062,22 @@ fn form_construction_and_getters() {
     });
     md.add_text("Title", "x", FieldOpts::default());
     assert!(!md.modified());
+
+    // fill_height (field), content valign scope + editor_suffix (form) build.
+    use sparcli::ValignScope;
+    let mut fs = Form::new(FormOpts {
+        fullscreen: true,
+        valign_scope: ValignScope::Content,
+        editor: Some("true".into()),
+        editor_suffix: Some(".md".into()),
+        ..Default::default()
+    });
+    fs.row_begin();
+    fs.add_text("Title", "Apple", FieldOpts::default());
+    fs.row_begin();
+    fs.add_text("Body", "notes", FieldOpts {
+        multiline: true, fill_height: true, ..Default::default()
+    });
+    assert_eq!(fs.get_string(0).as_deref(), Some("Apple"));
+    assert_eq!(fs.get_string(1).as_deref(), Some("notes"));
 }

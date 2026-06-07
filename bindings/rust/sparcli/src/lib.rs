@@ -45,7 +45,7 @@ pub use output::*;
 pub use style::{
     palette, Align, AnsiMode, Attr, BgExtent, BorderStyle, BorderType,
     BoxStyle, Color, Edges, HintLayout, HintPos, Position, Style, VAlign,
-    WidthMode,
+    ValignScope, WidthMode,
 };
 pub use text::{markup, MarkupOpts, Text};
 

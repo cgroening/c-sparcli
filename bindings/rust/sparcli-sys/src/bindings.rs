@@ -242,6 +242,10 @@ pub const ScVAlign_SC_VALIGN_MIDDLE: ScVAlign = 1;
 pub const ScVAlign_SC_VALIGN_BOTTOM: ScVAlign = 2;
 #[doc = " Vertical alignment options (top, middle, bottom) for text and components."]
 pub type ScVAlign = ::std::os::raw::c_uint;
+pub const ScVAlignScope_SC_VALIGN_SCOPE_ALL: ScVAlignScope = 0;
+pub const ScVAlignScope_SC_VALIGN_SCOPE_CONTENT: ScVAlignScope = 1;
+#[doc = " What a full-screen vertical alignment applies to: the whole\n header+content+footer block (ALL) or only the content between a pinned\n header and footer (CONTENT)."]
+pub type ScVAlignScope = ::std::os::raw::c_uint;
 #[doc = " Represents box-model insets (top, right, bottom, left) for layout\n purposes. Zero-initialization means no inset."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3858,6 +3862,8 @@ pub struct ScFieldOpts {
     pub row_span: ::std::os::raw::c_int,
     #[doc = " Content lines inside the box; zero-init = 1."]
     pub height: ::std::os::raw::c_int,
+    #[doc = " Full-screen forms only: grow this field's row to fill the remaining\n terminal height; `height` is the minimum, the first such field wins."]
+    pub fill_height: bool,
     #[doc = " Block form submit until non-empty / changed."]
     pub required: bool,
     #[doc = " Text field only: the value may contain newlines. The box shows it across\n its content lines and the field is edited via the external editor\n (`ScFormOpts.editor_key`, default Ctrl-G) instead of an inline editor."]
@@ -3884,12 +3890,14 @@ const _: () = {
     ["Offset of field: ScFieldOpts::row_span"]
         [::std::mem::offset_of!(ScFieldOpts, row_span) - 12usize];
     ["Offset of field: ScFieldOpts::height"][::std::mem::offset_of!(ScFieldOpts, height) - 16usize];
+    ["Offset of field: ScFieldOpts::fill_height"]
+        [::std::mem::offset_of!(ScFieldOpts, fill_height) - 20usize];
     ["Offset of field: ScFieldOpts::required"]
-        [::std::mem::offset_of!(ScFieldOpts, required) - 20usize];
+        [::std::mem::offset_of!(ScFieldOpts, required) - 21usize];
     ["Offset of field: ScFieldOpts::multiline"]
-        [::std::mem::offset_of!(ScFieldOpts, multiline) - 21usize];
+        [::std::mem::offset_of!(ScFieldOpts, multiline) - 22usize];
     ["Offset of field: ScFieldOpts::date_optional"]
-        [::std::mem::offset_of!(ScFieldOpts, date_optional) - 22usize];
+        [::std::mem::offset_of!(ScFieldOpts, date_optional) - 23usize];
     ["Offset of field: ScFieldOpts::help"][::std::mem::offset_of!(ScFieldOpts, help) - 24usize];
     ["Offset of field: ScFieldOpts::border"][::std::mem::offset_of!(ScFieldOpts, border) - 32usize];
     ["Offset of field: ScFieldOpts::validate"]
@@ -3928,12 +3936,16 @@ pub struct ScFormOpts {
     #[doc = " External editor for `multiline` fields. `editor` is the command\n (NULL = `$VISUAL`/`$EDITOR`/nvim/vi); `editor_key` opens it on the active\n multiline field (zero-init = Ctrl-G). No effect without a multiline field."]
     pub editor: *const ::std::os::raw::c_char,
     pub editor_key: ScKeyChord,
+    #[doc = " Extension for the editor's temp file (e.g. \".md\"); borrowed, NULL/empty\n = none."]
+    pub editor_suffix: *const ::std::os::raw::c_char,
     #[doc = " Background of the editor box shown below the grid; zero = gray."]
     pub edit_bg: ScColor,
     #[doc = " Full-screen mode: compose [valign-pad][header][grid] (consistent shell)."]
     pub fullscreen: bool,
-    #[doc = " Vertical alignment of the header+grid block (fullscreen only)."]
+    #[doc = " Vertical alignment of the form within the screen (fullscreen only)."]
     pub valign: ScVAlign,
+    #[doc = " What `valign` applies to (fullscreen only); zero-init = ALL."]
+    pub valign_scope: ScVAlignScope,
     #[doc = " Borrowed header pinned above the grid (fullscreen only)."]
     pub header: *const ScRendered,
     #[doc = " Prefix on a modified field's title (e.g. \"[*] \"); NULL = none."]
@@ -3941,7 +3953,7 @@ pub struct ScFormOpts {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 184usize];
+    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 200usize];
     ["Alignment of ScFormOpts"][::std::mem::align_of::<ScFormOpts>() - 8usize];
     ["Offset of field: ScFormOpts::title"][::std::mem::offset_of!(ScFormOpts, title) - 0usize];
     ["Offset of field: ScFormOpts::title_style"]
@@ -3971,16 +3983,20 @@ const _: () = {
     ["Offset of field: ScFormOpts::editor"][::std::mem::offset_of!(ScFormOpts, editor) - 128usize];
     ["Offset of field: ScFormOpts::editor_key"]
         [::std::mem::offset_of!(ScFormOpts, editor_key) - 136usize];
+    ["Offset of field: ScFormOpts::editor_suffix"]
+        [::std::mem::offset_of!(ScFormOpts, editor_suffix) - 152usize];
     ["Offset of field: ScFormOpts::edit_bg"]
-        [::std::mem::offset_of!(ScFormOpts, edit_bg) - 148usize];
+        [::std::mem::offset_of!(ScFormOpts, edit_bg) - 160usize];
     ["Offset of field: ScFormOpts::fullscreen"]
-        [::std::mem::offset_of!(ScFormOpts, fullscreen) - 156usize];
+        [::std::mem::offset_of!(ScFormOpts, fullscreen) - 168usize];
     ["Offset of field: ScFormOpts::valign"]
-        [::std::mem::offset_of!(ScFormOpts, valign) - 160usize];
+        [::std::mem::offset_of!(ScFormOpts, valign) - 172usize];
+    ["Offset of field: ScFormOpts::valign_scope"]
+        [::std::mem::offset_of!(ScFormOpts, valign_scope) - 176usize];
     ["Offset of field: ScFormOpts::header"]
-        [::std::mem::offset_of!(ScFormOpts, header) - 168usize];
+        [::std::mem::offset_of!(ScFormOpts, header) - 184usize];
     ["Offset of field: ScFormOpts::modified_marker"]
-        [::std::mem::offset_of!(ScFormOpts, modified_marker) - 176usize];
+        [::std::mem::offset_of!(ScFormOpts, modified_marker) - 192usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

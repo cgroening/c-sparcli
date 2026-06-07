@@ -246,8 +246,12 @@ static void render_key(const KV *self, const char *key) {
     int print_byte_count = (natural_width > field_width)
         ? (int)sc_utf8_trim_to_cols(key, field_width)
         : (int)strlen(key);
-    int printed_width = natural_width < field_width
-        ? natural_width : field_width;
+    /* When truncated, the trim may stop a column short of `field_width` (it
+       never splits a double-width glyph), so measure the kept slice for an
+       exact pad instead of assuming it fills the column. */
+    int printed_width = (natural_width > field_width)
+        ? (int)sc_utf8_string_length(key, (size_t)print_byte_count)
+        : natural_width;
 
     print_text_slice(
         key, print_byte_count,

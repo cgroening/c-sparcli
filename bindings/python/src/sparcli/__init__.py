@@ -34,8 +34,8 @@ from .columns import ColItem, Columns, ColumnsOpts
 from .enums import (Align, AnsiMode, Attr, AlertType, BgExtent, BorderType,
                     ByteUnit, FieldType, FieldWidthMode, HintLayout, HintPos,
                     ListMarker, LogLevel, PathKind, Position, ProgressType,
-                    SpinnerType, SuggestMatch, SuggestMode, VAlign, WeekStart,
-                    WidthMode)
+                    SpinnerType, SuggestMatch, SuggestMode, VAlign,
+                    ValignScope, WeekStart, WidthMode)
 from .log import (Logger, log_add_file, log_debug, log_error,
                   log_hide_timestamps, log_info, log_level, log_reset,
                   log_set_level, log_warning)
@@ -76,7 +76,8 @@ __all__ = [
     "BoxStyle", "Edges",
     "Title", "Text",
     # enums
-    "Align", "VAlign", "BorderType", "Position", "ListMarker", "ProgressType",
+    "Align", "VAlign", "ValignScope", "BorderType", "Position", "ListMarker",
+    "ProgressType",
     "SpinnerType", "AlertType", "HintLayout", "HintPos", "WeekStart",
     "WidthMode", "BgExtent", "FieldType", "FieldWidthMode",
     "SuggestMode", "SuggestMatch", "AnsiMode", "PathKind",

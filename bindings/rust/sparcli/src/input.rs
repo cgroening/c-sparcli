@@ -7,6 +7,7 @@
 use crate::error::{Error, Result};
 use crate::style::{
     cstring, BorderStyle, BoxStyle, Color, HintLayout, HintPos, Style, VAlign,
+    ValignScope,
 };
 use crate::output::Rendered;
 use crate::text::Text;
@@ -2291,6 +2292,10 @@ pub struct FieldOpts {
     pub row_span: i32,
     /// Content lines inside the box (0 = 1).
     pub height: i32,
+    /// Full-screen forms only: grow this field's row to consume the remaining
+    /// terminal height (e.g. a multiline body that fills the screen). `height`
+    /// acts as the minimum; if several fields set it, the first wins.
+    pub fill_height: bool,
     pub required: bool,
     /// Text field: multi-line value edited via the external editor.
     pub multiline: bool,
@@ -2314,6 +2319,7 @@ fn field_ffi(o: &FieldOpts) -> (ffi::ScFieldOpts, Option<CString>) {
     f.col_span = o.col_span;
     f.row_span = o.row_span;
     f.height = o.height;
+    f.fill_height = o.fill_height;
     f.required = o.required;
     f.multiline = o.multiline;
     f.date_optional = o.date_optional;
@@ -2345,14 +2351,21 @@ pub struct FormOpts {
     pub editor: Option<String>,
     /// Key that opens the editor (None = Ctrl-G).
     pub editor_key: Option<Chord>,
+    /// Extension for the editor's temp file (e.g. `".md"`) so the editor detects
+    /// the filetype; `None`/empty = no extension.
+    pub editor_suffix: Option<String>,
     /// Background of the editor box below the grid (default: a subtle gray).
     pub edit_bg: Color,
     /// Full-screen mode: compose [valign-pad][header][grid] filling the terminal
     /// (consistent shell alongside a fullscreen finder). Run inside an
     /// [`AltScreen`](crate::AltScreen).
     pub fullscreen: bool,
-    /// Vertical alignment of the (header + grid) block (fullscreen only).
+    /// Vertical alignment of the form within the screen (fullscreen only).
     pub valign: VAlign,
+    /// What [`valign`](Self::valign) applies to (fullscreen only). `All` aligns
+    /// the whole header+grid+footer block; `Content` pins the header to the top
+    /// and the footer to the bottom, aligning only the grid in between.
+    pub valign_scope: ValignScope,
     /// Header pinned above the grid (fullscreen only). Borrowed: the
     /// [`Rendered`] must outlive the run.
     pub header: Option<NonNull<ffi::ScRendered>>,
@@ -2396,6 +2409,7 @@ impl Form {
         let title = opts.title.as_deref().map(cstring);
         let hint = opts.hint.as_deref().map(cstring);
         let editor = opts.editor.as_deref().map(cstring);
+        let editor_suffix = opts.editor_suffix.as_deref().map(cstring);
         let marker = opts.modified_marker.as_deref().map(cstring);
         let mut o: ffi::ScFormOpts = unsafe { mem::zeroed() };
         o.title = title.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
@@ -2413,9 +2427,12 @@ impl Form {
         if let Some(c) = opts.editor_key {
             o.editor_key = c.0;
         }
+        o.editor_suffix =
+            editor_suffix.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.edit_bg = opts.edit_bg.raw();
         o.fullscreen = opts.fullscreen;
         o.valign = opts.valign.raw();
+        o.valign_scope = opts.valign_scope.raw();
         o.header = opts.header.map_or(std::ptr::null(), |p| p.as_ptr());
         o.modified_marker =
             marker.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());

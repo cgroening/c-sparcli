@@ -91,7 +91,7 @@ sc_print_text(t);
 sc_text_free(t);
 ```
 
-`sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware, UTF-8-aware, counts codepoints not bytes).
+`sc_text_visible_width(t)` – returns the max visible width across lines (ANSI-aware and **display-width-aware**: East-Asian Wide / Fullwidth characters and emoji count as 2 columns, combining marks as 0; ambiguous symbols stay 1).
 
 `sc_text_append_link(t, "text", "https://…", style)` – appends a span wrapped in an OSC-8 terminal hyperlink; see [Hyperlinks (OSC-8)](#hyperlinks-osc-8).
 
@@ -1608,7 +1608,7 @@ Not part of the public API, but useful background for contributors and power use
 |--------|-------------|
 | `sc_apply_colors(fg, bg)` | Emits ANSI fg/bg escapes; skips if `index == 0` (zero-init / `SC_ANSI_COLOR_NONE`) |
 | `sc_terminal_width()` | Terminal width via `ioctl(TIOCGWINSZ)`, fallback 80 |
-| `sc_utf8_string_length(string, byte_length)` | Visible column count of a UTF-8 byte sequence |
+| `sc_utf8_string_length(string, byte_length)` | Visible column count of a UTF-8 byte sequence (display-width-aware: CJK/Fullwidth/emoji = 2, combining = 0) |
 | `sc_utf8_trim_to_cols(string, max_columns)` | Byte count that fits within `max_columns` columns |
 
 ---
@@ -1620,5 +1620,5 @@ Not part of the public API, but useful background for contributors and power use
 - The `h` horizontal-line character from `ScBorderType` is used by both panel titles, table titles, rules, and column separators – all from the same logical table in each file.
 - `ScText` / `ScTableData` / `ScColumns` all heap-allocate; always call the corresponding `_free()` function.
 - `ScColumns` captures widget output at `sc_columns_add_*` time. Modifying a table after adding it to a columns layout has no effect.
-- Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no space fits in the column width, the line is truncated. **Truncated (non-wrapped) cells end with an ellipsis (`…`)**: one column is reserved for the glyph and the content trimmed to fit (`remaining - 1` columns + `…`); a column only 1 cell wide shows just `…`. The ellipsis inherits the cell's style/bg.
+- Word-wrap in tables (`ScColOpts.wrap = 1`) breaks on spaces only. If no space fits in the column width, the line is truncated. **Truncated (non-wrapped) cells end with an ellipsis (`…`)**: one column is reserved for the glyph and the content trimmed to fit (`remaining - 1` columns + `…`); a column only 1 cell wide shows just `…`. The ellipsis inherits the cell's style/bg. Trimming never splits a **double-width glyph** (CJK/emoji), so the cell is padded to the full column width when a wide-glyph boundary leaves it a column short — the border stays aligned.
 - **Zero-init `ScTextStyle` sentinel** (used by `ScKVOpts.key_style`, `ScKVOpts.val_style`, `ScListOpts.marker_style`, `ScBadgeOpts.text_style`): zero-init = no formatting. Renderers use `opts_has_format()` to detect this and skip `sc_print()`.

@@ -78,6 +78,18 @@ class VAlign(IntEnum):
     BOTTOM = 2
 
 
+class ValignScope(IntEnum):
+    """What a full-screen vertical alignment applies to (forms).
+
+    ``ALL`` aligns the whole header+grid+footer block as one unit; ``CONTENT``
+    pins the header to the top and the footer to the bottom, aligning only the
+    grid in the gap between them.
+    """
+
+    ALL = 0
+    CONTENT = 1
+
+
 class ListMarker(IntEnum):
     """List item marker style."""
 

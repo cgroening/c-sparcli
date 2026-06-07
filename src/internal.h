@@ -4,6 +4,7 @@
 #include "core/sanitize_internal.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -156,15 +157,71 @@ static inline int sc_terminal_height(void) {
 }
 
 /**
+ * Decodes one UTF-8 codepoint from `[cursor, end)` into `*cp` and returns the
+ * number of bytes consumed (1..4). Bounds- and malformation-safe: a truncated
+ * sequence at the end of the buffer, a stray continuation byte, or an invalid
+ * lead byte decode as the single raw byte (length 1, or the bytes available),
+ * so the cursor always advances and never reads past `end`.
+ */
+static inline size_t sc_utf8_decode(
+    const unsigned char *cursor, const unsigned char *end, uint32_t *cp
+) {
+    unsigned char lead = cursor[0];
+    if ((lead & 0x80) == 0x00) { *cp = lead; return 1; }   /* ASCII fast path */
+    size_t len;
+    uint32_t value;
+    if      ((lead & 0xE0) == 0xC0) { len = 2; value = lead & 0x1Fu; }
+    else if ((lead & 0xF0) == 0xE0) { len = 3; value = lead & 0x0Fu; }
+    else if ((lead & 0xF8) == 0xF0) { len = 4; value = lead & 0x07u; }
+    else { *cp = lead; return 1; }   /* stray continuation / invalid lead */
+    size_t avail = (size_t)(end - cursor);
+    if (avail < len) { *cp = lead; return avail ? avail : 1; }   /* truncated */
+    for (size_t i = 1; i < len; i++) {
+        if ((cursor[i] & 0xC0) != 0x80) { *cp = lead; return 1; }  /* bad cont */
+        value = (value << 6) | (cursor[i] & 0x3Fu);
+    }
+    *cp = value;
+    return len;
+}
+
+/**
+ * Display width of a Unicode codepoint in terminal columns: 0 for combining /
+ * zero-width marks, 2 for East-Asian Wide / Fullwidth characters and width-2
+ * emoji, 1 otherwise. Conservative on purpose — ambiguous-width symbols below
+ * U+2E80 (box drawing, arrows, `✔`/`✖`, bullets, …) stay 1 column, matching how
+ * sparcli renders its own glyphs and the surrounding terminals.
+ */
+static inline int sc_codepoint_width(uint32_t cp) {
+    if ((cp >= 0x0300 && cp <= 0x036F) || (cp >= 0x0483 && cp <= 0x0489) ||
+        (cp >= 0x0591 && cp <= 0x05BD) || (cp >= 0x0610 && cp <= 0x061A) ||
+        (cp >= 0x064B && cp <= 0x065F) || (cp >= 0x0E31 && cp <= 0x0E3A) ||
+        (cp >= 0x1AB0 && cp <= 0x1AFF) || (cp >= 0x1DC0 && cp <= 0x1DFF) ||
+        (cp >= 0x20D0 && cp <= 0x20FF) || (cp >= 0xFE20 && cp <= 0xFE2F) ||
+        (cp >= 0xFE00 && cp <= 0xFE0F) || (cp >= 0x1160 && cp <= 0x11FF) ||
+        cp == 0x200B || cp == 0x200D || (cp >= 0xE0100 && cp <= 0xE01EF)) {
+        return 0;   /* combining / zero-width */
+    }
+    if ((cp >= 0x1100 && cp <= 0x115F) || cp == 0x2329 || cp == 0x232A ||
+        (cp >= 0x2E80 && cp <= 0x303E) || (cp >= 0x3041 && cp <= 0x33FF) ||
+        (cp >= 0x3400 && cp <= 0x4DBF) || (cp >= 0x4E00 && cp <= 0x9FFF) ||
+        (cp >= 0xA000 && cp <= 0xA4CF) || (cp >= 0xAC00 && cp <= 0xD7A3) ||
+        (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0xFE10 && cp <= 0xFE19) ||
+        (cp >= 0xFE30 && cp <= 0xFE6F) || (cp >= 0xFF00 && cp <= 0xFF60) ||
+        (cp >= 0xFFE0 && cp <= 0xFFE6) || (cp >= 0x1F300 && cp <= 0x1FAFF) ||
+        (cp >= 0x1F900 && cp <= 0x1F9FF) || (cp >= 0x20000 && cp <= 0x3FFFD)) {
+        return 2;   /* East-Asian Wide / Fullwidth / emoji */
+    }
+    return 1;
+}
+
+/**
  * Counts visible terminal columns in the first `byte_length` bytes of a UTF-8
  * string.
  *
- * Must be used instead of `strlen()` whenever a display width for
- * alignment or truncation is needed. `strlen()` returns the byte count,
- * which is wrong for multi-byte UTF-8 sequences (`€` is 3 bytes but only
- * 1 terminal column). Walks the byte sequence, skips continuation bytes
- * and counts one column per codepoint. Assumes all code points occupy
- * 1 column (correct for non-CJK).
+ * Must be used instead of `strlen()` whenever a display width for alignment or
+ * truncation is needed. Per-codepoint width comes from `sc_codepoint_width`, so
+ * East-Asian Wide / Fullwidth characters and emoji count as 2 columns and
+ * combining marks as 0.
  *
  * ANSI-aware: well-formed escape sequences (CSI/OSC/…) and the control
  * bytes removed by the sanitizer (everything below 0x20 except `\n`/`\t`,
@@ -192,18 +249,10 @@ static inline size_t sc_utf8_string_length(
             cursor++;   /* sanitizer-dropped control bytes: no columns */
             continue;
         }
-        /* Advance one codepoint, but never past `end`: a truncated UTF-8
-           sequence at the end of the buffer must not cause an
-           out-of-bounds read. */
-        size_t sequence_length;
-        if      ((current_byte & 0x80) == 0x00) { sequence_length = 1; }
-        else if ((current_byte & 0xE0) == 0xC0) { sequence_length = 2; }
-        else if ((current_byte & 0xF0) == 0xE0) { sequence_length = 3; }
-        else                                    { sequence_length = 4; }
-        for (size_t i = 0; i < sequence_length && cursor < end; i++) {
-            cursor++;
-        }
-        columns++;
+        uint32_t cp;
+        size_t n = sc_utf8_decode(cursor, end, &cp);   /* bounds-safe */
+        columns += (size_t)sc_codepoint_width(cp);
+        cursor += n;
     }
     return columns;
 }
@@ -212,17 +261,21 @@ static inline size_t sc_utf8_string_length(
  * Returns the number of bytes of `string` that fit within `max_columns`
  * visible terminal columns.
  *
- * Stops only at codepoint boundaries, so the returned byte count is
- * always safe to pass to `fwrite()` or `memcpy()`. ANSI escape sequences
- * are included in the byte count but occupy no columns, so a trim never
- * cuts inside an escape sequence.
+ * Stops only at codepoint boundaries, so the returned byte count is always safe
+ * to pass to `fwrite()` or `memcpy()`. Display-width-aware (`sc_codepoint_width`):
+ * a 2-column glyph that would cross `max_columns` is left out entirely (the trim
+ * never splits a wide glyph), so the result can be one column short of
+ * `max_columns` — callers that need an exact width pad the difference. ANSI
+ * escape sequences are included in the byte count but occupy no columns, so a
+ * trim never cuts inside an escape sequence.
  */
 static inline size_t sc_utf8_trim_to_cols(
     const char *string, int max_columns
 ) {
     const unsigned char *cursor = (const unsigned char *)string;
+    const unsigned char *end = cursor + strlen(string);
     int columns = 0;
-    while (*cursor && columns < max_columns) {
+    while (cursor < end && columns < max_columns) {
         unsigned char current_byte = *cursor;
         if (current_byte == 0x1B) {
             const char *seq_end = sc_ansi_skip_seq((const char *)cursor);
@@ -235,19 +288,12 @@ static inline size_t sc_utf8_trim_to_cols(
             cursor++;   /* sanitizer-dropped control bytes: no columns */
             continue;
         }
-        /* Advance one codepoint, but never past the NUL terminator: a
-           truncated UTF-8 sequence at the end of the string must not
-           cause an out-of-bounds read (and the returned byte count must
-           never exceed the string length). */
-        size_t sequence_length;
-        if      ((current_byte & 0x80) == 0x00) { sequence_length = 1; }
-        else if ((current_byte & 0xE0) == 0xC0) { sequence_length = 2; }
-        else if ((current_byte & 0xF0) == 0xE0) { sequence_length = 3; }
-        else                                    { sequence_length = 4; }
-        for (size_t i = 0; i < sequence_length && *cursor; i++) {
-            cursor++;
-        }
-        columns++;
+        uint32_t cp;
+        size_t n = sc_utf8_decode(cursor, end, &cp);   /* bounds-safe */
+        int w = sc_codepoint_width(cp);
+        if (columns + w > max_columns) { break; }   /* don't split a wide glyph */
+        columns += w;
+        cursor += n;
     }
     return (size_t)(cursor - (const unsigned char *)string);
 }

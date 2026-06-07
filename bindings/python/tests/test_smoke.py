@@ -737,6 +737,20 @@ def test_form_modified():
         assert f.modified() is False
 
 
+def test_form_fill_height_and_content_scope():
+    # fill_height (field) + content valign scope + editor_suffix (form) build.
+    opts = sc.FormOpts(fullscreen=True, valign_scope=sc.ValignScope.CONTENT,
+                       editor="true", editor_suffix=".md")
+    with sc.Form(opts) as f:
+        f.row_begin()
+        f.add_text("Title", "Apple")
+        f.row_begin()
+        f.add_text("Body", "notes",
+                   sc.FieldOpts(multiline=True, fill_height=True))
+        assert f.get_string(0) == "Apple"
+        assert f.get_string(1) == "notes"
+
+
 def test_form_run_unavailable_without_tty():
     # Off a TTY (SPARCLI_NO_TTY) run() returns False, never grabbing the keyboard.
     with sc.Form() as f:

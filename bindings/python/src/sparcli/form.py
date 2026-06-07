@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from ._ffi import apply_color, apply_style, cstr, ffi, lib
 from ._inputcommon import fill_hint, fill_shortcuts
 from .color import Color
-from .enums import FieldWidthMode, HintLayout, HintPos, VAlign
+from .enums import FieldWidthMode, HintLayout, HintPos, VAlign, ValignScope
 from .keys import KeyChord, Shortcuts
 from .style import Style
 
@@ -28,6 +28,9 @@ class FieldOpts:
     col_span: int = 0         #: columns spanned (0 = 1)
     row_span: int = 0         #: rows spanned (0 = 1)
     height: int = 0           #: content lines in the box (0 = 1)
+    #: fullscreen only: grow this field's row to fill the remaining terminal
+    #: height (``height`` is the minimum; the first such field wins)
+    fill_height: bool = False
     required: bool = False
     multiline: bool = False   #: text field edited via the external editor
     date_optional: bool = False  #: date field may be empty (get_date -> None)
@@ -39,6 +42,7 @@ class FieldOpts:
         c.col_span = self.col_span
         c.row_span = self.row_span
         c.height = self.height
+        c.fill_height = self.fill_height
         c.required = self.required
         c.multiline = self.multiline
         c.date_optional = self.date_optional
@@ -63,9 +67,14 @@ class FormOpts:
     shortcuts: Shortcuts | None = None
     editor: str | None = None          #: external editor for multiline fields
     editor_key: KeyChord | None = None  #: opens the editor (None = Ctrl-G)
+    #: extension for the editor's temp file (e.g. ``".md"``); None/empty = none
+    editor_suffix: str | None = None
     edit_bg: Color = Color.NONE        #: editor-box background (default: gray)
     fullscreen: bool = False  #: fill the terminal (header + valign; use altscreen)
     valign: VAlign = VAlign.TOP  #: block alignment in fullscreen
+    #: what ``valign`` applies to (fullscreen): ALL = whole block, CONTENT =
+    #: pin header top / footer bottom and align only the grid in between
+    valign_scope: ValignScope = ValignScope.ALL
     header: "Rendered | None" = None  #: pinned header (fullscreen); borrowed
     modified_marker: str | None = None  #: prefix on a changed field's title
 
@@ -83,9 +92,11 @@ class FormOpts:
         c.editor = cstr(arena, self.editor)
         if self.editor_key is not None:
             c.editor_key = self.editor_key.value
+        c.editor_suffix = cstr(arena, self.editor_suffix)
         apply_color(c.edit_bg, self.edit_bg)
         c.fullscreen = self.fullscreen
         c.valign = int(self.valign)
+        c.valign_scope = int(self.valign_scope)
         c.header = self.header._ptr if self.header is not None else ffi.NULL
         c.modified_marker = cstr(arena, self.modified_marker)
 

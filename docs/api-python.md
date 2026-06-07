@@ -258,7 +258,11 @@ per-field `validate` callback is not exposed.) `FormOpts(autoedit=True)` opens
 the first field's editor immediately at start. `Form.modified()` reports whether
 any field changed from its initial value (for an "unsaved changes?" prompt on
 cancel), and `FormOpts(modified_marker="[*] ")` prefixes a changed field's box
-title.
+title. Full-screen forms add `FieldOpts(fill_height=True)` (grow a field's row to
+fill the remaining terminal height), `FormOpts(valign_scope=ValignScope.CONTENT)`
+(pin the header to the top row and the edit/hint footer to the bottom, aligning
+only the grid between them; default `ValignScope.ALL` aligns the whole block) and
+`FormOpts(editor_suffix=".md")` (extension for the external-editor temp file).
 
 ```python
 import datetime

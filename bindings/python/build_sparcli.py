@@ -116,6 +116,7 @@ typedef enum { SC_BORDER_NONE, SC_BORDER_ASCII, SC_BORDER_SINGLE,
 typedef enum { SC_POSITION_TOP, SC_POSITION_BOTTOM } ScPosition;
 typedef enum { SC_ALIGN_LEFT, SC_ALIGN_CENTER, SC_ALIGN_RIGHT } ScHAlign;
 typedef enum { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM } ScVAlign;
+typedef enum { SC_VALIGN_SCOPE_ALL = 0, SC_VALIGN_SCOPE_CONTENT } ScVAlignScope;
 typedef enum { SC_ANSI_MODE_DEFAULT = 0, SC_ANSI_MODE_ALLOW = 1,
                SC_ANSI_MODE_SANITIZE = 2 } ScAnsiMode;
 typedef enum { SC_CELL_STR, SC_CELL_TEXT, SC_CELL_MARKUP } ScCellKind;
@@ -1100,6 +1101,7 @@ typedef struct {
     int col_span;
     int row_span;
     int height;
+    bool fill_height;
     bool required;
     bool multiline;
     bool date_optional;
@@ -1123,9 +1125,11 @@ typedef struct {
     int *out_shortcut_id;
     const char *editor;
     ScKeyChord editor_key;
+    const char *editor_suffix;
     ScColor edit_bg;
     bool fullscreen;
     ScVAlign valign;
+    ScVAlignScope valign_scope;
     const ScRendered *header;
     const char *modified_marker;
     ...;

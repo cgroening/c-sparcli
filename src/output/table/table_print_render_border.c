@@ -536,10 +536,15 @@ void print_tline_in_width(
         }
         size_t byte_count = sc_utf8_trim_to_cols(text, remaining_cols);
         char *clipped = strndup(text, byte_count);
+        // `trim_to_cols` never splits a double-width glyph, so it can stop a
+        // column short; pad the remainder below to keep the width exact.
+        int clipped_w = (int)sc_utf8_string_length(clipped, byte_count);
         print_span_with_bg(clipped, line->spans[i].style, bg);
         free(clipped);
-        remaining_cols = 0;
+        remaining_cols -= clipped_w;
+        break;
     }
+    if (remaining_cols > 0) { print_spaces_with_bg(remaining_cols, bg); }
 }
 
 /**

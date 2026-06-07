@@ -437,7 +437,21 @@ static void hard_break_word(
             available = max_width;
         }
         size_t chunk_bytes = sc_utf8_trim_to_cols(cursor, available);
-        if (chunk_bytes == 0) { break; }
+        if (chunk_bytes == 0) {
+            /* A double-width glyph did not fit the remaining columns. If the
+               line already has content, wrap and retry it on a fresh full-width
+               line; if it still doesn't fit an empty line (glyph wider than the
+               whole column), emit one codepoint anyway to guarantee progress. */
+            if (builder->span_width > 0) {
+                flush_wrapped_line(builder);
+                continue;
+            }
+            uint32_t cp;
+            chunk_bytes = sc_utf8_decode(
+                (const unsigned char *)cursor,
+                (const unsigned char *)cursor + remaining_bytes, &cp
+            );
+        }
 
         size_t chunk_width = sc_utf8_string_length(cursor, chunk_bytes);
         lb_push_span(

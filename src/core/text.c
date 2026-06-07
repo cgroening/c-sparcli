@@ -127,25 +127,28 @@ size_t sc_text_visible_width(const ScText *sc_text) {
     if (!sc_text) { return 0; }
     size_t max_width = 0, current_width = 0;
     for (size_t i = 0; i < sc_text->count; i++) {
-        const unsigned char *current_byte =
+        const unsigned char *cursor =
             (const unsigned char *)sc_text->spans[i].raw_str;
-        while (*current_byte) {
-            if (*current_byte == 0x1B) {
+        const unsigned char *end = cursor + strlen((const char *)cursor);
+        while (cursor < end) {
+            if (*cursor == 0x1B) {
                 // ANSI escape sequences occupy no columns
-                const char *seq_end =
-                    sc_ansi_skip_seq((const char *)current_byte);
-                current_byte = seq_end != (const char *)current_byte
-                    ? (const unsigned char *)seq_end : current_byte + 1;
+                const char *seq_end = sc_ansi_skip_seq((const char *)cursor);
+                cursor = seq_end != (const char *)cursor
+                    ? (const unsigned char *)seq_end : cursor + 1;
                 continue;
             }
-            if (*current_byte == '\n') {
+            if (*cursor == '\n') {
                 if (current_width > max_width) { max_width = current_width; }
                 current_width = 0;
-            } else if ((*current_byte & 0xC0) != 0x80) {
-                // Skip UTF-8 continuation bytes
-                current_width++;
+                cursor++;
+                continue;
             }
-            current_byte++;
+            // Display-width-aware: wide (CJK/emoji) = 2, combining = 0.
+            uint32_t cp;
+            size_t n = sc_utf8_decode(cursor, end, &cp);
+            current_width += (size_t)sc_codepoint_width(cp);
+            cursor += n;
         }
     }
     return current_width > max_width ? current_width : max_width;

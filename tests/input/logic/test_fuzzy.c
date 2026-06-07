@@ -178,6 +178,9 @@ void test_fuzzy_logic(void) {
         { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd' }, .hint_label =
           "delta action longer label" },
     };
+    /* footer_rows reflects the REAL terminal width so it matches the frame's
+       own internal rendering (keeps the frame-fits assertion below consistent
+       with however many rows the footer actually occupies here). */
     int footer_rows = sc_shortcut_hint_rows(wide, 4, 0, sc_term_width());
     ScFuzzy *wf = sc_fuzzy_new((ScFuzzyOpts){
         .fullscreen = true, .header = hdr, .box = { .enabled = true },
@@ -188,10 +191,14 @@ void test_fuzzy_logic(void) {
         sc_fuzzy_add(wf, a);
     }
     ScRendered *wff = sc_fuzzy_frame(wf, "");
-    CHECK(footer_rows >= 2,
-          "fuzzy: wide footer soft-wraps to >1 row at the test width");
+    /* Exercise the soft-wrap path at a pinned narrow width: sc_shortcut_hint_rows
+       is a pure function of (shortcuts, width), so this is deterministic on any
+       terminal (the old sc_term_width() form failed on wide terminals where the
+       footer fits on one line). */
+    CHECK(sc_shortcut_hint_rows(wide, 4, 0, 40) >= 2,
+          "fuzzy: wide footer soft-wraps to >1 row at a narrow width");
     CHECK(wff && (int)wff->line_count <= term_h - footer_rows,
-          "fuzzy: fullscreen frame leaves room for the wrapped footer");
+          "fuzzy: fullscreen frame leaves room for the (possibly wrapped) footer");
     sc_rendered_free(wff);
     sc_fuzzy_free(wf);
     sc_rendered_free(hdr);

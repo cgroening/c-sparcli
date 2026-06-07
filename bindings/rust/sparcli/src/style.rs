@@ -174,6 +174,16 @@ repr_enum!(
 );
 
 repr_enum!(
+    /// What a full-screen vertical alignment applies to (forms): `All` aligns
+    /// the whole header+grid+footer block; `Content` pins the header to the top
+    /// and the footer to the bottom, aligning only the grid in between.
+    ValignScope {
+        All = ffi::ScVAlignScope_SC_VALIGN_SCOPE_ALL,
+        Content = ffi::ScVAlignScope_SC_VALIGN_SCOPE_CONTENT,
+    } default All
+);
+
+repr_enum!(
     /// Border / line character set.
     BorderType {
         None = ffi::ScBorderType_SC_BORDER_NONE,

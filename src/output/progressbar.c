@@ -347,8 +347,12 @@ static void render_label(const Frame *frame) {
     int print_byte_count = (natural_width > field_width)
         ? (int)sc_utf8_trim_to_cols(bar->label, field_width)
         : (int)strlen(bar->label);
-    int printed_width = natural_width < field_width
-        ? natural_width : field_width;
+    /* When truncated, the trim may stop a column short of `field_width` (it
+       never splits a double-width glyph), so measure the kept slice for an
+       exact pad instead of assuming it fills the column. */
+    int printed_width = (natural_width > field_width)
+        ? (int)sc_utf8_string_length(bar->label, (size_t)print_byte_count)
+        : natural_width;
 
     print_label_text(bar, print_byte_count);
     sc_print_spaces(field_width - printed_width);

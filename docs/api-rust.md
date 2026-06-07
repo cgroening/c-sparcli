@@ -349,7 +349,12 @@ let pure = fuzzy_match("ab", "cab");          // (bool, score), no TTY
 first field's editor immediately at start. `Form::modified()` reports whether any
 field changed from its initial value (for an "unsaved changes?" prompt on
 cancel), and `FormOpts { modified_marker: Some("[*] ".into()), .. }` prefixes a
-changed field's box title.
+changed field's box title. Full-screen forms add `FieldOpts { fill_height: true,
+.. }` (grow a field's row to fill the remaining terminal height),
+`FormOpts { valign_scope: ValignScope::Content, .. }` (pin the header to the top
+row and the edit/hint footer to the bottom, aligning only the grid between them;
+default `ValignScope::All` aligns the whole block) and `FormOpts { editor_suffix:
+Some(".md".into()), .. }` (extension for the external-editor temp file).
 
 ```rust
 use sparcli::{Form, FormOpts, FieldOpts, FieldWidthMode};

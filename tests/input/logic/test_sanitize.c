@@ -152,6 +152,38 @@ static void check_widths(void) {
     CHECK(sc_utf8_string_length(umlauts, strlen(umlauts)) == 3,
           "width: UTF-8 codepoints still count one column each");
 
+    /* Display-width awareness: East-Asian Wide / Fullwidth / emoji = 2,
+       combining marks = 0, ambiguous symbols (sparcli's own glyphs) = 1. */
+    const char *cjk = "\344\275\240\345\245\275";       /* 你好 (2 CJK) */
+    CHECK(sc_utf8_string_length(cjk, strlen(cjk)) == 4,
+          "width: CJK ideographs count two columns each");
+    const char *emoji = "\360\237\216\211";              /* 🎉 U+1F389 */
+    CHECK(sc_utf8_string_length(emoji, strlen(emoji)) == 2,
+          "width: emoji count two columns");
+    const char *fullwidth = "\357\274\241";              /* Ａ U+FF21 */
+    CHECK(sc_utf8_string_length(fullwidth, strlen(fullwidth)) == 2,
+          "width: fullwidth forms count two columns");
+    const char *combining = "e\314\201";                 /* e + U+0301 */
+    CHECK(sc_utf8_string_length(combining, strlen(combining)) == 1,
+          "width: combining marks count zero columns");
+    const char *checkmark = "\342\234\224";              /* ✔ U+2714 */
+    CHECK(sc_utf8_string_length(checkmark, strlen(checkmark)) == 1,
+          "width: ambiguous symbols stay one column");
+
+    /* trim never splits a wide glyph: 你好 at 3 cols keeps only 你 (2 cols,
+       3 bytes), stopping a column short; at 4 cols both fit (6 bytes). */
+    CHECK(sc_utf8_trim_to_cols(cjk, 3) == 3,
+          "width: trim keeps a whole CJK glyph and stops a column short");
+    CHECK(sc_utf8_trim_to_cols(cjk, 4) == 6,
+          "width: trim fits both CJK glyphs at exactly four columns");
+
+    /* The public sc_text_visible_width is display-width aware too. */
+    ScText *cjk_text = sc_text_new();
+    sc_text_append(cjk_text, cjk, (ScTextStyle){ 0 });
+    CHECK(sc_text_visible_width(cjk_text) == 4,
+          "width: ScText visible width counts CJK as two columns");
+    sc_text_free(cjk_text);
+
     const char *bell = "a\ab";
     CHECK(sc_utf8_string_length(bell, strlen(bell)) == 2,
           "width: sanitizer-dropped control bytes count zero columns");
@@ -182,6 +214,17 @@ static void check_widths(void) {
     CHECK(rendered != NULL,
           "width: word-wrap survives truncated UTF-8 in the content");
     sc_rendered_free(rendered);
+
+    // A long unbroken double-width (CJK) run must hard-break across lines, not
+    // loop forever or drop glyphs when a wide glyph won't fit the last column.
+    ScRendered *cjk_wrap = sc_capture_panel_str(
+        "\344\275\240\345\245\275\344\275\240\345\245\275\344\275\240"
+        "\345\245\275\344\275\240\345\245\275\344\275\240\345\245\275", /* 你好x5 */
+        (ScPanelOpts){ .border.type = SC_BORDER_SINGLE, .width = 9 }
+    );
+    CHECK(cjk_wrap && cjk_wrap->line_count >= 4,
+          "width: a long CJK run hard-breaks across multiple lines");
+    sc_rendered_free(cjk_wrap);
 }
 
 /**
@@ -504,6 +547,33 @@ static void check_table_alignment(void) {
     sc_rendered_free(rendered);
 
     sc_table_free(table);
+
+    /* A double-width (CJK) cell in a fixed-width column must truncate AND pad so
+       the border stays aligned. Measured with the display-width-aware library
+       width (the local codepoint counter would mis-measure wide glyphs): every
+       rendered line ends up the same number of terminal columns. */
+    ScTableData *cjk_table = sc_table_new();
+    sc_table_add_column(cjk_table, "Name", (ScColOpts){ .fixed_width = 6 });
+    sc_table_add_row(cjk_table, (ScCell[]){   /* 你好你好 = 8 cols, must clip */
+        sc_cell("\344\275\240\345\245\275\344\275\240\345\245\275"),
+    }, 1);
+    ScRendered *cjk_r = sc_capture_table(cjk_table,
+        (ScTableOpts){ .border.type = SC_BORDER_SINGLE });
+    bool cjk_aligned = cjk_r != NULL && cjk_r->line_count > 0;
+    if (cjk_aligned) {
+        size_t w0 = sc_utf8_string_length(cjk_r->lines[0],
+                                          strlen(cjk_r->lines[0]));
+        for (size_t i = 1; i < cjk_r->line_count; i++) {
+            if (sc_utf8_string_length(cjk_r->lines[i],
+                                      strlen(cjk_r->lines[i])) != w0) {
+                cjk_aligned = false;
+            }
+        }
+    }
+    CHECK(cjk_aligned,
+          "table: a truncated CJK cell pads to keep the borders aligned");
+    sc_rendered_free(cjk_r);
+    sc_table_free(cjk_table);
 }
 
 /** Returns `true` when every rendered line has the same visible width. */

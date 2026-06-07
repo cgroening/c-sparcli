@@ -515,11 +515,18 @@ static void render_cell_line_truncated(
         if (keep < 0) { keep = 0; }
         size_t byte_count = sc_utf8_trim_to_cols(text, keep);
         char *clipped = strndup(text, byte_count);
+        // `trim_to_cols` may stop a column short of `keep` (it never splits a
+        // double-width glyph), so measure what was actually kept and pad the
+        // cell to the full column width below — otherwise a CJK/emoji boundary
+        // would leave the cell one column short and misalign the border.
+        int clipped_w = (int)sc_utf8_string_length(clipped, byte_count);
         print_span_with_bg(clipped, style, cell_bg);
         free(clipped);
         print_span_with_bg("\xe2\x80\xa6", style, cell_bg);   // …
-        remaining = 0;
+        remaining -= clipped_w + 1;
+        break;
     }
+    if (remaining > 0) { print_spaces_with_bg(remaining, cell_bg); }
 }
 
 /**
