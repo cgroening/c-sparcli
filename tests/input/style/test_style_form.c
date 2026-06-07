@@ -159,4 +159,19 @@ void style_form(void) {
         show_form("form: fullscreen header + valign middle", f);
         sc_rendered_free(hdr);
     }
+
+    /* Fullscreen with fill_height: the "Body" field's row grows to consume the
+       leftover terminal height (24 off-TTY) instead of leaving blank padding,
+       so its box stretches to the bottom while "Title" stays one line. */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ .fullscreen = true });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Title", "Apple",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 100 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Body", "Notes that fill the screen",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 100,
+                           .multiline = true, .fill_height = true });
+        show_form("form: fullscreen fill_height grows the Body box", f);
+    }
 }

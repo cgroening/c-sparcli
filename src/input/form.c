@@ -186,6 +186,10 @@ static ScRendered *form_render(void *state);
                                     const int *rowy, const int *rowh,
                                     int total_w, int total_lines);
     static ScRendered *build_edit_region(ScForm *self, int box_w);
+    static ScRendered *form_build_body(ScForm *self, int cols, int rows,
+                                       const int *colw, const int *colx,
+                                       const int *rowy, const int *rowh,
+                                       int total_w, int total_lines);
 static void form_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static int  neighbor(const ScForm *self, int dir);
     static void begin_edit(ScForm *self);
@@ -501,6 +505,8 @@ static void solve_columns(const ScForm *self, int term_w, int *colw,
     }
 
     int used = 0, autos = 0;
+    int pct_acc = 0;       // running sum of PCT percentages
+    int pct_assigned = 0;  // running sum of widths handed to PCT columns
     for (int c = 0; c < cols; c++) {
         ScFieldWidthMode m = c < 64 ? mode[c] : SC_FWIDTH_AUTO;
         int s = c < 64 ? spec[c] : 0;
@@ -508,9 +514,17 @@ static void solve_columns(const ScForm *self, int term_w, int *colw,
             colw[c] = s > FORM_MIN_COL ? s : FORM_MIN_COL;
             used += colw[c];
         } else if (m == SC_FWIDTH_PCT) {
-            int w = term_w * (s > 0 ? s : 0) / 100;
-            colw[c] = w > FORM_MIN_COL ? w : FORM_MIN_COL;
-            used += colw[c];
+            // Cumulative rounding: consecutive PCT columns collectively hit
+            // their exact target width, so e.g. 5x20% fills the full width
+            // with no gap (independent flooring would drop up to one column
+            // each, leaving the grid narrower than the terminal).
+            pct_acc += s > 0 ? s : 0;
+            int target = term_w * pct_acc / 100;
+            int w = target - pct_assigned;
+            if (w < FORM_MIN_COL) { w = FORM_MIN_COL; }
+            colw[c] = w;
+            pct_assigned += w;
+            used += w;
         } else {
             colw[c] = 0;
             autos++;
@@ -534,6 +548,19 @@ static void solve_columns(const ScForm *self, int term_w, int *colw,
         x += colw[c];
     }
     *total_w = x;
+}
+
+/**
+ * Test hook (declared in input_internal.h): resolve the column widths at an
+ * explicit `term_w` so column-width tests are deterministic instead of
+ * depending on the real terminal size. Returns the grid's total width.
+ */
+int sc_form_solve_columns_test(ScForm *form, int term_w,
+                               int *colw, int *colx) {
+    int total_w = 0;
+    form_finalize(form);   /* populates self->cols / grid, like form_render */
+    solve_columns(form, term_w, colw, colx, &total_w);
+    return total_w;
 }
 
 /** Resolves per-row outer heights (content lines + 2 border lines). */
@@ -583,7 +610,71 @@ static ScRendered *form_render(void *state) {
     solve_columns(&clamped, term_w, colw, colx, &total_w);
     solve_rows(&clamped, rowh, rowy, &total_lines);
 
-    /* Capture every field as a fixed-size panel. */
+    /* A fullscreen form can grow one field's row to fill the leftover height. */
+    int fill_row = -1;
+    if (self->opts.fullscreen) {
+        for (size_t i = 0; i < self->count; i++) {
+            if (self->fields[i].opts.fill_height) {
+                fill_row = self->fields[i].row;
+                break;
+            }
+        }
+    }
+
+    int footer = self->opts.fullscreen
+        ? sc_shortcut_hint_rows(self->opts.shortcuts, self->opts.n_shortcuts,
+                                0, term_w)
+        : 0;
+
+    ScRendered *body = form_build_body(self, cols, rows, colw, colx, rowy,
+                                       rowh, total_w, total_lines);
+    ScRendered *frame =
+        sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
+                        self->opts.hint_layout, self->opts.hint_pos,
+                        self->opts.hint_style, 0);   /* consumes body */
+
+    /* Grow the fill row by the height the fullscreen pad would otherwise add,
+       then rebuild so the field fills the screen instead of leaving a gap. */
+    if (fill_row >= 0 && fill_row < rows && frame) {
+        int header_h =
+            self->opts.header ? (int)self->opts.header->line_count : 0;
+        int free_rows = sc_terminal_height() - footer - header_h
+            - (int)frame->line_count;
+        if (free_rows > 0) {
+            rowh[fill_row] += free_rows;
+            int y = 0;
+            for (int r = 0; r < rows; r++) { rowy[r] = y; y += rowh[r]; }
+            total_lines = y;
+
+            ScRendered *grown = form_build_body(self, cols, rows, colw, colx,
+                                                rowy, rowh, total_w,
+                                                total_lines);
+            ScRendered *grown_frame = sc_compose_hint(
+                grown, self->hint ? self->hint : DEFAULT_HINT,
+                self->opts.hint_layout, self->opts.hint_pos,
+                self->opts.hint_style, 0);   /* consumes grown */
+            if (grown_frame) {
+                sc_rendered_free(frame);
+                frame = grown_frame;
+            }
+        }
+    }
+
+    if (self->opts.fullscreen) {
+        /* The form has no box; the footer is indented 0. A wide footer wraps,
+           so reserve its full wrapped height. */
+        frame = sc_fullscreen_compose(frame, self->opts.header,
+                                      self->opts.valign, footer);
+    }
+    return frame;
+}
+
+/** Builds the form body: field panels in a grid, plus the title and editor. */
+static ScRendered *form_build_body(
+    ScForm *self, int cols, int rows,
+    const int *colw, const int *colx, const int *rowy, const int *rowh,
+    int total_w, int total_lines
+) {
     ScRendered **panels = calloc(self->count, sizeof *panels);
     if (!panels) {
         return sc_capture_str("");
@@ -631,21 +722,7 @@ static ScRendered *form_render(void *state) {
     sc_rendered_free(title);
     sc_rendered_free(grid);
     sc_rendered_free(edit);
-
-    ScRendered *frame =
-        sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
-                        self->opts.hint_layout, self->opts.hint_pos,
-                        self->opts.hint_style, 0);   /* form has no box */
-    if (self->opts.fullscreen) {
-        /* The form has no box; the footer is indented 0. A wide footer wraps,
-           so reserve its full wrapped height. */
-        int footer = sc_shortcut_hint_rows(self->opts.shortcuts,
-                                           self->opts.n_shortcuts,
-                                           0, sc_terminal_width());
-        frame = sc_fullscreen_compose(frame, self->opts.header,
-                                      self->opts.valign, footer);
-    }
-    return frame;
+    return body;
 }
 
 /** Builds the value string shown inside a field box. */

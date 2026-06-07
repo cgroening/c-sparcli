@@ -7,6 +7,8 @@
 /* Internal frame builders (declared in input_internal.h, exported symbols). */
 ScRendered *sc_form_frame(ScForm *form);
 ScRendered *sc_form_frame_edit(ScForm *form, int field);
+int sc_form_solve_columns_test(ScForm *form, int term_w,
+                               int *colw, int *colx);
 
 
 void test_form(void) {
@@ -163,6 +165,88 @@ void test_form(void) {
         /* The nav frame renders the multi-line value across the box. */
         ScRendered *fr = sc_form_frame(f);
         CHECK(fr != NULL && fr->line_count > 0, "multiline form frame renders");
+        sc_rendered_free(fr);
+        sc_form_free(f);
+    }
+
+    /* ── Column-width solving (cumulative PCT rounding) ── */
+    {
+        int colw[8], colx[8];
+
+        /* 5x20% collectively fill the full width with no gap. */
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        for (int c = 0; c < 5; c++)
+            sc_form_add_text(f, "F", "",
+                (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 20 });
+        int total = sc_form_solve_columns_test(f, 100, colw, colx);
+        CHECK(total == 100, "5x20% fills the full width exactly");
+        CHECK(colw[0] == 20 && colw[4] == 20, "each 20% column is 20 cols");
+        sc_form_free(f);
+
+        /* Cumulative flooring recovers the column independent flooring drops:
+           33/33/34 at width 80 -> 26+26+28 = 80, not 26+26+27 = 79. */
+        f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "A", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 33 });
+        sc_form_add_text(f, "B", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 33 });
+        sc_form_add_text(f, "C", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 34 });
+        total = sc_form_solve_columns_test(f, 80, colw, colx);
+        CHECK(total == 80, "33/33/34% at width 80 fills exactly (no lost col)");
+        sc_form_free(f);
+
+        /* A single 60% column stays 60%. */
+        f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Wide", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 60 });
+        sc_form_add_text(f, "Rest", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
+        sc_form_solve_columns_test(f, 100, colw, colx);
+        CHECK(colw[0] == 60, "60% column is 60 cols of 100");
+        CHECK(colw[1] == 40, "the AUTO column takes the remaining 40");
+        sc_form_free(f);
+
+        /* Mixed FIXED + PCT + AUTO: fixed takes its width, PCT its share of the
+           terminal, AUTO the rest. */
+        f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Fix", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_FIXED, .width = 20 });
+        sc_form_add_text(f, "Pct", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 50 });
+        sc_form_add_text(f, "Auto", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
+        total = sc_form_solve_columns_test(f, 100, colw, colx);
+        CHECK(colw[0] == 20 && colw[1] == 50 && colw[2] == 30,
+              "FIXED 20 + PCT 50% + AUTO 30 fill the width");
+        CHECK(total == 100, "mixed FIXED/PCT/AUTO row fills the full width");
+        sc_form_free(f);
+
+        /* A tiny PCT is clamped up to FORM_MIN_COL (6). */
+        f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Tiny", "",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 1 });
+        sc_form_solve_columns_test(f, 100, colw, colx);
+        CHECK(colw[0] == 6, "1% column clamps up to FORM_MIN_COL");
+        sc_form_free(f);
+    }
+
+    /* ── fill_height is ignored outside fullscreen ── */
+    {
+        /* A non-fullscreen form with a fill_height field must NOT grow to the
+           terminal height; the box stays at its normal (small) size. */
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Body", "x",
+            (ScFieldOpts){ .multiline = true, .fill_height = true });
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(fr != NULL && fr->line_count > 0 && fr->line_count < 12,
+              "fill_height is a no-op without fullscreen (box stays small)");
         sc_rendered_free(fr);
         sc_form_free(f);
     }

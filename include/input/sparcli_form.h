@@ -76,6 +76,14 @@ typedef struct ScFieldOpts {
     /** Content lines inside the box; zero-init = 1. */
     int height;
 
+    /**
+     * Full-screen forms only: grow this field's row to consume the remaining
+     * terminal height (e.g. a multiline description that fills the screen).
+     * `height` acts as the minimum; if several fields set it, the first wins.
+     * Zero-init = off.
+     */
+    bool fill_height;
+
     /** Block form submit until non-empty / changed. */
     bool required;
 

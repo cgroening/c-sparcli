@@ -900,6 +900,10 @@ size_t sc_fuzzy_scroll_top(const ScFuzzy *fuzzy);
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);
 ScRendered *sc_form_frame(ScForm *form);
 ScRendered *sc_form_frame_edit(ScForm *form, int field);
+/* Test hook: resolve column widths at an explicit terminal width (deterministic
+   column-width tests). Fills colw/colx, returns the grid's total width. */
+int sc_form_solve_columns_test(ScForm *form, int term_w,
+                               int *colw, int *colx);
 ScRendered *sc_textarea_frame(
     const char *prompt, const char *content, ScTextareaOpts opts
 );
