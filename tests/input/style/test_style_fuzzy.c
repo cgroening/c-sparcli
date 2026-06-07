@@ -49,6 +49,22 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(d, ""));
     sc_fuzzy_free(d);
 
+    /* Cursor row keeps each cell's own attributes (dim+strike, e.g. a done
+     * task) and ADDS the highlight's bold via merge_cursor_style - not replace.
+     * Row 0 is the cursor; it carries strike, the selected_style adds bold. */
+    ScFuzzy *cs = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Search", .table = true, .headers = headers, .n_cols = 3,
+        .selected_style = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                            SC_ANSI_COLOR_BLUE } });
+    ScTextStyle done = { SC_TEXT_ATTR_DIM | SC_TEXT_ATTR_STRIKE,
+                         SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE };
+    sc_fuzzy_add_row_styled(cs, (const char *[]){ "Tokyo", "Japan", "37.4" },
+                            (ScTextStyle[]){ done, done, done }, 3);
+    sc_fuzzy_add_row(cs, (const char *[]){ "London", "UK", "9.0" }, 3);
+    style_show("fuzzy table: cursor row unions cell strike + highlight bold",
+               sc_fuzzy_frame(cs, ""));
+    sc_fuzzy_free(cs);
+
     /* Hint layout on the fuzzy path: stacked footer. */
     ScFuzzy *e = sc_fuzzy_new((ScFuzzyOpts){
         .prompt = "City", .hint_layout = SC_HINT_STACKED });

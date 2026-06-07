@@ -1282,6 +1282,16 @@ static ScTextStyle merge_style(ScTextStyle base, ScTextStyle over) {
     return base;
 }
 
+/* Like merge_style but unions the attributes, so the cursor-row highlight
+   (e.g. bold) adds to each cell's own attributes (e.g. dim/strike) rather than
+   replacing them. Used only for the table cursor row. */
+static ScTextStyle merge_cursor_style(ScTextStyle base, ScTextStyle over) {
+    base.attr = (ScTextAttribute)(base.attr | over.attr);
+    if (over.fg.index != 0) { base.fg = over.fg; }
+    if (over.bg.index != 0) { base.bg = over.bg; }
+    return base;
+}
+
 /** Effective style for a section header: the global default with the row's own
     `styles[0]` (from add_section_styled/_text) merged over it (set fields win). */
 static ScTextStyle section_style_for(const ScFuzzy *self, const Row *r) {
@@ -1597,7 +1607,7 @@ static ScRendered *render_table(ScFuzzy *self, int total_width) {
                     && sc_fuzzy_match(query, value, NULL);
             ScTextStyle cell = r->styles ? r->styles[dc] : (ScTextStyle){ 0 };
             ScTextStyle base = r->disabled ? disabled_style
-                             : on_cursor   ? merge_style(cell, sel)
+                             : on_cursor   ? merge_cursor_style(cell, sel)
                              : cell;
             bool styled = sc_style_set(base);
             bool prefix_cb = (multi && !cb && dc == 0);

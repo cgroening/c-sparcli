@@ -485,6 +485,17 @@
   ╚[0m══════[0m╩[0m═══════[0m╩[0m════[0m╝[0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
+[2mfuzzy table: cursor row unions cell strike + highlight bold[0m
+  [1m[38;2;140;210;204mSearch[0m [0m[30m[47m [0m[2m  (2/2)[0m
+  ┌[0m──────[0m┬[0m───────[0m┬[0m────[0m┐[0m
+  │[0m[1mCity[0m  │[0m[1mCountry[0m│[0m[1mPop.[0m│[0m
+  ├[0m──────[0m┼[0m───────[0m┼[0m────[0m┤[0m
+  │[0m[1m[2m[9m[37m[44mTokyo[0m[44m [0m│[0m[1m[2m[9m[37m[44mJapan[0m[44m  [0m│[0m[1m[2m[9m[37m[44m37.4[0m│[0m
+  ├[0m──────[0m┼[0m───────[0m┼[0m────[0m┤[0m
+  │[0mLondon[0m│[0mUK[0m     │[0m9.0[0m │[0m
+  └[0m──────[0m┴[0m───────[0m┴[0m────[0m┘[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
 [2mfuzzy list: hint_layout stacked (one hint per line)[0m
   [1m[38;2;140;210;204mCity[0m [0mt[0mo[0m[30m[47m [0m[2m  (3/5)[0m
   [1m[38;2;140;210;204m‣ [0m[1m[4m[38;2;140;210;204mTo[0m[1m[38;2;140;210;204mkyo[0m
