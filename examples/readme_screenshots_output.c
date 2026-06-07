@@ -126,13 +126,13 @@ static void shot_hero(void) {
 
         ScTableData *t = sc_table_new();
         sc_table_add_column(t, "Service", (ScColOpts){
-            0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}
+            0, 0, 14, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}, false
         });
         sc_table_add_column(t, "Status", (ScColOpts){
-            0, 0, 10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}
+            0, 0, 10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}, false
         });
         sc_table_add_column(t, "Uptime", (ScColOpts){
-            0, 0, 9, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}
+            0, 0, 9, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}, false
         });
         sc_table_add_row(t, (ScCell[]){
             sc_cell_m("api-gateway"),
@@ -398,13 +398,13 @@ static void gallery_panel(void) {
 static void gallery_table(void) {
     ScTableData *t = sc_table_new();
     sc_table_add_column(t, "Lang", (ScColOpts){
-        0, 0, 10, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}
+        0, 0, 10, SC_ALIGN_LEFT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}, false
     });
     sc_table_add_column(t, "Year", (ScColOpts){
-        0, 0, 6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}
+        0, 0, 6, SC_ALIGN_RIGHT, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}, false
     });
     sc_table_add_column(t, "Typed", (ScColOpts){
-        0, 0, 10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}
+        0, 0, 10, SC_ALIGN_CENTER, SC_VALIGN_TOP, 0, SC_ANSI_COLOR_NONE, {0}, false
     });
     sc_table_add_row(t, (ScCell[]){
         sc_cell("C"), sc_cell("1972"), sc_cell("Static"),
