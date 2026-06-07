@@ -576,6 +576,21 @@ static void test_fuzzy_wrapper() {
     f.check_all(true);
     CHECK(!f.is_checked(1), "fuzzy++: check_all skips disabled");
 
+    // Styled / rich section headers construct cleanly (per-section bg/fg).
+    Fuzzy s{ FuzzyOpts{ .prompt = "Tasks" } };
+    s.add_section_styled("OVERDUE",
+        { SC_TEXT_ATTR_BOLD, sparcli::white(), sparcli::red() });
+    s.add("pay invoice");
+    Text htitle;
+    htitle.append("Due ", { SC_TEXT_ATTR_BOLD, sparcli::white(),
+                            sparcli::magenta() });
+    htitle.append("soon", { SC_TEXT_ATTR_UNDER, sparcli::yellow(),
+                            sparcli::magenta() });
+    s.add_section_text(htitle, { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,
+                                 sparcli::magenta() });
+    s.add("finish slides");
+    CHECK(!s.has_selection(), "fuzzy++: styled/rich sections build");
+
     // add_row_rich flattens span text into the label/match key.
     Fuzzy g{ FuzzyOpts{ .table = true, .n_cols = 1 } };
     std::vector<Text> cells;
@@ -698,6 +713,33 @@ static void test_form_wrapper() {
     m.add_text("Notes", "x\ny", FieldOpts{ .multiline = true });
     CHECK(m.get_string(0) == std::string("x\ny"),
           "form++: multiline keeps newlines");
+
+    // autoedit (open the first field's editor at start) is exposed via the alias.
+    Form a{ FormOpts{ .autoedit = true } };
+    a.add_text("Title", "draft", FieldOpts{});
+    CHECK(a.get_string(0) == std::string("draft"), "form++: autoedit opt builds");
+}
+
+// Strikethrough attribute + runtime palette override (both new this cycle).
+static void test_strike_and_palette() {
+    // SC_TEXT_ATTR_STRIKE emits the ANSI strike code; check the raw (un-stripped)
+    // output, both via the attribute and the [strike] markup tag.
+    std::string raw = render([] {
+        print("done", style(SC_TEXT_ATTR_STRIKE));
+        markup::print("[strike]x[/] [s]y[/]");
+    });
+    CHECK(raw.find("\x1b[9m") != std::string::npos,
+          "strike: SC_TEXT_ATTR_STRIKE / [strike] emit ESC[9m");
+
+    // palette::set overrides a name at runtime; markup [accent] follows it.
+    palette::set("accent", sparcli::red());
+    std::string acc = render([] { markup::print("[accent]hi[/]"); });
+    CHECK(acc.find("\x1b[31m") != std::string::npos,
+          "palette: set('accent') recolors [accent] markup");
+    palette::reset();
+    auto back = color_by_name("accent");
+    CHECK(back.has_value() && back->index == -1,
+          "palette: reset restores the default accent");
 }
 
 int main() {
@@ -723,6 +765,7 @@ int main() {
     test_args_repl_helpers();
     test_history();
     test_parity_helpers();
+    test_strike_and_palette();
     test_humanize_wrapper();
     test_fuzzy_wrapper();
     test_fullscreen_wrapper();

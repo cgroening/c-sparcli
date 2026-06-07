@@ -12,8 +12,8 @@
 
 int main(void) {
     // Direct printing: tags style the enclosed text, [/] closes the last tag.
-    sc_markup_println("[bold]Bold[/], [italic]italic[/], [u]underline[/] "
-                      "and [dim]dim[/].");
+    sc_markup_println("[bold]Bold[/], [italic]italic[/], [u]underline[/], "
+                      "[strike]strike[/] (or [s]s[/]) and [dim]dim[/].");
     sc_markup_println("[red]Named colors[/], [on blue] backgrounds [/] and "
                       "[rgb(255,165,0)]24-bit RGB[/].");
     sc_markup_println("[bold green on white] Combined in one tag [/]");

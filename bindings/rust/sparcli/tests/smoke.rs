@@ -1036,4 +1036,9 @@ fn form_construction_and_getters() {
     m.add_text("Notes", "x\ny", FieldOpts { multiline: true,
                                             ..Default::default() });
     assert_eq!(m.get_string(0).as_deref(), Some("x\ny"));
+
+    // autoedit (open the first field's editor at start) is exposed and builds.
+    let mut a = Form::new(FormOpts { autoedit: true, ..Default::default() });
+    a.add_text("Title", "draft", FieldOpts::default());
+    assert_eq!(a.get_string(0).as_deref(), Some("draft"));
 }

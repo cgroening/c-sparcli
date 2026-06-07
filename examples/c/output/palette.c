@@ -107,6 +107,15 @@ int main(void) {
     sc_println("  The 8 plain hue names stay ANSI; use a palette name, "
                "#rrggbb or the SC_COLOR_* macro for the rest.",
                (ScTextStyle){ .attr = SC_TEXT_ATTR_DIM });
+
+    /* Runtime override: sc_palette_set recolors a name everywhere it is
+       resolved (markup, the CLI, palette-name widget defaults). Set once at
+       startup, before spawning threads. */
+    section("Runtime override  (sc_palette_set)");
+    sc_palette_set("accent", sc_color_from_rgb(255, 0, 0));   /* accent -> red */
+    sc_markup_println("  [accent]accent is red now[/] (overridden at runtime)");
+    sc_palette_reset();                                       /* back to default */
+    sc_markup_println("  [accent]accent restored[/] after sc_palette_reset()");
     printf("\n");
     return 0;
 }

@@ -457,6 +457,7 @@ sc_markup_println("[rgb(120,200,255)]custom[/] color");
 | `[bold red]…[/]`         | `[bold red]…[/]`         |
 | `[on yellow]…[/]`        | `[on yellow]…[/]`        |
 | `[underline]…[/u]`       | `[underline]…[/u]`       |
+| `[strike]…[/s]`          | `[strike]…[/s]`          |
 | `[rgb(120,200,255)]…[/]` | `[rgb(120,200,255)]…[/]` |
 | `[[`                     | `[[`                     |
 

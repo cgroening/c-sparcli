@@ -254,7 +254,8 @@ ok, score = sc.fuzzy_match("ab", "cab")     # pure, no TTY
 
 `sc.Form` builds a grid of fields; `run()` then the `get_*` getters.
 `FieldOpts`/`FormOpts` are dataclasses; dates use `datetime.date`. (The
-per-field `validate` callback is not exposed.)
+per-field `validate` callback is not exposed.) `FormOpts(autoedit=True)` opens
+the first field's editor immediately at start.
 
 ```python
 import datetime

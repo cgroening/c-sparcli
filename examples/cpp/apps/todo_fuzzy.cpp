@@ -64,8 +64,15 @@ static void add_tasks(Fuzzy& f) {
     const TextStyle green{ SC_TEXT_ATTR_NONE, sparcli::green(), none() };
     std::size_t row = 0;   // running add-order index, to attach stable ids
 
+    // Per-section styling: each header gets its own full-width colored bar
+    // (add_section_styled). Tab / Shift-Tab jump between sections.
+    const TextStyle mon_hdr{ SC_TEXT_ATTR_BOLD, sparcli::white(),
+                             palette::accent_dark() };
+    const TextStyle tue_hdr{ SC_TEXT_ATTR_BOLD, sparcli::white(),
+                             palette::bg_lighten_2() };
+
     // ── Monday ──
-    f.add_section("Monday");
+    f.add_section_styled("Monday", mon_hdr);
     row++;
     f.add_row({ "14:00", "Review pull requests", "open" });
     f.set_id(row++, 101);
@@ -75,7 +82,7 @@ static void add_tasks(Fuzzy& f) {
     f.set_id(row++, 102);
 
     // ── Tuesday ──
-    f.add_section("Tuesday");
+    f.add_section_styled("Tuesday", tue_hdr);
     row++;
     // A high-priority task whose Task cell is a rich multi-color Text: a
     // white-on-red badge followed by the plain title.

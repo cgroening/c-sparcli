@@ -107,8 +107,15 @@ static ScFuzzy *build_finder(int *out_action) {
                                 SC_ANSI_COLOR_NONE };
     size_t row = 0;   /* running add-order index, to attach stable ids */
 
+    /* Per-section styling: each header gets its own full-width colored bar
+       (sc_fuzzy_add_section_styled). Tab / Shift-Tab jump between sections. */
+    const ScTextStyle mon_hdr = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                                  SC_COLOR_ACCENT_DARK };
+    const ScTextStyle tue_hdr = { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                                  SC_COLOR_BG_LIGHTEN_2 };
+
     /* ── Monday ── */
-    sc_fuzzy_add_section(f, "Monday");
+    sc_fuzzy_add_section_styled(f, "Monday", mon_hdr);
     row++;
     sc_fuzzy_add_row(f,
         (const char *[]){ "14:00", "Review pull requests", "open" }, N_COLS);
@@ -120,7 +127,7 @@ static ScFuzzy *build_finder(int *out_action) {
     sc_fuzzy_set_id(f, row++, 102);
 
     /* ── Tuesday ── */
-    sc_fuzzy_add_section(f, "Tuesday");
+    sc_fuzzy_add_section_styled(f, "Tuesday", tue_hdr);
     row++;
     /* A high-priority task whose Task cell is a rich multi-color ScText: a
      * white-on-red badge followed by the plain title. */

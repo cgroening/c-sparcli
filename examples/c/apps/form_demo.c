@@ -32,6 +32,7 @@ int main(void) {
         .title = "Edit contact",
         .accent = SC_COLOR_ACCENT,
         .editor = "nvim",   /* multiline fields open here via Ctrl-G */
+        .autoedit = true,   /* open the first field's editor right at start */
     });
 
     /* Row 1: three equal-width fields. */

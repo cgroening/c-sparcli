@@ -708,6 +708,13 @@ def test_form_multiline_keeps_newlines():
         assert f.get_string(0) == "x\ny"
 
 
+def test_form_autoedit_opt():
+    # autoedit (open the first field's editor at start) is exposed and builds.
+    with sc.Form(sc.FormOpts(autoedit=True)) as f:
+        f.add_text("Title", "draft")
+        assert f.get_string(0) == "draft"
+
+
 def test_form_run_unavailable_without_tty():
     # Off a TTY (SPARCLI_NO_TTY) run() returns False, never grabbing the keyboard.
     with sc.Form() as f:

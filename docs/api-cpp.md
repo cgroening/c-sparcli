@@ -437,7 +437,8 @@ A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open un
 
 `Form` wraps `sc_form`: add fields row by row, `run()`, then read values back.
 `FieldOpts`/`FormOpts` are aliases of the C opts (set `validate` as a raw
-function pointer if needed); dates use `std::tm`.
+function pointer if needed); dates use `std::tm`. `FormOpts{ .autoedit = true }`
+opens the first field's editor immediately at start.
 
 ```cpp
 Form f({ .title = "Contact", .accent = cyan() });
