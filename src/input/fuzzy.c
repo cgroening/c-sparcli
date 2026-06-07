@@ -1094,13 +1094,15 @@ static ScRendered *fuzzy_render(void *state) {
     if (!self->opts.table) {
         body = render_list(self, body_target, fill);
     } else if (self->opts.stretch_columns && body
-               && body_target > body->max_column_width) {
-        /* Box is wider than the natural table: re-render filling the interior,
-           the surplus going to the stretch columns. */
-        ScRendered *wide = render_table(self, body_target);
-        if (wide) {
+               && body_target != body->max_column_width) {
+        /* Re-render the table at the box interior: when the box is wider the
+           surplus goes to the stretch columns; when the natural table is wider
+           (e.g. a very long title) the stretch columns shrink and their cells
+           are truncated, so the table never overflows the terminal. */
+        ScRendered *fitted = render_table(self, body_target);
+        if (fitted) {
             sc_rendered_free(body);
-            body = wide;
+            body = fitted;
         }
     }
     if (!body) {

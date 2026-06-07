@@ -136,6 +136,21 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(is, ""));
     sc_fuzzy_free(is);
 
+    /* Box NARROWER than the natural table: the stretch column shrinks and its
+     * over-long cell is truncated with an ellipsis, so the table never exceeds
+     * the box interior (regression for the overflow bug). */
+    ScFuzzy *sh = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Search", .table = true, .headers = headers, .n_cols = 3,
+        .stretch_columns = (uint64_t)1 << 0,
+        .box = { .enabled = true, .width = 34,
+                 .border = { .type = SC_BORDER_ROUNDED } } });
+    sc_fuzzy_add_row(sh, (const char *[]){
+        "A very long city name that cannot possibly fit", "Japan", "37.4" }, 3);
+    sc_fuzzy_add_row(sh, (const char *[]){ "London", "UK", "9.0" }, 3);
+    style_show("fuzzy table: width 34, over-long cell truncated with ellipsis",
+               sc_fuzzy_frame(sh, ""));
+    sc_fuzzy_free(sh);
+
     /* Full-width box: the stretched table fills the frame's interior exactly
      * (regression: the FULL interior must match the panel's content area). */
     ScFuzzy *fw = sc_fuzzy_new((ScFuzzyOpts){

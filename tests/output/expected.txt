@@ -131,7 +131,7 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
 ├[0m──────────────[0m┼[0m──────────────[0m┼[0m──────────────[0m┤[0m
 │[0m  abc[0m         │[0m     abc[0m      │[0m         abc[0m  │[0m
 ├[0m──────────────[0m┼[0m──────────────[0m┼[0m──────────────[0m┤[0m
-│[0m  longer tex[0m  │[0m  longer tex[0m  │[0m  longer tex[0m  │[0m
+│[0m  longer te[0m…[0m  │[0m  longer te[0m…[0m  │[0m  longer te[0m…[0m  │[0m
 ├[0m──────────────[0m┼[0m──────────────[0m┼[0m──────────────[0m┤[0m
 │[0m  x[0m           │[0m      x[0m       │[0m           x[0m  │[0m
 └[0m──────────────[0m┴[0m──────────────[0m┴[0m──────────────[0m┘[0m
@@ -152,9 +152,9 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
 ┌[0m────────────────[0m┬[0m──────────[0m┬[0m────────[0m┬[0m──────[0m┐[0m
 │[0m [1mFixed=16[0m       │[0m [1mMin=10[0m   │[0m  [1mMax=8[0m │[0m [1mAuto[0m │[0m
 ├[0m────────────────[0m┼[0m──────────[0m┼[0m────────[0m┼[0m──────[0m┤[0m
-│[0m short[0m          │[0m hi[0m       │[0m trunca[0m │[0m auto[0m │[0m
+│[0m short[0m          │[0m hi[0m       │[0m trunc[0m…[0m │[0m auto[0m │[0m
 ├[0m────────────────[0m┼[0m──────────[0m┼[0m────────[0m┼[0m──────[0m┤[0m
-│[0m a bit longer[0m   │[0m pad[0m      │[0m clippe[0m │[0m fits[0m │[0m
+│[0m a bit longer[0m   │[0m pad[0m      │[0m clipp[0m…[0m │[0m fits[0m │[0m
 └[0m────────────────[0m┴[0m──────────[0m┴[0m────────[0m┴[0m──────[0m┘[0m
 
  [0m [1m[4mAnimal[0m  [1m[4mSound[0m  [1m[4mLegs[0m  [0m
@@ -189,7 +189,7 @@ Default[0m  [30m[47mBlack[0m  [31mRed[0m  [32mGreen[0m  [33mYellow[0m 
 [36m║[0m              ║[0m validation[0m [0mand[0m [0mrefresh[0m ║[0m    OK[0m    [36m║[0m
 [36m║[0m              ║[0m for[0m [0mall[0m [0mAPI[0m [0mclients[0m    ║[0m          [36m║[0m
 [36m╠[0m══════════════[0m╬[0m════════════════════════[0m╬[0m══════════[0m[36m╣[0m
-[36m║[0m Data Pipelin[0m ║[0m Ingests[0m [0mstreaming[0m      ║[0m          [36m║[0m
+[36m║[0m Data Pipeli[0m…[0m ║[0m Ingests[0m [0mstreaming[0m      ║[0m          [36m║[0m
 [36m║[0m              ║[0m events[0m [0mfrom[0m [0mKafka[0m [0mand[0m  ║[0m   WARN[0m   [36m║[0m
 [36m║[0m              ║[0m writes[0m [0mto[0m [0mthe[0m [0mdata[0m     ║[0m          [36m║[0m
 [36m║[0m              ║[0m warehouse[0m              ║[0m          [36m║[0m

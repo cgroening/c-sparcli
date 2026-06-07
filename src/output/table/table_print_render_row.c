@@ -509,10 +509,15 @@ static void render_cell_line_truncated(
             remaining -= span_width;
             continue;
         }
-        size_t byte_count = sc_utf8_trim_to_cols(text, remaining);
+        // The content is wider than the column: clip and mark it with an
+        // ellipsis, reserving one column for the "…" glyph.
+        int keep = remaining - 1;
+        if (keep < 0) { keep = 0; }
+        size_t byte_count = sc_utf8_trim_to_cols(text, keep);
         char *clipped = strndup(text, byte_count);
         print_span_with_bg(clipped, style, cell_bg);
         free(clipped);
+        print_span_with_bg("\xe2\x80\xa6", style, cell_bg);   // …
         remaining = 0;
     }
 }
