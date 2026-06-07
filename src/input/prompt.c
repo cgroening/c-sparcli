@@ -12,25 +12,82 @@
 static atomic_bool g_prompt_active = false;
 
 
+/**
+ * Renders exactly `n` blank lines, or NULL when n <= 0. `sc_capture_str` yields
+ * one line per `\n`, so a string of `n` newlines captures to `n` empty lines
+ * (an empty string captures to zero lines — hence the explicit count).
+ */
+static ScRendered *blank_lines(int n) {
+    if (n <= 0) {
+        return NULL;
+    }
+    char *buf = calloc((size_t)n + 1, 1);
+    if (buf) {
+        for (int i = 0; i < n; i++) { buf[i] = '\n'; }
+    }
+    ScRendered *pad = sc_capture_str(buf ? buf : "");
+    free(buf);
+    return pad;
+}
+
 ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
-                                  ScVAlign valign, int bottom_reserve) {
+                                  const ScRendered *footer, ScVAlign valign,
+                                  ScVAlignScope scope, int bottom_reserve) {
     if (!body) {
         return body;
     }
     int rows = sc_term_height();
     if (bottom_reserve > 0) { rows -= bottom_reserve; }   /* leave room below */
     int header_h = header ? (int)header->line_count : 0;
-    int free_rows = rows - header_h - (int)body->line_count;
+    int footer_h = footer ? (int)footer->line_count : 0;
+
+    if (scope == SC_VALIGN_SCOPE_CONTENT) {
+        /* Header pinned to the top, footer pinned to the bottom; only the body
+           is aligned in the gap between them:
+           [header][top pad][body][bottom pad][footer]. */
+        int free_rows = rows - header_h - footer_h - (int)body->line_count;
+        if (free_rows < 0) { free_rows = 0; }
+        int top_pad = valign == SC_VALIGN_MIDDLE ? free_rows / 2
+                    : valign == SC_VALIGN_BOTTOM ? free_rows : 0;
+        int bot_pad = free_rows - top_pad;
+
+        const ScRendered *parts[5];
+        size_t n = 0;
+        ScRendered *top = blank_lines(top_pad);
+        ScRendered *bot = blank_lines(bot_pad);
+        if (header) { parts[n++] = header; }
+        if (top)    { parts[n++] = top; }
+        parts[n++] = body;
+        if (bot)    { parts[n++] = bot; }
+        if (footer) { parts[n++] = footer; }
+
+        ScRendered *out = n > 1 ? sc_vstack(parts, n, 0) : NULL;
+        sc_rendered_free(top);
+        sc_rendered_free(bot);
+        if (out) {
+            sc_rendered_free(body);
+            return out;
+        }
+        return body;   // OOM / nothing to add: leave the body as-is
+    }
+
+    /* SC_VALIGN_SCOPE_ALL: align the [header][body][footer] block as one unit. */
+    int free_rows =
+        rows - header_h - footer_h - (int)body->line_count;
     if (free_rows < 0) { free_rows = 0; }
     int top_pad = valign == SC_VALIGN_MIDDLE ? free_rows / 2
                 : valign == SC_VALIGN_BOTTOM ? free_rows : 0;
 
-    // block = [header][body], or just body when there is no header.
+    // block = [header][body][footer], collapsing absent parts.
     ScRendered *block = body;
     bool block_is_new = false;
-    if (header) {
-        const ScRendered *parts[2] = { header, body };
-        ScRendered *joined = sc_vstack(parts, 2, 0);
+    if (header || footer) {
+        const ScRendered *parts[3];
+        size_t n = 0;
+        if (header) { parts[n++] = header; }
+        parts[n++] = body;
+        if (footer) { parts[n++] = footer; }
+        ScRendered *joined = sc_vstack(parts, n, 0);
         if (joined) { block = joined; block_is_new = true; }
     }
     if (top_pad <= 0) {
@@ -38,13 +95,7 @@ ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
         return block;
     }
 
-    // Prepend `top_pad` blank lines (a string of top_pad-1 newlines).
-    char *buf = calloc((size_t)top_pad, 1);
-    if (buf) {
-        for (int i = 0; i < top_pad - 1; i++) { buf[i] = '\n'; }
-    }
-    ScRendered *pad = sc_capture_str(buf ? buf : "");
-    free(buf);
+    ScRendered *pad = blank_lines(top_pad);
     if (!pad) {                          // OOM: skip the padding
         if (block_is_new) { sc_rendered_free(body); }
         return block;
@@ -123,7 +174,8 @@ static bool run_editor_action(
     sc_tty_end();   // suspend: restore terminal, drop handlers
 
     char *edited = NULL;
-    bool ok = sc_run_editor(editor->cmd, current ? current : "", &edited);
+    bool ok = sc_run_editor(editor->cmd, current ? current : "",
+                            editor->suffix, &edited);
     free(current);
 
     ScInputStatus resumed = sc_tty_begin();   // resume raw mode

@@ -572,20 +572,25 @@ static inline ScRendered *sc_stack_below(ScRendered *top, ScRendered *bottom) {
 }
 
 /**
- * Full-screen composition (prompt.c): returns `[top_pad blank][header][body]`,
- * padded so the (header + body) block sits top/middle/bottom within the terminal
- * height per `valign`. `header` is borrowed (may be NULL); `body` is consumed.
- * Used by the fuzzy/form fullscreen mode so the block grows + re-aligns each
- * frame as the body changes. Returns `body` unchanged when there is nothing to
- * add (no header and TOP / no free rows).
+ * Full-screen composition (prompt.c). `header` and `footer` are borrowed (either
+ * may be NULL); `body` is consumed. Used by the fuzzy/form fullscreen mode so the
+ * block grows + re-aligns each frame as the body changes.
+ *
+ * `scope` selects what `valign` applies to:
+ *  - `SC_VALIGN_SCOPE_ALL`: the `[header][body]` block (with `footer` appended
+ *    when non-NULL) is aligned as one unit, top-padded per `valign`.
+ *  - `SC_VALIGN_SCOPE_CONTENT`: `header` is pinned to the top and `footer` to the
+ *    bottom; only `body` is aligned in the gap between them
+ *    (`[header][top pad][body][bottom pad][footer]`).
  *
  * `bottom_reserve` keeps that many rows free at the very bottom of the screen so
  * the engine's labeled-shortcut footer (stacked after `render`) is not pushed
- * off-screen: the block is aligned within `term_height - bottom_reserve`. Pass 0
- * when no footer is stacked.
+ * off-screen: everything is laid out within `term_height - bottom_reserve`. Pass
+ * 0 when no such footer is stacked.
  */
 ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
-                                  ScVAlign valign, int bottom_reserve);
+                                  const ScRendered *footer, ScVAlign valign,
+                                  ScVAlignScope scope, int bottom_reserve);
 
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */
@@ -673,6 +678,10 @@ typedef struct ScPromptEditor {
 
     /** Key that opens the editor; zero-init = Ctrl-G. */
     ScKeyChord chord;
+
+    /** Extension for the temp file (e.g. ".md") so editors detect the
+        filetype; NULL/empty = no extension. */
+    const char *suffix;
 } ScPromptEditor;
 
 /**
@@ -683,8 +692,12 @@ typedef struct ScPromptEditor {
  * `*out` is untouched. Shell-free (`execvp` with a whitespace-tokenized argv);
  * the temp file is mode 0600 and unlinked before returning. Does not touch
  * raw mode - the engine suspends/resumes the terminal around the call.
+ *
+ * `suffix` (e.g. ".md", may be NULL/empty) is appended to the temp file name so
+ * the editor can detect the filetype.
  */
-bool sc_run_editor(const char *cmd, const char *initial, char **out);
+bool sc_run_editor(const char *cmd, const char *initial, const char *suffix,
+                   char **out);
 
 /**
  * Optional custom shortcuts consulted by the engine before `on_key`, shared

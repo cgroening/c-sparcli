@@ -189,7 +189,7 @@ ScInputStatus sc_text_entry(const ScTextEntryCfg *cfg, char **out) {
         cfg->shortcuts, cfg->n_shortcuts, cfg->out_shortcut_id
     };
     ScPromptEditor ed = {
-        cfg->external_editor, cfg->editor, cfg->editor_key
+        cfg->external_editor, cfg->editor, cfg->editor_key, NULL  /* suffix */
     };
     ScInputStatus status = sc_prompt_run(
         &vtable, &state, cfg->shortcuts ? &sk : NULL,

@@ -70,7 +70,7 @@ ScInputStatus sc_textarea(const char *prompt, char **out, ScTextareaOpts opts) {
         opts.shortcuts, opts.n_shortcuts, opts.out_shortcut_id
     };
     ScPromptEditor ed = {
-        opts.external_editor, opts.editor, opts.editor_key
+        opts.external_editor, opts.editor, opts.editor_key, NULL  /* suffix */
     };
     ScInputStatus status = sc_prompt_run(
         &vtable, &state, opts.shortcuts ? &sk : NULL,

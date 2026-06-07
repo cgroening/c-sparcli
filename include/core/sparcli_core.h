@@ -175,6 +175,18 @@ typedef enum ScVAlign {
 } ScVAlign;
 
 /**
+ * What a full-screen vertical alignment applies to.
+ *
+ * `SC_VALIGN_SCOPE_ALL` (default) aligns the whole header+content+footer block
+ * as one unit. `SC_VALIGN_SCOPE_CONTENT` pins the header to the very top and the
+ * footer to the very bottom, aligning only the content in the gap between them.
+ */
+typedef enum ScVAlignScope {
+    SC_VALIGN_SCOPE_ALL = 0,
+    SC_VALIGN_SCOPE_CONTENT
+} ScVAlignScope;
+
+/**
  * Represents box-model insets (top, right, bottom, left) for layout
  * purposes. Zero-initialization means no inset.
  */

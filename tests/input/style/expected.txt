@@ -757,6 +757,7 @@
   
   
   
+  
   == header ==
   [1m[38;2;140;210;204mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m
   [1m[38;2;140;210;204m‣ [0m[1m[38;2;140;210;204mTokyo[0m
@@ -1062,6 +1063,7 @@
 [2m↑↓←→ move · enter edit · ctrl-d submit · esc cancel[0m
 
 [2mform: fullscreen header + valign middle[0m
+
 
 
 

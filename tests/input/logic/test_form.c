@@ -1,7 +1,10 @@
 #include "test_input.h"
 #include "sparcli.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 
 /* Internal frame builders (declared in input_internal.h, exported symbols). */
@@ -9,6 +12,64 @@ ScRendered *sc_form_frame(ScForm *form);
 ScRendered *sc_form_frame_edit(ScForm *form, int field);
 int sc_form_solve_columns_test(ScForm *form, int term_w,
                                int *colw, int *colx);
+/* External editor runner (declared in input_internal.h). */
+bool sc_run_editor(const char *cmd, const char *initial, const char *suffix,
+                   char **out);
+
+
+/*
+ * Drives `sc_run_editor` with a tiny `sh` script that records the temp-file path
+ * it is handed (so the test can assert the suffix) and rewrites the file (so the
+ * round-trip can be checked). Returns the captured path (heap; caller frees) and
+ * the editor's round-trip output via `*out_body`; NULL on setup/run failure.
+ * Invoked as `sh <script>` so no execute bit / shebang is required (CI-safe).
+ */
+static char *run_editor_capture(const char *suffix, char **out_body) {
+    const char *tmp = getenv("TMPDIR");
+    if (!tmp || !tmp[0]) { tmp = "/tmp"; }
+    char script[512], capture[512], cmd[600];
+    snprintf(script, sizeof script, "%s/sparcli_ed_%d.sh", tmp, (int)getpid());
+    snprintf(capture, sizeof capture, "%s/sparcli_cap_%d", tmp, (int)getpid());
+    unlink(capture);
+
+    FILE *sf = fopen(script, "w");
+    if (!sf) { return NULL; }
+    fprintf(sf,
+        "printf '%%s' \"$1\" > '%s'\n"       /* record the temp path */
+        "printf 'edited-body' > \"$1\"\n",   /* round-trip: new content */
+        capture);
+    fclose(sf);
+    snprintf(cmd, sizeof cmd, "sh %s", script);
+
+    *out_body = NULL;
+    bool ok = sc_run_editor(cmd, "seed", suffix, out_body);
+    unlink(script);
+    if (!ok) { unlink(capture); return NULL; }
+
+    FILE *cf = fopen(capture, "r");
+    char *path = NULL;
+    if (cf) {
+        char buf[1024];
+        size_t got = fread(buf, 1, sizeof buf - 1, cf);
+        buf[got] = '\0';
+        fclose(cf);
+        path = strdup(buf);
+    }
+    unlink(capture);
+    return path;
+}
+
+/* First line index (ANSI-stripped) of `frame` containing `needle`, or -1. */
+static int form_line_of(const ScRendered *frame, const char *needle) {
+    if (!frame) { return -1; }
+    for (size_t i = 0; i < frame->line_count; i++) {
+        char *plain = sc_strip_ansi(frame->lines[i]);
+        bool hit = plain && strstr(plain, needle) != NULL;
+        free(plain);
+        if (hit) { return (int)i; }
+    }
+    return -1;
+}
 
 
 void test_form(void) {
@@ -249,6 +310,105 @@ void test_form(void) {
               "fill_height is a no-op without fullscreen (box stays small)");
         sc_rendered_free(fr);
         sc_form_free(f);
+    }
+
+    /* ── Fullscreen CONTENT valign scope ── */
+    {
+        int th = sc_term_height();
+        ScRendered *hdr = sc_capture_str("HDRMARK");
+        ScVAlign vs[3] = { SC_VALIGN_TOP, SC_VALIGN_MIDDLE, SC_VALIGN_BOTTOM };
+        int grid_at[3];
+
+        for (int k = 0; k < 3; k++) {
+            ScForm *f = sc_form_new((ScFormOpts){
+                .fullscreen = true, .valign = vs[k],
+                .valign_scope = SC_VALIGN_SCOPE_CONTENT,
+                .header = hdr, .hint = "FOOTMARK" });
+            sc_form_row_begin(f);
+            sc_form_add_text(f, "BodyField", "x",
+                (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 100 });
+            ScRendered *fr = sc_form_frame(f);
+            CHECK(fr && (int)fr->line_count == th,
+                  "content scope fills the full terminal height exactly");
+            CHECK(form_line_of(fr, "HDRMARK") == 0,
+                  "content scope pins the header to line 0");
+            CHECK(fr && form_line_of(fr, "FOOTMARK")
+                       == (int)fr->line_count - 1,
+                  "content scope pins the footer to the last line");
+            grid_at[k] = form_line_of(fr, "BodyField");
+            sc_rendered_free(fr);
+            sc_form_free(f);
+        }
+        CHECK(grid_at[0] == 1,
+              "TOP places the grid right below the 1-line header");
+        CHECK(grid_at[0] < grid_at[1] && grid_at[1] < grid_at[2],
+              "content scope shifts the grid down TOP < MIDDLE < BOTTOM");
+
+        /* ALL scope (default) centers the whole block instead: with MIDDLE the
+           header is pushed off line 0 by the top pad (unchanged behavior). */
+        ScForm *fa = sc_form_new((ScFormOpts){
+            .fullscreen = true, .valign = SC_VALIGN_MIDDLE,
+            .header = hdr, .hint = "FOOTMARK" });   /* scope = ALL (zero-init) */
+        sc_form_row_begin(fa);
+        sc_form_add_text(fa, "BodyField", "x", (ScFieldOpts){ 0 });
+        ScRendered *fra = sc_form_frame(fa);
+        CHECK(form_line_of(fra, "HDRMARK") > 0,
+              "ALL scope MIDDLE does not pin the header to line 0");
+        sc_rendered_free(fra);
+        sc_form_free(fa);
+
+        /* NULL header in content scope is safe: footer still bottom-pinned. */
+        ScForm *fn = sc_form_new((ScFormOpts){
+            .fullscreen = true, .valign = SC_VALIGN_MIDDLE,
+            .valign_scope = SC_VALIGN_SCOPE_CONTENT, .hint = "FOOTMARK" });
+        sc_form_row_begin(fn);
+        sc_form_add_text(fn, "BodyField", "x", (ScFieldOpts){ 0 });
+        ScRendered *frn = sc_form_frame(fn);
+        CHECK(frn && (int)frn->line_count == th,
+              "content scope with NULL header still fills the screen");
+        CHECK(frn && form_line_of(frn, "FOOTMARK") == (int)frn->line_count - 1,
+              "content scope NULL header keeps the footer bottom-pinned");
+        sc_rendered_free(frn);
+        sc_form_free(fn);
+
+        sc_rendered_free(hdr);
+    }
+
+    /* ── External editor temp-file suffix ── */
+    {
+        /* With a suffix the temp path ends with it; the round-trip works and the
+           file is unlinked afterwards. */
+        char *body = NULL;
+        char *path = run_editor_capture(".md", &body);
+        CHECK(path != NULL, "editor ran with a .md suffix");
+        if (path) {
+            size_t pl = strlen(path);
+            CHECK(pl >= 3 && strcmp(path + pl - 3, ".md") == 0,
+                  "temp file path ends with the configured suffix");
+            CHECK(strstr(path, "sparcli-edit-") != NULL,
+                  "temp file keeps the sparcli-edit- prefix");
+            CHECK(access(path, F_OK) != 0,
+                  "temp file is unlinked after the editor returns");
+            free(path);
+        }
+        CHECK(body && strcmp(body, "edited-body") == 0,
+              "editor round-trip returns the rewritten content");
+        free(body);
+
+        /* Without a suffix the name is sparcli-edit-XXXXXX with no extension. */
+        body = NULL;
+        path = run_editor_capture(NULL, &body);
+        CHECK(path != NULL, "editor ran with no suffix");
+        if (path) {
+            const char *slash = strrchr(path, '/');
+            const char *base = slash ? slash + 1 : path;
+            CHECK(strncmp(base, "sparcli-edit-", 13) == 0
+                  && strlen(base) == 13 + 6
+                  && strchr(base, '.') == NULL,
+                  "no-suffix temp file is sparcli-edit-XXXXXX (no dot)");
+            free(path);
+        }
+        free(body);
     }
 
     /* NULL-safety. */

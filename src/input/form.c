@@ -75,6 +75,7 @@ struct ScForm {
     char       *title;       /**< Owned. */
     char       *hint;        /**< Owned. */
     char       *editor;      /**< Owned external-editor command, or NULL. */
+    char       *editor_suffix;/**< Owned temp-file extension, or NULL. */
     ScColor     accent;
     ScColor     edit_bg;     /**< Background of the below-grid editor box. */
 
@@ -189,7 +190,8 @@ static ScRendered *form_render(void *state);
     static ScRendered *form_build_body(ScForm *self, int cols, int rows,
                                        const int *colw, const int *colx,
                                        const int *rowy, const int *rowh,
-                                       int total_w, int total_lines);
+                                       int total_w, int total_lines,
+                                       bool with_edit);
 static void form_on_key(void *state, ScKey key, bool *done, bool *cancel);
     static int  neighbor(const ScForm *self, int dir);
     static void begin_edit(ScForm *self);
@@ -210,6 +212,7 @@ ScForm *sc_form_new(ScFormOpts opts) {
     self->title = sc_dup_opt_str(opts.title);
     self->hint = sc_dup_opt_str(opts.hint);
     self->editor = sc_dup_opt_str(opts.editor);
+    self->editor_suffix = sc_dup_opt_str(opts.editor_suffix);
     self->opts.modified_marker = sc_dup_opt_str(opts.modified_marker);
     self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
     self->edit_bg = opts.edit_bg.index ? opts.edit_bg
@@ -441,6 +444,7 @@ void sc_form_free(ScForm *self) {
     free(self->title);
     free(self->hint);
     free(self->editor);
+    free(self->editor_suffix);
     free((char *)self->opts.modified_marker);
     free(self);
 }
@@ -626,11 +630,38 @@ static ScRendered *form_render(void *state) {
                                 0, term_w)
         : 0;
 
+    const char *hint = self->hint ? self->hint : DEFAULT_HINT;
+    const bool content_scope = self->opts.fullscreen
+        && self->opts.valign_scope == SC_VALIGN_SCOPE_CONTENT;
+
+    if (content_scope) {
+        /* Header pinned top, the edit region + hint pinned bottom; only the
+           grid is aligned in the gap (no fill in this scope). */
+        ScRendered *content = form_build_body(self, cols, rows, colw, colx,
+                                              rowy, rowh, total_w, total_lines,
+                                              false);
+        ScRendered *edit = build_edit_region(self, total_w);
+        ScRendered *hint_r = sc_hint_render(hint, self->opts.hint_layout,
+                                            self->opts.hint_style);
+        const ScRendered *fparts[2];
+        size_t fn = 0;
+        if (edit)   { fparts[fn++] = edit; }
+        if (hint_r) { fparts[fn++] = hint_r; }
+        ScRendered *foot = fn ? sc_vstack(fparts, fn, 0) : NULL;
+        sc_rendered_free(edit);
+        sc_rendered_free(hint_r);
+
+        ScRendered *frame = sc_fullscreen_compose(
+            content, self->opts.header, foot, self->opts.valign,
+            SC_VALIGN_SCOPE_CONTENT, footer);
+        sc_rendered_free(foot);
+        return frame;
+    }
+
     ScRendered *body = form_build_body(self, cols, rows, colw, colx, rowy,
-                                       rowh, total_w, total_lines);
+                                       rowh, total_w, total_lines, true);
     ScRendered *frame =
-        sc_compose_hint(body, self->hint ? self->hint : DEFAULT_HINT,
-                        self->opts.hint_layout, self->opts.hint_pos,
+        sc_compose_hint(body, hint, self->opts.hint_layout, self->opts.hint_pos,
                         self->opts.hint_style, 0);   /* consumes body */
 
     /* Grow the fill row by the height the fullscreen pad would otherwise add,
@@ -648,10 +679,9 @@ static ScRendered *form_render(void *state) {
 
             ScRendered *grown = form_build_body(self, cols, rows, colw, colx,
                                                 rowy, rowh, total_w,
-                                                total_lines);
+                                                total_lines, true);
             ScRendered *grown_frame = sc_compose_hint(
-                grown, self->hint ? self->hint : DEFAULT_HINT,
-                self->opts.hint_layout, self->opts.hint_pos,
+                grown, hint, self->opts.hint_layout, self->opts.hint_pos,
                 self->opts.hint_style, 0);   /* consumes grown */
             if (grown_frame) {
                 sc_rendered_free(frame);
@@ -663,17 +693,22 @@ static ScRendered *form_render(void *state) {
     if (self->opts.fullscreen) {
         /* The form has no box; the footer is indented 0. A wide footer wraps,
            so reserve its full wrapped height. */
-        frame = sc_fullscreen_compose(frame, self->opts.header,
-                                      self->opts.valign, footer);
+        frame = sc_fullscreen_compose(frame, self->opts.header, NULL,
+                                      self->opts.valign, SC_VALIGN_SCOPE_ALL,
+                                      footer);
     }
     return frame;
 }
 
-/** Builds the form body: field panels in a grid, plus the title and editor. */
+/**
+ * Builds the form body: field panels in a grid, plus the optional title. The
+ * edit region is appended only when `with_edit` is set (the content-scoped
+ * fullscreen layout pins it to the bottom instead, so it asks for grid only).
+ */
 static ScRendered *form_build_body(
     ScForm *self, int cols, int rows,
     const int *colw, const int *colx, const int *rowy, const int *rowh,
-    int total_w, int total_lines
+    int total_w, int total_lines, bool with_edit
 ) {
     ScRendered **panels = calloc(self->count, sizeof *panels);
     if (!panels) {
@@ -699,8 +734,8 @@ static ScRendered *form_build_body(
     for (size_t i = 0; i < self->count; i++) { sc_rendered_free(panels[i]); }
     free(panels);
 
-    /* Stack: [title] + grid + edit-region. */
-    ScRendered *edit = build_edit_region(self, total_w);
+    /* Stack: [title] + grid + (optional) edit-region. */
+    ScRendered *edit = with_edit ? build_edit_region(self, total_w) : NULL;
     ScRendered *title = NULL;
     if (self->title && self->title[0]) {
         ScTextStyle ts = sc_style_set(self->opts.title_style)
@@ -1620,6 +1655,7 @@ ScInputStatus sc_form_run(ScForm *self) {
         .enabled = has_editor,
         .cmd = self->editor,
         .chord = self->opts.editor_key,
+        .suffix = self->editor_suffix,
     };
     ScInputStatus status = sc_prompt_run(
         &vtable, self, self->opts.shortcuts ? &sk : NULL,

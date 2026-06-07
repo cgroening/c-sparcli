@@ -37,19 +37,25 @@ static const char *resolve_editor(const char *cmd) {
  * Creates a 0600 temp file seeded with `initial`. Returns a heap path (caller
  * frees) and the written length, or NULL on failure.
  */
-static char *make_temp(const char *initial, size_t *out_len) {
+static char *make_temp(const char *initial, const char *suffix,
+                       size_t *out_len) {
     const char *dir = getenv("TMPDIR");
     if (!dir || !dir[0]) {
         dir = "/tmp";
     }
-    size_t need = strlen(dir) + sizeof("/sparcli-edit-XXXXXX");
+    if (!suffix) { suffix = ""; }
+    size_t suffix_len = strlen(suffix);
+    size_t need = strlen(dir) + sizeof("/sparcli-edit-XXXXXX") + suffix_len;
     char *path = malloc(need);
     if (!path) {
         return NULL;
     }
-    snprintf(path, need, "%s/sparcli-edit-XXXXXX", dir);
+    snprintf(path, need, "%s/sparcli-edit-XXXXXX%s", dir, suffix);
 
-    int fd = mkstemp(path);   // creates with mode 0600
+    // mkstemps keeps the trailing `suffix` (e.g. ".md") so editors can detect
+    // the filetype; plain mkstemp when there is none.
+    int fd = suffix_len ? mkstemps(path, (int)suffix_len)
+                        : mkstemp(path);   // both create with mode 0600
     if (fd < 0) {
         free(path);
         return NULL;
@@ -223,12 +229,13 @@ static char *read_all(const char *path) {
     return buf;
 }
 
-bool sc_run_editor(const char *cmd, const char *initial, char **out) {
+bool sc_run_editor(const char *cmd, const char *initial, const char *suffix,
+                   char **out) {
     if (!out) {
         return false;
     }
     size_t seed_len = 0;
-    char *path = make_temp(initial, &seed_len);
+    char *path = make_temp(initial, suffix, &seed_len);
     if (!path) {
         return false;
     }

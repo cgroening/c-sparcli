@@ -169,6 +169,10 @@ typedef struct ScFormOpts {
     const char *editor;
     ScKeyChord editor_key;
 
+    /** Extension for the editor's temp file (e.g. ".md") so the editor detects
+        the filetype; borrowed, NULL/empty = no extension. */
+    const char *editor_suffix;
+
     /** Background of the editor box shown below the grid while editing a field.
         Zero-init = a subtle gray default; set a named/RGB color
         (`sc_color_from_rgb(...)`) to customize the tone. */
@@ -180,8 +184,16 @@ typedef struct ScFormOpts {
         auto-grow); only the alignment/header are added. */
     bool fullscreen;
 
-    /** Vertical alignment of the (header + grid) block (fullscreen only). */
+    /** Vertical alignment of the form within the screen (fullscreen only). */
     ScVAlign valign;
+
+    /**
+     * What `valign` applies to (fullscreen only). Zero-init = `ALL` (align the
+     * whole header+grid+hint block). `SC_VALIGN_SCOPE_CONTENT` pins the header
+     * to the top and the hint/edit footer to the bottom, aligning only the grid
+     * in the gap between them.
+     */
+    ScVAlignScope valign_scope;
 
     /** Optional header pinned above the grid (fullscreen only); borrowed,
         library-rendered. Must outlive the run. */

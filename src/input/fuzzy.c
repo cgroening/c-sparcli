@@ -1174,8 +1174,9 @@ static ScRendered *fuzzy_render(void *state) {
                                            self->opts.n_shortcuts,
                                            sc_box_content_left(self->opts.box),
                                            sc_terminal_width());
-        frame = sc_fullscreen_compose(frame, self->opts.header,
-                                      self->opts.valign, footer);
+        frame = sc_fullscreen_compose(frame, self->opts.header, NULL,
+                                      self->opts.valign, SC_VALIGN_SCOPE_ALL,
+                                      footer);
     }
     return frame;
 }
