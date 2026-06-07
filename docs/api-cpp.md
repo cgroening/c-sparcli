@@ -438,7 +438,10 @@ A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open un
 `Form` wraps `sc_form`: add fields row by row, `run()`, then read values back.
 `FieldOpts`/`FormOpts` are aliases of the C opts (set `validate` as a raw
 function pointer if needed); dates use `std::tm`. `FormOpts{ .autoedit = true }`
-opens the first field's editor immediately at start.
+opens the first field's editor immediately at start. `Form::modified()` reports
+whether any field changed from its initial value (for an "unsaved changes?"
+prompt on cancel), and `FormOpts{ .modified_marker = "[*] " }` prefixes a changed
+field's box title.
 
 ```cpp
 Form f({ .title = "Contact", .accent = cyan() });

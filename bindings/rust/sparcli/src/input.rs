@@ -2356,6 +2356,10 @@ pub struct FormOpts {
     /// Header pinned above the grid (fullscreen only). Borrowed: the
     /// [`Rendered`] must outlive the run.
     pub header: Option<NonNull<ffi::ScRendered>>,
+    /// Prefix on a modified field's title (e.g. `"[*] "`); `None` = no marker.
+    /// Appears when the field differs from its initial value. See
+    /// [`Form::modified`].
+    pub modified_marker: Option<String>,
 }
 
 impl FormOpts {
@@ -2392,6 +2396,7 @@ impl Form {
         let title = opts.title.as_deref().map(cstring);
         let hint = opts.hint.as_deref().map(cstring);
         let editor = opts.editor.as_deref().map(cstring);
+        let marker = opts.modified_marker.as_deref().map(cstring);
         let mut o: ffi::ScFormOpts = unsafe { mem::zeroed() };
         o.title = title.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         o.title_style = opts.title_style.raw();
@@ -2412,10 +2417,18 @@ impl Form {
         o.fullscreen = opts.fullscreen;
         o.valign = opts.valign.raw();
         o.header = opts.header.map_or(std::ptr::null(), |p| p.as_ptr());
+        o.modified_marker =
+            marker.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
         // Strings are copied by the C side, so the temporaries above suffice.
         let ptr = unsafe { ffi::sc_form_new(o) };
         assert!(!ptr.is_null(), "sc_form_new: out of memory");
         Form { ptr, count: 0 }
+    }
+
+    /// Whether any field differs from the value it was added with (e.g. for an
+    /// "unsaved changes?" prompt when the user cancels).
+    pub fn modified(&self) -> bool {
+        unsafe { ffi::sc_form_modified(self.ptr) }
     }
 
     /// Starts a new grid row.

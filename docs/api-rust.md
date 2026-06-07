@@ -346,7 +346,10 @@ let pure = fuzzy_match("ab", "cab");          // (bool, score), no TTY
 `Form` builds a grid of fields; `run()` then the `get_*` getters. `FieldOpts`/
 `FormOpts` are plain builder structs; dates use `Date`. (The per-field
 `validate` callback is not exposed.) `FormOpts { autoedit: true, .. }` opens the
-first field's editor immediately at start.
+first field's editor immediately at start. `Form::modified()` reports whether any
+field changed from its initial value (for an "unsaved changes?" prompt on
+cancel), and `FormOpts { modified_marker: Some("[*] ".into()), .. }` prefixes a
+changed field's box title.
 
 ```rust
 use sparcli::{Form, FormOpts, FieldOpts, FieldWidthMode};

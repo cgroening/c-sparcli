@@ -1054,4 +1054,12 @@ fn form_construction_and_getters() {
     let mut a = Form::new(FormOpts { autoedit: true, ..Default::default() });
     a.add_text("Title", "draft", FieldOpts::default());
     assert_eq!(a.get_string(0).as_deref(), Some("draft"));
+
+    // modified_marker opt builds; modified() is false before any edit.
+    let mut md = Form::new(FormOpts {
+        modified_marker: Some("[*] ".into()),
+        ..Default::default()
+    });
+    md.add_text("Title", "x", FieldOpts::default());
+    assert!(!md.modified());
 }

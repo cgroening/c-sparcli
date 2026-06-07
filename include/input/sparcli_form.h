@@ -178,6 +178,15 @@ typedef struct ScFormOpts {
     /** Optional header pinned above the grid (fullscreen only); borrowed,
         library-rendered. Must outlive the run. */
     const struct ScRendered *header;
+
+    /**
+     * Prefix shown before a field's box title when its value differs from the
+     * value it was added with (e.g. `"[*] "`). The marker appears once the field
+     * is changed and disappears again if it is restored to the initial value.
+     * `NULL`/empty = no marker (default). The string is copied.
+     * @see sc_form_modified
+     */
+    const char *modified_marker;
 } ScFormOpts;
 
 /** Opaque form handle. */
@@ -242,6 +251,13 @@ SPARCLI_EXPORT void sc_form_add_skip(ScForm *form);
  * `SC_INPUT_ERROR` when no terminal is available.
  */
 SPARCLI_EXPORT ScInputStatus sc_form_run(ScForm *form);
+
+/**
+ * Whether any field's current value differs from the value it was added with.
+ * Useful for an "unsaved changes?" prompt when the user cancels with Esc.
+ * Valid any time after the fields are added (during and after `sc_form_run`).
+ */
+SPARCLI_EXPORT bool sc_form_modified(const ScForm *form);
 
 /** Current text of a field (borrowed; valid until the form is freed/edited). */
 SPARCLI_EXPORT const char *sc_form_get_string(const ScForm *form, int field);

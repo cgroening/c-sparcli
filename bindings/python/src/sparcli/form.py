@@ -67,6 +67,7 @@ class FormOpts:
     fullscreen: bool = False  #: fill the terminal (header + valign; use altscreen)
     valign: VAlign = VAlign.TOP  #: block alignment in fullscreen
     header: "Rendered | None" = None  #: pinned header (fullscreen); borrowed
+    modified_marker: str | None = None  #: prefix on a changed field's title
 
     def _fill(self, c, arena: list) -> None:
         c.title = cstr(arena, self.title)
@@ -86,6 +87,7 @@ class FormOpts:
         c.fullscreen = self.fullscreen
         c.valign = int(self.valign)
         c.header = self.header._ptr if self.header is not None else ffi.NULL
+        c.modified_marker = cstr(arena, self.modified_marker)
 
 
 class Form:
@@ -190,6 +192,11 @@ class Form:
     def run(self) -> bool:
         """Run the form. Returns ``True`` on submit, ``False`` on cancel/no-TTY."""
         return lib.sc_form_run(self._p) == lib.SC_INPUT_OK
+
+    def modified(self) -> bool:
+        """Whether any field differs from the value it was added with (e.g. for
+        an "unsaved changes?" prompt when the user cancels)."""
+        return bool(lib.sc_form_modified(self._p))
 
     def get_string(self, field: int) -> str | None:
         p = lib.sc_form_get_string(self._p, field)

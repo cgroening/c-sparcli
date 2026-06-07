@@ -2442,6 +2442,10 @@ public:
     /** Runs the form. @return true on submit, false on cancel/no-TTY. */
     bool run() { return sc_form_run(detail::live(p_)) == SC_INPUT_OK; }
 
+    /** Whether any field differs from the value it was added with (e.g. for an
+        "unsaved changes?" prompt on cancel). @see sc_form_modified */
+    bool modified() const { return sc_form_modified(detail::live(p_)); }
+
     /** Current text of `field` (empty if out of range). */
     std::string_view get_string(int field) const {
         const char* s = sc_form_get_string(detail::live(p_), field);

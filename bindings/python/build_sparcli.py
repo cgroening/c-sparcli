@@ -1127,6 +1127,7 @@ typedef struct {
     bool fullscreen;
     ScVAlign valign;
     const ScRendered *header;
+    const char *modified_marker;
     ...;
 } ScFormOpts;
 typedef struct ScForm ScForm;
@@ -1149,6 +1150,7 @@ int sc_form_add_date(ScForm *form, const char *label, struct tm initial,
                      ScFieldOpts opts);
 void sc_form_add_skip(ScForm *form);
 ScInputStatus sc_form_run(ScForm *form);
+bool sc_form_modified(const ScForm *form);
 const char *sc_form_get_string(const ScForm *form, int field);
 double sc_form_get_number(const ScForm *form, int field);
 bool sc_form_get_bool(const ScForm *form, int field);

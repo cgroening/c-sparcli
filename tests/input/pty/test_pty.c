@@ -1324,6 +1324,26 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 89: {
+            /* sc_form_modified: after editing a field (a -> aX) it reports
+               modified; the marker option also prefixes the field title. */
+            ScForm *f = sc_form_new((ScFormOpts){ .modified_marker = "[*] " });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            int before = sc_form_modified(f);   /* false at start */
+            ScInputStatus s = sc_form_run(f);   /* Enter, X, Enter, Ctrl-D */
+            int ok = (s == SC_INPUT_OK && !before && sc_form_modified(f));
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 90: {
+            /* sc_form_modified stays false when nothing is edited (Ctrl-D). */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && !sc_form_modified(f));
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1430,6 +1450,8 @@ static const Case CASES[] = {
       "x" },
     { "modal-insert-backspace-edits", "xq\x7f\r" }, /* BS edits query in insert */
     { "modal-normal-backspace-fires", "\x7f" },     /* BS fires shortcut in normal */
+    { "form-modified-after-edit", "\rX\r\x04" },    /* edit a->aX -> modified() */
+    { "form-not-modified", "\x04" },                /* submit unchanged -> not modified */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

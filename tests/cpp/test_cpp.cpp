@@ -728,6 +728,11 @@ static void test_form_wrapper() {
     Form a{ FormOpts{ .autoedit = true } };
     a.add_text("Title", "draft", FieldOpts{});
     CHECK(a.get_string(0) == std::string("draft"), "form++: autoedit opt builds");
+
+    // modified()/modified_marker: a freshly added field is not modified.
+    Form md{ FormOpts{ .modified_marker = "[*] " } };
+    md.add_text("Title", "x", FieldOpts{});
+    CHECK(!md.modified(), "form++: modified() is false before any edit");
 }
 
 // Strikethrough attribute + runtime palette override (both new this cycle).

@@ -3936,10 +3936,12 @@ pub struct ScFormOpts {
     pub valign: ScVAlign,
     #[doc = " Borrowed header pinned above the grid (fullscreen only)."]
     pub header: *const ScRendered,
+    #[doc = " Prefix on a modified field's title (e.g. \"[*] \"); NULL = none."]
+    pub modified_marker: *const ::std::os::raw::c_char,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 176usize];
+    ["Size of ScFormOpts"][::std::mem::size_of::<ScFormOpts>() - 184usize];
     ["Alignment of ScFormOpts"][::std::mem::align_of::<ScFormOpts>() - 8usize];
     ["Offset of field: ScFormOpts::title"][::std::mem::offset_of!(ScFormOpts, title) - 0usize];
     ["Offset of field: ScFormOpts::title_style"]
@@ -3977,6 +3979,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFormOpts, valign) - 160usize];
     ["Offset of field: ScFormOpts::header"]
         [::std::mem::offset_of!(ScFormOpts, header) - 168usize];
+    ["Offset of field: ScFormOpts::modified_marker"]
+        [::std::mem::offset_of!(ScFormOpts, modified_marker) - 176usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -4055,6 +4059,10 @@ extern "C" {
 extern "C" {
     #[doc = " Runs the form interactively. On `SC_INPUT_OK` the edited values are readable\n with the getters below. Returns `SC_INPUT_CANCELLED` on Esc/Ctrl-C and\n `SC_INPUT_ERROR` when no terminal is available."]
     pub fn sc_form_run(form: *mut ScForm) -> ScInputStatus;
+}
+extern "C" {
+    #[doc = " Whether any field differs from the value it was added with."]
+    pub fn sc_form_modified(form: *const ScForm) -> bool;
 }
 extern "C" {
     #[doc = " Current text of a field (borrowed; valid until the form is freed/edited)."]

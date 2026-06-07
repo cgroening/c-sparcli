@@ -730,6 +730,13 @@ def test_form_autoedit_opt():
         assert f.get_string(0) == "draft"
 
 
+def test_form_modified():
+    # modified_marker opt builds; modified() is False before any edit.
+    with sc.Form(sc.FormOpts(modified_marker="[*] ")) as f:
+        f.add_text("Title", "x")
+        assert f.modified() is False
+
+
 def test_form_run_unavailable_without_tty():
     # Off a TTY (SPARCLI_NO_TTY) run() returns False, never grabbing the keyboard.
     with sc.Form() as f:

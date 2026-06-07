@@ -42,6 +42,15 @@ typedef struct Field {
     struct tm   date;        /**< Picked date (date fields). */
     bool        date_set;    /**< Date fields: false = empty (date_optional). */
 
+    /* Initial-value snapshot (for the "modified" marker / sc_form_modified). */
+    char       *initial_text;    /**< Owned; text/number initial display value. */
+    double      initial_num;
+    bool        initial_bval;
+    size_t      initial_sel;
+    bool       *initial_checked; /**< Owned; parallel to choices. */
+    struct tm   initial_date;
+    bool        initial_date_set;
+
     ScFieldOpts opts;        /**< Copied (help/label are owned separately). */
 
     /* Grid placement (resolved at finalize). */
@@ -197,6 +206,7 @@ ScForm *sc_form_new(ScFormOpts opts) {
     self->title = sc_dup_opt_str(opts.title);
     self->hint = sc_dup_opt_str(opts.hint);
     self->editor = sc_dup_opt_str(opts.editor);
+    self->opts.modified_marker = sc_dup_opt_str(opts.modified_marker);
     self->accent = opts.accent.index ? opts.accent : SC_ANSI_COLOR_CYAN;
     self->edit_bg = opts.edit_bg.index ? opts.edit_bg
                                        : sc_color_from_rgb(43, 43, 43);  // gray
@@ -247,9 +257,71 @@ static int add_field(ScForm *self, ScFieldType type, const char *label,
     return (int)self->count++;
 }
 
+/** Snapshots a field's current value as its "initial" (baseline for the
+    modified marker). Called once after each add, when the value is set. */
+static void field_snapshot(Field *f) {
+    free(f->initial_text);
+    f->initial_text = sc_dup_str(f->text ? f->text : "");
+    f->initial_num = f->num;
+    f->initial_bval = f->bval;
+    f->initial_sel = f->sel;
+    free(f->initial_checked);
+    f->initial_checked = NULL;
+    if (f->checked && f->n_choices) {
+        f->initial_checked = malloc(f->n_choices * sizeof(bool));
+        if (f->initial_checked) {
+            memcpy(f->initial_checked, f->checked,
+                   f->n_choices * sizeof(bool));
+        }
+    }
+    f->initial_date = f->date;
+    f->initial_date_set = f->date_set;
+}
+
+/** True when a field's current value differs from its initial snapshot. */
+static bool field_modified(const Field *f) {
+    switch (f->type) {
+    case SC_FIELD_TEXT:
+        return strcmp(f->text ? f->text : "",
+                      f->initial_text ? f->initial_text : "") != 0;
+    case SC_FIELD_NUMBER:
+        return f->num != f->initial_num;
+    case SC_FIELD_BOOL:
+        return f->bval != f->initial_bval;
+    case SC_FIELD_SELECT:
+        return f->sel != f->initial_sel;
+    case SC_FIELD_MULTISELECT:
+        if (!f->checked || !f->initial_checked) { return false; }
+        return memcmp(f->checked, f->initial_checked,
+                      f->n_choices * sizeof(bool)) != 0;
+    case SC_FIELD_DATE:
+        if (f->date_set != f->initial_date_set) { return true; }
+        if (!f->date_set) { return false; }
+        return f->date.tm_year != f->initial_date.tm_year
+            || f->date.tm_mon  != f->initial_date.tm_mon
+            || f->date.tm_mday != f->initial_date.tm_mday;
+    }
+    return false;
+}
+
+bool sc_form_modified(const ScForm *self) {
+    if (!self) {
+        return false;
+    }
+    for (size_t i = 0; i < self->count; i++) {
+        if (field_modified(&self->fields[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int sc_form_add_text(ScForm *self, const char *label, const char *initial,
                      ScFieldOpts opts) {
-    return add_field(self, SC_FIELD_TEXT, label, initial ? initial : "", opts);
+    int idx = add_field(self, SC_FIELD_TEXT, label, initial ? initial : "",
+                        opts);
+    if (idx >= 0) { field_snapshot(&self->fields[idx]); }
+    return idx;
 }
 
 int sc_form_add_number(ScForm *self, const char *label, double initial,
@@ -259,6 +331,7 @@ int sc_form_add_number(ScForm *self, const char *label, double initial,
     int idx = add_field(self, SC_FIELD_NUMBER, label, buf, opts);
     if (idx >= 0) {
         self->fields[idx].num = initial;
+        field_snapshot(&self->fields[idx]);
     }
     return idx;
 }
@@ -268,6 +341,7 @@ int sc_form_add_bool(ScForm *self, const char *label, bool initial,
     int idx = add_field(self, SC_FIELD_BOOL, label, "", opts);
     if (idx >= 0) {
         self->fields[idx].bval = initial;
+        field_snapshot(&self->fields[idx]);
     }
     return idx;
 }
@@ -292,6 +366,7 @@ int sc_form_add_select(ScForm *self, const char *label,
     f->choices = dup_choices(choices, n);
     f->n_choices = f->choices ? n : 0;
     f->sel = (f->n_choices && initial < f->n_choices) ? initial : 0;
+    field_snapshot(f);
     return idx;
 }
 
@@ -312,6 +387,7 @@ int sc_form_add_multiselect(ScForm *self, const char *label,
             }
         }
     }
+    field_snapshot(f);
     return idx;
 }
 
@@ -326,6 +402,7 @@ int sc_form_add_date(ScForm *self, const char *label, struct tm initial,
            empty field); `date_set` records whether a date is actually present. */
         self->fields[idx].date = date_seed(initial);
         self->fields[idx].date_set = !empty;
+        field_snapshot(&self->fields[idx]);
     }
     return idx;
 }
@@ -348,6 +425,8 @@ void sc_form_free(ScForm *self) {
         Field *f = &self->fields[i];
         free(f->label);
         free(f->text);
+        free(f->initial_text);
+        free(f->initial_checked);
         free((char *)f->opts.help);
         for (size_t c = 0; c < f->n_choices; c++) { free(f->choices[c]); }
         free(f->choices);
@@ -358,6 +437,7 @@ void sc_form_free(ScForm *self) {
     free(self->title);
     free(self->hint);
     free(self->editor);
+    free((char *)self->opts.modified_marker);
     free(self);
 }
 
@@ -662,16 +742,31 @@ static ScRendered *capture_field(const ScForm *self, const Field *f,
         : (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE,
                          SC_ANSI_COLOR_NONE };
 
+    /* Prepend the "modified" marker to the title when the field's value differs
+       from its initial snapshot (opt-in via ScFormOpts.modified_marker). */
+    const char *marker = self->opts.modified_marker;
+    char *marked = NULL;
+    const char *title_text = f->label ? f->label : "";
+    if (marker && marker[0] && field_modified(f)) {
+        size_t n = strlen(marker) + strlen(title_text) + 1;
+        marked = malloc(n);
+        if (marked) {
+            snprintf(marked, n, "%s%s", marker, title_text);
+            title_text = marked;
+        }
+    }
+
     ScPanelOpts po = {
         .border = { .type = bt, .color = border_col,
                     .bg = f->opts.border.bg },
-        .title = { .text = f->label, .halign = SC_ALIGN_LEFT, .pad = 1,
+        .title = { .text = title_text, .halign = SC_ALIGN_LEFT, .pad = 1,
                    .style = title_style },
         .width = fieldw,
         .content_align = SC_ALIGN_LEFT,
     };
     ScRendered *r = sc_capture_panel_text(content, po);
     sc_text_free(content);
+    free(marked);
     return r;
 }
 
