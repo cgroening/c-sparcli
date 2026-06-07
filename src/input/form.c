@@ -557,8 +557,11 @@ static ScRendered *form_render(void *state) {
                         self->opts.hint_layout, self->opts.hint_pos,
                         self->opts.hint_style, 0);   /* form has no box */
     if (self->opts.fullscreen) {
+        /* The form has no box; the footer is indented 0. A wide footer wraps,
+           so reserve its full wrapped height. */
         int footer = sc_shortcut_hint_rows(self->opts.shortcuts,
-                                           self->opts.n_shortcuts);
+                                           self->opts.n_shortcuts,
+                                           0, sc_terminal_width());
         frame = sc_fullscreen_compose(frame, self->opts.header,
                                       self->opts.valign, footer);
     }

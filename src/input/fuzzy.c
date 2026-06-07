@@ -184,8 +184,11 @@ static int fuzzy_chrome_rows(const ScFuzzy *self) {
         && self->opts.hint_pos != SC_HINT_POS_RIGHT) {
         rows += 1;                             /* own hint footer (inline) */
     }
-    /* The engine stacks the labeled-shortcut footer beneath the frame. */
-    rows += sc_shortcut_hint_rows(self->opts.shortcuts, self->opts.n_shortcuts);
+    /* The engine stacks the labeled-shortcut footer beneath the frame; a long
+       footer soft-wraps to several rows, so reserve its full wrapped height. */
+    rows += sc_shortcut_hint_rows(self->opts.shortcuts, self->opts.n_shortcuts,
+                                  sc_box_content_left(self->opts.box),
+                                  sc_terminal_width());
     return rows;
 }
 
@@ -1166,7 +1169,9 @@ static ScRendered *fuzzy_render(void *state) {
            growing list re-aligns and fills the screen. Reserve the engine's
            shortcut footer so it is not pushed off the bottom. */
         int footer = sc_shortcut_hint_rows(self->opts.shortcuts,
-                                           self->opts.n_shortcuts);
+                                           self->opts.n_shortcuts,
+                                           sc_box_content_left(self->opts.box),
+                                           sc_terminal_width());
         frame = sc_fullscreen_compose(frame, self->opts.header,
                                       self->opts.valign, footer);
     }

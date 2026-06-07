@@ -1,5 +1,6 @@
 #include "test_input.h"
 #include "sparcli.h"
+#include "input/input_internal.h"   /* sc_shortcut_hint_rows */
 
 #include <string.h>
 
@@ -63,4 +64,35 @@ void test_shortcut(void) {
     CHECK(strcmp(name, "\xe2\x86\x92") == 0, "Right chord renders as →");
     sc_key_chord_name(sc_key_fn(2), name, sizeof name);
     CHECK(strcmp(name, "F2") == 0, "F-key chord still renders as Fn");
+
+    /* Named non-arrow keys get a word; modifiers prefix the base name. */
+    sc_key_chord_name((ScKeyChord){ .key = SC_KEY_DELETE }, name, sizeof name);
+    CHECK(strcmp(name, "Del") == 0, "Delete chord renders as Del (not ?)");
+    sc_key_chord_name((ScKeyChord){ .key = SC_KEY_BACKSPACE }, name, sizeof name);
+    CHECK(strcmp(name, "Bksp") == 0, "Backspace chord renders as Bksp");
+    sc_key_chord_name((ScKeyChord){ .key = SC_KEY_UP, .mods = SC_MOD_ALT },
+                      name, sizeof name);
+    CHECK(strcmp(name, "M-\xe2\x86\x91") == 0, "Alt+Up renders as M-↑ (not M-?)");
+    sc_key_chord_name(
+        (ScKeyChord){ .key = SC_KEY_UP, .mods = SC_MOD_ALT | SC_MOD_SHIFT },
+        name, sizeof name);
+    CHECK(strcmp(name, "M-S-\xe2\x86\x91") == 0, "Alt+Shift+Up renders as M-S-↑");
+    sc_key_chord_name(sc_key_ctrl('x'), name, sizeof name);
+    CHECK(strcmp(name, "^X") == 0, "Ctrl-X still renders as ^X");
+
+    /* Footer height accounts for terminal soft-wrap: a footer wider than the
+       terminal wraps to several rows; no labels = 0 rows. */
+    ScShortcut foot[] = {
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd' }, .hint_label = "done" },
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'n' }, .hint_label = "new" },
+    };
+    /* "d done  ·  n new" = 16 cols. */
+    CHECK(sc_shortcut_hint_rows(foot, 2, 0, 80) == 1, "footer fits 80 cols = 1 row");
+    CHECK(sc_shortcut_hint_rows(foot, 2, 0, 10) == 2, "footer wraps at 10 cols = 2 rows");
+    CHECK(sc_shortcut_hint_rows(foot, 2, 6, 10) == 3,
+          "footer + indent 6 wraps at 10 cols = 3 rows");
+    ScShortcut none[] = {
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd' } },   /* no label */
+    };
+    CHECK(sc_shortcut_hint_rows(none, 1, 0, 80) == 0, "no labels = 0 rows");
 }

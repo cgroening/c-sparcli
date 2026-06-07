@@ -203,23 +203,16 @@ static inline int sc_box_content_left(ScBoxStyle box) {
 }
 
 /**
- * Rows the engine's labeled-shortcut footer occupies (0 or 1): 1 when any
- * shortcut carries a non-empty `hint_label`, matching `build_shortcut_hint`
- * (which renders a single `·`-separated line). Widgets reserve this in their
- * height budget so a fullscreen/auto-sized frame leaves room for the footer
- * the engine stacks beneath them.
+ * Physical rows the engine's labeled-shortcut footer occupies after terminal
+ * soft-wrap: the footer is one logical line (`name SP label`, joined by `  ·  `)
+ * of visible width `indent + …`; the terminal wraps it to `ceil(width / term_w)`
+ * rows. Returns 0 when no shortcut carries a `hint_label`. Widgets reserve this
+ * in their height budget (and as the fullscreen bottom-reserve) so a long footer
+ * that wraps stays fully on screen. Defined in shortcut.c (needs the chord
+ * naming + width helpers). Mirrors `build_shortcut_hint`.
  */
-static inline int sc_shortcut_hint_rows(const ScShortcut *items, size_t n) {
-    if (!items) {
-        return 0;
-    }
-    for (size_t i = 0; i < n; i++) {
-        if (items[i].hint_label && items[i].hint_label[0]) {
-            return 1;
-        }
-    }
-    return 0;
-}
+int sc_shortcut_hint_rows(const ScShortcut *items, size_t n,
+                          int indent, int term_w);
 
 /**
  * Defines a `static int name(void *st)` that returns the box content-left for a

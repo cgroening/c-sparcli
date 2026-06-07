@@ -1,8 +1,11 @@
 #include "input/sparcli_shortcut.h"
+#include "input/input_internal.h"
+#include "internal.h"
 
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 
 
 /** Lowercases an ASCII letter codepoint; leaves everything else unchanged. */
@@ -89,40 +92,94 @@ bool sc_key_chord_matches(ScKey key, ScKeyChord chord) {
     return true;   // function keys (and any other named key) match by type
 }
 
+/** Base (modifier-free) name of a normalized key into `buf`. */
+static void key_base_name(ScKeyType type, uint32_t cp, bool ctrl,
+                          char *buf, size_t cap) {
+    if (type >= SC_KEY_F1 && type <= SC_KEY_F12) {
+        snprintf(buf, cap, "F%d", (int)(type - SC_KEY_F1 + 1));
+        return;
+    }
+    if (type == SC_KEY_CHAR) {
+        char letter = (char)cp;
+        if (ctrl) { letter = (char)toupper((unsigned char)letter); }
+        snprintf(buf, cap, "%c", letter);
+        return;
+    }
+    const char *name;
+    switch (type) {
+        case SC_KEY_LEFT:      name = "\xe2\x86\x90"; break; /* ← */
+        case SC_KEY_RIGHT:     name = "\xe2\x86\x92"; break; /* → */
+        case SC_KEY_UP:        name = "\xe2\x86\x91"; break; /* ↑ */
+        case SC_KEY_DOWN:      name = "\xe2\x86\x93"; break; /* ↓ */
+        case SC_KEY_ENTER:     name = "\xe2\x86\xb5"; break; /* ↵ */
+        case SC_KEY_TAB:       name = "\xe2\x87\xa5"; break; /* ⇥ */
+        case SC_KEY_BACKTAB:   name = "\xe2\x87\xa4"; break; /* ⇤ */
+        case SC_KEY_BACKSPACE: name = "Bksp"; break;
+        case SC_KEY_DELETE:    name = "Del";  break;
+        case SC_KEY_HOME:      name = "Home"; break;
+        case SC_KEY_END:       name = "End";  break;
+        case SC_KEY_PAGEUP:    name = "PgUp"; break;
+        case SC_KEY_PAGEDOWN:  name = "PgDn"; break;
+        case SC_KEY_ESC:       name = "Esc";  break;
+        default:               name = "?";    break;
+    }
+    snprintf(buf, cap, "%s", name);
+}
+
 void sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap) {
     if (!buf || cap == 0) {
-        return;
-    }
-    if (chord.key >= SC_KEY_F1 && chord.key <= SC_KEY_F12) {
-        snprintf(buf, cap, "F%d", (int)(chord.key - SC_KEY_F1 + 1));
-        return;
-    }
-    // Named navigation/whitespace keys render as their glyph.
-    static const char *const glyphs[] = {
-        [SC_KEY_LEFT]  = "\xe2\x86\x90", /* ← */
-        [SC_KEY_RIGHT] = "\xe2\x86\x92", /* → */
-        [SC_KEY_UP]    = "\xe2\x86\x91", /* ↑ */
-        [SC_KEY_DOWN]  = "\xe2\x86\x93", /* ↓ */
-        [SC_KEY_ENTER] = "\xe2\x86\xb5", /* ↵ */
-        [SC_KEY_TAB]   = "\xe2\x87\xa5", /* ⇥ */
-    };
-    if (chord.mods == SC_MOD_NONE && chord.key < (int)(sizeof glyphs / sizeof *glyphs)
-        && glyphs[chord.key]) {
-        snprintf(buf, cap, "%s", glyphs[chord.key]);
         return;
     }
     ScKeyType nt;
     uint32_t ncp;
     uint8_t nm;
     normalize(chord.key, chord.codepoint, chord.mods, &nt, &ncp, &nm);
-    char letter = (nt == SC_KEY_CHAR) ? (char)ncp : '?';
-    if (nm & SC_MOD_CTRL) {
-        snprintf(buf, cap, "^%c", toupper((unsigned char)letter));
-    } else if (nm & SC_MOD_ALT) {
-        snprintf(buf, cap, "M-%c", letter);
-    } else {
-        snprintf(buf, cap, "%c", letter);
+
+    char base[16];
+    key_base_name(nt, ncp, (nm & SC_MOD_CTRL) != 0, base, sizeof base);
+
+    // Modifier prefix: Ctrl keeps the established `^`; Alt `M-`; Shift `S-`.
+    char prefix[8];
+    size_t p = 0;
+    if (nm & SC_MOD_CTRL)  { prefix[p++] = '^'; }
+    if (nm & SC_MOD_ALT)   { prefix[p++] = 'M'; prefix[p++] = '-'; }
+    if (nm & SC_MOD_SHIFT) { prefix[p++] = 'S'; prefix[p++] = '-'; }
+    prefix[p] = '\0';
+
+    snprintf(buf, cap, "%s%s", prefix, base);
+}
+
+int sc_shortcut_hint_rows(const ScShortcut *items, size_t n,
+                          int indent, int term_w) {
+    if (!items) {
+        return 0;
     }
+    if (term_w < 1) {
+        term_w = 1;
+    }
+    // Visible width of the one-line footer, matching build_shortcut_hint():
+    // `name SP label`, joined by "  ·  " (5 columns), after `indent` columns.
+    int width = indent > 0 ? indent : 0;
+    int shown = 0;
+    for (size_t i = 0; i < n; i++) {
+        const ScShortcut *s = &items[i];
+        if (!s->hint_label || !s->hint_label[0]) {
+            continue;
+        }
+        if (shown > 0) { width += 5; }            /* "  ·  " */
+        char name[16];
+        sc_key_chord_name(s->chord, name, sizeof name);
+        width += (int)sc_utf8_string_length(name, strlen(name));
+        width += 1;                               /* space before the label */
+        width += (int)sc_utf8_string_length(s->hint_label,
+                                            strlen(s->hint_label));
+        shown++;
+    }
+    if (shown == 0) {
+        return 0;
+    }
+    int rows = (width + term_w - 1) / term_w;     /* ceil: terminal soft-wrap */
+    return rows < 1 ? 1 : rows;
 }
 
 const ScShortcut *sc_shortcut_find(
