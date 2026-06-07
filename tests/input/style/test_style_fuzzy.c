@@ -134,6 +134,15 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(fw, ""));
     sc_fuzzy_free(fw);
 
+    /* max_height clamps the list to fit a small region; it scrolls within and
+     * shows the scroll indicator instead of overflowing. */
+    ScFuzzy *mh = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "City",
+                                              .max_height = 6 });
+    for (size_t k = 0; k < n; k++) { sc_fuzzy_add(mh, cities[k]); }
+    style_show("fuzzy list: max_height 6 clamps + scrolls",
+               sc_fuzzy_frame(mh, ""));
+    sc_fuzzy_free(mh);
+
     /* List view, widget background without a frame: rows inherit it and the
      * cursor row is a full-width bar (selected_style.bg). */
     ScFuzzy *j = sc_fuzzy_new((ScFuzzyOpts){

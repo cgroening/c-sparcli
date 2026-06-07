@@ -45,4 +45,17 @@ char *sc_truncate(const char *str, int max_cols, const char *ellipsis);
  */
 SPARCLI_EXPORT void sc_clear_line(void);
 
+/**
+ * Current terminal size in character cells. Either pointer may be `NULL`.
+ * Falls back to 80x24 when the size cannot be determined (no terminal
+ * attached, `ioctl` failure, redirected output).
+ */
+SPARCLI_EXPORT void sc_terminal_size(int *width, int *height);
+
+/** Current terminal width in columns (80 fallback). @see sc_terminal_size */
+SPARCLI_EXPORT int sc_term_width(void);
+
+/** Current terminal height in rows (24 fallback). @see sc_terminal_size */
+SPARCLI_EXPORT int sc_term_height(void);
+
 SPARCLI_END_DECLS

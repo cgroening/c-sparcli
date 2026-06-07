@@ -6,7 +6,7 @@ import weakref
 from dataclasses import dataclass
 
 from ._ffi import cstr, ffi, lib
-from .enums import Align
+from .enums import Align, VAlign
 from .output import PanelOpts, RuleOpts
 from .table import Table, TableOpts, _opts_to_c
 from .text import Text
@@ -184,19 +184,27 @@ class Live:
     prompt_rows
         Rows reserved below the frame for an interactive prompt (REPL
         dashboards); the cursor parks there after each update. 0 = classic.
+    valign
+        Vertical alignment on the alternate screen (``VAlign.TOP`` default /
+        ``MIDDLE`` / ``BOTTOM``); only with ``alt_screen``.
+    valign_fixed_header
+        Align only the reserved region, keeping the frame at the top.
     """
 
     __slots__ = ("_live",)
 
     def __init__(self, alt_screen: bool = False, show_cursor: bool = False,
                  transient: bool = False, always: bool = False,
-                 prompt_rows: int = 0) -> None:
+                 prompt_rows: int = 0, valign: VAlign = VAlign.TOP,
+                 valign_fixed_header: bool = False) -> None:
         opts = ffi.new("ScLiveOpts *")
         opts.alt_screen = alt_screen
         opts.show_cursor = show_cursor
         opts.transient = transient
         opts.always = always
         opts.prompt_rows = prompt_rows
+        opts.valign = int(valign)
+        opts.valign_fixed_header = valign_fixed_header
         self._live = lib.sc_live_begin(opts[0])
 
     def update(self, frame: "Rendered | str | Text | Table") -> None:

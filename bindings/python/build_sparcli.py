@@ -581,6 +581,9 @@ bool sc_allow_ansi(void);
 char *sc_strip_ansi(const char *str);
 char *sc_truncate(const char *str, int max_cols, const char *ellipsis);
 void sc_clear_line(void);
+void sc_terminal_size(int *width, int *height);
+int sc_term_width(void);
+int sc_term_height(void);
 
 /* ── App: XDG paths + pager ────────────────────────────────────────────── */
 typedef enum {
@@ -610,6 +613,8 @@ typedef struct {
     bool transient;
     bool always;
     int prompt_rows;
+    ScVAlign valign;
+    bool valign_fixed_header;
     ...;
 } ScLiveOpts;
 ScLive *sc_live_begin(ScLiveOpts opts);
@@ -1004,6 +1009,7 @@ typedef struct {
     ScTextStyle mode_normal_style;
     ScTextStyle mode_insert_style;
     uint64_t stretch_columns;
+    int max_height;
     ...;
 } ScFuzzyOpts;
 typedef struct ScFuzzy ScFuzzy;
@@ -1034,6 +1040,7 @@ void sc_fuzzy_set_row_style(ScFuzzy *fuzzy, size_t index, size_t col, ScTextStyl
 size_t sc_fuzzy_cursor_index(const ScFuzzy *fuzzy);
 bool sc_fuzzy_has_selection(const ScFuzzy *fuzzy);
 void sc_fuzzy_remove(ScFuzzy *fuzzy, size_t index);
+void sc_fuzzy_refresh(ScFuzzy *fuzzy);
 void sc_fuzzy_free(ScFuzzy *fuzzy);
 
 /* ── Date picker ───────────────────────────────────────────────────────── */

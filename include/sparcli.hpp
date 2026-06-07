@@ -1103,6 +1103,13 @@ inline std::string truncate(std::string_view s, int max_cols,
 /** Overwrites the current terminal line in place. @see sc_clear_line */
 inline void clear_line() { sc_clear_line(); }
 
+/** Current terminal size in cells (80x24 fallback). @see sc_terminal_size */
+inline std::pair<int, int> terminal_size() {
+    int w = 0, h = 0;
+    sc_terminal_size(&w, &h);
+    return { w, h };
+}
+
 /** Redirects the thread-local output stream; `nullptr` restores stdout. */
 inline void set_output(std::FILE* out) { sc_output_set_stream(out); }
 /** Current output stream (never NULL). @see sc_output_stream */
@@ -2303,6 +2310,8 @@ public:
     /** Removes the row at `index` (live, from a callback).
         @see sc_fuzzy_remove */
     void remove(std::size_t index) { sc_fuzzy_remove(detail::live(p_), index); }
+    /** Re-applies the query after appending rows mid-run. @see sc_fuzzy_refresh */
+    void refresh() { sc_fuzzy_refresh(detail::live(p_)); }
 
     /** Borrowed underlying `ScFuzzy*` (escape hatch); not owned. */
     ScFuzzy* get() { return p_; }

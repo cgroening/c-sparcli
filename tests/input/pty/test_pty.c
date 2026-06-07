@@ -55,6 +55,15 @@ static bool remove_cb(int id, void *user) {
     return true;
 }
 
+/** Callback-mode shortcut: appends a fuzzy row and refreshes in place. */
+static bool fuzzy_add_cb(int id, void *user) {
+    (void)id;
+    ScFuzzy *f = user;
+    sc_fuzzy_add(f, "zzz");
+    sc_fuzzy_refresh(f);
+    return true;   // keep the finder open
+}
+
 /** Returns 0 when the widget produced the expected value, else non-zero. */
 static int child_case(int c) {
     switch (c) {
@@ -1154,6 +1163,24 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 80: {
+            /* Fuzzy refresh: a callback shortcut appends "zzz" + refreshes in
+               place; filtering to it and selecting returns add-order index 2. */
+            ScShortcut sk[] = {
+                { .chord = sc_key_ctrl('r'), .id = 1,
+                  .mode = SC_SHORTCUT_CALLBACK, .on_fire = fuzzy_add_cb },
+            };
+            ScFuzzy *f = sc_fuzzy_new(
+                (ScFuzzyOpts){ .shortcuts = sk, .n_shortcuts = 1 });
+            sk[0].user = f;   /* borrowed shortcuts: point at the live finder */
+            sc_fuzzy_add(f, "alpha");
+            sc_fuzzy_add(f, "beta");
+            size_t idx = 99;
+            ScInputStatus s = sc_fuzzy_run(f, &idx);
+            int ok = (s == SC_INPUT_OK && idx == 2);
+            sc_fuzzy_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1247,6 +1274,7 @@ static const Case CASES[] = {
     { "date-clear", "\x1b[3~" },                  /* Delete clears -> no date */
     { "form-date-clear", "\r\x7f\x04" },          /* edit, Backspace clears, submit */
     { "form-date-optional-empty", "\x04" },       /* optional date starts empty */
+    { "fuzzy-refresh", "\x12zzz\r" },     /* ^R adds+refreshes, filter, select */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

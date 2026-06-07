@@ -239,6 +239,14 @@ def clear_line() -> None:
     lib.sc_clear_line()
 
 
+def terminal_size() -> tuple[int, int]:
+    """Current terminal size ``(width, height)`` in cells (80x24 fallback)."""
+    w = ffi.new("int *")
+    h = ffi.new("int *")
+    lib.sc_terminal_size(w, h)
+    return (w[0], h[0])
+
+
 class ScopedOutput:
     """Redirect sparcli's output to a writable file for the ``with`` block.
 

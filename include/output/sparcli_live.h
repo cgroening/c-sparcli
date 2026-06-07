@@ -93,6 +93,24 @@ typedef struct ScLiveOpts {
      * see `examples/c/apps/repl_dashboard.c`.
      */
     int prompt_rows;
+
+    /**
+     * Vertical alignment of the live content within the (alternate) screen:
+     * `SC_VALIGN_TOP` (zero-init = today's top-anchored behavior),
+     * `SC_VALIGN_MIDDLE` or `SC_VALIGN_BOTTOM`. Only takes effect on an
+     * `alt_screen` session emitting to a terminal; otherwise ignored. By
+     * default the **whole block** (frame + reserved `prompt_rows`) is aligned;
+     * set `valign_fixed_header` to align only the reserved region.
+     */
+    ScVAlign valign;
+
+    /**
+     * When `true`, keep the frame pinned at the top and vertically align only
+     * the reserved `prompt_rows` region (the interactive widget) in the space
+     * beneath it. Zero-init = `false` (align the whole frame+reserve block).
+     * No effect when `valign == SC_VALIGN_TOP`.
+     */
+    bool valign_fixed_header;
 } ScLiveOpts;
 
 

@@ -565,6 +565,14 @@
   ╰[0m──────────────────────────────────────────────────────────────────────────────[0m╯[0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
+[2mfuzzy list: max_height 6 clamps + scrolls[0m
+  [1m[36mCity[0m [0m[30m[47m [0m[2m  (5/5)[0m
+  [1m[36m‣ [0m[1m[36mTokyo[0m
+    [0mToronto[0m
+    [0mLondon[0m
+  [2m    1-3/5 ↓[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
 [2mfuzzy list: black widget bg, magenta full-width cursor bar[0m
    [0m                [0m [0m
    [0m[40m [1m[36mCity[0m[0m[40m [0m[0m[40mo[0m[0m[40m[30m[47m [0m[0m[40m[2m  (5/5)[0m[0m[40m [0m [0m

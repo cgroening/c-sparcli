@@ -1707,6 +1707,19 @@ extern "C" {
     #[doc = " Overwrites the current terminal line with spaces and returns the cursor\n to column 0, then flushes stdout."]
     pub fn sc_clear_line();
 }
+extern "C" {
+    #[doc = " Current terminal size in character cells (80x24 fallback)."]
+    pub fn sc_terminal_size(
+        width: *mut ::std::os::raw::c_int,
+        height: *mut ::std::os::raw::c_int,
+    );
+}
+extern "C" {
+    pub fn sc_term_width() -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn sc_term_height() -> ::std::os::raw::c_int;
+}
 pub type time_t = __darwin_time_t;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1977,10 +1990,14 @@ pub struct ScLiveOpts {
     pub always: bool,
     #[doc = " Rows reserved below the frame for an interactive prompt. After every\n update the cursor is parked at column 0 of the first reserved row -\n exactly where an input widget (e.g. `sc_text_input` with\n `hide_summary = true`) then draws and erases itself - and the next\n update rewinds over the frame and the reserved rows together, so the\n live display and the prompt never corrupt each other's regions.\n\n Reserve as many rows as the prompt actually draws (input line +\n hint/shortcut footer lines); the frame is height-clamped so the\n reserved rows always fit on screen and the prompt never scrolls the\n terminal. Zero-init = 0 (classic behavior: the cursor stays at the\n end of the frame). This is the building block for REPL dashboards;\n see `examples/c/apps/repl_dashboard.c`."]
     pub prompt_rows: ::std::os::raw::c_int,
+    #[doc = " Vertical alignment of the live content on the alternate screen."]
+    pub valign: ScVAlign,
+    #[doc = " Align only the reserved region, keeping the frame at the top."]
+    pub valign_fixed_header: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScLiveOpts"][::std::mem::size_of::<ScLiveOpts>() - 8usize];
+    ["Size of ScLiveOpts"][::std::mem::size_of::<ScLiveOpts>() - 16usize];
     ["Alignment of ScLiveOpts"][::std::mem::align_of::<ScLiveOpts>() - 4usize];
     ["Offset of field: ScLiveOpts::alt_screen"]
         [::std::mem::offset_of!(ScLiveOpts, alt_screen) - 0usize];
@@ -1991,6 +2008,10 @@ const _: () = {
     ["Offset of field: ScLiveOpts::always"][::std::mem::offset_of!(ScLiveOpts, always) - 3usize];
     ["Offset of field: ScLiveOpts::prompt_rows"]
         [::std::mem::offset_of!(ScLiveOpts, prompt_rows) - 4usize];
+    ["Offset of field: ScLiveOpts::valign"]
+        [::std::mem::offset_of!(ScLiveOpts, valign) - 8usize];
+    ["Offset of field: ScLiveOpts::valign_fixed_header"]
+        [::std::mem::offset_of!(ScLiveOpts, valign_fixed_header) - 12usize];
 };
 extern "C" {
     #[doc = " Starts a live session on the calling thread's `sc_output_stream()`.\n\n The target stream is captured at this call; later captures or stream\n redirections on the same thread do not affect the running session.\n Only one live session should drive a given terminal at a time.\n\n Cleanup safety: cursor visibility and the alternate screen are restored\n via `atexit` on clean exits and on SIGINT/SIGTERM/SIGHUP/SIGQUIT (the\n signal is then re-raised). Crash signals (SIGSEGV/SIGABRT) are not\n trapped.\n\n @param opts  Session options; zero-init for defaults.\n @return      Heap-allocated session handle; `NULL` only on allocation\n              failure. Always pair with `sc_live_end`."]
@@ -3373,10 +3394,12 @@ pub struct ScFuzzyOpts {
     pub mode_insert_style: ScTextStyle,
     #[doc = " Bitmask of table columns that stretch to fill a bounded box width."]
     pub stretch_columns: u64,
+    #[doc = " Cap the finder height in rows so it scrolls; 0 = auto-fit terminal."]
+    pub max_height: ::std::os::raw::c_int,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 824usize];
+    ["Size of ScFuzzyOpts"][::std::mem::size_of::<ScFuzzyOpts>() - 832usize];
     ["Alignment of ScFuzzyOpts"][::std::mem::align_of::<ScFuzzyOpts>() - 8usize];
     ["Offset of field: ScFuzzyOpts::prompt"][::std::mem::offset_of!(ScFuzzyOpts, prompt) - 0usize];
     ["Offset of field: ScFuzzyOpts::max_visible"]
@@ -3475,6 +3498,8 @@ const _: () = {
         [::std::mem::offset_of!(ScFuzzyOpts, mode_insert_style) - 796usize];
     ["Offset of field: ScFuzzyOpts::stretch_columns"]
         [::std::mem::offset_of!(ScFuzzyOpts, stretch_columns) - 816usize];
+    ["Offset of field: ScFuzzyOpts::max_height"]
+        [::std::mem::offset_of!(ScFuzzyOpts, max_height) - 824usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3619,6 +3644,10 @@ extern "C" {
 extern "C" {
     #[doc = " Removes the row at `index` (0-based, current add order), freeing its fields.\n Intended for a `SC_SHORTCUT_CALLBACK` to delete the highlighted row live:\n pair it with `sc_fuzzy_cursor_index`. The filtered view and cursor are\n rebuilt. No-op when `index` is out of range. Removing the last match leaves\n an empty result set (Enter can no longer submit; Esc cancels)."]
     pub fn sc_fuzzy_remove(fuzzy: *mut ScFuzzy, index: usize);
+}
+extern "C" {
+    #[doc = " Re-applies the query after appending rows mid-run (no-op outside a run)."]
+    pub fn sc_fuzzy_refresh(fuzzy: *mut ScFuzzy);
 }
 extern "C" {
     #[doc = " Frees a finder and all owned rows.\n\n @param fuzzy  Finder to free; safe to pass `NULL`."]

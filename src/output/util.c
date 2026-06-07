@@ -67,3 +67,11 @@ void sc_clear_line(void) {
     fputc('\r', sc_output_stream());
     fflush(sc_output_stream());
 }
+
+void sc_terminal_size(int *width, int *height) {
+    if (width)  { *width = sc_terminal_width(); }
+    if (height) { *height = sc_terminal_height(); }
+}
+
+int sc_term_width(void)  { return sc_terminal_width(); }
+int sc_term_height(void) { return sc_terminal_height(); }

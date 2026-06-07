@@ -201,6 +201,26 @@ static void draw_frame(ScLive *live, const ScRendered *frame) {
         count = (size_t)(rows - reserve);
     }
 
+    // Vertical alignment (alt-screen only): pad with blank rows so the block
+    // (frame + reserve) - or just the reserve, with valign_fixed_header - sits
+    // top/middle/bottom of the screen. The pads are part of the drawn region,
+    // so the cursor-up rewind and the prompt park row stay consistent.
+    int top_pad = 0, mid_gap = 0;
+    if (live->opts.alt_screen && live->opts.valign != SC_VALIGN_TOP
+        && rows > 0) {
+        if (live->opts.valign_fixed_header) {
+            int free_rows = rows - (int)count - reserve;
+            if (free_rows < 0) { free_rows = 0; }
+            mid_gap = live->opts.valign == SC_VALIGN_MIDDLE
+                ? free_rows / 2 : free_rows;
+        } else {
+            int free_rows = rows - (int)count - reserve;
+            if (free_rows < 0) { free_rows = 0; }
+            top_pad = live->opts.valign == SC_VALIGN_MIDDLE
+                ? free_rows / 2 : free_rows;
+        }
+    }
+
     // Rewind to the top-left of the previously drawn region.
     if (live->prev_lines > 1) {
         fprintf(out, "\033[%dA", live->prev_lines - 1);
@@ -209,12 +229,24 @@ static void draw_frame(ScLive *live, const ScRendered *frame) {
         fputc('\r', out);
     }
 
+    // Leading blank rows (whole-block alignment).
+    for (int i = 0; i < top_pad; i++) {
+        fputs(LIVE_ERASE_LINE_END, out);
+        fputc('\n', out);
+    }
+
     for (size_t i = 0; i < count; i++) {
         fputs(frame->lines[i] ? frame->lines[i] : "", out);
         fputs(LIVE_ERASE_LINE_END, out);
         if (i + 1 < count) {
             fputc('\n', out);
         }
+    }
+
+    // Gap rows between a fixed header and the aligned widget region.
+    for (int i = 0; i < mid_gap; i++) {
+        fputc('\n', out);
+        fputs(LIVE_ERASE_LINE_END, out);
     }
     fputs(LIVE_ERASE_BELOW, out);
 
@@ -226,7 +258,7 @@ static void draw_frame(ScLive *live, const ScRendered *frame) {
         fputc('\r', out);
     }
 
-    live->prev_lines = (int)count + reserve;
+    live->prev_lines = top_pad + (int)count + mid_gap + reserve;
     fflush(out);
 }
 

@@ -8,6 +8,13 @@ use crate::style::{
 use crate::text::Text;
 use sparcli_sys as ffi;
 
+/// Current terminal size `(width, height)` in cells (80x24 fallback).
+pub fn terminal_size() -> (i32, i32) {
+    let (mut w, mut h) = (0, 0);
+    unsafe { ffi::sc_terminal_size(&mut w, &mut h) };
+    (w, h)
+}
+
 repr_enum!(
     /// Preset alert kinds.
     AlertType {
@@ -1806,6 +1813,16 @@ pub struct LiveOpts {
     /// dashboards): the cursor is parked there after every update. Reserve
     /// as many rows as the prompt draws. 0 = classic behavior.
     pub prompt_rows: i32,
+
+    /// Vertical alignment of the live content on the alternate screen
+    /// (`VAlign::Top` default / `Middle` / `Bottom`). Only takes effect with
+    /// `alt_screen`. Aligns the whole frame+reserve block unless
+    /// `valign_fixed_header` is set.
+    pub valign: VAlign,
+
+    /// Keep the frame at the top and align only the reserved widget region
+    /// beneath it (default: align the whole block).
+    pub valign_fixed_header: bool,
 }
 
 impl LiveOpts {
@@ -1830,6 +1847,16 @@ impl LiveOpts {
     }
     pub fn prompt_rows(mut self, rows: i32) -> Self {
         self.prompt_rows = rows;
+        self
+    }
+    /// Vertically align the live content on the alternate screen.
+    pub fn valign(mut self, v: VAlign) -> Self {
+        self.valign = v;
+        self
+    }
+    /// Align only the reserved widget region, keeping the frame at the top.
+    pub fn valign_fixed_header(mut self) -> Self {
+        self.valign_fixed_header = true;
         self
     }
 }
@@ -1865,6 +1892,8 @@ impl Live {
             transient: opts.transient,
             always: opts.always,
             prompt_rows: opts.prompt_rows,
+            valign: opts.valign.raw(),
+            valign_fixed_header: opts.valign_fixed_header,
         };
         let ptr = unsafe { ffi::sc_live_begin(raw_opts) };
         Live { ptr }

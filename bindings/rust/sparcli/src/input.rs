@@ -1577,6 +1577,10 @@ pub struct FuzzyOpts {
     /// has a bounded width (bit `c` = column `c`); `0` (default) keeps the table
     /// content-sized. Table view only.
     pub stretch_columns: u64,
+    /// Cap the finder's total height in rows so it scrolls instead of
+    /// overflowing; `0` (default) auto-fits the terminal. Set to the reserved
+    /// rows when running inside a live dashboard.
+    pub max_height: i32,
     /// Table-view rendering options (border, header style, padding, …).
     pub table_opts: crate::output::TableOpts,
     /// Multi-select: Space toggles, run via [`Fuzzy::run_multi`].
@@ -1653,6 +1657,11 @@ impl FuzzyOpts {
     /// Sets which table columns stretch to fill the box width (bitmask).
     pub fn stretch_columns(mut self, mask: u64) -> Self {
         self.stretch_columns = mask;
+        self
+    }
+    /// Caps the finder height in rows (scrolls within); 0 = auto-fit terminal.
+    pub fn max_height(mut self, rows: i32) -> Self {
+        self.max_height = rows;
         self
     }
     /// Sets the table-view rendering options.
@@ -1816,6 +1825,7 @@ impl Fuzzy {
         }
         o.search_columns = opts.search_columns;
         o.stretch_columns = opts.stretch_columns;
+        o.max_height = opts.max_height;
         o.table_opts = opts.table_opts.raw(&mut arena);
         o.multi = opts.multi;
         o.checkbox_column = opts.checkbox_column;
@@ -2022,6 +2032,11 @@ impl Fuzzy {
     pub fn remove(&mut self, index: usize) {
         unsafe { ffi::sc_fuzzy_remove(self.ptr, index) };
         self.count = self.count.saturating_sub(1);
+    }
+    /// Re-applies the query after appending rows mid-run (e.g. from a refresh
+    /// shortcut), so new items appear without closing the finder.
+    pub fn refresh(&mut self) {
+        unsafe { ffi::sc_fuzzy_refresh(self.ptr) };
     }
     /// Runs the finder → the chosen item's original add-order index.
     pub fn run(&mut self) -> Result<Option<usize>> {

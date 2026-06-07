@@ -160,6 +160,37 @@ ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts) {
     return self;
 }
 
+/* Rows the finder draws around its result list (box frame + hint footer). */
+static int fuzzy_chrome_rows(const ScFuzzy *self) {
+    ScBoxStyle b = self->opts.box;
+    bool border = b.enabled || b.border.type != SC_BORDER_NONE;
+    bool framed = border || b.bg.index != 0 || sc_edges_any(b.padding)
+                  || b.width > 0 || b.width_mode != SC_WIDTH_DEFAULT;
+    int rows = 1;                              /* query/prompt line */
+    rows += 1;                                 /* scroll-indicator reserve */
+    if (framed) { rows += (border ? 2 : 0) + b.padding.top + b.padding.bottom; }
+    if (self->opts.hint_layout != SC_HINT_HIDDEN
+        && self->opts.hint_pos != SC_HINT_POS_LEFT
+        && self->opts.hint_pos != SC_HINT_POS_RIGHT) {
+        rows += 1;                             /* footer (inline) */
+    }
+    return rows;
+}
+
+/* Visible result rows: max_visible, clamped so the whole finder fits within
+   opts.max_height (or the terminal height when max_height is 0). */
+static size_t effective_visible(const ScFuzzy *self) {
+    size_t vis = self->max_visible > 0 ? (size_t)self->max_visible : 10;
+    int cap = self->opts.max_height > 0 ? self->opts.max_height
+                                        : sc_terminal_height();
+    if (cap > 0) {
+        int avail = cap - fuzzy_chrome_rows(self);
+        if (avail < 1) { avail = 1; }
+        if ((size_t)avail < vis) { vis = (size_t)avail; }
+    }
+    return vis < 1 ? 1 : vis;
+}
+
 void sc_fuzzy_add(ScFuzzy *self, const char *label) {
     const char *one[1] = { label };
     sc_fuzzy_add_row(self, one, 1);
@@ -353,7 +384,7 @@ void sc_fuzzy_set_cursor(ScFuzzy *self, size_t index) {
     for (size_t k = 0; k < self->match_n; k++) {
         if (!self->matches[k].is_section && self->matches[k].index == index) {
             self->cursor = k;
-            size_t visible = (size_t)self->max_visible;
+            size_t visible = effective_visible(self);
             if (self->cursor < self->top) {
                 self->top = self->cursor;
             } else if (self->cursor >= self->top + visible) {
@@ -597,6 +628,14 @@ void sc_fuzzy_remove(ScFuzzy *self, size_t index) {
     }
 }
 
+void sc_fuzzy_refresh(ScFuzzy *self) {
+    // `matches` is allocated only during a run; refilter re-applies the query
+    // and re-clamps the cursor (a no-op outside a run).
+    if (self && self->matches) {
+        refilter(self);
+    }
+}
+
 ScRendered *sc_fuzzy_frame(ScFuzzy *self, const char *query) {
     if (!self || self->count == 0) {
         return NULL;
@@ -774,6 +813,13 @@ static void clamp_cursor_selectable(ScFuzzy *self) {
  */
 static void refilter(ScFuzzy *self) {
     const char *query = self->query.buf;
+    // Rows can grow mid-run (sc_fuzzy_add + sc_fuzzy_refresh). The display list
+    // never holds more than one entry per row, so a `count`-sized array fits.
+    if (self->count > 0) {
+        void *grown =
+            realloc(self->matches, self->count * sizeof *self->matches);
+        if (grown) { self->matches = grown; }
+    }
     self->match_n = 0;
     self->selectable_n = 0;
 
@@ -824,7 +870,7 @@ static void refilter(ScFuzzy *self) {
 
     clamp_cursor_selectable(self);
 
-    size_t visible = (size_t)self->max_visible;
+    size_t visible = effective_visible(self);
     if (self->cursor < self->top) {
         self->top = self->cursor;
     } else if (self->cursor >= self->top + visible) {
@@ -1085,7 +1131,7 @@ static int section_entry_width(const ScFuzzy *self, size_t entry) {
 
 /** Widest visible list row, for the box width resolution. */
 static int render_list_width(ScFuzzy *self) {
-    size_t visible = (size_t)self->max_visible;
+    size_t visible = effective_visible(self);
     size_t end = self->top + visible;
     if (end > self->match_n) {
         end = self->match_n;
@@ -1125,7 +1171,7 @@ static ScRendered *render_list(ScFuzzy *self, int interior_w, bool fill) {
     if (!text) {
         return NULL;
     }
-    size_t visible = (size_t)self->max_visible;
+    size_t visible = effective_visible(self);
     size_t end = self->top + visible;
     if (end > self->match_n) {
         end = self->match_n;
@@ -1270,7 +1316,7 @@ static ScRendered *render_table(ScFuzzy *self, int total_width) {
     size_t off = cb ? 1 : 0;          /* leading checkbox column offset */
     size_t tcols = cols + off;        /* total table columns */
 
-    size_t visible = (size_t)self->max_visible;
+    size_t visible = effective_visible(self);
     size_t end = self->top + visible;
     if (end > self->match_n) {
         end = self->match_n;
@@ -1444,7 +1490,7 @@ static ScTableOpts resolve_fuzzy_table_opts(const ScFuzzy *self,
 
 /** Builds a dim "↑ first-last/total ↓" line, or NULL when nothing is hidden. */
 static ScRendered *render_scroll_hint(ScFuzzy *self) {
-    size_t visible = (size_t)self->max_visible;
+    size_t visible = effective_visible(self);
     size_t end = self->top + visible;
     if (end > self->match_n) {
         end = self->match_n;
@@ -1536,7 +1582,7 @@ static void cursor_up(ScFuzzy *self) {
 
 /** Keeps the cursor row within the visible viewport. */
 static void scroll_to_cursor(ScFuzzy *self) {
-    size_t visible = (size_t)self->max_visible;
+    size_t visible = effective_visible(self);
     if (self->cursor < self->top) {
         self->top = self->cursor;
     } else if (self->cursor >= self->top + visible) {

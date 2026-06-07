@@ -50,8 +50,8 @@ from .keys import (KeyChord, Shortcuts, key_alt, key_char, key_ctrl, key_down,
                    key_enter, key_fn, key_left, key_right, key_tab, key_up)
 from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      allow_ansi, badge, clear_line, panel, print_, println,
-                     rule, set_allow_ansi, strip_ansi, truncate, version,
-                     version_string)
+                     rule, set_allow_ansi, strip_ansi, terminal_size, truncate,
+                     version, version_string)
 from .progress import (ProgressBar, ProgressBarOpts, Spinner, SpinnerOpts,
                        Thresholds)
 from .form import FieldOpts, Form, FormOpts
@@ -90,7 +90,7 @@ __all__ = [
     # simple output
     "print_", "println", "panel", "PanelOpts", "rule", "RuleOpts", "badge",
     "BadgeOpts", "alert", "version", "version_string", "strip_ansi", "truncate",
-    "clear_line", "ScopedOutput", "set_allow_ansi", "allow_ansi",
+    "clear_line", "terminal_size", "ScopedOutput", "set_allow_ansi", "allow_ansi",
     # markup
     "markup",
     # tables

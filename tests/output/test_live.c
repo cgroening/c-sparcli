@@ -181,6 +181,37 @@ void test_live(void) {
         print_contains("updated frame content drawn", bytes, "BODY");
         free(buffer);
     }
+
+    /* ── 8. Vertical alignment on the alt screen (always = true) ── */
+    printf("--- Live 8. Vertical alignment (always = true) ---\n");
+    {
+        char *buffer = NULL;
+        size_t size = 0;
+        FILE *mem = open_memstream(&buffer, &size);
+        if (!mem) {
+            printf("open_memstream failed\n");
+            return;
+        }
+
+        FILE *saved = sc_output_stream();
+        sc_output_set_stream(mem);
+        ScLive *live = sc_live_begin((ScLiveOpts){
+            .alt_screen = true, .always = true, .valign = SC_VALIGN_BOTTOM,
+        });
+        sc_live_update_str(live, "header\nbody");
+        sc_live_end(live);
+        sc_output_set_stream(saved);
+        fclose(mem);
+
+        const char *bytes = buffer ? buffer : "";
+        /* Bottom alignment pushes the 2-line frame down with leading blank
+           rows; each padding row is an erase-to-eol + newline (`\033[K\n`),
+           several in a row - which never occurs in a top-anchored frame. */
+        print_contains("leading blank rows for bottom valign", bytes,
+                       "\033[K\n\033[K\n\033[K\n");
+        print_contains("frame content still drawn", bytes, "header");
+        free(buffer);
+    }
 }
 
 /**

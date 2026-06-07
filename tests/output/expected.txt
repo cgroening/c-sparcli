@@ -613,6 +613,9 @@ final frame re-printed after leaving          yes
 cursor parked below the frame                 yes
 rewind spans frame + reserved row             yes
 updated frame content drawn                   yes
+--- Live 8. Vertical alignment (always = true) ---
+leading blank rows for bottom valign          yes
+frame content still drawn                     yes
 ════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════ [1mKey-Value Pairs[0m ════════════════════════════════

@@ -240,6 +240,17 @@ typedef struct ScFuzzyOpts {
      * already fills a bounded box, so this is table-view only.
      */
     uint64_t stretch_columns;
+
+    /**
+     * Cap the finder's total height (in terminal rows) so it never overflows a
+     * limited region; the result list then scrolls within the remaining space
+     * (the existing `↑ first–last/total ↓` viewport). `0` (default) auto-fits to
+     * the terminal height. Set it to the rows available below a header when the
+     * finder runs inside a live dashboard's reserved region (`prompt_rows`).
+     * The visible row count is `max_height` minus the query line, the scroll
+     * indicator, the box frame and the hint footer.
+     */
+    int max_height;
 } ScFuzzyOpts;
 
 /** Opaque fuzzy-finder instance; build with `sc_fuzzy_new`. */
@@ -433,6 +444,15 @@ SPARCLI_EXPORT bool sc_fuzzy_has_selection(const ScFuzzy *fuzzy);
  * an empty result set (Enter can no longer submit; Esc cancels).
  */
 SPARCLI_EXPORT void sc_fuzzy_remove(ScFuzzy *fuzzy, size_t index);
+
+/**
+ * Re-applies the current query to the rows and re-clamps the cursor, redrawing
+ * the finder on the next frame. Call it after appending rows mid-run (e.g. the
+ * data source grew) so the new items appear without closing the finder: bind a
+ * `SC_SHORTCUT_CALLBACK` "refresh" key whose `on_fire` adds rows via
+ * `sc_fuzzy_add`/`sc_fuzzy_add_row` and then calls this. No-op outside a run.
+ */
+SPARCLI_EXPORT void sc_fuzzy_refresh(ScFuzzy *fuzzy);
 
 /**
  * Frees a finder and all owned rows.
