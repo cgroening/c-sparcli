@@ -288,9 +288,21 @@ static size_t decode_escape(const char *buf, size_t len, ScKey *out) {
         decode_csi_tilde(param, modifier, out);
         return i + 1;
     }
-    if (has_param || !decode_csi_letter(final, out)) {
-        out->type = SC_KEY_NONE;   // unrecognized CSI
+    if (decode_csi_letter(final, out)) {
+        // A `1;<mod>` parameter carries Shift/Alt/Ctrl (xterm encoding:
+        // code = modifier - 1, bit0 Shift, bit1 Alt, bit2 Ctrl). Without a
+        // modifier the bare `param == 1` (e.g. `ESC [ 1 H`) is just the key.
+        if (modifier > 1) {
+            const int code = modifier - 1;
+            if (code & 1) { out->mods |= SC_MOD_SHIFT; }
+            if (code & 2) { out->mods |= SC_MOD_ALT; }
+            if (code & 4) { out->mods |= SC_MOD_CTRL; }
+        } else if (has_param && param != 1) {
+            out->type = SC_KEY_NONE;   // a real parameter, not a modifier form
+        }
+        return i + 1;
     }
+    out->type = SC_KEY_NONE;   // unrecognized CSI
     return i + 1;
 }
 

@@ -1285,6 +1285,45 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 87: {
+            /* Modal insert mode: a Backspace-bound shortcut is SUPPRESSED so
+               Backspace edits the query. Type "xq" (no match), Backspace ->
+               "x" (matches "xtra"), Enter picks it; the shortcut never fires. */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_BACKSPACE }, .id = 5,
+                  .mode = SC_SHORTCUT_RETURN },
+            };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true, .start_in_insert = true,
+                .shortcuts = sk, .n_shortcuts = 1, .out_shortcut_id = &act });
+            sc_fuzzy_add(fz, "alpha");
+            sc_fuzzy_add(fz, "xtra");
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);
+            int ok = (s == SC_INPUT_OK && act == -1 && pick == 1);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
+        case 88: {
+            /* Modal normal mode: the same Backspace shortcut still FIRES (named
+               keys are only suppressed in insert mode). */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_BACKSPACE }, .id = 5,
+                  .mode = SC_SHORTCUT_RETURN },
+            };
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){
+                .modal = true,   /* starts in normal mode */
+                .shortcuts = sk, .n_shortcuts = 1, .out_shortcut_id = &act });
+            sc_fuzzy_add(fz, "alpha");
+            sc_fuzzy_add(fz, "xtra");
+            size_t pick = 99;
+            sc_fuzzy_run(fz, &pick);
+            int ok = (act == 5);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1389,6 +1428,8 @@ static const Case CASES[] = {
       "\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B"
       "\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A"
       "x" },
+    { "modal-insert-backspace-edits", "xq\x7f\r" }, /* BS edits query in insert */
+    { "modal-normal-backspace-fires", "\x7f" },     /* BS fires shortcut in normal */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

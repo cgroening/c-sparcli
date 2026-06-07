@@ -45,6 +45,22 @@ void test_key_decode(void) {
     expect("\x1b[6;2~", SC_KEY_SHIFT_PAGEDOWN, 6, "CSI shift page-down");
     expect("\x1bOH",  SC_KEY_HOME,      3, "SS3 home");
 
+    /* Modified named keys via the xterm `1;<mod>` parameter (mod = code+1;
+     * bit0 Shift, bit1 Alt, bit2 Ctrl). The key type is unchanged; the
+     * modifier bitmask carries the state. */
+    expect_mods("\x1b[1;2A", 6, SC_KEY_UP,    6, 0, SC_MOD_SHIFT, "Shift+Up");
+    expect_mods("\x1b[1;3A", 6, SC_KEY_UP,    6, 0, SC_MOD_ALT,   "Alt+Up");
+    expect_mods("\x1b[1;5A", 6, SC_KEY_UP,    6, 0, SC_MOD_CTRL,  "Ctrl+Up");
+    expect_mods("\x1b[1;4B", 6, SC_KEY_DOWN,  6, 0,
+                SC_MOD_SHIFT | SC_MOD_ALT, "Shift+Alt+Down");
+    expect_mods("\x1b[1;2H", 6, SC_KEY_HOME,  6, 0, SC_MOD_SHIFT, "Shift+Home");
+    expect_mods("\x1b[1;5C", 6, SC_KEY_RIGHT, 6, 0, SC_MOD_CTRL,  "Ctrl+Right");
+    /* Bare `1`-prefixed forms are the plain key (no modifier). */
+    expect_mods("\x1b[1A", 4, SC_KEY_UP,   4, 0, SC_MOD_NONE, "ESC[1A = Up");
+    expect_mods("\x1b[1H", 4, SC_KEY_HOME, 4, 0, SC_MOD_NONE, "ESC[1H = Home");
+    /* A real (non-modifier) numeric parameter is still rejected. */
+    expect("\x1b[5A", SC_KEY_NONE, 4, "CSI letter with real param → none");
+
     /* Function keys: SS3 (F1-F4) and CSI (F1-F12). */
     expect("\x1bOP",   SC_KEY_F1,  3, "SS3 F1");
     expect("\x1bOS",   SC_KEY_F4,  3, "SS3 F4");

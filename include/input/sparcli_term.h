@@ -137,6 +137,12 @@ typedef enum ScKeyMods {
      * shortcuts, or submit single-line inputs.
      */
     SC_MOD_PASTED = 1 << 2,
+
+    /**
+     * Shift modifier, set on named keys that carry an xterm modifier parameter
+     * (e.g. Shift+Arrow `ESC [ 1 ; 2 A`). Not reported for plain typed letters.
+     */
+    SC_MOD_SHIFT  = 1 << 3,
 } ScKeyMods;
 
 /** A single decoded key event. */

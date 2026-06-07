@@ -199,9 +199,13 @@ static bool dispatch_shortcut(
     if (!hit) {
         return false;
     }
-    if (!allow_char_chords && hit->chord.key == SC_KEY_CHAR
-        && hit->chord.mods == 0) {
-        return false;   // bare-letter shortcut suppressed (insert mode)
+    if (!allow_char_chords && hit->chord.mods == 0
+        && (hit->chord.key == SC_KEY_CHAR
+            || hit->chord.key == SC_KEY_BACKSPACE
+            || hit->chord.key == SC_KEY_DELETE)) {
+        // Insert mode: bare letters and the editing keys reach the query
+        // editor instead of firing a shortcut.
+        return false;
     }
     if (hit->mode == SC_SHORTCUT_CALLBACK) {
         bool keep_open =

@@ -2214,7 +2214,8 @@ pub const ScKeyMods_SC_MOD_CTRL: ScKeyMods = 1;
 pub const ScKeyMods_SC_MOD_ALT: ScKeyMods = 2;
 #[doc = " The key comes from pasted text (bracketed paste mode): it is literal\n content, never a command. Pasted keys do not cancel prompts, match\n shortcuts, or submit single-line inputs."]
 pub const ScKeyMods_SC_MOD_PASTED: ScKeyMods = 4;
-#[doc = " Modifier bitmask carried by a decoded key (`ScKey.mods`).\n\n `SC_MOD_CTRL` is set on control bytes that are *not* one of the named\n editing keys (so e.g. Ctrl-O arrives as `SC_KEY_CHAR` + `SC_MOD_CTRL`);\n `SC_MOD_ALT` is set when an `ESC` prefix preceded the key (Alt/Meta)."]
+pub const ScKeyMods_SC_MOD_SHIFT: ScKeyMods = 8;
+#[doc = " Modifier bitmask carried by a decoded key (`ScKey.mods`).\n\n `SC_MOD_CTRL` is set on control bytes that are *not* one of the named\n editing keys (so e.g. Ctrl-O arrives as `SC_KEY_CHAR` + `SC_MOD_CTRL`);\n `SC_MOD_ALT` is set when an `ESC` prefix preceded the key (Alt/Meta);\n `SC_MOD_SHIFT`/`SC_MOD_ALT`/`SC_MOD_CTRL` are also set on named keys that\n carry an xterm `1;<mod>` parameter (e.g. Shift+Arrow `ESC [ 1 ; 2 A`)."]
 pub type ScKeyMods = ::std::os::raw::c_uint;
 #[doc = " A single decoded key event."]
 #[repr(C)]
