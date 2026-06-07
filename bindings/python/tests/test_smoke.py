@@ -103,6 +103,21 @@ def test_fuzzy_modal_opts():
     assert fz.has_selection() is False
 
 
+def test_key_chord_builders():
+    # Chainable modifiers set the mod bits (SC_MOD_SHIFT=8, SC_MOD_ALT=2).
+    assert sc.key_up().shift().value.mods & 8
+    assert sc.key_up().alt().value.mods & 2
+    assert sc.key_up().alt().shift().value.mods == (2 | 8)
+    # Char chords preserve case (case-sensitive shortcuts: p != P).
+    assert sc.key_char("p").value.codepoint == ord("p")
+    assert sc.key_char("P").value.codepoint == ord("P")
+    # The named-key builders all construct.
+    for kc in (sc.key_delete(), sc.key_backspace(), sc.key_home(), sc.key_end(),
+               sc.key_pageup(), sc.key_pagedown(), sc.key_backtab(),
+               sc.key_esc(), sc.key_special(sc.key_up().value.key)):
+        assert kc.value is not None
+
+
 def test_fullscreen_opts_and_altscreen():
     # A pinned header (borrowed for the run); exercises the fullscreen/valign/
     # header _fill path on both widgets + the alt-screen context manager.

@@ -106,6 +106,19 @@ SPARCLI_EXPORT ScKeyChord sc_key_alt(char letter);
 SPARCLI_EXPORT ScKeyChord sc_key_special(ScKeyType key);
 
 /**
+ * Builds a chord for a named key with modifiers, e.g.
+ * `sc_key_mod(SC_KEY_UP, SC_MOD_ALT)` (Alt+Up) or
+ * `sc_key_mod(SC_KEY_UP, SC_MOD_SHIFT | SC_MOD_ALT)`. The decoder reports these
+ * from the xterm `ESC[1;<mod>X` sequences. Shift only applies to named keys —
+ * terminals fold Shift into the character for letters (use the uppercase
+ * codepoint there). `sc_key_special(key)` == `sc_key_mod(key, 0)`.
+ *
+ * @param key   The `ScKeyType` to match (`SC_KEY_UP`, `SC_KEY_DELETE`, …).
+ * @param mods  A bitmask of `SC_MOD_SHIFT`/`SC_MOD_ALT`/`SC_MOD_CTRL`.
+ */
+SPARCLI_EXPORT ScKeyChord sc_key_mod(ScKeyType key, uint8_t mods);
+
+/**
  * Returns `true` when `key` matches `chord`. Normalizes the named
  * `SC_KEY_CTRL_*` keys against `SC_KEY_CHAR + SC_MOD_CTRL`, so
  * `sc_key_ctrl('e')` matches a decoded Ctrl-E however it was encoded.

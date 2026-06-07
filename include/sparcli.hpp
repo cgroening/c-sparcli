@@ -1888,6 +1888,12 @@ inline KeyChord key_char(char letter) {
 }
 /** Chord for a named key, e.g. `key_special(SC_KEY_LEFT)`. @see sc_key_special */
 inline KeyChord key_special(ScKeyType k) { return sc_key_special(k); }
+/** Named key + modifiers, e.g. `key_mod(SC_KEY_UP, SC_MOD_ALT)` (Alt+Up) or
+    `key_mod(SC_KEY_UP, SC_MOD_SHIFT | SC_MOD_ALT)`. @see sc_key_mod */
+inline KeyChord key_mod(ScKeyType k, uint8_t mods) { return sc_key_mod(k, mods); }
+/** Shift + named key, e.g. `key_shift(SC_KEY_UP)`. (Shift on a letter folds into
+    the character, so this is for named keys.) @see sc_key_mod */
+inline KeyChord key_shift(ScKeyType k) { return sc_key_mod(k, SC_MOD_SHIFT); }
 /** Arrow / Enter / Tab chords (for e.g. Left=back, Right=forward navigation). */
 inline KeyChord key_left()  { return sc_key_special(SC_KEY_LEFT); }
 inline KeyChord key_right() { return sc_key_special(SC_KEY_RIGHT); }

@@ -379,7 +379,7 @@ let yes = confirm("Proceed?", ConfirmOpts::new().shortcuts(&sc))?;
 if sc.fired() == 1 { /* F2 pressed */ }
 ```
 
-Besides `key_ctrl`/`key_fn`/`key_alt`, the named keys `key_left/right/up/down/enter/tab()` build chords for arrows/Enter/Tab - e.g. for Left = back / Right = forward navigation.
+Besides `key_ctrl`/`key_fn`/`key_alt`/`key_char` (char chords are **case-sensitive**: `key_char('p')` ≠ `key_char('P')`), the named keys `key_left/right/up/down/enter/tab/backtab/delete/backspace/home/end/pageup/pagedown/esc()` build chords for those keys, and chainable modifiers add Shift/Alt/Ctrl: `key_up().shift()`, `key_up().alt().shift()`, `key_delete().ctrl()`.
 
 For driving the decode loop yourself, `decode_key(&bytes) -> (Key, usize)` is the pure key decoder (`Key::kind()` is a `KeyType`, `.char_value()`, `.is_ctrl/alt/pasted()`); `Chord::matches(&key)` and `Shortcuts::find(&key)` mirror the prompt engine's own dispatch.
 

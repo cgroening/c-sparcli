@@ -88,8 +88,58 @@ pub fn key_enter() -> Chord {
 pub fn key_tab() -> Chord {
     Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_TAB) })
 }
+/// Shift-Tab (back-tab) chord. See [`key_left`].
+pub fn key_backtab() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_BACKTAB) })
+}
+/// Delete-key chord. See [`key_left`].
+pub fn key_delete() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_DELETE) })
+}
+/// Backspace-key chord. See [`key_left`].
+pub fn key_backspace() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_BACKSPACE) })
+}
+/// Home-key chord. See [`key_left`].
+pub fn key_home() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_HOME) })
+}
+/// End-key chord. See [`key_left`].
+pub fn key_end() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_END) })
+}
+/// Page-Up chord. See [`key_left`].
+pub fn key_pageup() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_PAGEUP) })
+}
+/// Page-Down chord. See [`key_left`].
+pub fn key_pagedown() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_PAGEDOWN) })
+}
+/// Esc-key chord. (Note: Esc also cancels a prompt unless the widget captures
+/// it; bindable only where that applies.) See [`key_left`].
+pub fn key_esc() -> Chord {
+    Chord(unsafe { ffi::sc_key_special(ffi::ScKeyType_SC_KEY_ESC) })
+}
 
 impl Chord {
+    /// Adds the Shift modifier (for named keys, e.g. `key_up().shift()`).
+    /// Shift on a letter folds into the character, so use it with named keys.
+    pub fn shift(mut self) -> Chord {
+        self.0.mods |= ffi::ScKeyMods_SC_MOD_SHIFT as u8;
+        self
+    }
+    /// Adds the Alt/Meta modifier, e.g. `key_up().alt()` or `key_char('p').alt()`.
+    pub fn alt(mut self) -> Chord {
+        self.0.mods |= ffi::ScKeyMods_SC_MOD_ALT as u8;
+        self
+    }
+    /// Adds the Ctrl modifier (for named keys, e.g. `key_right().ctrl()`).
+    pub fn ctrl(mut self) -> Chord {
+        self.0.mods |= ffi::ScKeyMods_SC_MOD_CTRL as u8;
+        self
+    }
+
     /// A short display name, e.g. `"F2"`, `"^E"`, `"M-e"`.
     pub fn name(&self) -> String {
         let mut buf = [0 as c_char; 16];

@@ -348,7 +348,7 @@ if sc_.fired() == 1:
     show_help()
 ```
 
-Besides `key_ctrl`/`key_fn`/`key_alt`, the named keys `key_left/right/up/down/enter/tab()` build chords for arrows/Enter/Tab - e.g. for Left = back / Right = forward navigation.
+Besides `key_ctrl`/`key_fn`/`key_alt`/`key_char` (char chords are **case-sensitive**: `key_char('p')` ≠ `key_char('P')`), the named keys `key_left/right/up/down/enter/tab/backtab/delete/backspace/home/end/pageup/pagedown/esc()` (and `key_special(key)`) build chords for those keys, and chainable modifiers add Shift/Alt/Ctrl: `key_up().shift()`, `key_up().alt().shift()`, `key_delete().ctrl()`.
 
 Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`; `fuzzy.cursor_index()`, `fuzzy.remove(i)`; `fuzzy.has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter).
 

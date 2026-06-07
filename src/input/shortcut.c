@@ -40,7 +40,10 @@ static void normalize(
         return;
     }
     *out_type = type;
-    *out_cp = (type == SC_KEY_CHAR) ? lower_cp(cp) : 0;
+    // Character chords are CASE-SENSITIVE (`p` != `P`); only Ctrl folds case,
+    // because the terminal sends the same byte for Ctrl+p and Ctrl+P.
+    *out_cp = (type == SC_KEY_CHAR)
+            ? ((mods & SC_MOD_CTRL) ? lower_cp(cp) : cp) : 0;
     *out_mods = mods;
 }
 
@@ -74,6 +77,10 @@ ScKeyChord sc_key_alt(char letter) {
 
 ScKeyChord sc_key_special(ScKeyType key) {
     return (ScKeyChord){ .key = key };
+}
+
+ScKeyChord sc_key_mod(ScKeyType key, uint8_t mods) {
+    return (ScKeyChord){ .key = key, .mods = mods };
 }
 
 bool sc_key_chord_matches(ScKey key, ScKeyChord chord) {

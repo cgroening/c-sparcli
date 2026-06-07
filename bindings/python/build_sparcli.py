@@ -145,7 +145,9 @@ typedef enum { SC_MOD_NONE = 0, SC_MOD_CTRL = 1, SC_MOD_ALT = 2,
                SC_MOD_PASTED = 4, SC_MOD_SHIFT = 8 } ScKeyMods;
 /* ScKeyType: only the members the binding names; ... pulls in the rest. */
 typedef enum { SC_KEY_NONE = 0, SC_KEY_CHAR, SC_KEY_ESC, SC_KEY_ENTER,
-               SC_KEY_TAB, SC_KEY_UP, SC_KEY_DOWN, SC_KEY_LEFT, SC_KEY_RIGHT,
+               SC_KEY_TAB, SC_KEY_BACKTAB, SC_KEY_UP, SC_KEY_DOWN,
+               SC_KEY_LEFT, SC_KEY_RIGHT, SC_KEY_HOME, SC_KEY_END,
+               SC_KEY_PAGEUP, SC_KEY_PAGEDOWN, SC_KEY_DELETE, SC_KEY_BACKSPACE,
                SC_KEY_F1, ... } ScKeyType;
 
 /* ── Core value types (fully declared: small and stable) ───────────────── */
@@ -693,6 +695,7 @@ ScKeyChord sc_key_ctrl(char letter);
 ScKeyChord sc_key_fn(int n);
 ScKeyChord sc_key_alt(char letter);
 ScKeyChord sc_key_special(ScKeyType key);
+ScKeyChord sc_key_mod(ScKeyType key, uint8_t mods);
 bool sc_key_chord_matches(ScKey key, ScKeyChord chord);
 const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
 void sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap);

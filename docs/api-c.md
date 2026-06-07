@@ -1257,10 +1257,12 @@ void        sc_form_free(ScForm *f);
 
 ```c
 /* Custom shortcuts (any widget) – bind extra keys to actions. See "Custom shortcuts". */
-ScKeyChord sc_key_ctrl(char letter);   /* ^letter (Ctrl-C/H/I/J/M not bindable) */
+ScKeyChord sc_key_ctrl(char letter);   /* ^letter (Ctrl-C/H/I/J/M not bindable; case-insensitive) */
 ScKeyChord sc_key_fn  (int n);         /* F1..F12 */
 ScKeyChord sc_key_alt (char letter);   /* Alt/Meta + letter */
-void       sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap); /* "F2","^E","M-e","←","→","↵" */
+ScKeyChord sc_key_special(ScKeyType k);            /* named key: arrows, Del, Home, … */
+ScKeyChord sc_key_mod (ScKeyType k, uint8_t mods); /* named key + Shift/Alt/Ctrl (combos) */
+void       sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap); /* "F2","^E","M-e","←","Del","M-↑" */
 bool       sc_key_chord_matches(ScKey key, ScKeyChord chord);
 const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
 

@@ -98,6 +98,19 @@ fn special_key_chords() {
 }
 
 #[test]
+fn named_keys_and_modifier_chords() {
+    use sparcli::{key_delete, key_home, key_up};
+    // New named-key builders render words/glyphs.
+    assert_eq!(key_delete().name(), "Del");
+    assert_eq!(key_home().name(), "Home");
+    // Chainable modifiers prefix the base name (named keys).
+    assert_eq!(key_up().shift().name(), "S-\u{2191}");      // S-↑
+    assert_eq!(key_up().alt().name(), "M-\u{2191}");        // M-↑
+    assert_eq!(key_up().alt().shift().name(), "M-S-\u{2191}");
+    assert_eq!(key_delete().ctrl().name(), "^Del");
+}
+
+#[test]
 fn fuzzy_has_no_selection_before_run() {
     let mut fz = Fuzzy::new(FuzzyOpts::new().prompt("Find"));
     fz.add("alpha").add("beta");

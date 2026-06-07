@@ -95,4 +95,29 @@ void test_shortcut(void) {
         { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd' } },   /* no label */
     };
     CHECK(sc_shortcut_hint_rows(none, 1, 0, 80) == 0, "no labels = 0 rows");
+
+    /* Char shortcuts are case-sensitive: 'P' (Shift+p) != 'p'. */
+    ScKey      pressed_P = { .type = SC_KEY_CHAR, .codepoint = 'P' };
+    ScKeyChord chord_p   = { .key = SC_KEY_CHAR, .codepoint = 'p' };
+    ScKeyChord chord_P   = { .key = SC_KEY_CHAR, .codepoint = 'P' };
+    CHECK(!sc_key_chord_matches(pressed_P, chord_p),
+          "case-sensitive: 'P' does not match a 'p' chord");
+    CHECK(sc_key_chord_matches(pressed_P, chord_P),
+          "case-sensitive: 'P' matches a 'P' chord");
+
+    /* Modified named keys via sc_key_mod: Shift/Alt + arrows etc. */
+    ScKey shift_up = { .type = SC_KEY_UP, .mods = SC_MOD_SHIFT };
+    CHECK(sc_key_chord_matches(shift_up, sc_key_mod(SC_KEY_UP, SC_MOD_SHIFT)),
+          "Shift+Up matches sc_key_mod(UP, SHIFT)");
+    CHECK(!sc_key_chord_matches(shift_up, sc_key_special(SC_KEY_UP)),
+          "Shift+Up does not match a plain Up chord");
+    ScKey alt_shift_down = {
+        .type = SC_KEY_DOWN, .mods = SC_MOD_ALT | SC_MOD_SHIFT
+    };
+    CHECK(sc_key_chord_matches(
+              alt_shift_down,
+              sc_key_mod(SC_KEY_DOWN, SC_MOD_ALT | SC_MOD_SHIFT)),
+          "Alt+Shift+Down matches sc_key_mod(DOWN, ALT|SHIFT)");
+    sc_key_chord_name(sc_key_mod(SC_KEY_HOME, SC_MOD_SHIFT), name, sizeof name);
+    CHECK(strcmp(name, "S-Home") == 0, "sc_key_mod(HOME, SHIFT) renders S-Home");
 }

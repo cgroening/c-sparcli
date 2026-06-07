@@ -21,6 +21,27 @@ class KeyChord:
         """The underlying ``ScKeyChord`` cdata (by value)."""
         return self._h[0]
 
+    def _with_mod(self, mod: int) -> "KeyChord":
+        h = ffi.new("ScKeyChord *")
+        h[0].key = self._h[0].key
+        h[0].codepoint = self._h[0].codepoint
+        h[0].mods = self._h[0].mods | mod
+        return KeyChord(h)
+
+    def shift(self) -> "KeyChord":
+        """A copy with the Shift modifier added (for named keys, e.g.
+        ``key_up().shift()``)."""
+        return self._with_mod(lib.SC_MOD_SHIFT)
+
+    def alt(self) -> "KeyChord":
+        """A copy with the Alt/Meta modifier added, e.g. ``key_up().alt()``."""
+        return self._with_mod(lib.SC_MOD_ALT)
+
+    def ctrl(self) -> "KeyChord":
+        """A copy with the Ctrl modifier added (for named keys, e.g.
+        ``key_right().ctrl()``)."""
+        return self._with_mod(lib.SC_MOD_CTRL)
+
 
 def key_ctrl(letter: str) -> KeyChord:
     """A Ctrl+letter chord, e.g. ``key_ctrl('r')`` (case-insensitive)."""
@@ -53,11 +74,15 @@ def key_alt(letter: str) -> KeyChord:
     return KeyChord(h)
 
 
-def _key_special(key: int) -> KeyChord:
-    """A chord for a named (non-character) key."""
+def key_special(key: int) -> KeyChord:
+    """A chord for a named (non-character) key, e.g. ``key_special(sc.KeyType
+    .DELETE)``. Add modifiers with ``.shift()`` / ``.alt()`` / ``.ctrl()``."""
     h = ffi.new("ScKeyChord *")
     h[0] = lib.sc_key_special(key)
     return KeyChord(h)
+
+
+_key_special = key_special   # backward-compatible alias
 
 
 def key_left() -> KeyChord:
@@ -88,6 +113,46 @@ def key_enter() -> KeyChord:
 def key_tab() -> KeyChord:
     """Tab-key chord."""
     return _key_special(lib.SC_KEY_TAB)
+
+
+def key_backtab() -> KeyChord:
+    """Shift-Tab (back-tab) chord."""
+    return _key_special(lib.SC_KEY_BACKTAB)
+
+
+def key_delete() -> KeyChord:
+    """Delete-key chord."""
+    return _key_special(lib.SC_KEY_DELETE)
+
+
+def key_backspace() -> KeyChord:
+    """Backspace-key chord."""
+    return _key_special(lib.SC_KEY_BACKSPACE)
+
+
+def key_home() -> KeyChord:
+    """Home-key chord."""
+    return _key_special(lib.SC_KEY_HOME)
+
+
+def key_end() -> KeyChord:
+    """End-key chord."""
+    return _key_special(lib.SC_KEY_END)
+
+
+def key_pageup() -> KeyChord:
+    """Page-Up chord."""
+    return _key_special(lib.SC_KEY_PAGEUP)
+
+
+def key_pagedown() -> KeyChord:
+    """Page-Down chord."""
+    return _key_special(lib.SC_KEY_PAGEDOWN)
+
+
+def key_esc() -> KeyChord:
+    """Esc-key chord (bindable only where the widget captures Esc)."""
+    return _key_special(lib.SC_KEY_ESC)
 
 
 class Shortcuts:

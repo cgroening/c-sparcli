@@ -285,6 +285,16 @@ static void test_special_keys() {
     CHECK(!key_matches(Key{ .type = SC_KEY_LEFT }, key_right()),
           "decoded Left does not match key_right()");
 
+    // Modified named keys + case-sensitive char chords.
+    CHECK(key_name(key_mod(SC_KEY_UP, SC_MOD_ALT)) == "M-\xe2\x86\x91",
+          "key_mod(UP, ALT) renders as M-↑");
+    CHECK(key_matches(Key{ .type = SC_KEY_UP, .mods = SC_MOD_SHIFT },
+                      key_shift(SC_KEY_UP)),
+          "decoded Shift+Up matches key_shift(UP)");
+    CHECK(!key_matches(Key{ .type = SC_KEY_CHAR, .codepoint = 'P' },
+                       key_char('p')),
+          "case-sensitive: decoded 'P' does not match key_char('p')");
+
     Fuzzy fz({ .prompt = "Find" });
     fz.add("alpha").add("beta");
     CHECK(!fz.has_selection(), "fuzzy: no selection before a run");
