@@ -1,3 +1,2 @@
 -Iinclude
 -Isrc
--std=c23

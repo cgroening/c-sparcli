@@ -1,2 +1,16 @@
-# CompileFlags:
-  # Add: [-Iinclude, -std=c11, -Wall, -Wextra]
+# Per-language standard. compile_flags.txt holds the language-neutral
+# include paths; the -std flag must be set here so it is not applied to
+# both C and C++ files (a flat -std=c23 in compile_flags.txt breaks .cpp).
+
+# C sources/headers — match the build (CFLAGS = -std=c11)
+If:
+  PathMatch: [.*\.c, .*\.h]
+CompileFlags:
+  Add: [-std=c11]
+
+---
+# C++ wrapper, tests and examples (EXAMPLES_CXXFLAGS = -std=c++23)
+If:
+  PathMatch: [.*\.cpp, .*\.hpp, .*\.cc, .*\.cxx]
+CompileFlags:
+  Add: [-std=c++23]
