@@ -378,7 +378,8 @@ todo.add_row_styled({ "09:00", "Pay invoice", "overdue" },
                     { {}, {}, { SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_RED, {} } });
 todo.set_id(1, 102);
 if (auto checked = todo.run_multi()) { /* std::vector<size_t> of checked rows */ }
-// also: add_styled / add_row_rich(std::vector<Text>&), set_disabled,
+// also: add_section_styled(title, TextStyle) / add_section_text(const Text&,
+//       TextStyle) (per-section bg/fg/bar), add_styled / add_row_rich(std::vector<Text>&), set_disabled,
 // set_checked / check_all / checked_count, set_cursor / set_label / set_row /
 // set_row_style, id_at / cursor_id. Demo: examples/c/apps/todo_fuzzy.c.
 

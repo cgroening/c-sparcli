@@ -344,6 +344,27 @@ SPARCLI_EXPORT void sc_fuzzy_add_row(
 SPARCLI_EXPORT void sc_fuzzy_add_section(ScFuzzy *fuzzy, const char *title);
 
 /**
+ * Adds a section header with its own style (background, foreground, attributes).
+ * `style.bg` fills the full-width header bar; the style is merged over the
+ * global section style (`ScFuzzyOpts.section_style` / theme), so set fields
+ * override and unset fields inherit the default. `title` is copied.
+ */
+SPARCLI_EXPORT void sc_fuzzy_add_section_styled(
+    ScFuzzy *fuzzy, const char *title, ScTextStyle style
+);
+
+/**
+ * Adds a section header with a rich multi-span `ScText` title (deep-copied; the
+ * caller keeps ownership). `fill` paints the full-width header bar (`fill.bg`)
+ * and styles the optional " (N)" count suffix; the title's own spans render as
+ * given. Use this when one color is not enough; otherwise prefer
+ * `sc_fuzzy_add_section_styled`.
+ */
+SPARCLI_EXPORT void sc_fuzzy_add_section_text(
+    ScFuzzy *fuzzy, const ScText *title, ScTextStyle fill
+);
+
+/**
  * Adds a single-field item with a base text style (whole-cell color/attributes).
  * The query-match highlight (bold + underline) is overlaid on top of `style`.
  */

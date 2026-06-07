@@ -305,7 +305,8 @@ todo.add_row_styled(["09:00", "Pay invoice", "overdue"],
                     &[Style::new(), Style::new(), Style::new().fg(Color::RED)]);
 todo.set_id(1, 102);                        // stable id (survives remove/reorder)
 if let Some(checked) = todo.run_multi()? { /* Vec<usize> of checked rows */ }
-// also: add_section / add_styled / add_row_rich, set_disabled, set_checked /
+// also: add_section / add_section_styled(title, Style) / add_section_text(&Text,
+//       Style) (per-section bg/fg/bar), add_styled / add_row_rich, set_disabled, set_checked /
 // check_all / checked_count, set_cursor / set_label / set_row / set_row_style,
 // id_at / cursor_id. Full demo: examples/c/apps/todo_fuzzy.c.
 

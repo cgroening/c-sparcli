@@ -334,6 +334,26 @@ class Fuzzy:
         self._count += 1
         return self
 
+    def add_section_styled(self, title: str, style: Style) -> "Fuzzy":
+        """Add a section header with its own style; ``style.bg`` fills the bar
+        (merged over the global section style). Returns ``self``."""
+        local: list = []
+        st = ffi.new("ScTextStyle *")
+        apply_style(st, style)
+        lib.sc_fuzzy_add_section_styled(self._p, cstr(local, title), st[0])
+        self._count += 1
+        return self
+
+    def add_section_text(self, title: Text, fill: Style) -> "Fuzzy":
+        """Add a section header with a rich :class:`Text` title (deep-copied);
+        ``fill`` paints the full-width bar and styles the count. Returns
+        ``self``."""
+        st = ffi.new("ScTextStyle *")
+        apply_style(st, fill)
+        lib.sc_fuzzy_add_section_text(self._p, title._ptr, st[0])
+        self._count += 1
+        return self
+
     def add_styled(self, label: str, style: Style) -> "Fuzzy":
         """Add a single item with a base text style. Returns ``self``."""
         local: list = []

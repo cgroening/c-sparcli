@@ -1027,6 +1027,10 @@ ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts);
 void sc_fuzzy_add(ScFuzzy *fuzzy, const char *label);
 void sc_fuzzy_add_row(ScFuzzy *fuzzy, const char *const *fields, size_t n);
 void sc_fuzzy_add_section(ScFuzzy *fuzzy, const char *title);
+void sc_fuzzy_add_section_styled(ScFuzzy *fuzzy, const char *title,
+                                 ScTextStyle style);
+void sc_fuzzy_add_section_text(ScFuzzy *fuzzy, const ScText *title,
+                               ScTextStyle fill);
 void sc_fuzzy_add_styled(ScFuzzy *fuzzy, const char *label, ScTextStyle style);
 void sc_fuzzy_add_row_styled(ScFuzzy *fuzzy, const char *const *fields,
                              const ScTextStyle *styles, size_t n);

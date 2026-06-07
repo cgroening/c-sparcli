@@ -215,6 +215,40 @@ void style_fuzzy(void) {
                sc_fuzzy_frame(s1b, ""));
     sc_fuzzy_free(s1b);
 
+    /* Per-section styles: each header carries its own bg/fg via
+     * add_section_styled; merged over the default (bold inherited). */
+    ScFuzzy *s1c = sc_fuzzy_new((ScFuzzyOpts){
+        .prompt = "Tasks", .section_counts = true });
+    sc_fuzzy_add_section_styled(s1c, "OVERDUE",
+        (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                       SC_ANSI_COLOR_RED });
+    sc_fuzzy_add(s1c, "Pay invoice");
+    sc_fuzzy_add_section_styled(s1c, "Inbox",
+        (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                       SC_ANSI_COLOR_CYAN });
+    sc_fuzzy_add(s1c, "Read mail");
+    style_show("fuzzy list: per-section styles (red / cyan bars)",
+               sc_fuzzy_frame(s1c, ""));
+    sc_fuzzy_free(s1c);
+
+    /* Rich multi-span section title via add_section_text; fill paints the bar. */
+    ScFuzzy *s1d = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+    ScText *htitle = sc_text_new();
+    sc_text_append(htitle, "Due ",
+        (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                       SC_ANSI_COLOR_MAGENTA });
+    sc_text_append(htitle, "soon",
+        (ScTextStyle){ SC_TEXT_ATTR_BOLD | SC_TEXT_ATTR_UNDER,
+                       SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_MAGENTA });
+    sc_fuzzy_add_section_text(s1d, htitle,
+        (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE,
+                       SC_ANSI_COLOR_MAGENTA });
+    sc_fuzzy_add(s1d, "Finish slides");
+    style_show("fuzzy list: rich ScText section title (multi-span)",
+               sc_fuzzy_frame(s1d, ""));
+    sc_fuzzy_free(s1d);
+    sc_text_free(htitle);
+
     /* Disabled (greyed, non-selectable) row. */
     ScFuzzy *s2 = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
     sc_fuzzy_add(s2, "Active task");

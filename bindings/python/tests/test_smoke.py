@@ -75,6 +75,19 @@ def test_fuzzy_sections_multi_and_styles():
     assert fz.is_checked(2) is False
 
 
+def test_fuzzy_styled_sections():
+    # FFI marshalling of add_section_styled (by-value style) and
+    # add_section_text (borrowed Text pointer + fill). Build only (no TTY).
+    fz = sc.Fuzzy(sc.FuzzyOpts(prompt="Tasks"))
+    fz.add_section_styled(
+        "OVERDUE", sc.Style(fg=sc.Color.WHITE, bg=sc.Color.RED))
+    fz.add("Pay invoice")
+    title = sc.Text.from_markup("[bold]Due[/] soon")
+    fz.add_section_text(title, sc.Style(bg=sc.Palette.MAGENTA))
+    fz.add("Finish slides")
+    assert fz.cursor_id() == 0  # nothing selected before a run
+
+
 def test_fuzzy_modal_opts():
     from sparcli.keys import key_char
 

@@ -264,18 +264,45 @@ void sc_fuzzy_add_row(ScFuzzy *self, const char *const *fields, size_t n) {
     add_row_full(self, fields, NULL, NULL, n);
 }
 
-void sc_fuzzy_add_section(ScFuzzy *self, const char *title) {
-    if (!self) {
-        return;
-    }
-    const char *one[1] = { title };
-    size_t idx = add_row_full(self, one, NULL, NULL, 1);
+/** Marks the row at `idx` as a (non-selectable) section header. */
+static void mark_section(ScFuzzy *self, size_t idx) {
     if (idx == SIZE_MAX) {
         return;
     }
     self->rows[idx].is_section = true;
     self->has_sections = true;
     self->selectable_total--;   // a section header is not selectable
+}
+
+void sc_fuzzy_add_section(ScFuzzy *self, const char *title) {
+    if (!self) {
+        return;
+    }
+    const char *one[1] = { title };
+    mark_section(self, add_row_full(self, one, NULL, NULL, 1));
+}
+
+void sc_fuzzy_add_section_styled(ScFuzzy *self, const char *title,
+                                 ScTextStyle style) {
+    if (!self) {
+        return;
+    }
+    const char *one[1] = { title };
+    mark_section(self, add_row_full(self, one, &style, NULL, 1));
+}
+
+void sc_fuzzy_add_section_text(ScFuzzy *self, const ScText *title,
+                               ScTextStyle fill) {
+    if (!self || !title) {
+        return;
+    }
+    /* Flatten for the display/width fallback (sections aren't matched); store
+       the rich title in texts[0] and the bar/count style in styles[0]. */
+    char *flat = flatten_text(title);
+    const char *one[1] = { flat ? flat : "" };
+    ScText *const rich[1] = { (ScText *)title };
+    mark_section(self, add_row_full(self, one, &fill, rich, 1));
+    free(flat);
 }
 
 void sc_fuzzy_add_styled(ScFuzzy *self, const char *label, ScTextStyle style) {
@@ -1215,6 +1242,13 @@ static ScTextStyle merge_style(ScTextStyle base, ScTextStyle over) {
     return base;
 }
 
+/** Effective style for a section header: the global default with the row's own
+    `styles[0]` (from add_section_styled/_text) merged over it (set fields win). */
+static ScTextStyle section_style_for(const ScFuzzy *self, const Row *r) {
+    ScTextStyle base = section_style_of(self);
+    return r->styles ? merge_style(base, r->styles[0]) : base;
+}
+
 /** Resolved disabled-row style (zero-init = dim). */
 static ScTextStyle disabled_style_of(const ScFuzzy *self) {
     return sc_style_set(self->opts.disabled_style)
@@ -1308,7 +1342,6 @@ static ScRendered *render_list(ScFuzzy *self, int interior_w, bool fill) {
     ScTextStyle selected_style = sc_style_set(self->opts.selected_style)
         ? self->opts.selected_style
         : (ScTextStyle){ SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE };
-    ScTextStyle section_style = section_style_of(self);
     ScTextStyle disabled_style = disabled_style_of(self);
     const char *cursor_marker = self->opts.cursor_marker
         ? self->opts.cursor_marker : "\xe2\x80\xa3 ";
@@ -1320,18 +1353,23 @@ static ScRendered *render_list(ScFuzzy *self, int interior_w, bool fill) {
         Row *r = &self->rows[row_index];
 
         if (self->matches[i].is_section) {
+            ScTextStyle ss = section_style_for(self, r);
             const char *title = r->fields[0];
-            sc_text_append(text, title, section_style);
+            if (r->texts && r->texts[0]) {
+                append_rich(text, r->texts[0]);   /* rich multi-span title */
+            } else {
+                sc_text_append(text, title, ss);
+            }
             int used = (int)sc_utf8_string_length(title, strlen(title));
             if (self->opts.section_counts) {
                 char cnt[32];
                 int n = snprintf(cnt, sizeof cnt, " (%zu)",
                                  group_match_count(self, i));
-                sc_text_append(text, cnt, section_style);
+                sc_text_append(text, cnt, ss);
                 used += (int)sc_utf8_string_length(cnt, (size_t)n);
             }
-            if (fill && section_style.bg.index != 0) {
-                sc_pad_line_to(text, used, interior_w, section_style);
+            if (fill && ss.bg.index != 0) {
+                sc_pad_line_to(text, used, interior_w, ss);
             }
             if (i + 1 < end) {
                 sc_text_append(text, "\n", (ScTextStyle){ 0 });
@@ -1456,7 +1494,6 @@ static ScRendered *render_table(ScFuzzy *self, int total_width) {
     uint64_t mask = self->opts.search_columns;   /* 0 = all columns */
     ScTextStyle sel = self->opts.selected_style; /* cursor-row text style */
     bool sel_set = sc_style_set(sel);
-    ScTextStyle section_style = section_style_of(self);
     ScTextStyle disabled_style = disabled_style_of(self);
     /* Cursor-row background: selected_style.bg overrides the accent default. */
     ScColor cursor_bg = sel.bg.index != 0 ? sel.bg : self->accent;
@@ -1476,14 +1513,19 @@ static ScRendered *render_table(ScFuzzy *self, int total_width) {
 
         if (self->matches[i].is_section) {
             /* One row spanning every column with the (styled) header text. */
+            ScTextStyle ss = section_style_for(self, r);
             ScText *t = texts ? sc_text_new() : NULL;
             if (t) {
-                sc_text_append(t, r->fields[0], section_style);
+                if (r->texts && r->texts[0]) {
+                    append_rich(t, r->texts[0]);   /* rich multi-span title */
+                } else {
+                    sc_text_append(t, r->fields[0], ss);
+                }
                 if (self->opts.section_counts) {
                     char cnt[32];
                     snprintf(cnt, sizeof cnt, " (%zu)",
                              group_match_count(self, i));
-                    sc_text_append(t, cnt, section_style);
+                    sc_text_append(t, cnt, ss);
                 }
                 texts[n_texts++] = t;
                 cells[0] = sc_cell_tcs(t, (int)tcols);
@@ -1493,8 +1535,8 @@ static ScRendered *render_table(ScFuzzy *self, int total_width) {
             for (size_t c = 1; c < tcols; c++) {
                 cells[c] = sc_cell_skip();
             }
-            if (section_style.bg.index != 0) {
-                sc_table_add_row_bg(table, cells, tcols, section_style.bg);
+            if (ss.bg.index != 0) {
+                sc_table_add_row_bg(table, cells, tcols, ss.bg);
             } else {
                 sc_table_add_row(table, cells, tcols);
             }

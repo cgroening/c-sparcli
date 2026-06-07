@@ -227,7 +227,8 @@ todo.add_row(["09:00", "Pay invoice", "overdue"],
              styles=[sc.Style(), sc.Style(), sc.Style(fg=sc.Color.RED)])
 todo.set_id(1, 102)                               # stable id
 checked = todo.run_multi()   # list[int] of checked rows, or None on cancel
-# also: add_section / add_styled-via-styles / add_row_rich, set_disabled,
+# also: add_section / add_section_styled(title, Style) / add_section_text(Text,
+#       Style) (per-section bg/fg/bar), add_styled-via-styles / add_row_rich, set_disabled,
 # set_checked / check_all / checked_count, set_cursor / set_label / set_row /
 # set_row_style, id_at / cursor_id. Demo: examples/c/apps/todo_fuzzy.c.
 

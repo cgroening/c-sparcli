@@ -2221,6 +2221,19 @@ public:
         sc_fuzzy_add_section(detail::live(p_), detail::z(title).c_str());
         ++count_; return *this;
     }
+    /** Adds a section header with its own style (bg fills the bar).
+        @see sc_fuzzy_add_section_styled */
+    Fuzzy& add_section_styled(std::string_view title, TextStyle style) {
+        sc_fuzzy_add_section_styled(detail::live(p_), detail::z(title).c_str(),
+                                    style);
+        ++count_; return *this;
+    }
+    /** Adds a section header with a rich `Text` title; `fill` paints the bar.
+        @see sc_fuzzy_add_section_text */
+    Fuzzy& add_section_text(const Text& title, TextStyle fill) {
+        sc_fuzzy_add_section_text(detail::live(p_), title.get(), fill);
+        ++count_; return *this;
+    }
     /** Adds a single item with a base text style. @see sc_fuzzy_add_styled */
     Fuzzy& add_styled(std::string_view label, TextStyle style) {
         sc_fuzzy_add_styled(detail::live(p_), detail::z(label).c_str(), style);

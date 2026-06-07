@@ -105,6 +105,19 @@ fn fuzzy_has_no_selection_before_run() {
 }
 
 #[test]
+fn fuzzy_styled_sections_build() {
+    // Exercises the FFI marshalling of add_section_styled (by-value style) and
+    // add_section_text (borrowed ScText pointer + fill). No TTY → just plumbing.
+    let title = Text::markup("[bold]Due[/] soon");
+    let mut fz = Fuzzy::new(FuzzyOpts::new().prompt("Tasks"));
+    fz.add_section_styled("OVERDUE", Style::new().fg(Color::WHITE).bg(Color::RED))
+        .add("Pay invoice")
+        .add_section_text(&title, Style::new().bg(Color::MAGENTA))
+        .add("Finish slides");
+    assert!(!fz.has_selection());
+}
+
+#[test]
 fn fuzzy_modal_opts_build() {
     use sparcli::{key_char, Attr, Style};
     // The modal builders construct cleanly (no TTY, so just the plumbing).

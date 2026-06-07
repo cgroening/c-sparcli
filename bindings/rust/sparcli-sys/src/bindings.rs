@@ -3569,6 +3569,22 @@ extern "C" {
     pub fn sc_fuzzy_add_section(fuzzy: *mut ScFuzzy, title: *const ::std::os::raw::c_char);
 }
 extern "C" {
+    #[doc = " Section header with its own style (bg fills the bar; merged over the global section style)."]
+    pub fn sc_fuzzy_add_section_styled(
+        fuzzy: *mut ScFuzzy,
+        title: *const ::std::os::raw::c_char,
+        style: ScTextStyle,
+    );
+}
+extern "C" {
+    #[doc = " Section header with a rich multi-span ScText title (deep-copied); `fill` paints the bar."]
+    pub fn sc_fuzzy_add_section_text(
+        fuzzy: *mut ScFuzzy,
+        title: *const ScText,
+        fill: ScTextStyle,
+    );
+}
+extern "C" {
     #[doc = " Adds a single-field item with a base text style (whole-cell color/attributes).\n The query-match highlight (bold + underline) is overlaid on top of `style`."]
     pub fn sc_fuzzy_add_styled(
         fuzzy: *mut ScFuzzy,

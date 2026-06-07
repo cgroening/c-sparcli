@@ -1232,6 +1232,24 @@ static int child_case(int c) {
             sc_fuzzy_free(fz);
             return ok ? 0 : 1;
         }
+        case 85: {
+            /* A styled section behaves like a plain one: it is non-selectable
+               (the cursor starts on the first row x) and Tab jumps to it. */
+            ScFuzzy *fz = sc_fuzzy_new((ScFuzzyOpts){ .prompt = "Tasks" });
+            sc_fuzzy_add_section_styled(fz, "A",
+                (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_WHITE,
+                               SC_ANSI_COLOR_RED });    /* 0 */
+            sc_fuzzy_add(fz, "x");                       /* 1 */
+            sc_fuzzy_add_section_styled(fz, "B",
+                (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_BLACK,
+                               SC_ANSI_COLOR_CYAN });    /* 2 */
+            sc_fuzzy_add(fz, "z");                       /* 3 */
+            size_t pick = 99;
+            ScInputStatus s = sc_fuzzy_run(fz, &pick);   /* Tab -> B, Enter -> z */
+            int ok = (s == SC_INPUT_OK && pick == 3);
+            sc_fuzzy_free(fz);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1330,6 +1348,7 @@ static const Case CASES[] = {
     { "fuzzy-section-tab", "\t\r" },           /* Tab -> next section (z) */
     { "fuzzy-section-shift-tab", "\t\x1b[Z\r" }, /* Tab -> B, Shift-Tab -> A (x) */
     { "fuzzy-section-tab-cycle", "\t\t\t\r" },  /* A->B->C->A cycle (x) */
+    { "fuzzy-section-styled", "\t\r" },          /* styled section: Tab -> B, z */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

@@ -634,6 +634,20 @@
     [0mShip release[0m
   [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
 
+[2mfuzzy list: per-section styles (red / cyan bars)[0m
+  [1m[38;2;140;210;204mTasks[0m [0m[30m[47m [0m[2m  (2/2)[0m
+  [1m[37m[41mOVERDUE[0m[1m[37m[41m (1)[0m[1m[37m[41m   [0m
+  [1m[38;2;140;210;204m‣ [0m[1m[38;2;140;210;204mPay invoice[0m
+  [1m[2m[30m[46mInbox[0m[1m[2m[30m[46m (1)[0m[1m[2m[30m[46m     [0m
+    [0mRead mail[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
+[2mfuzzy list: rich ScText section title (multi-span)[0m
+  [1m[38;2;140;210;204mTasks[0m [0m[30m[47m [0m[2m  (1/1)[0m
+  [1m[37m[45mDue [0m[1m[4m[33m[45msoon[0m[1m[2m[45m       [0m
+  [1m[38;2;140;210;204m‣ [0m[1m[38;2;140;210;204mFinish slides[0m
+  [2mtype to filter · ↑/↓ move · enter select · esc cancel[0m
+
 [2mfuzzy list: second row disabled (greyed)[0m
   [1m[38;2;140;210;204mTasks[0m [0m[30m[47m [0m[2m  (1/1)[0m
   [1m[38;2;140;210;204m‣ [0m[1m[38;2;140;210;204mActive task[0m

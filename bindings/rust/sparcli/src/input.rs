@@ -1943,6 +1943,27 @@ impl Fuzzy {
         self.count += 1;
         self
     }
+    /// Adds a section header with its own style; `style.bg` fills the bar
+    /// (merged over the global section style).
+    pub fn add_section_styled(&mut self, title: &str, style: Style)
+        -> &mut Self
+    {
+        unsafe {
+            ffi::sc_fuzzy_add_section_styled(self.ptr, cstring(title).as_ptr(),
+                style.raw());
+        }
+        self.count += 1;
+        self
+    }
+    /// Adds a section header with a rich [`Text`] title (deep-copied); `fill`
+    /// paints the full-width bar and styles the optional count suffix.
+    pub fn add_section_text(&mut self, title: &Text, fill: Style) -> &mut Self {
+        unsafe {
+            ffi::sc_fuzzy_add_section_text(self.ptr, title.as_ptr(), fill.raw());
+        }
+        self.count += 1;
+        self
+    }
     /// Adds a single item with a base text style (whole-cell color).
     pub fn add_styled(&mut self, label: &str, style: Style) -> &mut Self {
         unsafe {
