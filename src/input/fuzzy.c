@@ -167,7 +167,10 @@ ScFuzzy *sc_fuzzy_new(ScFuzzyOpts opts) {
     return self;
 }
 
-/* Rows the finder draws around its result list (box frame + hint footer). */
+/* Screen rows the finder spends *around* the result body: the query line, the
+   scroll-indicator reserve, the box frame, the widget's own hint footer, and the
+   engine's labeled-shortcut footer. The result body (list rows or the table)
+   fills whatever remains. */
 static int fuzzy_chrome_rows(const ScFuzzy *self) {
     ScBoxStyle b = self->opts.box;
     bool border = b.enabled || b.border.type != SC_BORDER_NONE;
@@ -179,36 +182,71 @@ static int fuzzy_chrome_rows(const ScFuzzy *self) {
     if (self->opts.hint_layout != SC_HINT_HIDDEN
         && self->opts.hint_pos != SC_HINT_POS_LEFT
         && self->opts.hint_pos != SC_HINT_POS_RIGHT) {
-        rows += 1;                             /* footer (inline) */
+        rows += 1;                             /* own hint footer (inline) */
     }
+    /* The engine stacks the labeled-shortcut footer beneath the frame. */
+    rows += sc_shortcut_hint_rows(self->opts.shortcuts, self->opts.n_shortcuts);
     return rows;
 }
 
-/* Visible result rows. With an explicit `max_height` the finder EXPANDS to fill
-   that many rows (minus chrome) and scrolls beyond - so it grows up to the cap.
-   Without it, the default `max_visible` viewport applies, clamped to the
-   terminal height so a standalone finder never overflows the screen. */
+/* Per-entry (`per`) and constant (`base`) screen rows the *table* view spends on
+   its own chrome - outer border, header row + separator, and the inner
+   separators between rows - so `table_height(V) = base + per*V`. Assumes
+   single-line rows (the finder truncates columns; it does not word-wrap). */
+static void fuzzy_table_overhead(const ScFuzzy *self, int *per, int *base) {
+    ScTableOpts t = resolve_fuzzy_table_opts(self, 0);
+    int vpad = t.cell_pad.top + t.cell_pad.bottom;
+    bool border = t.border.type != SC_BORDER_NONE;
+    bool inner = border && !t.border.no_inner_h;   /* separator between rows */
+    *per = 1 + vpad + (inner ? 1 : 0);
+    int b = 0;
+    if (border && !t.border.no_outer) { b += 2; }       /* top + bottom border */
+    if (t.header.row) { b += 1 + vpad + (border ? 1 : 0); } /* header + sep */
+    if (inner) { b -= 1; }   /* V rows have only V-1 separators between them */
+    *base = b;
+}
+
+/* Number of result *entries* the finder shows before it scrolls. The budget is
+   view-aware: the list view spends one screen row per entry, the table view
+   spends `fuzzy_table_overhead` (borders/header/separators) on top of one row
+   per entry. `fullscreen` fills below the pinned header; `max_height` caps to
+   that many rows; otherwise the `max_visible` viewport applies. Every mode is
+   clamped so the rendered frame never overflows the terminal. */
 static size_t effective_visible(const ScFuzzy *self) {
     int chrome = fuzzy_chrome_rows(self);
-    if (self->opts.fullscreen) {
-        /* Grow to fill below the pinned header, then scroll. */
+    bool fs = self->opts.fullscreen;
+    int cap;
+    if (fs) {
         int header_h = self->opts.header
             ? (int)self->opts.header->line_count : 0;
-        int cap = sc_terminal_height() - header_h;
+        cap = sc_terminal_height() - header_h;
         if (self->opts.max_height > 0 && self->opts.max_height < cap) {
             cap = self->opts.max_height;
         }
-        int avail = cap - chrome;
-        return avail < 1 ? 1 : (size_t)avail;
+    } else if (self->opts.max_height > 0) {
+        cap = self->opts.max_height;
+    } else {
+        cap = sc_terminal_height();
     }
-    if (self->opts.max_height > 0) {
-        int avail = self->opts.max_height - chrome;
-        return avail < 1 ? 1 : (size_t)avail;
+    int avail = cap - chrome;                  /* screen rows for the body */
+    if (avail < 1) { avail = 1; }
+
+    size_t entries;
+    if (self->opts.table) {
+        int per, base;
+        fuzzy_table_overhead(self, &per, &base);
+        if (per < 1) { per = 1; }
+        int v = (avail - base) / per;
+        entries = v < 1 ? 1 : (size_t)v;
+    } else {
+        entries = (size_t)avail;               /* one row per entry */
     }
-    size_t vis = self->max_visible > 0 ? (size_t)self->max_visible : 10;
-    int avail = sc_terminal_height() - chrome;
-    if (avail > 0 && (size_t)avail < vis) { vis = (size_t)avail; }
-    return vis < 1 ? 1 : vis;
+    /* Default mode (no fullscreen / max_height): the max_visible viewport. */
+    if (!fs && self->opts.max_height == 0) {
+        size_t vis = self->max_visible > 0 ? (size_t)self->max_visible : 10;
+        if (entries > vis) { entries = vis; }
+    }
+    return entries < 1 ? 1 : entries;
 }
 
 void sc_fuzzy_add(ScFuzzy *self, const char *label) {
@@ -1126,9 +1164,12 @@ static ScRendered *fuzzy_render(void *state) {
                            sc_box_content_left(self->opts.box));
     if (self->opts.fullscreen) {
         /* Pin the header above and align the block; recomputed each frame so a
-           growing list re-aligns and fills the screen. */
+           growing list re-aligns and fills the screen. Reserve the engine's
+           shortcut footer so it is not pushed off the bottom. */
+        int footer = sc_shortcut_hint_rows(self->opts.shortcuts,
+                                           self->opts.n_shortcuts);
         frame = sc_fullscreen_compose(frame, self->opts.header,
-                                      self->opts.valign);
+                                      self->opts.valign, footer);
     }
     return frame;
 }

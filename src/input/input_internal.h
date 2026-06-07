@@ -203,6 +203,25 @@ static inline int sc_box_content_left(ScBoxStyle box) {
 }
 
 /**
+ * Rows the engine's labeled-shortcut footer occupies (0 or 1): 1 when any
+ * shortcut carries a non-empty `hint_label`, matching `build_shortcut_hint`
+ * (which renders a single `·`-separated line). Widgets reserve this in their
+ * height budget so a fullscreen/auto-sized frame leaves room for the footer
+ * the engine stacks beneath them.
+ */
+static inline int sc_shortcut_hint_rows(const ScShortcut *items, size_t n) {
+    if (!items) {
+        return 0;
+    }
+    for (size_t i = 0; i < n; i++) {
+        if (items[i].hint_label && items[i].hint_label[0]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/**
  * Defines a `static int name(void *st)` that returns the box content-left for a
  * widget whose state struct exposes `opts.box`. Wire it into the vtable's
  * `hint_indent` so the engine aligns the labeled-shortcut footer with the
@@ -566,9 +585,14 @@ static inline ScRendered *sc_stack_below(ScRendered *top, ScRendered *bottom) {
  * Used by the fuzzy/form fullscreen mode so the block grows + re-aligns each
  * frame as the body changes. Returns `body` unchanged when there is nothing to
  * add (no header and TOP / no free rows).
+ *
+ * `bottom_reserve` keeps that many rows free at the very bottom of the screen so
+ * the engine's labeled-shortcut footer (stacked after `render`) is not pushed
+ * off-screen: the block is aligned within `term_height - bottom_reserve`. Pass 0
+ * when no footer is stacked.
  */
 ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
-                                  ScVAlign valign);
+                                  ScVAlign valign, int bottom_reserve);
 
 
 /* ── Prompt loop engine (prompt.c) ──────────────────────────────────────── */

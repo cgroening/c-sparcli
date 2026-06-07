@@ -557,8 +557,10 @@ static ScRendered *form_render(void *state) {
                         self->opts.hint_layout, self->opts.hint_pos,
                         self->opts.hint_style, 0);   /* form has no box */
     if (self->opts.fullscreen) {
+        int footer = sc_shortcut_hint_rows(self->opts.shortcuts,
+                                           self->opts.n_shortcuts);
         frame = sc_fullscreen_compose(frame, self->opts.header,
-                                      self->opts.valign);
+                                      self->opts.valign, footer);
     }
     return frame;
 }

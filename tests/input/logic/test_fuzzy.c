@@ -1,5 +1,6 @@
 #include "test_input.h"
 #include "sparcli.h"
+#include "input/input_internal.h"   /* sc_fuzzy_frame for the height-fit checks */
 
 #include <string.h>
 
@@ -123,4 +124,46 @@ void test_fuzzy_logic(void) {
           && strcmp(sc_fuzzy_label(rich, 0), "HIGH") == 0,
           "fuzzy: add_row_rich flattens span text for matching");
     sc_fuzzy_free(rich);
+
+    /* Height budget: a fullscreen TABLE finder with many rows + a header + a
+       labeled shortcut footer must fit the terminal (no clip). The frame
+       builder does not stack the engine footer, so leave one row for it. */
+    int term_h = sc_term_height();   /* 24 fallback under the non-TTY test env */
+    ScShortcut sk[] = {
+        { .chord = { .key = SC_KEY_CHAR, .codepoint = 'd' },
+          .id = 1, .hint_label = "done" },
+    };
+    const char *th[] = { "Task", "Due" };
+    ScRendered *hdr = sc_capture_str("mdtask\nheader");   /* 2-line header */
+    ScFuzzy *tall = sc_fuzzy_new((ScFuzzyOpts){
+        .table = true, .headers = th, .n_cols = 2,
+        .fullscreen = true, .header = hdr,
+        .shortcuts = sk, .n_shortcuts = 1,
+        .box = { .enabled = true } });
+    for (int i = 0; i < 40; i++) {
+        char a[16], b[16];
+        snprintf(a, sizeof a, "task %d", i);
+        snprintf(b, sizeof b, "2026-%02d", i % 12 + 1);
+        sc_fuzzy_add_row(tall, (const char *[]){ a, b }, 2);
+    }
+    ScRendered *tf = sc_fuzzy_frame(tall, "");
+    CHECK(tf && (int)tf->line_count <= term_h - 1,
+          "fuzzy: fullscreen table frame fits terminal (leaves footer row)");
+    sc_rendered_free(tf);
+    sc_fuzzy_free(tall);
+
+    /* List view, fullscreen: one row per entry, also bounded. */
+    ScFuzzy *tl = sc_fuzzy_new((ScFuzzyOpts){
+        .fullscreen = true, .header = hdr, .box = { .enabled = true } });
+    for (int i = 0; i < 60; i++) {
+        char a[16];
+        snprintf(a, sizeof a, "item %d", i);
+        sc_fuzzy_add(tl, a);
+    }
+    ScRendered *lf = sc_fuzzy_frame(tl, "");
+    CHECK(lf && (int)lf->line_count <= term_h,
+          "fuzzy: fullscreen list frame fits terminal");
+    sc_rendered_free(lf);
+    sc_fuzzy_free(tl);
+    sc_rendered_free(hdr);
 }

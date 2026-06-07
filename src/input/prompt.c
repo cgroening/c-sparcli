@@ -13,11 +13,12 @@ static atomic_bool g_prompt_active = false;
 
 
 ScRendered *sc_fullscreen_compose(ScRendered *body, const ScRendered *header,
-                                  ScVAlign valign) {
+                                  ScVAlign valign, int bottom_reserve) {
     if (!body) {
         return body;
     }
     int rows = sc_term_height();
+    if (bottom_reserve > 0) { rows -= bottom_reserve; }   /* leave room below */
     int header_h = header ? (int)header->line_count : 0;
     int free_rows = rows - header_h - (int)body->line_count;
     if (free_rows < 0) { free_rows = 0; }
