@@ -51,6 +51,22 @@ typedef enum ScFieldWidthMode {
  */
 typedef bool (*ScFieldValidate)(const char *value, void *ctx, const char **err);
 
+/* Opaque form handle (full typedef below); forward-declared so the cell-style
+   callback can take a `const struct ScForm *`. */
+struct ScForm;
+
+/**
+ * Returns the text style for this field's value as shown in the grid cell.
+ * Called on each render, so the color can change live (e.g. while a date is
+ * being picked); query the live value via the `sc_form_get_*` getters (e.g.
+ * `sc_form_get_date`) using the passed `field` index. Return a zero-init
+ * `ScTextStyle` for "default" (no override). Styles only the value text, not
+ * the field's border or label.
+ */
+typedef ScTextStyle (*ScFieldCellStyle)(
+    const struct ScForm *form, int field, void *ctx
+);
+
 /**
  * Per-field layout and behaviour. Zero-init selects sensible defaults: auto
  * width, span 1x1, one content line, optional (not required), rounded border.
@@ -133,6 +149,16 @@ typedef struct ScFieldOpts {
      * positive `selectable`) so the zero-init default stays "selectable".
      */
     bool not_selectable;
+
+    /**
+     * Optional: styles the value text shown in the grid cell (e.g. color a date
+     * by overdue/today/future). Called on each render. `NULL` = default.
+     * @see ScFieldCellStyle
+     */
+    ScFieldCellStyle value_style;
+
+    /** Opaque pointer passed to `value_style`. */
+    void *value_style_ctx;
 } ScFieldOpts;
 
 /** Options for the whole form. Zero-init friendly. */
@@ -271,6 +297,17 @@ SPARCLI_EXPORT int sc_form_add_select(
 SPARCLI_EXPORT int sc_form_add_multiselect(
     ScForm *form, const char *label, const char *const *choices, size_t n,
     const size_t *checked_indices, size_t n_checked, ScFieldOpts opts
+);
+
+/**
+ * Sets a per-choice text style for a select/multiselect field. `styles[i]`
+ * styles choice i; entries are copied. `n` may be < the choice count (the
+ * rest stay unstyled). Applied both to the rows of the dropdown list AND to
+ * the selected value rendered in the grid cell. No-op for non-select fields
+ * or an invalid index.
+ */
+SPARCLI_EXPORT void sc_form_set_choice_styles(
+    ScForm *form, int field, const ScTextStyle *styles, size_t n
 );
 
 /**

@@ -460,11 +460,22 @@ whether any field changed from its initial value (for an "unsaved changes?"
 prompt on cancel), and `FormOpts{ .modified_marker = "[*] " }` prefixes a changed
 field's box title.
 
+**Per-field colors.** `set_choice_styles(field, { style… })` colors a
+select/multiselect's choices (in the dropdown and the selected grid cell) — e.g.
+a color-coded priority list. `FieldOpts{ .value_style = cb }` (an
+`ScFieldCellStyle` raw fn ptr `(const ScForm*, int field, void*) → TextStyle`,
+like `validate`) colors just a cell's value text and is called on every render,
+so it updates live — e.g. color a date by overdue/today/future (read the value
+with `get_date` inside the callback).
+
 ```cpp
 Form f({ .title = "Contact", .accent = cyan() });
 f.row_begin();
 int name = f.add_text("Name", "Ada", { .width_mode = SC_FWIDTH_PCT, .width = 50 });
 int tier = f.add_select("Tier", { "Bronze", "Silver", "Gold" }, 1, { .col_span = 2 });
+f.set_choice_styles(tier, { style(SC_TEXT_ATTR_NONE, green()),
+                            style(SC_TEXT_ATTR_NONE, yellow()),
+                            style(SC_TEXT_ATTR_BOLD, red()) });
 f.add_multiselect("Tags", { "vip", "net-30" }, { 0 });
 f.add_date("Since", {});
 f.add_text("Notes", "", { .multiline = true });   // Enter / Ctrl-G open $EDITOR

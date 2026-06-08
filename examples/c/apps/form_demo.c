@@ -20,6 +20,27 @@
 #include "sparcli.h"
 
 #include <stdio.h>
+#include <time.h>
+
+
+/* value_style: color the "Since" date red if it is in the past, green if it is
+   today or in the future. Re-evaluated on every render, so the color updates
+   live while the calendar is open. */
+static ScTextStyle date_tone(const ScForm *form, int field, void *ctx) {
+    (void)ctx;
+    struct tm picked;
+    if (!sc_form_get_date(form, field, &picked)) {
+        return (ScTextStyle){ 0 };          /* empty -> default */
+    }
+    time_t when = mktime(&picked);
+    time_t now = time(NULL);
+    struct tm today = *localtime(&now);
+    today.tm_hour = today.tm_min = today.tm_sec = 0;
+    bool past = when < mktime(&today);
+    return (ScTextStyle){ SC_TEXT_ATTR_BOLD,
+                          past ? SC_COLOR_RED : SC_COLOR_GREEN,
+                          SC_ANSI_COLOR_NONE };
+}
 
 
 int main(void) {
@@ -51,6 +72,12 @@ int main(void) {
         (ScFieldOpts){ .width_mode = SC_FWIDTH_PCT, .width = 60 });
     int tier = sc_form_add_select(form, "Tier", tiers, 3, 1,
         (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO, .col_span = 2 });
+    /* Color-code the tiers in both the dropdown and the selected grid cell. */
+    sc_form_set_choice_styles(form, tier, (ScTextStyle[]){
+        { SC_TEXT_ATTR_NONE, SC_COLOR_ORANGE, SC_ANSI_COLOR_NONE },  /* Bronze */
+        { SC_TEXT_ATTR_DIM,  SC_ANSI_COLOR_WHITE, SC_ANSI_COLOR_NONE }, /* Silver */
+        { SC_TEXT_ATTR_BOLD, SC_COLOR_YELLOW, SC_ANSI_COLOR_NONE },  /* Gold */
+    }, 3);
 
     /* A multiselect + date row. */
     static const char *const tags[] = {
@@ -61,7 +88,8 @@ int main(void) {
     int flags = sc_form_add_multiselect(form, "Flags", tags, 4,
         (const size_t[]){ 0 }, 1, (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO });
     int since = sc_form_add_date(form, "Since", (struct tm){ 0 },
-        (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO, .date_optional = true });
+        (ScFieldOpts){ .width_mode = SC_FWIDTH_AUTO, .date_optional = true,
+                       .value_style = date_tone });   /* live past/future color */
 
     /* Row 3+4: a tall notes field (rowspan 2) in the MIDDLE column, flanked by
        stacked fields (Phone/City on the left, Active/ZIP on the right). */

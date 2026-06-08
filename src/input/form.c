@@ -37,6 +37,8 @@ typedef struct Field {
     size_t      n_choices;
     size_t      sel;         /**< Selected index (single-select). */
     bool       *checked;     /**< Parallel to choices (multiselect). */
+    ScTextStyle *choice_styles;  /**< Owned; per-choice style (may be < n). */
+    size_t      n_choice_styles;
 
     /* Date. */
     struct tm   date;        /**< Picked date (date fields). */
@@ -398,6 +400,29 @@ int sc_form_add_multiselect(ScForm *self, const char *label,
     return idx;
 }
 
+void sc_form_set_choice_styles(ScForm *self, int field,
+                               const ScTextStyle *styles, size_t n) {
+    if (!self || field < 0 || (size_t)field >= self->count) {
+        return;
+    }
+    Field *f = &self->fields[field];
+    if (f->type != SC_FIELD_SELECT && f->type != SC_FIELD_MULTISELECT) {
+        return;
+    }
+    free(f->choice_styles);
+    f->choice_styles = NULL;
+    f->n_choice_styles = 0;
+    if (!styles || n == 0) {
+        return;
+    }
+    f->choice_styles = malloc(n * sizeof *f->choice_styles);
+    if (!f->choice_styles) {
+        return;
+    }
+    memcpy(f->choice_styles, styles, n * sizeof *f->choice_styles);
+    f->n_choice_styles = n;
+}
+
 int sc_form_add_date(ScForm *self, const char *label, struct tm initial,
                      ScFieldOpts opts) {
     int idx = add_field(self, SC_FIELD_DATE, label, "", opts);
@@ -438,6 +463,7 @@ void sc_form_free(ScForm *self) {
         for (size_t c = 0; c < f->n_choices; c++) { free(f->choices[c]); }
         free(f->choices);
         free(f->checked);
+        free(f->choice_styles);
     }
     free(self->fields);
     free(self->grid);
@@ -823,10 +849,27 @@ static ScRendered *capture_field(const ScForm *self, const Field *f,
     bool disabled = f->opts.read_only || f->opts.not_selectable;
 
     ScText *content = sc_text_new();
-    ScTextStyle vstyle = (placeholder || disabled)
-        ? (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
-                         SC_ANSI_COLOR_NONE }
-        : (ScTextStyle){ 0 };
+    /* Value-text style for the cell. Disabled/placeholder dims it; otherwise a
+       single-select picks up its per-choice style, and an optional value_style
+       callback (queried live each render) overrides when it returns a set
+       style. The callback styles only the value text, not the frame/label. */
+    ScTextStyle vstyle;
+    if (placeholder || disabled) {
+        vstyle = (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                                SC_ANSI_COLOR_NONE };
+    } else {
+        vstyle = (ScTextStyle){ 0 };
+        if (f->type == SC_FIELD_SELECT && f->choice_styles
+            && f->sel < f->n_choice_styles) {
+            vstyle = f->choice_styles[f->sel];
+        }
+        if (f->opts.value_style) {
+            int field_index = (int)(f - self->fields);
+            ScTextStyle cb = f->opts.value_style(
+                self, field_index, f->opts.value_style_ctx);
+            if (sc_style_set(cb)) { vstyle = cb; }
+        }
+    }
 
     /* Lay the value across content lines, breaking on '\n' (multiline fields);
        single-line values keep their old one-line look. Extra lines are
@@ -993,7 +1036,17 @@ static void append_choice_body(ScForm *self, const Field *a, ScText *t) {
             sc_text_append(t, self->list_checked[i] ? "[x] " : "[ ] ",
                            cur ? cur_style : (ScTextStyle){ 0 });
         }
-        sc_text_append(t, a->choices[i], cur ? cur_style : (ScTextStyle){ 0 });
+        /* Per-choice style (zero-init = none). On the cursor row, keep it clearly
+           marked: union the choice attributes with bold and force the accent fg,
+           but inherit the choice background. */
+        ScTextStyle base = (a->choice_styles && i < a->n_choice_styles)
+            ? a->choice_styles[i] : (ScTextStyle){ 0 };
+        ScTextStyle text_style = base;
+        if (cur) {
+            text_style.attr |= SC_TEXT_ATTR_BOLD;
+            text_style.fg = self->accent;
+        }
+        sc_text_append(t, a->choices[i], text_style);
         if (i + 1 < end || n > FORM_LIST_VISIBLE) {
             sc_text_append(t, "\n", (ScTextStyle){ 0 });
         }

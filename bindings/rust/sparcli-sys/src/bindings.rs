@@ -3924,6 +3924,14 @@ pub type ScFieldValidate = ::std::option::Option<
         err: *mut *const ::std::os::raw::c_char,
     ) -> bool,
 >;
+#[doc = " Returns the text style for a field's value as shown in the grid cell."]
+pub type ScFieldCellStyle = ::std::option::Option<
+    unsafe extern "C" fn(
+        form: *const ScForm,
+        field: ::std::os::raw::c_int,
+        ctx: *mut ::std::os::raw::c_void,
+    ) -> ScTextStyle,
+>;
 #[doc = " Per-field layout and behaviour. Zero-init selects sensible defaults: auto\n width, span 1x1, one content line, optional (not required), rounded border.\n\n Grid sizing: a field's column width is driven by single-column fields\n (`col_span == 1`) anchored in that column - the last one wins. A spanning\n field (`col_span > 1`) just sums the columns it covers; a spanning field\n (`row_span > 1`) fills the height of the rows it covers."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3957,10 +3965,14 @@ pub struct ScFieldOpts {
     pub read_only: bool,
     #[doc = " Skip this field in all focus navigation (arrows, Tab, initial focus,\n autoedit); its `required` flag is treated as satisfied. Zero-init =\n selectable."]
     pub not_selectable: bool,
+    #[doc = " Optional: styles the value text in the grid cell (e.g. color a date by\n overdue/today/future). Called on each render. NULL = default."]
+    pub value_style: ScFieldCellStyle,
+    #[doc = " Opaque pointer passed to `value_style`."]
+    pub value_style_ctx: *mut ::std::os::raw::c_void,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFieldOpts"][::std::mem::size_of::<ScFieldOpts>() - 80usize];
+    ["Size of ScFieldOpts"][::std::mem::size_of::<ScFieldOpts>() - 96usize];
     ["Alignment of ScFieldOpts"][::std::mem::align_of::<ScFieldOpts>() - 8usize];
     ["Offset of field: ScFieldOpts::width_mode"]
         [::std::mem::offset_of!(ScFieldOpts, width_mode) - 0usize];
@@ -3988,6 +4000,10 @@ const _: () = {
         [::std::mem::offset_of!(ScFieldOpts, read_only) - 72usize];
     ["Offset of field: ScFieldOpts::not_selectable"]
         [::std::mem::offset_of!(ScFieldOpts, not_selectable) - 73usize];
+    ["Offset of field: ScFieldOpts::value_style"]
+        [::std::mem::offset_of!(ScFieldOpts, value_style) - 80usize];
+    ["Offset of field: ScFieldOpts::value_style_ctx"]
+        [::std::mem::offset_of!(ScFieldOpts, value_style_ctx) - 88usize];
 };
 #[doc = " Options for the whole form. Zero-init friendly."]
 #[repr(C)]

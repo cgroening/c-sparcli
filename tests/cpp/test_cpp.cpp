@@ -699,6 +699,12 @@ static void test_edit_file_wrapper() {
     unsetenv("SPARCLI_NO_TTY");
 }
 
+// value_style callback for the C++ form test (colors a cell value).
+static TextStyle cpp_cell_color(const ScForm* /*form*/, int /*field*/,
+                                void* /*ctx*/) {
+    return style(SC_TEXT_ATTR_BOLD, red());
+}
+
 // Headless coverage of the Form wrapper (construction + initial getters).
 static void test_form_wrapper() {
     Form f{ FormOpts{ .title = "Contact", .accent = sparcli::cyan() } };
@@ -753,6 +759,18 @@ static void test_form_wrapper() {
     ro.add_text("Title", "t", FieldOpts{});
     CHECK(ro.get_string(rep) == std::string("weekly"),
           "form++: read_only/not_selectable field readable");
+
+    // Per-choice styles (chainable) + value_style via the FieldOpts alias build
+    // and the field keeps its value (rendering is covered by the C test).
+    Form cs{ FormOpts{} };
+    cs.row_begin();
+    int pri = cs.add_select("Pri", { "Low", "Med", "High" }, 2);
+    cs.set_choice_styles(pri, { style(SC_TEXT_ATTR_NONE, green()),
+                                style(SC_TEXT_ATTR_NONE, yellow()),
+                                style(SC_TEXT_ATTR_BOLD, red()) })
+      .add_date("Due", {}, FieldOpts{ .value_style = cpp_cell_color });
+    CHECK(cs.get_choice(pri) == 2,
+          "form++: set_choice_styles + value_style build, selection kept");
 }
 
 // Headless coverage of the shortcut help screen wrapper (build + no-TTY show).

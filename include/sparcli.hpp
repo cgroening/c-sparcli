@@ -2549,6 +2549,14 @@ public:
                                 initial, opts);
     }
 
+    /** Per-choice styles for a select/multiselect field (dropdown + cell).
+        @see sc_form_set_choice_styles */
+    Form& set_choice_styles(int field, const std::vector<TextStyle>& styles) {
+        sc_form_set_choice_styles(detail::live(p_), field,
+                                  styles.data(), styles.size());
+        return *this;
+    }
+
     /** Runs the form. @return true on submit, false on cancel/no-TTY. */
     bool run() { return sc_form_run(detail::live(p_)) == SC_INPUT_OK; }
 

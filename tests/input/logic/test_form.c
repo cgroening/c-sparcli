@@ -71,6 +71,24 @@ static int form_line_of(const ScRendered *frame, const char *needle) {
     return -1;
 }
 
+/* True when any RAW (un-stripped) line of `frame` contains `needle` — used to
+   assert an ANSI escape (e.g. a color code) is actually emitted. */
+static bool form_raw_has(const ScRendered *frame, const char *needle) {
+    if (!frame) { return false; }
+    for (size_t i = 0; i < frame->line_count; i++) {
+        if (strstr(frame->lines[i], needle) != NULL) { return true; }
+    }
+    return false;
+}
+
+/* value_style callback: paints the cell value green (ESC[32m) regardless of the
+   value (enough to prove the callback is invoked and applied per render). */
+static ScTextStyle green_value(const ScForm *form, int field, void *ctx) {
+    (void)form; (void)field; (void)ctx;
+    return (ScTextStyle){ SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN,
+                          SC_ANSI_COLOR_NONE };
+}
+
 
 void test_form(void) {
     ScForm *form = sc_form_new((ScFormOpts){ .title = "Demo" });
@@ -265,6 +283,48 @@ void test_form(void) {
         ScRendered *fr = sc_form_frame(f);
         CHECK(fr != NULL && fr->line_count > 0,
               "all-non-selectable form renders without hanging");
+        sc_rendered_free(fr);
+        sc_form_free(f);
+    }
+
+    /* ── Per-choice styles (select cell) + value_style callback (cell) ── */
+    {
+        static const char *const pri[] = { "Low", "Med", "High" };
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        /* Select preselected to index 2 (High) -> its choice style colors the
+           grid cell value. */
+        int sel = sc_form_add_select(f, "Pri", pri, 3, 2, (ScFieldOpts){ 0 });
+        ScTextStyle styles[3] = {
+            { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_GREEN,  SC_ANSI_COLOR_NONE },
+            { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_YELLOW, SC_ANSI_COLOR_NONE },
+            { SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_RED,    SC_ANSI_COLOR_NONE },
+        };
+        sc_form_set_choice_styles(f, sel, styles, 3);
+
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(form_line_of(fr, "High") >= 0,
+              "select cell shows the selected choice");
+        CHECK(form_raw_has(fr, "\033[31m"),
+              "per-choice style colors the selected value (red for High)");
+        sc_rendered_free(fr);
+
+        /* No-op on a non-select field / invalid index (must not crash). */
+        sc_form_set_choice_styles(f, sel + 99, styles, 3);
+        sc_form_free(f);
+    }
+
+    {
+        /* value_style callback colors the cell value (green) and is applied. */
+        struct tm seed = { 0 };
+        seed.tm_year = 2026 - 1900; seed.tm_mon = 4; seed.tm_mday = 15;
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_date(f, "Due", seed,
+            (ScFieldOpts){ .value_style = green_value });
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(form_raw_has(fr, "\033[32m"),
+              "value_style callback colors the cell value (green)");
         sc_rendered_free(fr);
         sc_form_free(f);
     }
