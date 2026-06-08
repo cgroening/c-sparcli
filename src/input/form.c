@@ -872,15 +872,34 @@ static ScRendered *capture_field(const ScForm *self, const Field *f,
     }
 
     /* Lay the value across content lines, breaking on '\n' (multiline fields);
-       single-line values keep their old one-line look. Extra lines are
-       dropped; remaining lines are padded blank so the panel fills its box. */
+       single-line values keep their old one-line look. Each line is truncated
+       horizontally with "…"; when more lines remain than fit (vertical
+       overflow), the last visible line gets a trailing "…" too so it is clear
+       that content is hidden. Remaining lines are padded blank to fill the box. */
     const char *p = val ? val : "";
     int line = 0;
     while (line < content_lines) {
         const char *nl = strchr(p, '\n');
         size_t len = nl ? (size_t)(nl - p) : strlen(p);
         char *seg = strndup(p, len);
-        char *shown = sc_truncate(seg ? seg : "", inner, "\xe2\x80\xa6");
+        bool more = nl && nl[1] != '\0';            /* further content follows */
+        bool voverflow = more && line == content_lines - 1;
+        char *shown;
+        if (voverflow) {
+            /* Force a trailing ellipsis: trim to inner-1 cols (no horizontal
+               ellipsis) and append "…", so it fits in `inner` and always ends
+               with the marker even if this line would have fit on its own. */
+            char *trimmed = sc_truncate(seg ? seg : "", inner - 1, "");
+            size_t tl = trimmed ? strlen(trimmed) : 0;
+            shown = malloc(tl + sizeof "\xe2\x80\xa6");
+            if (shown) {
+                if (trimmed) { memcpy(shown, trimmed, tl); }
+                memcpy(shown + tl, "\xe2\x80\xa6", sizeof "\xe2\x80\xa6");
+            }
+            free(trimmed);
+        } else {
+            shown = sc_truncate(seg ? seg : "", inner, "\xe2\x80\xa6");
+        }
         free(seg);
         if (line > 0) { sc_text_append(content, "\n", (ScTextStyle){ 0 }); }
         sc_text_append(content, shown ? shown : "", vstyle);

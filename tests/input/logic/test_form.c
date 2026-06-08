@@ -370,6 +370,37 @@ void test_form(void) {
         sc_form_free(f);
     }
 
+    /* ── Vertical overflow marks the last visible line with "…" ── */
+    {
+        /* A multiline value with more lines than `height` -> the last visible
+           line ends with "…"; a value that fits shows no marker. */
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Notes", "line one\nline two\nline three",
+            (ScFieldOpts){ .multiline = true, .height = 2,
+                           .width_mode = SC_FWIDTH_FIXED, .width = 20 });
+        ScRendered *fr = sc_form_frame(f);
+        /* "two" stays but is marked truncated; "three" never appears. */
+        CHECK(form_raw_has(fr, "\xe2\x80\xa6"),
+              "vertically truncated value is marked with an ellipsis");
+        CHECK(form_line_of(fr, "three") < 0,
+              "the overflowing line is not shown");
+        sc_rendered_free(fr);
+        sc_form_free(f);
+
+        /* Same content but enough height -> no ellipsis. */
+        ScForm *g = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(g);
+        sc_form_add_text(g, "Notes", "line one\nline two\nline three",
+            (ScFieldOpts){ .multiline = true, .height = 4,
+                           .width_mode = SC_FWIDTH_FIXED, .width = 20 });
+        ScRendered *gr = sc_form_frame(g);
+        CHECK(!form_raw_has(gr, "\xe2\x80\xa6") && form_line_of(gr, "three") >= 0,
+              "a value that fits is shown in full with no ellipsis");
+        sc_rendered_free(gr);
+        sc_form_free(g);
+    }
+
     /* ── Column-width solving (cumulative PCT rounding) ── */
     {
         int colw[8], colx[8];
