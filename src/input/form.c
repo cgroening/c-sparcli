@@ -1215,7 +1215,7 @@ static ScRendered *build_edit_box(ScForm *self, const Field *a, int box_w) {
     ScRendered *r_hint = sc_capture_text(below);
     sc_text_free(below);
 
-    /* Box + hint hug each other (gap 0); the rule sits one line above. */
+    /* Box + hint hug each other (gap 0); the box sits directly under the rule. */
     const ScRendered *bh[2] = { framed, r_hint };
     ScRendered *box = sc_vstack(bh, 2, 0);
     sc_rendered_free(framed);
@@ -1223,7 +1223,7 @@ static ScRendered *build_edit_box(ScForm *self, const Field *a, int box_w) {
 
     if (r_rule && box) {
         const ScRendered *parts[2] = { r_rule, box };
-        ScRendered *out = sc_vstack(parts, 2, 1);
+        ScRendered *out = sc_vstack(parts, 2, 0);
         sc_rendered_free(r_rule);
         sc_rendered_free(box);
         return out;
