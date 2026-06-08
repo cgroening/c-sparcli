@@ -1381,6 +1381,90 @@ static int child_case(int c) {
             unlink(path);
             return rc == 1 ? 0 : 1;
         }
+        case 93: {
+            /* read_only field: Enter opens no editor and a stray "Z" in nav
+               mode is a no-op, so the value stays "a" across Enter+Z+Ctrl-D. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ .read_only = true });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && v && strcmp(v, "a") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 94: {
+            /* read_only bool: Space must NOT toggle it; it stays false. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_bool(f, "B", false, (ScFieldOpts){ .read_only = true });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && sc_form_get_bool(f, 0) == false);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 95: {
+            /* not_selectable (+ read_only) field A is skipped: the initial focus
+               lands on the selectable B, so Enter/X edits B ("b" -> "bX") while
+               A stays "a". Proves first_selectable + nav skipping. */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a",
+                (ScFieldOpts){ .read_only = true, .not_selectable = true });
+            sc_form_add_text(f, "B", "b", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *a = sc_form_get_string(f, 0);
+            const char *b = sc_form_get_string(f, 1);
+            int ok = (s == SC_INPUT_OK && a && b
+                      && strcmp(a, "a") == 0 && strcmp(b, "bX") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 96: {
+            /* Every field is not_selectable: navigation (arrow + Tab) must not
+               hang and Ctrl-D still submits cleanly (a non-selectable required
+               field never blocks submit). */
+            ScForm *f = sc_form_new((ScFormOpts){ 0 });
+            sc_form_add_text(f, "A", "a",
+                (ScFieldOpts){ .not_selectable = true, .required = true });
+            sc_form_add_text(f, "B", "b",
+                (ScFieldOpts){ .not_selectable = true });
+            ScInputStatus s = sc_form_run(f);
+            sc_form_free(f);
+            return (s == SC_INPUT_OK) ? 0 : 1;
+        }
+        case 97: {
+            /* A bare-letter ('r') RETURN shortcut is SUPPRESSED while editing:
+               Enter opens the editor (seed "a"), "r" types into the field
+               ("ar"), Enter saves, Ctrl-D submits normally — the shortcut never
+               fires (act stays -1). */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_CHAR, .codepoint = 'r' }, .id = 9,
+                  .mode = SC_SHORTCUT_RETURN },
+            };
+            ScForm *f = sc_form_new((ScFormOpts){
+                .shortcuts = sk, .n_shortcuts = 1, .out_shortcut_id = &act });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            const char *v = sc_form_get_string(f, 0);
+            int ok = (s == SC_INPUT_OK && act == -1 && v && strcmp(v, "ar") == 0);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
+        case 98: {
+            /* The same bare 'r' shortcut still FIRES in navigation mode (not
+               editing): a single "r" ends the form with id 9. */
+            int act = -1;
+            ScShortcut sk[] = {
+                { .chord = { .key = SC_KEY_CHAR, .codepoint = 'r' }, .id = 9,
+                  .mode = SC_SHORTCUT_RETURN },
+            };
+            ScForm *f = sc_form_new((ScFormOpts){
+                .shortcuts = sk, .n_shortcuts = 1, .out_shortcut_id = &act });
+            sc_form_add_text(f, "A", "a", (ScFieldOpts){ 0 });
+            ScInputStatus s = sc_form_run(f);
+            int ok = (s == SC_INPUT_OK && act == 9);
+            sc_form_free(f);
+            return ok ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1491,6 +1575,12 @@ static const Case CASES[] = {
     { "form-not-modified", "\x04" },                /* submit unchanged -> not modified */
     { "edit-file-ok", "" },         /* sc_edit_file: stub editor rewrites file */
     { "edit-file-fail", "" },       /* sc_edit_file: non-zero exit propagates */
+    { "form-read-only", "\rZ\x04" },        /* read_only: Enter/Z no-op, stays a */
+    { "form-read-only-bool", " \x04" },     /* read_only bool: Space no toggle */
+    { "form-not-selectable", "\rX\r\x04" }, /* focus skips A -> edits B "bX" */
+    { "form-all-not-selectable", "\x1b[B\t\x04" }, /* all skipped: no hang */
+    { "form-shortcut-suppressed-editing", "\rr\r\x04" }, /* 'r' types while editing */
+    { "form-shortcut-nav-fires", "r" },     /* 'r' fires in nav mode */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

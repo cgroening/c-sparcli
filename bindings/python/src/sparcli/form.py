@@ -35,6 +35,13 @@ class FieldOpts:
     multiline: bool = False   #: text field edited via the external editor
     date_optional: bool = False  #: date field may be empty (get_date -> None)
     help: str | None = None
+    #: display-only: focusable and rendered, but the value can never change (no
+    #: editor, no bool toggle, no value cycling); default = editable
+    read_only: bool = False
+    #: skip this field in all focus navigation (arrows, Tab, initial focus,
+    #: autoedit); its ``required`` flag is treated as satisfied; combine with
+    #: ``read_only`` for a display-only, unfocusable field; default = selectable
+    not_selectable: bool = False
 
     def _fill(self, c, arena: list) -> None:
         c.width_mode = int(self.width_mode)
@@ -46,6 +53,8 @@ class FieldOpts:
         c.required = self.required
         c.multiline = self.multiline
         c.date_optional = self.date_optional
+        c.read_only = self.read_only
+        c.not_selectable = self.not_selectable
         c.help = cstr(arena, self.help)
 
 

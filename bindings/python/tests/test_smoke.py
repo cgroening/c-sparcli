@@ -731,6 +731,17 @@ def test_form_multiline_keeps_newlines():
         assert f.get_string(0) == "x\ny"
 
 
+def test_form_read_only_and_not_selectable_fields():
+    # The display-only / unfocusable flags build and keep their value readable.
+    with sc.Form(sc.FormOpts()) as f:
+        f.row_begin()
+        repeat = f.add_text("Repeat", "weekly",
+                            sc.FieldOpts(read_only=True, not_selectable=True))
+        title = f.add_text("Title", "t", sc.FieldOpts())
+        assert (repeat, title) == (0, 1)
+        assert f.get_string(repeat) == "weekly"
+
+
 def test_form_autoedit_opt():
     # autoedit (open the first field's editor at start) is exposed and builds.
     with sc.Form(sc.FormOpts(autoedit=True)) as f:

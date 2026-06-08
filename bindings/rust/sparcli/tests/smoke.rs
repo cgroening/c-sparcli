@@ -1088,4 +1088,14 @@ fn form_construction_and_getters() {
     });
     assert_eq!(fs.get_string(0).as_deref(), Some("Apple"));
     assert_eq!(fs.get_string(1).as_deref(), Some("notes"));
+
+    // read_only + not_selectable (display-only, unfocusable) build and the
+    // value stays readable through the getter.
+    let mut ro = Form::new(FormOpts::default());
+    ro.row_begin();
+    ro.add_text("Repeat", "weekly", FieldOpts {
+        read_only: true, not_selectable: true, ..Default::default()
+    });
+    ro.add_text("Title", "t", FieldOpts::default());
+    assert_eq!(ro.get_string(0).as_deref(), Some("weekly"));
 }

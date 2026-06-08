@@ -1110,6 +1110,8 @@ typedef struct {
     bool multiline;
     bool date_optional;
     const char *help;
+    bool read_only;
+    bool not_selectable;
     ...;
 } ScFieldOpts;
 typedef struct {

@@ -230,6 +230,45 @@ void test_form(void) {
         sc_form_free(f);
     }
 
+    /* ── read_only / not_selectable fields ── */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        int ro = sc_form_add_text(f, "Repeat", "weekly",
+            (ScFieldOpts){ .read_only = true });
+        int ns = sc_form_add_text(f, "Hidden", "x",
+            (ScFieldOpts){ .read_only = true, .not_selectable = true });
+        int ed = sc_form_add_text(f, "Title", "t", (ScFieldOpts){ 0 });
+        CHECK(ro == 0 && ns == 1 && ed == 2,
+              "read_only/not_selectable fields are added like any other");
+
+        /* The dimmed render path (disabled title/value) renders without a TTY. */
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(fr != NULL && fr->line_count > 0,
+              "form with read_only + not_selectable fields renders");
+        CHECK(form_line_of(fr, "Repeat") >= 0 && form_line_of(fr, "Hidden") >= 0,
+              "disabled fields are still drawn (labels visible)");
+        sc_rendered_free(fr);
+
+        /* Getters still read their (display-only) values. */
+        CHECK(strcmp(sc_form_get_string(f, ro), "weekly") == 0,
+              "read_only field exposes its value via the getter");
+        sc_form_free(f);
+    }
+
+    /* A form whose every field is not_selectable still renders (no crash). */
+    {
+        ScForm *f = sc_form_new((ScFormOpts){ 0 });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "A", "a", (ScFieldOpts){ .not_selectable = true });
+        sc_form_add_text(f, "B", "b", (ScFieldOpts){ .not_selectable = true });
+        ScRendered *fr = sc_form_frame(f);
+        CHECK(fr != NULL && fr->line_count > 0,
+              "all-non-selectable form renders without hanging");
+        sc_rendered_free(fr);
+        sc_form_free(f);
+    }
+
     /* ── Column-width solving (cumulative PCT rounding) ── */
     {
         int colw[8], colx[8];

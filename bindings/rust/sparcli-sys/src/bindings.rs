@@ -3884,10 +3884,14 @@ pub struct ScFieldOpts {
     #[doc = " Optional validation (text/number); NULL = none."]
     pub validate: ScFieldValidate,
     pub validate_ctx: *mut ::std::os::raw::c_void,
+    #[doc = " Display-only: focusable and rendered, but its value can never change\n (no editor, no bool toggle, no value cycling). Zero-init = editable."]
+    pub read_only: bool,
+    #[doc = " Skip this field in all focus navigation (arrows, Tab, initial focus,\n autoedit); its `required` flag is treated as satisfied. Zero-init =\n selectable."]
+    pub not_selectable: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScFieldOpts"][::std::mem::size_of::<ScFieldOpts>() - 72usize];
+    ["Size of ScFieldOpts"][::std::mem::size_of::<ScFieldOpts>() - 80usize];
     ["Alignment of ScFieldOpts"][::std::mem::align_of::<ScFieldOpts>() - 8usize];
     ["Offset of field: ScFieldOpts::width_mode"]
         [::std::mem::offset_of!(ScFieldOpts, width_mode) - 0usize];
@@ -3911,6 +3915,10 @@ const _: () = {
         [::std::mem::offset_of!(ScFieldOpts, validate) - 56usize];
     ["Offset of field: ScFieldOpts::validate_ctx"]
         [::std::mem::offset_of!(ScFieldOpts, validate_ctx) - 64usize];
+    ["Offset of field: ScFieldOpts::read_only"]
+        [::std::mem::offset_of!(ScFieldOpts, read_only) - 72usize];
+    ["Offset of field: ScFieldOpts::not_selectable"]
+        [::std::mem::offset_of!(ScFieldOpts, not_selectable) - 73usize];
 };
 #[doc = " Options for the whole form. Zero-init friendly."]
 #[repr(C)]

@@ -359,6 +359,9 @@ changed field's box title. Full-screen forms add `FieldOpts { fill_height: true,
 row and the edit/hint footer to the bottom, aligning only the grid between them;
 default `ValignScope::All` aligns the whole block) and `FormOpts { editor_suffix:
 Some(".md".into()), .. }` (extension for the external-editor temp file).
+`FieldOpts { read_only: true, .. }` shows a field but blocks all editing, and
+`FieldOpts { not_selectable: true, .. }` skips it in focus navigation (and never
+blocks submit) — combine them for a display-only, unfocusable summary field.
 
 ```rust
 use sparcli::{Form, FormOpts, FieldOpts, FieldWidthMode};

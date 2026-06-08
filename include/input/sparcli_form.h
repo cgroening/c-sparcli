@@ -112,6 +112,27 @@ typedef struct ScFieldOpts {
     /** Optional validation (text/number); NULL = none. */
     ScFieldValidate validate;
     void *validate_ctx;
+
+    /**
+     * Display-only: the field is focusable and rendered, but its value can
+     * never change. The editor never opens (Enter does nothing), a bool does
+     * not toggle, and Left/Right value cycling plus the inline
+     * text/number/select/date editors are all blocked. Use for a value that is
+     * shown here but edited elsewhere (e.g. via a separate wizard / shortcut).
+     * Zero-init = off (editable, today's behavior). Independent of
+     * `not_selectable`; combine the two for a display-only, unfocusable field.
+     */
+    bool read_only;
+
+    /**
+     * Skip this field in all focus navigation: arrows, Tab/Shift-Tab, the
+     * initial active field and `ScFormOpts.autoedit` never land on it, so the
+     * cursor can never reach it. A non-selectable field also cannot block
+     * submit, so its `required` flag is treated as satisfied. Zero-init = off
+     * (selectable, today's behavior). The name is inverted (rather than a
+     * positive `selectable`) so the zero-init default stays "selectable".
+     */
+    bool not_selectable;
 } ScFieldOpts;
 
 /** Options for the whole form. Zero-init friendly. */

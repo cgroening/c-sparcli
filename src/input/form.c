@@ -817,8 +817,13 @@ static ScRendered *capture_field(const ScForm *self, const Field *f,
     bool placeholder = false;
     char *val = value_display(f, &placeholder);
 
+    /* A read-only or non-selectable field is display-only: render it dimmed
+       (title, value and no accent border) so it is clearly distinct from an
+       editable field, even if it is somehow the active field. */
+    bool disabled = f->opts.read_only || f->opts.not_selectable;
+
     ScText *content = sc_text_new();
-    ScTextStyle vstyle = placeholder
+    ScTextStyle vstyle = (placeholder || disabled)
         ? (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
                          SC_ANSI_COLOR_NONE }
         : (ScTextStyle){ 0 };
@@ -848,11 +853,19 @@ static ScRendered *capture_field(const ScForm *self, const Field *f,
 
     ScBorderType bt = f->opts.border.type ? f->opts.border.type
                                           : SC_BORDER_ROUNDED;
-    ScColor border_col = active ? self->accent : f->opts.border.color;
-    ScTextStyle title_style = active
-        ? (ScTextStyle){ SC_TEXT_ATTR_BOLD, self->accent, SC_ANSI_COLOR_NONE }
-        : (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE,
-                         SC_ANSI_COLOR_NONE };
+    ScColor border_col = (active && !disabled) ? self->accent
+                                               : f->opts.border.color;
+    ScTextStyle title_style;
+    if (disabled) {
+        title_style = (ScTextStyle){ SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE,
+                                     SC_ANSI_COLOR_NONE };
+    } else if (active) {
+        title_style = (ScTextStyle){ SC_TEXT_ATTR_BOLD, self->accent,
+                                     SC_ANSI_COLOR_NONE };
+    } else {
+        title_style = (ScTextStyle){ SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE,
+                                     SC_ANSI_COLOR_NONE };
+    }
 
     /* Prepend the "modified" marker to the title when the field's value differs
        from its initial snapshot (opt-in via ScFormOpts.modified_marker). */
@@ -1227,6 +1240,7 @@ static int neighbor(const ScForm *self, int dir) {
         for (size_t i = 0; i < self->count; i++) {
             if ((int)i == self->active) { continue; }
             const Field *f = &self->fields[i];
+            if (f->opts.not_selectable) { continue; }   /* never a target */
             int f_r0 = f->row, f_r1 = f->row + f->row_span;
             int f_c0 = f->col, f_c1 = f->col + f->col_span;
             long dist;
@@ -1308,6 +1322,9 @@ static void cancel_list(ScForm *self) {
 /** True when a required field has no value yet (blocks submit). */
 static bool field_required_unmet(const Field *f) {
     if (!f->opts.required) { return false; }
+    /* A non-selectable field can never receive input, so it cannot block
+       submit; treat its required flag as satisfied. */
+    if (f->opts.not_selectable) { return false; }
     if (f->type == SC_FIELD_TEXT || f->type == SC_FIELD_NUMBER) {
         return !f->text || !f->text[0];
     }
@@ -1327,6 +1344,9 @@ static bool field_required_unmet(const Field *f) {
 static void begin_edit(ScForm *self) {
     Field *a = &self->fields[self->active];
     self->form_err = NULL;
+    if (a->opts.read_only) {
+        return;   // display-only: no editor opens, no bool toggle
+    }
     if (a->type == SC_FIELD_BOOL) {
         a->bval = !a->bval;   // bool toggles in place, no editor
         return;
@@ -1391,10 +1411,41 @@ static void commit_edit(ScForm *self) {
     self->edit_err = NULL;
 }
 
+/** Index of the first selectable (focusable) field, or 0 when every field is
+ *  `not_selectable` (so the form still has a defined initial active field). */
+static int first_selectable(const ScForm *self) {
+    for (size_t i = 0; i < self->count; i++) {
+        if (!self->fields[i].opts.not_selectable) { return (int)i; }
+    }
+    return 0;
+}
+
+/** Next selectable field from `from`, stepping `step` (±1) with wraparound.
+ *  Returns `from` when no other field is selectable, so a form whose every
+ *  field is `not_selectable` does not spin forever (the loop is bounded by the
+ *  field count). */
+static int next_selectable(const ScForm *self, int from, int step) {
+    int n = (int)self->count;
+    int idx = from;
+    for (int i = 0; i < n; i++) {
+        idx = (idx + step + n) % n;
+        if (!self->fields[idx].opts.not_selectable) { return idx; }
+    }
+    return from;
+}
+
 /** Focuses field `idx` and resets the navigation goal to its top-left cell.
  *  Used for non-directional jumps (Tab, required-field jump, edit-advance,
- *  initial focus); arrow moves preserve the goal instead. */
+ *  initial focus); arrow moves preserve the goal instead. A `not_selectable`
+ *  target is redirected to the nearest selectable field; if none qualifies the
+ *  focus is left unchanged. */
 static void form_focus(ScForm *self, int idx) {
+    if (idx < 0 || (size_t)idx >= self->count) { return; }
+    if (self->fields[idx].opts.not_selectable) {
+        int sel = next_selectable(self, idx, +1);
+        if (self->fields[sel].opts.not_selectable) { return; }   /* none */
+        idx = sel;
+    }
     self->active = idx;
     self->goal_col = self->fields[idx].col;
     self->goal_row = self->fields[idx].row;
@@ -1438,10 +1489,9 @@ static bool edit_commit_current(ScForm *self) {
  *  so the user lands on them in navigation mode. */
 static void edit_advance(ScForm *self, int step) {
     if (!edit_commit_current(self)) { return; }   /* stay on validation error */
-    form_focus(self,
-        (self->active + step + (int)self->count) % (int)self->count);
+    form_focus(self, next_selectable(self, self->active, step));
     if (self->fields[self->active].type != SC_FIELD_BOOL) {
-        begin_edit(self);   /* multiline: begin_edit returns early = focus only */
+        begin_edit(self);   /* multiline/read-only: begin_edit returns early */
     }
 }
 
@@ -1539,11 +1589,10 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
         case SC_KEY_UP:    nav_move(self, DIR_UP);    return;
         case SC_KEY_DOWN:  nav_move(self, DIR_DOWN);  return;
         case SC_KEY_TAB:
-            form_focus(self, (self->active + 1) % (int)self->count);
+            form_focus(self, next_selectable(self, self->active, +1));
             return;
         case SC_KEY_BACKTAB:
-            form_focus(self,
-                (self->active - 1 + (int)self->count) % (int)self->count);
+            form_focus(self, next_selectable(self, self->active, -1));
             return;
         case SC_KEY_ENTER:
             begin_edit(self);
@@ -1563,7 +1612,8 @@ static void form_on_key(void *state, ScKey key, bool *done, bool *cancel) {
             return;
         case SC_KEY_CHAR:
             if (key.mods == 0 && key.bytes[0] == ' '
-                && self->fields[self->active].type == SC_FIELD_BOOL) {
+                && self->fields[self->active].type == SC_FIELD_BOOL
+                && !self->fields[self->active].opts.read_only) {
                 Field *a = &self->fields[self->active];
                 a->bval = !a->bval;
             }
@@ -1606,6 +1656,14 @@ static bool form_wants_editor(void *state, ScKey key) {
     return key.type == SC_KEY_ENTER && active_is_multiline(self);
 }
 
+/** Engine predicate: suppress bare-letter shortcuts while a field's inline
+ *  editor (text/number/select/multiselect/date) is open, so the letter reaches
+ *  the editor instead of firing a shortcut. */
+static bool form_suppress_char_shortcuts(void *state) {
+    const ScForm *self = state;
+    return self->editing || self->ed_active;
+}
+
 /** True when any field uses the external editor. */
 static bool form_has_multiline(const ScForm *self) {
     for (size_t i = 0; i < self->count; i++) {
@@ -1625,7 +1683,7 @@ ScInputStatus sc_form_run(ScForm *self) {
         return SC_INPUT_ERROR;
     }
     form_finalize(self);
-    form_focus(self, 0);
+    form_focus(self, first_selectable(self));
     self->editing = false;
     self->ed_active = false;
     self->edit_err = NULL;
@@ -1647,6 +1705,7 @@ ScInputStatus sc_form_run(ScForm *self) {
         .edit_get = form_edit_get,
         .edit_set = form_edit_set,
         .wants_editor = form_wants_editor,
+        .suppress_char_shortcuts = form_suppress_char_shortcuts,
     };
     ScPromptShortcuts sk = {
         self->opts.shortcuts, self->opts.n_shortcuts, self->opts.out_shortcut_id

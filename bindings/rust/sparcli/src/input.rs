@@ -2307,6 +2307,17 @@ pub struct FieldOpts {
     pub help: Option<String>,
     /// Box border (zero = rounded).
     pub border: BorderStyle,
+    /// Display-only: the field is focusable and rendered, but its value can
+    /// never change (the editor never opens, a bool does not toggle, value
+    /// cycling is blocked). Use for a value edited elsewhere (e.g. a separate
+    /// wizard). Default = editable.
+    pub read_only: bool,
+    /// Skip this field in all focus navigation (arrows, Tab/Shift-Tab, the
+    /// initial active field, autoedit) — the cursor can never land on it. A
+    /// non-selectable field cannot block submit (its `required` is treated as
+    /// satisfied). Combine with [`read_only`](Self::read_only) for a
+    /// display-only, unfocusable field. Default = selectable.
+    pub not_selectable: bool,
 }
 
 /// Builds an `ffi::ScFieldOpts`; the returned `CString` (if any) backs `help`
@@ -2323,6 +2334,8 @@ fn field_ffi(o: &FieldOpts) -> (ffi::ScFieldOpts, Option<CString>) {
     f.required = o.required;
     f.multiline = o.multiline;
     f.date_optional = o.date_optional;
+    f.read_only = o.read_only;
+    f.not_selectable = o.not_selectable;
     f.help = help.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
     f.border = o.border.raw();
     (f, help)
