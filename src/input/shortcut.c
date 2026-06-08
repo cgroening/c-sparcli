@@ -107,6 +107,10 @@ static void key_base_name(ScKeyType type, uint32_t cp, bool ctrl,
         return;
     }
     if (type == SC_KEY_CHAR) {
+        if (cp == ' ') {
+            snprintf(buf, cap, "\xe2\x90\xa3"); /* ␣ open box for the space key */
+            return;
+        }
         char letter = (char)cp;
         if (ctrl) { letter = (char)toupper((unsigned char)letter); }
         snprintf(buf, cap, "%c", letter);

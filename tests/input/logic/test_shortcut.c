@@ -79,6 +79,9 @@ void test_shortcut(void) {
     CHECK(strcmp(name, "M-S-\xe2\x86\x91") == 0, "Alt+Shift+Up renders as M-S-↑");
     sc_key_chord_name(sc_key_ctrl('x'), name, sizeof name);
     CHECK(strcmp(name, "^X") == 0, "Ctrl-X still renders as ^X");
+    sc_key_chord_name((ScKeyChord){ .key = SC_KEY_CHAR, .codepoint = ' ' },
+                      name, sizeof name);
+    CHECK(strcmp(name, "\xe2\x90\xa3") == 0, "Space chord renders as ␣");
 
     /* Footer height accounts for terminal soft-wrap: a footer wider than the
        terminal wraps to several rows; no labels = 0 rows. */
