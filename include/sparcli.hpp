@@ -2074,6 +2074,10 @@ struct ShortcutHelpOpts {
     const char* title       = "Keyboard shortcuts";
     Color       accent      = palette::yellow();
     const char* footer_hint = nullptr;  ///< nullptr => "type to filter · esc…".
+    /// Set when the caller already holds an alternate screen (a long-running
+    /// TUI): the help screen renders full-screen without opening a second one.
+    /// Default `false` spans its own alternate screen for the duration.
+    bool        in_alt_screen = false;
 };
 
 /**
@@ -2084,7 +2088,8 @@ struct ShortcutHelpOpts {
  */
 inline void show_shortcuts(const Shortcuts& sc,
                            const ShortcutHelpOpts& opts = {}) {
-    const ScShortcutHelpOpts copts{ opts.title, opts.accent, opts.footer_hint };
+    const ScShortcutHelpOpts copts{ opts.title, opts.accent, opts.footer_hint,
+                                    opts.in_alt_screen };
     sc_shortcut_help_show(sc.help_rows().data(), sc.help_rows().size(), &copts);
 }
 

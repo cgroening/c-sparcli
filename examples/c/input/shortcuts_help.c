@@ -85,6 +85,13 @@ int main(void) {
 
     /* sc_shortcut_help_show_from builds the rows straight from a bound set
        (no built-in keys); handy when the shortcuts are the whole story:
-           sc_shortcut_help_show_from(shortcuts, n_shortcuts, NULL);  */
+           sc_shortcut_help_show_from(shortcuts, n_shortcuts, NULL);
+
+       The help screen fills the terminal height; standalone (as here) it spans
+       its own alternate screen. Inside a long-running TUI that already holds one
+       (sc_altscreen_begin over its whole run), pass in_alt_screen = true so it
+       renders into the existing screen instead of nesting a second:
+           sc_shortcut_help_show(help_rows, n_help, &(ScShortcutHelpOpts){
+               .title = "…", .in_alt_screen = true });  */
     return 0;
 }

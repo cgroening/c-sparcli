@@ -53,6 +53,13 @@ static ScFuzzy *build_help_fuzzy(const ScShortcutHelpRow *rows, size_t n,
                  .width_mode = SC_WIDTH_FULL,
                  .border = { .type = SC_BORDER_ROUNDED, .color = accent } },
         .stretch_columns = 1u << 1,
+        /* Fill the terminal height (rows pinned at the top, the rest blank) for
+           a typical full-screen help look. fullscreen needs an alternate screen
+           — sc_shortcut_help_show opens one unless the caller already holds it. */
+        .fullscreen = true,
+        .valign = SC_VALIGN_TOP,
+        .hide_summary = true,
+        .section_counts = false,
     });
     if (!fz) {
         return NULL;
@@ -106,8 +113,17 @@ void sc_shortcut_help_show(const ScShortcutHelpRow *rows, size_t n,
     if (!fz) {
         return;
     }
+    /* fullscreen rendering needs an alternate screen. Open one ourselves unless
+       the caller already holds one (in_alt_screen), so we never nest them. */
+    bool own_screen = !(opts && opts->in_alt_screen);
+    if (own_screen) {
+        sc_altscreen_begin();
+    }
     size_t idx = 0;
     sc_fuzzy_run(fz, &idx);   /* selection ignored: Esc and Enter both close */
+    if (own_screen) {
+        sc_altscreen_end();
+    }
     sc_fuzzy_free(fz);
 }
 

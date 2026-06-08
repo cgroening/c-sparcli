@@ -1492,6 +1492,20 @@ static int child_case(int c) {
                                   &(ScShortcutHelpOpts){ .title = "Keys" });
             return 0;
         }
+        case 101: {
+            /* Caller already holds an alternate screen: the help screen renders
+               full-screen into it (in_alt_screen=true) without nesting a second
+               one. Esc closes; the caller's alt-screen survives. */
+            ScShortcutHelpRow rows[] = {
+                { .section = "Navigation" },
+                { .key_display = "j/k", .desc = "move" },
+            };
+            sc_altscreen_begin();
+            sc_shortcut_help_show(rows, sizeof rows / sizeof rows[0],
+                                  &(ScShortcutHelpOpts){ .in_alt_screen = true });
+            sc_altscreen_end();
+            return 0;
+        }
         default: return 2;
     }
 }
@@ -1610,6 +1624,7 @@ static const Case CASES[] = {
     { "form-shortcut-nav-fires", "r" },     /* 'r' fires in nav mode */
     { "shortcut-help-esc", "\x1b" },        /* help screen: Esc closes */
     { "shortcut-help-filter", "edit\r" },   /* help screen: filter + Enter */
+    { "shortcut-help-in-alt", "\x1b" },     /* in_alt_screen=true: no nesting */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

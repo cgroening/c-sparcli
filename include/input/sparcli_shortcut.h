@@ -197,6 +197,15 @@ typedef struct ScShortcutHelpOpts {
 
     /** Footer hint; `NULL` = "type to filter \xc2\xb7 esc to close". */
     const char *footer_hint;
+
+    /**
+     * Set when the caller already holds an alternate screen (e.g. a TUI that
+     * keeps `sc_altscreen_begin` open for its whole run). The help screen then
+     * renders full-screen into that screen **without** opening a second one.
+     * Zero-init `false` = standalone: the help screen briefly spans its own
+     * alternate screen so it fills the terminal height, and restores on close.
+     */
+    bool in_alt_screen;
 } ScShortcutHelpOpts;
 
 /**

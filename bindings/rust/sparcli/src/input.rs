@@ -553,11 +553,20 @@ pub struct ShortcutHelpOpts<'a> {
     pub accent: Color,
     /// Footer hint; `None` => "type to filter · esc to close".
     pub footer_hint: Option<&'a str>,
+    /// Set when the caller already holds an alternate screen (a long-running
+    /// TUI): the help screen renders full-screen without opening a second one.
+    /// `false` (default) spans its own alternate screen for the duration.
+    pub in_alt_screen: bool,
 }
 
 impl Default for ShortcutHelpOpts<'_> {
     fn default() -> Self {
-        ShortcutHelpOpts { title: None, accent: Color::NONE, footer_hint: None }
+        ShortcutHelpOpts {
+            title: None,
+            accent: Color::NONE,
+            footer_hint: None,
+            in_alt_screen: false,
+        }
     }
 }
 
@@ -572,6 +581,7 @@ pub fn show_shortcuts(sc: &Shortcuts, opts: ShortcutHelpOpts) {
         title: title.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
         accent: opts.accent.raw(),
         footer_hint: hint.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+        in_alt_screen: opts.in_alt_screen,
     };
     unsafe {
         ffi::sc_shortcut_help_show(

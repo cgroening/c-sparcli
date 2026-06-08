@@ -276,6 +276,10 @@ class ShortcutHelpOpts:
     title: str | None = None          #: None => "Keyboard shortcuts"
     accent: Color = Color.NONE        #: None/NONE => yellow (resolved in C)
     footer_hint: str | None = None    #: None => "type to filter · esc to close"
+    #: True when the caller already holds an alternate screen (a long-running
+    #: TUI): render full-screen without opening a second one. False (default)
+    #: spans its own alternate screen for the duration.
+    in_alt_screen: bool = False
 
 
 def show_shortcuts(shortcuts: "Shortcuts",
@@ -302,5 +306,6 @@ def show_shortcuts(shortcuts: "Shortcuts",
     apply_color(copts.accent, opts.accent)
     if opts.footer_hint is not None:
         copts.footer_hint = cstr(arena, opts.footer_hint)
+    copts.in_alt_screen = opts.in_alt_screen
     lib.sc_shortcut_help_show(arr, n, copts)
     _ = arena  # keep strings alive across the call

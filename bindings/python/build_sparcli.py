@@ -714,6 +714,7 @@ typedef struct {
     const char *title;
     ScColor accent;
     const char *footer_hint;
+    bool in_alt_screen;
 } ScShortcutHelpOpts;
 void sc_shortcut_help_show(const ScShortcutHelpRow *rows, size_t n,
                            const ScShortcutHelpOpts *opts);

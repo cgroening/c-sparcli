@@ -2353,10 +2353,11 @@ pub struct ScShortcutHelpOpts {
     pub title: *const ::std::os::raw::c_char,
     pub accent: ScColor,
     pub footer_hint: *const ::std::os::raw::c_char,
+    pub in_alt_screen: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScShortcutHelpOpts"][::std::mem::size_of::<ScShortcutHelpOpts>() - 24usize];
+    ["Size of ScShortcutHelpOpts"][::std::mem::size_of::<ScShortcutHelpOpts>() - 32usize];
     ["Alignment of ScShortcutHelpOpts"][::std::mem::align_of::<ScShortcutHelpOpts>() - 8usize];
     ["Offset of field: ScShortcutHelpOpts::title"]
         [::std::mem::offset_of!(ScShortcutHelpOpts, title) - 0usize];
@@ -2364,6 +2365,8 @@ const _: () = {
         [::std::mem::offset_of!(ScShortcutHelpOpts, accent) - 8usize];
     ["Offset of field: ScShortcutHelpOpts::footer_hint"]
         [::std::mem::offset_of!(ScShortcutHelpOpts, footer_hint) - 16usize];
+    ["Offset of field: ScShortcutHelpOpts::in_alt_screen"]
+        [::std::mem::offset_of!(ScShortcutHelpOpts, in_alt_screen) - 24usize];
 };
 extern "C" {
     #[doc = " Shows a modal, scrollable keyboard-shortcut help screen built from `rows`."]

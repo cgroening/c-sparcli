@@ -1345,6 +1345,7 @@ typedef struct ScShortcutHelpOpts {
     const char *title;        /* NULL = "Keyboard shortcuts" */
     ScColor     accent;       /* zero-init/none = yellow */
     const char *footer_hint;  /* NULL = "type to filter · esc to close" */
+    bool        in_alt_screen;/* true = caller already holds an alternate screen */
 } ScShortcutHelpOpts;
 
 void sc_shortcut_help_show(const ScShortcutHelpRow *rows, size_t n,
@@ -1355,6 +1356,7 @@ void sc_shortcut_help_show_from(const ScShortcut *items, size_t n,
 
 - **Help-only rows** (a `key_display`/`desc` pair with no backing chord) document built-in widget keys — e.g. `↑/↓` "move cursor", `Enter` "edit" — that are not bound `ScShortcut`s. They appear only here, never in the footer. Build a `ScShortcutHelpRow[]` to mix bindings, help-only rows and section headers in display order.
 - **`sc_shortcut_help_show_from`** is the convenience for the "bound shortcuts only" case: it derives the rows from the same `ScShortcut[]` you pass to a widget — key column via `sc_key_chord_name`, description via `help_text` (or `hint_label`), grouped by `section` (NULL → `"Other"`) in insertion order; shortcuts with no description are skipped. Example: `examples/c/input/shortcuts_help.c`.
+- **Full height / alternate screen:** the help screen fills the terminal (rows pinned at the top, the rest blank). That needs an alternate screen, so it spans its own (`sc_altscreen_begin`/`sc_altscreen_end`) by default. Set `in_alt_screen = true` when calling from a TUI that already holds an alternate screen for its whole run — it then renders full-screen into the existing one instead of nesting a second.
 
 ### Rich prompts
 
