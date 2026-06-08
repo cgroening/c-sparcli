@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/sparcli_export.h"
+#include "core/sparcli_core.h"
 #include "input/sparcli_term.h"
 
 #include <stdbool.h>
@@ -78,6 +79,29 @@ typedef struct ScShortcut {
      * footer (it still fires). The key name is derived from the chord.
      */
     const char *hint_label;
+
+    /**
+     * Longer description shown in the auto-built help screen
+     * (`sc_shortcut_help_show_from`). `NULL` falls back to `hint_label`, so a
+     * single short label can serve both the footer and the help screen; set
+     * this when the help screen needs more detail than the footer.
+     */
+    const char *help_text;
+
+    /**
+     * Section title that groups this shortcut in the help screen (e.g.
+     * `"Navigation"`). Consecutive shortcuts sharing a section render under one
+     * header, in insertion order. `NULL` groups the shortcut under `"Other"`.
+     */
+    const char *section;
+
+    /**
+     * Keep the binding active but omit it from the key-hint footer. Unlike a
+     * `NULL` `hint_label` (which also drops it from the help screen), this hides
+     * only the footer entry; the shortcut still fires and still appears in the
+     * help screen. Zero-init `false` = shown in the footer when it has a label.
+     */
+    bool hide_in_footer;
 } ScShortcut;
 
 /**
@@ -139,5 +163,71 @@ SPARCLI_EXPORT const ScShortcut *sc_shortcut_find(
  * key-hint footer for labeled shortcuts.
  */
 SPARCLI_EXPORT void sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap);
+
+
+/* ── Auto-built help screen ──────────────────────────────────────────────── */
+
+/**
+ * One row of the keyboard-shortcut help screen: either a **section header** or
+ * a **key/description** line.
+ *
+ * - A row with `section != NULL` is a group header; `key_display` and `desc`
+ *   are ignored.
+ * - Otherwise it is a help line: `key_display` is the (free-form) key text
+ *   shown in the left column (e.g. `"↑/↓ or j/k"`, `"^E"`) and `desc` the
+ *   description on the right.
+ *
+ * Help-only behaviour (built-in widget keys that are *not* bound `ScShortcut`s,
+ * e.g. arrow navigation) is expressed by adding such key/description rows with
+ * no backing chord. All strings are borrowed for the duration of the call.
+ */
+typedef struct ScShortcutHelpRow {
+    const char *section;      /**< Non-NULL => section header (key/desc ignored). */
+    const char *key_display;  /**< Left-column key text, e.g. "^E" or "↑/↓". */
+    const char *desc;         /**< Right-column description. */
+} ScShortcutHelpRow;
+
+/** Options for the shortcut help screen. Zero-init friendly. */
+typedef struct ScShortcutHelpOpts {
+    /** Heading / search-field label; `NULL` = "Keyboard shortcuts". */
+    const char *title;
+
+    /** Accent color (box border, section headers); zero-init/none = yellow. */
+    ScColor accent;
+
+    /** Footer hint; `NULL` = "type to filter \xc2\xb7 esc to close". */
+    const char *footer_hint;
+} ScShortcutHelpOpts;
+
+/**
+ * Shows a modal, scrollable keyboard-shortcut help screen built from `rows`
+ * (an inline rounded box; section headers in `accent`, the key column in
+ * bold cyan). Blocks until the user presses Esc or Enter, then erases itself.
+ * No-op without a TTY. `opts` may be `NULL` for defaults.
+ *
+ * @param rows  Display rows (headers + key/description lines), in order.
+ * @param n     Number of rows.
+ * @param opts  Optional styling/labels; `NULL` = defaults.
+ */
+SPARCLI_EXPORT void sc_shortcut_help_show(
+    const ScShortcutHelpRow *rows, size_t n, const ScShortcutHelpOpts *opts
+);
+
+/**
+ * Convenience: builds the help rows directly from a bound shortcut set and
+ * shows them. Shortcuts are grouped by their `section` (NULL => "Other") in
+ * insertion order, the key column is derived from each chord
+ * (`sc_key_chord_name`), and the description is `help_text` or, when that is
+ * `NULL`, `hint_label`. Shortcuts with neither description are skipped. For a
+ * screen that also documents built-in widget keys, build a
+ * `ScShortcutHelpRow` array yourself and call `sc_shortcut_help_show`.
+ *
+ * @param items  Bound shortcuts (the same array passed to a widget).
+ * @param n      Number of shortcuts.
+ * @param opts   Optional styling/labels; `NULL` = defaults.
+ */
+SPARCLI_EXPORT void sc_shortcut_help_show_from(
+    const ScShortcut *items, size_t n, const ScShortcutHelpOpts *opts
+);
 
 SPARCLI_END_DECLS

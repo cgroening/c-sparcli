@@ -129,6 +129,7 @@ Interactive; need a real terminal. Each falls back to a notice without one.
 | `input/datepicker` | Month-grid date picker, today-seeded and pre-seeded, with week-start choice. |
 | `input/history` | Up/Down input history with XDG-file persistence across runs. |
 | `input/shortcuts_theme` (C/C++/Python) · `input/shortcuts` (Rust) | Custom RETURN/CALLBACK key shortcuts; all files also set the process-wide input theme. |
+| `input/shortcuts_help` (C/C++) | Per-shortcut footer/help/section metadata + the auto-built keyboard help screen (`sc_shortcut_help_show` / `show_shortcuts`), incl. a hidden-from-footer binding and help-only rows. |
 
 ## Application framework
 

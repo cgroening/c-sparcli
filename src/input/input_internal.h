@@ -928,6 +928,15 @@ size_t sc_fuzzy_scroll_top(const ScFuzzy *fuzzy);
 ScRendered *sc_datepicker_frame(const struct tm *seed, ScDatePickerOpts opts);
 ScRendered *sc_form_frame(ScForm *form);
 ScRendered *sc_form_frame_edit(ScForm *form, int field);
+/* Test hooks: build the shortcut help screen's underlying fuzzy frame (so the
+   style/logic suites can snapshot it without a TTY). `_from` derives the rows
+   from a bound shortcut set, mirroring sc_shortcut_help_show_from. */
+ScRendered *sc_shortcut_help_frame(
+    const ScShortcutHelpRow *rows, size_t n, const ScShortcutHelpOpts *opts
+);
+ScRendered *sc_shortcut_help_frame_from(
+    const ScShortcut *items, size_t n, const ScShortcutHelpOpts *opts
+);
 /* Test hook: resolve column widths at an explicit terminal width (deterministic
    column-width tests). Fills colw/colx, returns the grid's total width. */
 int sc_form_solve_columns_test(ScForm *form, int term_w,

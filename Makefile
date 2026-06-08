@@ -78,7 +78,8 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/tty/term.c src/tty/key.c src/tty/screen.c \
           \
           src/input/prompt.c src/input/line_editor.c src/input/theme.c \
-          src/input/shortcut.c src/input/editor.c src/input/editor_file.c \
+          src/input/shortcut.c src/input/shortcut_help.c \
+          src/input/editor.c src/input/editor_file.c \
           src/input/confirm.c \
           src/input/text_input.c src/input/password_input.c src/input/number_input.c \
           src/input/calc.c \
@@ -211,6 +212,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_line_editor.c \
                  tests/input/logic/test_key_decode.c \
                  tests/input/logic/test_shortcut.c \
+                 tests/input/logic/test_shortcut_help.c \
                  tests/input/logic/test_select_edit.c \
                  tests/input/logic/test_opts_copy.c \
                  tests/input/logic/test_filters.c \
@@ -234,7 +236,8 @@ STYLE_TEST_SRC = tests/input/style/test_style_main.c \
                  tests/input/style/test_style_select.c \
                  tests/input/style/test_style_fuzzy.c \
                  tests/input/style/test_style_datepicker.c \
-                 tests/input/style/test_style_form.c
+                 tests/input/style/test_style_form.c \
+                 tests/input/style/test_style_help.c
 STYLE_TEST_BIN = tests/input/style/test_style_main
 
 # ── Self-driving PTY suite: runs the interactive widgets under a pseudo-

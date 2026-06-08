@@ -46,10 +46,11 @@ from .input import (ConfirmOpts, DatePickerOpts, History, NumberOpts,
                     filter_alnum, filter_alpha, filter_decimal,
                     filter_digits, filter_no_space, input_available,
                     number_input, password_input, text_input, textarea)
-from .keys import (KeyChord, Shortcuts, key_alt, key_backspace, key_backtab,
-                   key_char, key_ctrl, key_delete, key_down, key_end, key_enter,
-                   key_esc, key_fn, key_home, key_left, key_pagedown, key_pageup,
-                   key_right, key_special, key_tab, key_up)
+from .keys import (KeyChord, ShortcutHelpOpts, Shortcuts, key_alt,
+                   key_backspace, key_backtab, key_char, key_ctrl, key_delete,
+                   key_down, key_end, key_enter, key_esc, key_fn, key_home,
+                   key_left, key_pagedown, key_pageup, key_right, key_special,
+                   key_tab, key_up, show_shortcuts)
 from .output import (BadgeOpts, PanelOpts, RuleOpts, ScopedOutput, alert,
                      allow_ansi, badge, clear_line, panel, print_, println,
                      rule, set_allow_ansi, strip_ansi, terminal_size, truncate,
@@ -127,7 +128,8 @@ __all__ = [
     "filter_digits", "filter_decimal", "filter_alpha", "filter_alnum",
     "filter_no_space",
     # shortcuts / keys / theme
-    "Shortcuts", "KeyChord", "key_ctrl", "key_fn", "key_alt", "key_char",
+    "Shortcuts", "ShortcutHelpOpts", "show_shortcuts",
+    "KeyChord", "key_ctrl", "key_fn", "key_alt", "key_char",
     "key_left", "key_right", "key_up", "key_down", "key_enter", "key_tab",
     "key_special", "key_backtab", "key_delete", "key_backspace", "key_home",
     "key_end", "key_pageup", "key_pagedown", "key_esc",

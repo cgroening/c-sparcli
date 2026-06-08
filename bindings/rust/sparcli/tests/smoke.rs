@@ -853,6 +853,36 @@ fn shortcuts_find_matches_registered_chord() {
 }
 
 #[test]
+fn shortcut_help_builds_and_shows() {
+    use sparcli::{
+        key_ctrl, key_fn, show_shortcuts, ShortcutDisplay, ShortcutHelpOpts,
+        Shortcuts,
+    };
+    // Footer/help/section metadata + help-only rows build; show_shortcuts is a
+    // no-op without a TTY (the test runner sets SPARCLI_NO_TTY) and must return.
+    let sc = Shortcuts::new()
+        .section("Actions")
+        .on_return_d(
+            key_ctrl('e'),
+            2,
+            ShortcutDisplay { footer: Some("edit"), help: Some("edit task"),
+                              in_footer: true },
+        )
+        .on_callback_d(
+            key_ctrl('x'),
+            ShortcutDisplay { footer: Some("delete"), help: None,
+                              in_footer: false },
+            |_id| true,
+        )
+        .section("Other")
+        .on_return(key_fn(1), 1, Some("help"))
+        .help_row("↑/↓", "move cursor");
+    assert_eq!(sc.fired(), -1);
+    show_shortcuts(&sc, ShortcutHelpOpts { title: Some("Keys"),
+        ..Default::default() });
+}
+
+#[test]
 fn logger_terminal_sink_writes_to_stream() {
     use std::io::Read;
     // add_terminal duplicates the fd and the C sink writes colored records to

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from ._ffi import cstr, ffi, lib
+from dataclasses import dataclass
+
+from ._ffi import apply_color, cstr, ffi, lib
+from .color import Color
 
 _MODE_RETURN, _MODE_CALLBACK = 0, 1
 
@@ -164,26 +167,62 @@ class Shortcuts:
     the prompt open unless the callable returns ``False``.
     """
 
-    __slots__ = ("_specs", "_keep", "_out")
+    __slots__ = ("_specs", "_keep", "_out", "_help_rows", "_cur_section")
 
     def __init__(self) -> None:
         self._specs: list = []
         self._keep: list = []
         self._out = ffi.new("int *")
         self._out[0] = -1
+        # Help-screen rows as (section, key_display, desc) py-string tuples,
+        # in author order; built into cdata lazily in show_shortcuts.
+        self._help_rows: list[tuple[str | None, str | None, str | None]] = []
+        self._cur_section: str | None = None
+
+    @staticmethod
+    def _key_name(chord: KeyChord) -> str:
+        buf = ffi.new("char[32]")
+        lib.sc_key_chord_name(chord.value, buf, 32)
+        return ffi.string(buf).decode("utf-8", "replace")
 
     def on_return(self, chord: KeyChord, id: int,  # noqa: A002
-                  name: str | None = None) -> "Shortcuts":
-        """Bind ``chord`` to end the prompt and report ``id``; see
-        :meth:`fired`."""
-        self._specs.append(("return", chord, int(id), None, name))
+                  name: str | None = None, *, help: str | None = None,  # noqa: A002
+                  in_footer: bool = True) -> "Shortcuts":
+        """Bind ``chord`` to end the prompt and report ``id`` (see
+        :meth:`fired`). ``name`` is the footer text; ``help`` is the
+        help-screen description (defaults to ``name``); ``in_footer=False``
+        keeps the binding but hides it from the footer."""
+        self._specs.append(
+            ("return", chord, int(id), None, name, help, in_footer,
+             self._cur_section))
+        self._help_rows.append(
+            (None, self._key_name(chord), help if help is not None else name))
         return self
 
     def on_callback(self, chord: KeyChord, fn,
-                    name: str | None = None) -> "Shortcuts":
+                    name: str | None = None, *, help: str | None = None,  # noqa: A002
+                    in_footer: bool = True) -> "Shortcuts":
         """Bind ``chord`` to run ``fn()`` in place. ``fn`` returning ``False``
-        closes the prompt; ``None``/``True`` keeps it open."""
-        self._specs.append(("callback", chord, 0, fn, name))
+        closes the prompt; ``None``/``True`` keeps it open. ``name``/``help``/
+        ``in_footer`` control the footer and help-screen display."""
+        self._specs.append(
+            ("callback", chord, 0, fn, name, help, in_footer,
+             self._cur_section))
+        self._help_rows.append(
+            (None, self._key_name(chord), help if help is not None else name))
+        return self
+
+    def section(self, title: str) -> "Shortcuts":
+        """Open a help-screen section: entries added afterwards group under
+        ``title`` until the next :meth:`section`."""
+        self._cur_section = title
+        self._help_rows.append((title, None, None))
+        return self
+
+    def help_row(self, key_display: str, description: str) -> "Shortcuts":
+        """Add a help-screen-only row (no binding), e.g. to document a built-in
+        widget key like ``↑/↓`` "move cursor"."""
+        self._help_rows.append((None, key_display, description))
         return self
 
     def fired(self) -> int:
@@ -208,7 +247,8 @@ class Shortcuts:
         if n == 0:
             return ffi.NULL, 0, ffi.NULL
         arr = ffi.new("ScShortcut[]", n)
-        for i, (mode, chord, id_, fn, name) in enumerate(self._specs):
+        for i, (mode, chord, id_, fn, name, help_, in_footer, section) \
+                in enumerate(self._specs):
             arr[i].chord = chord.value
             arr[i].id = id_
             if mode == "return":
@@ -220,5 +260,47 @@ class Shortcuts:
                 arr[i].on_fire = cb
             if name is not None:
                 arr[i].hint_label = cstr(arena, name)
+            if help_ is not None:
+                arr[i].help_text = cstr(arena, help_)
+            if section is not None:
+                arr[i].section = cstr(arena, section)
+            arr[i].hide_in_footer = not in_footer
         self._keep.append(arr)
         return arr, n, self._out
+
+
+@dataclass
+class ShortcutHelpOpts:
+    """Options for :func:`show_shortcuts`."""
+
+    title: str | None = None          #: None => "Keyboard shortcuts"
+    accent: Color = Color.NONE        #: None/NONE => yellow (resolved in C)
+    footer_hint: str | None = None    #: None => "type to filter · esc to close"
+
+
+def show_shortcuts(shortcuts: "Shortcuts",
+                   opts: ShortcutHelpOpts | None = None) -> None:
+    """Show the modal, scrollable keyboard-shortcut help screen built from a
+    :class:`Shortcuts` set (sections, derived key names, descriptions and any
+    :meth:`Shortcuts.help_row` lines, in author order). Blocks until Esc/Enter;
+    a no-op without a TTY."""
+    opts = opts or ShortcutHelpOpts()
+    arena: list = []
+    rows = shortcuts._help_rows
+    n = len(rows)
+    arr = ffi.new("ScShortcutHelpRow[]", n) if n else ffi.NULL
+    for i, (section, key, desc) in enumerate(rows):
+        if section is not None:
+            arr[i].section = cstr(arena, section)
+        if key is not None:
+            arr[i].key_display = cstr(arena, key)
+        if desc is not None:
+            arr[i].desc = cstr(arena, desc)
+    copts = ffi.new("ScShortcutHelpOpts *")
+    if opts.title is not None:
+        copts.title = cstr(arena, opts.title)
+    apply_color(copts.accent, opts.accent)
+    if opts.footer_hint is not None:
+        copts.footer_hint = cstr(arena, opts.footer_hint)
+    lib.sc_shortcut_help_show(arr, n, copts)
+    _ = arena  # keep strings alive across the call

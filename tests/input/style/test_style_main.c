@@ -45,5 +45,6 @@ int main(void) {
     rule("Fuzzy Finder"); style_fuzzy();      rule(NULL); printf("\n");
     rule("Date Picker");  style_datepicker(); rule(NULL); printf("\n");
     rule("Form");         style_form();       rule(NULL); printf("\n");
+    rule("Shortcut Help"); style_help();      rule(NULL); printf("\n");
     return 0;
 }

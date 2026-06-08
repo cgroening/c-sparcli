@@ -133,7 +133,7 @@ static ScRendered *build_shortcut_hint(const ScPromptShortcuts *shortcuts) {
     bool any = false;
     for (size_t i = 0; i < shortcuts->count; i++) {
         const ScShortcut *s = &shortcuts->items[i];
-        if (!s->hint_label || !s->hint_label[0]) {
+        if (!s->hint_label || !s->hint_label[0] || s->hide_in_footer) {
             continue;
         }
         char key[16];

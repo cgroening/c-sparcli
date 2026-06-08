@@ -1281,6 +1281,9 @@ ScKeyChord sc_key_mod (ScKeyType k, uint8_t mods); /* named key + Shift/Alt/Ctrl
 void       sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap); /* "F2","^E","M-e","←","Del","M-↑" */
 bool       sc_key_chord_matches(ScKey key, ScKeyChord chord);
 const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
+/* Auto-built keyboard help screen. See "Keyboard help screen". */
+void       sc_shortcut_help_show(const ScShortcutHelpRow *rows, size_t n, const ScShortcutHelpOpts *opts);
+void       sc_shortcut_help_show_from(const ScShortcut *items, size_t n, const ScShortcutHelpOpts *opts);
 
 /* Optional input constraints for text/password (validate keeps the prompt open). */
 typedef bool (*ScValidateFn)(const char *value, void *ctx, const char **err_out);
@@ -1314,14 +1317,44 @@ typedef struct ScShortcut {
     ScShortcutMode mode;
     bool         (*on_fire)(int id, void *user); /* CALLBACK: true = keep open */
     void          *user;
-    const char    *hint_label; /* shown in a dim footer (e.g. "^X delete") */
+    const char    *hint_label;     /* footer text (e.g. "^X delete"); NULL = none */
+    const char    *help_text;      /* help-screen description; NULL = hint_label */
+    const char    *section;        /* help-screen group title; NULL = "Other" */
+    bool           hide_in_footer; /* binding active but not shown in the footer */
 } ScShortcut;
 ```
 
 - **RETURN** ends the prompt; `*out_shortcut_id` receives the fired `id` (`-1` on a normal submit/cancel) and the widget still returns its value. Use it for "edit/help/new" actions that close the prompt.
 - **CALLBACK** runs `on_fire(id, user)` in place and keeps the prompt open unless it returns `false`. It must not open another prompt (single session). For live list edits use `sc_select_cursor`/`sc_fuzzy_cursor_index` to read the selection and `sc_select_remove`/`sc_fuzzy_remove`/`sc_select_set_label` to mutate it.
+- **Footer vs help screen:** `hint_label` is the short footer text; an empty/`NULL` label or `hide_in_footer = true` keeps the binding out of the footer (it still fires). `help_text` is the longer description for the help screen (`NULL` falls back to `hint_label`), and `section` groups the shortcut there (`NULL` → `"Other"`). New fields are zero-init, so existing initializers are unaffected.
 
 Key decoding gained `SC_KEY_F1`…`SC_KEY_F12`, a `mods` bitmask on `ScKey` (`SC_MOD_CTRL` / `SC_MOD_ALT`), Alt via an `ESC` prefix, and generic Ctrl-letters as `SC_KEY_CHAR + SC_MOD_CTRL`. Esc / Ctrl-C stay reserved (not bindable).
+
+### Keyboard help screen
+
+`sc_shortcut_help_show` renders a modal, scrollable keyboard reference — an inline rounded box (accent border, section headers in the accent color, the key column in bold cyan) built on the fuzzy finder, so it filters as you type and closes on Esc/Enter. It is a no-op without a TTY.
+
+```c
+typedef struct ScShortcutHelpRow {
+    const char *section;      /* non-NULL => section header (key/desc ignored) */
+    const char *key_display;  /* left column, e.g. "^E" or "↑/↓ or j/k" */
+    const char *desc;         /* right column description */
+} ScShortcutHelpRow;
+
+typedef struct ScShortcutHelpOpts {
+    const char *title;        /* NULL = "Keyboard shortcuts" */
+    ScColor     accent;       /* zero-init/none = yellow */
+    const char *footer_hint;  /* NULL = "type to filter · esc to close" */
+} ScShortcutHelpOpts;
+
+void sc_shortcut_help_show(const ScShortcutHelpRow *rows, size_t n,
+                           const ScShortcutHelpOpts *opts);   /* opts NULL = defaults */
+void sc_shortcut_help_show_from(const ScShortcut *items, size_t n,
+                                const ScShortcutHelpOpts *opts);
+```
+
+- **Help-only rows** (a `key_display`/`desc` pair with no backing chord) document built-in widget keys — e.g. `↑/↓` "move cursor", `Enter` "edit" — that are not bound `ScShortcut`s. They appear only here, never in the footer. Build a `ScShortcutHelpRow[]` to mix bindings, help-only rows and section headers in display order.
+- **`sc_shortcut_help_show_from`** is the convenience for the "bound shortcuts only" case: it derives the rows from the same `ScShortcut[]` you pass to a widget — key column via `sc_key_chord_name`, description via `help_text` (or `hint_label`), grouped by `section` (NULL → `"Other"`) in insertion order; shortcuts with no description are skipped. Example: `examples/c/input/shortcuts_help.c`.
 
 ### Rich prompts
 

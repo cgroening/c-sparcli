@@ -37,6 +37,20 @@ def test_special_key_chords():
     assert shortcuts.fired() == -1  # nothing fired yet
 
 
+def test_shortcut_help_builds_and_shows():
+    # Footer/help/section metadata + help-only rows build; show_shortcuts is a
+    # no-op without a TTY (conftest sets SPARCLI_NO_TTY) and must return.
+    s = (sc.Shortcuts()
+         .section("Actions")
+         .on_return(sc.key_ctrl("e"), 2, "edit", help="edit task")
+         .on_callback(sc.key_ctrl("x"), lambda: True, "delete", in_footer=False)
+         .section("Other")
+         .on_return(sc.key_fn(1), 1, "help")
+         .help_row("↑/↓", "move cursor"))
+    assert s.fired() == -1
+    sc.show_shortcuts(s, sc.ShortcutHelpOpts(title="Keys"))
+
+
 def test_fuzzy_has_no_selection_before_run():
     fz = sc.Fuzzy(sc.FuzzyOpts(prompt="Find"))
     fz.add("alpha").add("beta")

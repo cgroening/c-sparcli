@@ -43,6 +43,7 @@ int main(int argc, char *argv[]) {
     static Test tests[] = {
         { "Key Decoder",    test_key_decode,     0 },
         { "Shortcuts",      test_shortcut,       0 },
+        { "Shortcut Help",  test_shortcut_help,  0 },
         { "Select Edit",    test_select_edit,    0 },
         { "Opts Copy",      test_opts_copy,      0 },
         { "Line Editor",    test_line_editor,    0 },

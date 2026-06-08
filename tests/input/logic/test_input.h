@@ -26,6 +26,7 @@ extern int g_input_failures;
 /* Pure-logic tests (non-interactive). */
 void test_key_decode(void);
 void test_shortcut(void);
+void test_shortcut_help(void);
 void test_select_edit(void);
 void test_opts_copy(void);
 void test_line_editor(void);

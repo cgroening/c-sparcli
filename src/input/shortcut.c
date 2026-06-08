@@ -174,7 +174,7 @@ int sc_shortcut_hint_rows(const ScShortcut *items, size_t n,
     int shown = 0;
     for (size_t i = 0; i < n; i++) {
         const ScShortcut *s = &items[i];
-        if (!s->hint_label || !s->hint_label[0]) {
+        if (!s->hint_label || !s->hint_label[0] || s->hide_in_footer) {
             continue;
         }
         if (shown > 0) { width += 5; }            /* "  ·  " */

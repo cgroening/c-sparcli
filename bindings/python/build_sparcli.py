@@ -70,6 +70,7 @@ _SOURCES = [
     "input/line_editor.c",
     "input/theme.c",
     "input/shortcut.c",
+    "input/shortcut_help.c",
     "input/editor.c",
     "input/editor_file.c",
     "input/confirm.c",
@@ -704,6 +705,20 @@ ScKeyChord sc_key_mod(ScKeyType key, uint8_t mods);
 bool sc_key_chord_matches(ScKey key, ScKeyChord chord);
 const ScShortcut *sc_shortcut_find(ScKey key, const ScShortcut *items, size_t n);
 void sc_key_chord_name(ScKeyChord chord, char *buf, size_t cap);
+typedef struct {
+    const char *section;
+    const char *key_display;
+    const char *desc;
+} ScShortcutHelpRow;
+typedef struct {
+    const char *title;
+    ScColor accent;
+    const char *footer_hint;
+} ScShortcutHelpOpts;
+void sc_shortcut_help_show(const ScShortcutHelpRow *rows, size_t n,
+                           const ScShortcutHelpOpts *opts);
+void sc_shortcut_help_show_from(const ScShortcut *items, size_t n,
+                                const ScShortcutHelpOpts *opts);
 size_t sc_key_decode(const char *buf, size_t len, ScKey *out);
 bool sc_input_available(void);
 

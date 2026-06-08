@@ -2302,10 +2302,16 @@ pub struct ScShortcut {
     pub user: *mut ::std::os::raw::c_void,
     #[doc = " Optional short label shown in the widget's key-hint footer, e.g.\n `\"delete\"` renders as `^X delete`. `NULL` hides this shortcut from the\n footer (it still fires). The key name is derived from the chord."]
     pub hint_label: *const ::std::os::raw::c_char,
+    #[doc = " Longer description for the auto-built help screen; NULL -> hint_label."]
+    pub help_text: *const ::std::os::raw::c_char,
+    #[doc = " Help-screen section title grouping this shortcut; NULL -> \"Other\"."]
+    pub section: *const ::std::os::raw::c_char,
+    #[doc = " Keep the binding active but omit it from the key-hint footer."]
+    pub hide_in_footer: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of ScShortcut"][::std::mem::size_of::<ScShortcut>() - 48usize];
+    ["Size of ScShortcut"][::std::mem::size_of::<ScShortcut>() - 72usize];
     ["Alignment of ScShortcut"][::std::mem::align_of::<ScShortcut>() - 8usize];
     ["Offset of field: ScShortcut::chord"][::std::mem::offset_of!(ScShortcut, chord) - 0usize];
     ["Offset of field: ScShortcut::id"][::std::mem::offset_of!(ScShortcut, id) - 12usize];
@@ -2314,7 +2320,67 @@ const _: () = {
     ["Offset of field: ScShortcut::user"][::std::mem::offset_of!(ScShortcut, user) - 32usize];
     ["Offset of field: ScShortcut::hint_label"]
         [::std::mem::offset_of!(ScShortcut, hint_label) - 40usize];
+    ["Offset of field: ScShortcut::help_text"]
+        [::std::mem::offset_of!(ScShortcut, help_text) - 48usize];
+    ["Offset of field: ScShortcut::section"]
+        [::std::mem::offset_of!(ScShortcut, section) - 56usize];
+    ["Offset of field: ScShortcut::hide_in_footer"]
+        [::std::mem::offset_of!(ScShortcut, hide_in_footer) - 64usize];
 };
+#[doc = " One row of the keyboard-shortcut help screen: a section header (when\n `section != NULL`) or a key/description line."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScShortcutHelpRow {
+    pub section: *const ::std::os::raw::c_char,
+    pub key_display: *const ::std::os::raw::c_char,
+    pub desc: *const ::std::os::raw::c_char,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScShortcutHelpRow"][::std::mem::size_of::<ScShortcutHelpRow>() - 24usize];
+    ["Alignment of ScShortcutHelpRow"][::std::mem::align_of::<ScShortcutHelpRow>() - 8usize];
+    ["Offset of field: ScShortcutHelpRow::section"]
+        [::std::mem::offset_of!(ScShortcutHelpRow, section) - 0usize];
+    ["Offset of field: ScShortcutHelpRow::key_display"]
+        [::std::mem::offset_of!(ScShortcutHelpRow, key_display) - 8usize];
+    ["Offset of field: ScShortcutHelpRow::desc"]
+        [::std::mem::offset_of!(ScShortcutHelpRow, desc) - 16usize];
+};
+#[doc = " Options for the shortcut help screen. Zero-init friendly."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ScShortcutHelpOpts {
+    pub title: *const ::std::os::raw::c_char,
+    pub accent: ScColor,
+    pub footer_hint: *const ::std::os::raw::c_char,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of ScShortcutHelpOpts"][::std::mem::size_of::<ScShortcutHelpOpts>() - 24usize];
+    ["Alignment of ScShortcutHelpOpts"][::std::mem::align_of::<ScShortcutHelpOpts>() - 8usize];
+    ["Offset of field: ScShortcutHelpOpts::title"]
+        [::std::mem::offset_of!(ScShortcutHelpOpts, title) - 0usize];
+    ["Offset of field: ScShortcutHelpOpts::accent"]
+        [::std::mem::offset_of!(ScShortcutHelpOpts, accent) - 8usize];
+    ["Offset of field: ScShortcutHelpOpts::footer_hint"]
+        [::std::mem::offset_of!(ScShortcutHelpOpts, footer_hint) - 16usize];
+};
+extern "C" {
+    #[doc = " Shows a modal, scrollable keyboard-shortcut help screen built from `rows`."]
+    pub fn sc_shortcut_help_show(
+        rows: *const ScShortcutHelpRow,
+        n: usize,
+        opts: *const ScShortcutHelpOpts,
+    );
+}
+extern "C" {
+    #[doc = " Builds the help rows from a bound shortcut set and shows them."]
+    pub fn sc_shortcut_help_show_from(
+        items: *const ScShortcut,
+        n: usize,
+        opts: *const ScShortcutHelpOpts,
+    );
+}
 extern "C" {
     #[doc = " Builds a Ctrl-letter chord, e.g. `sc_key_ctrl('e')`.\n\n `letter` is case-insensitive. Ctrl-C (cancel), Ctrl-H (Backspace), Ctrl-I\n (Tab), Ctrl-J/Ctrl-M (Enter) are not bindable - the terminal never delivers\n them as a distinct Ctrl chord - and are rejected by a debug assert."]
     pub fn sc_key_ctrl(letter: ::std::os::raw::c_char) -> ScKeyChord;

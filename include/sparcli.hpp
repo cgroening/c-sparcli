@@ -1955,27 +1955,78 @@ inline const Shortcut* shortcut_find(Key key,
  * if (sc.fired() == 1) { open_help(); }
  * @endcode
  */
+/**
+ * Per-shortcut display metadata (footer + help screen), separating the two
+ * uses that used to be one `label`. Passed to the rich `on_return` /
+ * `on_callback` overloads; all pointers must outlive the run / help screen.
+ */
+struct ShortcutDisplay {
+    const char* footer    = nullptr;  ///< Footer text; nullptr/"" => not shown.
+    const char* help      = nullptr;  ///< Help-screen text; nullptr => footer.
+    bool        in_footer = true;     ///< Explicit footer flag (overrides off).
+};
+
 class Shortcuts {
 public:
     /**
-     * Binds a chord that ends the prompt and reports `id` via `fired()`.
-     * `label` (if given) shows in the widget's key-hint footer; it must outlive
+     * Binds a chord that ends the prompt and reports `id` via `fired()`, with
+     * full display metadata (`footer`/`help`/`in_footer`). Strings must outlive
      * the run (a string literal is fine).
      */
-    Shortcuts& on_return(KeyChord chord, int id, const char* label = nullptr) {
+    Shortcuts& on_return(KeyChord chord, int id, ShortcutDisplay d) {
         items_.push_back(Shortcut{
-            chord, id, SC_SHORTCUT_RETURN, nullptr, nullptr, label
+            chord, id, SC_SHORTCUT_RETURN, nullptr, nullptr,
+            d.footer, d.help, current_section_, !d.in_footer
         });
+        add_help_row(chord, d);
+        return *this;
+    }
+    /**
+     * Binds a chord that ends the prompt and reports `id` via `fired()`.
+     * `label` (if given) shows in the widget's key-hint footer and, unless a
+     * richer help text is set, in the help screen.
+     */
+    Shortcuts& on_return(KeyChord chord, int id, const char* label = nullptr) {
+        return on_return(chord, id, ShortcutDisplay{ label });
+    }
+
+    /** Binds a chord to a callback with full display metadata. */
+    Shortcuts& on_callback(KeyChord chord, std::function<bool()> fn,
+                           ShortcutDisplay d) {
+        fns_.push_back(std::move(fn));   // deque: addresses stay stable
+        items_.push_back(Shortcut{
+            chord, static_cast<int>(items_.size()), SC_SHORTCUT_CALLBACK,
+            &trampoline, &fns_.back(),
+            d.footer, d.help, current_section_, !d.in_footer
+        });
+        add_help_row(chord, d);
         return *this;
     }
     /** Binds a chord to a callback (returns `true` to keep the prompt open). */
     Shortcuts& on_callback(KeyChord chord, std::function<bool()> fn,
                            const char* label = nullptr) {
-        fns_.push_back(std::move(fn));   // deque: addresses stay stable
-        items_.push_back(Shortcut{
-            chord, static_cast<int>(items_.size()), SC_SHORTCUT_CALLBACK,
-            &trampoline, &fns_.back(), label
-        });
+        return on_callback(chord, std::move(fn), ShortcutDisplay{ label });
+    }
+
+    /**
+     * Opens a help-screen section: all entries added afterwards (`on_return`,
+     * `on_callback`, `help_row`) group under `title` until the next `section`.
+     * `title` is borrowed and must outlive `show_shortcuts`.
+     */
+    Shortcuts& section(const char* title) {
+        current_section_ = title;
+        help_rows_.push_back(ScShortcutHelpRow{ title, nullptr, nullptr });
+        return *this;
+    }
+
+    /**
+     * Adds a help-screen-only row (no binding), e.g. to document built-in
+     * widget keys like `↑/↓` "move cursor". `key_display` and `description` are
+     * borrowed and must outlive `show_shortcuts`.
+     */
+    Shortcuts& help_row(const char* key_display, const char* description) {
+        help_rows_.push_back(
+            ScShortcutHelpRow{ nullptr, key_display, description });
         return *this;
     }
 
@@ -1991,14 +2042,51 @@ public:
     /** Id of the RETURN-mode shortcut that ended the last run, or `-1`. */
     int fired() const { return fired_id_; }
 
+    /** Help-screen rows (sections + key/description lines), in author order.
+        Used by `show_shortcuts`. */
+    const std::vector<ScShortcutHelpRow>& help_rows() const {
+        return help_rows_;
+    }
+
 private:
     static bool trampoline(int /*id*/, void *user) {
         return (*static_cast<std::function<bool()> *>(user))();
     }
+    /** Records a help row for a binding: its derived key name + description. */
+    void add_help_row(KeyChord chord, const ShortcutDisplay& d) {
+        char name[32];
+        sc_key_chord_name(chord, name, sizeof name);
+        keynames_.emplace_back(name);   // deque: stable c_str() for the row
+        help_rows_.push_back(ScShortcutHelpRow{
+            nullptr, keynames_.back().c_str(), d.help ? d.help : d.footer
+        });
+    }
     std::vector<Shortcut>             items_;
     std::deque<std::function<bool()>> fns_;   // stable addresses for `user`
+    std::vector<ScShortcutHelpRow>    help_rows_;
+    std::deque<std::string>           keynames_;  // owns derived key names
+    const char*                       current_section_ = nullptr;
     int                               fired_id_ = -1;
 };
+
+/** Options for `show_shortcuts`. */
+struct ShortcutHelpOpts {
+    const char* title       = "Keyboard shortcuts";
+    Color       accent      = palette::yellow();
+    const char* footer_hint = nullptr;  ///< nullptr => "type to filter · esc…".
+};
+
+/**
+ * Shows the modal, scrollable keyboard-shortcut help screen built from a
+ * `Shortcuts` set (sections, derived key names, descriptions and any
+ * `help_row` lines, in author order). Blocks until Esc/Enter; no-op without a
+ * TTY. @see sc_shortcut_help_show
+ */
+inline void show_shortcuts(const Shortcuts& sc,
+                           const ShortcutHelpOpts& opts = {}) {
+    const ScShortcutHelpOpts copts{ opts.title, opts.accent, opts.footer_hint };
+    sc_shortcut_help_show(sc.help_rows().data(), sc.help_rows().size(), &copts);
+}
 
 // ── Input widgets ────────────────────────────────────────────────────────────
 // Each returns std::optional / std::vector; the result is empty (std::nullopt)

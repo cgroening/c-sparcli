@@ -336,7 +336,7 @@ if (sc_text_input("Your name", &name, (ScTextInputOpts){ .placeholder = "Ada" })
 }
 ```
 
-**Custom shortcuts** – bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on *any* widget via its opts. A `SC_SHORTCUT_RETURN` shortcut closes the prompt and reports which key fired (the widget still returns its value); a `SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open – handy with `sc_select_remove` / `sc_select_set_label` for live list editing. Labeled shortcuts appear in a dim footer automatically.
+**Custom shortcuts** – bind extra keys (Ctrl-letter, F1–F12, Alt) to actions on *any* widget via its opts. A `SC_SHORTCUT_RETURN` shortcut closes the prompt and reports which key fired (the widget still returns its value); a `SC_SHORTCUT_CALLBACK` runs in place and keeps the prompt open – handy with `sc_select_remove` / `sc_select_set_label` for live list editing. Labeled shortcuts appear in a dim footer automatically (`hide_in_footer` keeps a binding active but off the footer), and each shortcut also carries a `help_text` + `section` that feed an **auto-built keyboard help screen** (`sc_shortcut_help_show` / `sc_shortcut_help_show_from`, C++ `show_shortcuts`) – a modal, filterable reference with section headers, so apps never hand-roll a "?" screen ([`examples/c/input/shortcuts_help.c`](examples/c/input/shortcuts_help.c)).
 
 **Rich prompts** – for partial styling (e.g. `Rename `*`Apple`*` to`) set `prompt_markup = true` to parse the prompt as markup, or `prompt_text` to pass a pre-built multi-style `ScText`. Works inline and in boxed mode.
 

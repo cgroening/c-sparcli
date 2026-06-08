@@ -321,51 +321,112 @@ unsafe extern "C" fn shortcut_tramp(id: c_int, user: *mut c_void) -> bool {
 /// `run`/prompt call.
 pub struct Shortcuts {
     items: Vec<ffi::ScShortcut>,
-    labels: Vec<CString>,
     callbacks: Vec<*mut c_void>,
     fired: Box<Cell<c_int>>,
+    /// Owns every string referenced by `items`/`help_rows` (footer labels, help
+    /// texts, sections, derived key names) so the raw pointers stay valid.
+    owned: Vec<CString>,
+    help_rows: Vec<ffi::ScShortcutHelpRow>,
+    current_section: *const c_char,
+}
+
+/// Per-shortcut display metadata for the footer and the help screen.
+#[derive(Clone, Copy)]
+pub struct ShortcutDisplay<'a> {
+    /// Footer text; `None`/empty => not shown in the footer.
+    pub footer: Option<&'a str>,
+    /// Help-screen description; `None` => falls back to `footer`.
+    pub help: Option<&'a str>,
+    /// Explicit footer flag (set `false` to keep the binding but hide it).
+    pub in_footer: bool,
+}
+
+impl Default for ShortcutDisplay<'_> {
+    fn default() -> Self {
+        ShortcutDisplay { footer: None, help: None, in_footer: true }
+    }
 }
 
 impl Shortcuts {
     pub fn new() -> Self {
         Shortcuts {
             items: Vec::new(),
-            labels: Vec::new(),
             callbacks: Vec::new(),
             fired: Box::new(Cell::new(-1)),
+            owned: Vec::new(),
+            help_rows: Vec::new(),
+            current_section: std::ptr::null(),
         }
     }
 
+    /// Interns a string, returning a stable pointer owned by `self`.
+    fn intern(&mut self, s: &str) -> *const c_char {
+        let c = cstring(s);
+        let p = c.as_ptr();
+        self.owned.push(c);
+        p
+    }
+
+    /// Records the help-screen row for a binding (derived key name + desc).
+    fn push_binding_help(&mut self, chord: Chord, desc: *const c_char) {
+        let mut buf = [0 as c_char; 32];
+        unsafe { ffi::sc_key_chord_name(chord.0, buf.as_mut_ptr(), buf.len()) };
+        let name = unsafe { std::ffi::CStr::from_ptr(buf.as_ptr()) }
+            .to_string_lossy()
+            .into_owned();
+        let key = self.intern(&name);
+        self.help_rows.push(ffi::ScShortcutHelpRow {
+            section: std::ptr::null(),
+            key_display: key,
+            desc,
+        });
+    }
+
     /// Binds a chord that ends the prompt and reports `id` via
-    /// [`fired`](Self::fired).
+    /// [`fired`](Self::fired). `label` (if any) shows in the footer and, unless
+    /// a richer help text is set, in the help screen.
     pub fn on_return(
-        mut self,
+        self,
         chord: Chord,
         id: i32,
         label: Option<&str>,
     ) -> Self {
-        let hint = label.map(cstring);
-        let hint_ptr = match &hint {
-            Some(c) => c.as_ptr(),
-            None => std::ptr::null(),
-        };
-        if let Some(c) = hint {
-            self.labels.push(c);
-        }
+        self.on_return_d(
+            chord,
+            id,
+            ShortcutDisplay { footer: label, ..Default::default() },
+        )
+    }
+
+    /// Binds a chord that ends the prompt, with full display metadata
+    /// (`footer`/`help`/`in_footer`) for the footer and the help screen.
+    pub fn on_return_d(
+        mut self,
+        chord: Chord,
+        id: i32,
+        d: ShortcutDisplay,
+    ) -> Self {
+        let footer = d.footer.map_or(std::ptr::null(), |s| self.intern(s));
+        let help = d.help.map_or(std::ptr::null(), |s| self.intern(s));
         self.items.push(ffi::ScShortcut {
             chord: chord.0,
             id,
             mode: ffi::ScShortcutMode_SC_SHORTCUT_RETURN,
             on_fire: None,
             user: std::ptr::null_mut(),
-            hint_label: hint_ptr,
+            hint_label: footer,
+            help_text: help,
+            section: self.current_section,
+            hide_in_footer: !d.in_footer,
         });
+        let desc = if help.is_null() { footer } else { help };
+        self.push_binding_help(chord, desc);
         self
     }
 
     /// Binds a chord to a callback (returns `true` to keep the prompt open).
     pub fn on_callback<F>(
-        mut self,
+        self,
         chord: Chord,
         label: Option<&str>,
         f: F,
@@ -373,14 +434,25 @@ impl Shortcuts {
     where
         F: FnMut(i32) -> bool + 'static,
     {
-        let hint = label.map(cstring);
-        let hint_ptr = match &hint {
-            Some(c) => c.as_ptr(),
-            None => std::ptr::null(),
-        };
-        if let Some(c) = hint {
-            self.labels.push(c);
-        }
+        self.on_callback_d(
+            chord,
+            ShortcutDisplay { footer: label, ..Default::default() },
+            f,
+        )
+    }
+
+    /// Binds a chord to a callback, with full display metadata.
+    pub fn on_callback_d<F>(
+        mut self,
+        chord: Chord,
+        d: ShortcutDisplay,
+        f: F,
+    ) -> Self
+    where
+        F: FnMut(i32) -> bool + 'static,
+    {
+        let footer = d.footer.map_or(std::ptr::null(), |s| self.intern(s));
+        let help = d.help.map_or(std::ptr::null(), |s| self.intern(s));
         let boxed: Box<ShortcutFn> = Box::new(Box::new(f));
         let user = Box::into_raw(boxed) as *mut c_void;
         self.callbacks.push(user);
@@ -390,7 +462,38 @@ impl Shortcuts {
             mode: ffi::ScShortcutMode_SC_SHORTCUT_CALLBACK,
             on_fire: Some(shortcut_tramp),
             user,
-            hint_label: hint_ptr,
+            hint_label: footer,
+            help_text: help,
+            section: self.current_section,
+            hide_in_footer: !d.in_footer,
+        });
+        let desc = if help.is_null() { footer } else { help };
+        self.push_binding_help(chord, desc);
+        self
+    }
+
+    /// Opens a help-screen section: entries added afterwards group under
+    /// `title` until the next `section` call.
+    pub fn section(mut self, title: &str) -> Self {
+        let p = self.intern(title);
+        self.current_section = p;
+        self.help_rows.push(ffi::ScShortcutHelpRow {
+            section: p,
+            key_display: std::ptr::null(),
+            desc: std::ptr::null(),
+        });
+        self
+    }
+
+    /// Adds a help-screen-only row (no binding), e.g. to document a built-in
+    /// widget key such as `↑/↓` "move cursor".
+    pub fn help_row(mut self, key_display: &str, description: &str) -> Self {
+        let key = self.intern(key_display);
+        let desc = self.intern(description);
+        self.help_rows.push(ffi::ScShortcutHelpRow {
+            section: std::ptr::null(),
+            key_display: key,
+            desc,
         });
         self
     }
@@ -439,6 +542,43 @@ impl Drop for Shortcuts {
         for &u in &self.callbacks {
             unsafe { drop(Box::from_raw(u as *mut ShortcutFn)) };
         }
+    }
+}
+
+/// Options for [`show_shortcuts`].
+pub struct ShortcutHelpOpts<'a> {
+    /// Heading / search-field label; `None` => "Keyboard shortcuts".
+    pub title: Option<&'a str>,
+    /// Accent color; [`Color::NONE`] => yellow (resolved by the C core).
+    pub accent: Color,
+    /// Footer hint; `None` => "type to filter · esc to close".
+    pub footer_hint: Option<&'a str>,
+}
+
+impl Default for ShortcutHelpOpts<'_> {
+    fn default() -> Self {
+        ShortcutHelpOpts { title: None, accent: Color::NONE, footer_hint: None }
+    }
+}
+
+/// Shows the modal, scrollable keyboard-shortcut help screen built from a
+/// [`Shortcuts`] set (sections, derived key names, descriptions and any
+/// [`help_row`](Shortcuts::help_row) lines, in author order). Blocks until
+/// Esc/Enter; a no-op without a TTY.
+pub fn show_shortcuts(sc: &Shortcuts, opts: ShortcutHelpOpts) {
+    let title = opts.title.map(cstring);
+    let hint = opts.footer_hint.map(cstring);
+    let copts = ffi::ScShortcutHelpOpts {
+        title: title.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+        accent: opts.accent.raw(),
+        footer_hint: hint.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+    };
+    unsafe {
+        ffi::sc_shortcut_help_show(
+            sc.help_rows.as_ptr(),
+            sc.help_rows.len(),
+            &copts,
+        );
     }
 }
 

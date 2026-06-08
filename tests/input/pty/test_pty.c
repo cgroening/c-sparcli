@@ -1465,6 +1465,33 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 99: {
+            /* Shortcut help screen built from a bound set: Esc closes it. The
+               call returns (no hang) and ASan/UBSan validate the run. */
+            ScShortcut items[] = {
+                { .chord = sc_key_ctrl('n'), .id = 1, .hint_label = "next",
+                  .section = "Navigation" },
+                { .chord = sc_key_ctrl('e'), .id = 2, .hint_label = "edit",
+                  .help_text = "edit task", .section = "Actions" },
+                { .chord = sc_key_fn(2), .id = 3, .hint_label = "help" },
+            };
+            sc_shortcut_help_show_from(
+                items, sizeof items / sizeof items[0], NULL);
+            return 0;
+        }
+        case 100: {
+            /* Help screen with an explicit row model incl. a help-only row;
+               filter to "edit" then Enter closes it. */
+            ScShortcutHelpRow rows[] = {
+                { .section = "Navigation" },
+                { .key_display = "\xe2\x86\x91/\xe2\x86\x93", .desc = "move" },
+                { .section = "Actions" },
+                { .key_display = "^E", .desc = "edit" },
+            };
+            sc_shortcut_help_show(rows, sizeof rows / sizeof rows[0],
+                                  &(ScShortcutHelpOpts){ .title = "Keys" });
+            return 0;
+        }
         default: return 2;
     }
 }
@@ -1581,6 +1608,8 @@ static const Case CASES[] = {
     { "form-all-not-selectable", "\x1b[B\t\x04" }, /* all skipped: no hang */
     { "form-shortcut-suppressed-editing", "\rr\r\x04" }, /* 'r' types while editing */
     { "form-shortcut-nav-fires", "r" },     /* 'r' fires in nav mode */
+    { "shortcut-help-esc", "\x1b" },        /* help screen: Esc closes */
+    { "shortcut-help-filter", "edit\r" },   /* help screen: filter + Enter */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

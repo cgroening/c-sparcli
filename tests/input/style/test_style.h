@@ -25,3 +25,4 @@ void style_select(void);
 void style_fuzzy(void);
 void style_datepicker(void);
 void style_form(void);
+void style_help(void);
