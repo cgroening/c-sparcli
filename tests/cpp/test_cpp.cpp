@@ -794,6 +794,11 @@ static void test_strike_and_palette() {
 }
 
 int main() {
+    // Headless suite: never touch the real terminal. Like `make rust-test` /
+    // `python-test`, force the no-TTY path so any interactive call (e.g.
+    // show_shortcuts) is a clean no-op instead of grabbing /dev/tty.
+    setenv("SPARCLI_NO_TTY", "1", 1);
+
     std::printf("\nC++ wrapper assertion suite:\n");
     test_form_wrapper();
     test_shortcut_help_wrapper();
