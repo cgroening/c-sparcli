@@ -40,6 +40,8 @@ struct ScMarkdown {
     ScValue        *frontmatter;     /**< Parsed front matter (may be NULL). */
     char           *body;            /**< Owned body after the front matter. */
     ScMdSection    *root;            /**< Synthetic root (level 0). */
+    bool            fm_error_set;    /**< A front-matter block failed to parse. */
+    ScParseError    fm_error;        /**< Sub-parse error (when fm_error_set). */
 };
 
 
@@ -47,7 +49,9 @@ struct ScMarkdown {
 static const char *extract_frontmatter(
     const char *text, const char *end, ScMdFrontmatter *format, char **raw
 );
-static ScValue *parse_frontmatter(ScMdFrontmatter format, const char *raw);
+static ScValue *parse_frontmatter(
+    ScMdFrontmatter format, const char *raw, ScParseError *err
+);
 static bool build_sections(ScMdSection *root, const char *body);
     static bool parse_heading(
         const char *line, size_t len, int *level, const char **title,
@@ -99,7 +103,13 @@ ScMarkdown *sc_markdown_parse(const char *src, size_t len, ScParseError *err) {
         md->frontmatter_raw = dup_n("", 0);
     }
     if (md->frontmatter_raw) {
-        md->frontmatter = parse_frontmatter(md->fm_format, md->frontmatter_raw);
+        ScParseError fm_err = { 0 };
+        md->frontmatter =
+            parse_frontmatter(md->fm_format, md->frontmatter_raw, &fm_err);
+        if (!md->frontmatter && md->fm_format != SC_MD_FRONTMATTER_NONE) {
+            md->fm_error = fm_err;
+            md->fm_error_set = true;
+        }
     }
 
     md->body = dup_n(body_start, (size_t)(copy + len - body_start));
@@ -349,6 +359,14 @@ const ScValue *sc_markdown_frontmatter(const ScMarkdown *md) {
     return md ? md->frontmatter : NULL;
 }
 
+bool sc_markdown_frontmatter_malformed(const ScMarkdown *md) {
+    return md && md->fm_error_set;
+}
+
+const ScParseError *sc_markdown_frontmatter_error(const ScMarkdown *md) {
+    return (md && md->fm_error_set) ? &md->fm_error : NULL;
+}
+
 const char *sc_markdown_body(const ScMarkdown *md) {
     return (md && md->body) ? md->body : "";
 }
@@ -444,7 +462,15 @@ void sc_markdown_set_frontmatter_raw(
     md->fm_format = raw ? format : SC_MD_FRONTMATTER_NONE;
 
     sc_value_free(md->frontmatter);
-    md->frontmatter = parse_frontmatter(md->fm_format, copy);
+    ScParseError fm_err = { 0 };
+    md->frontmatter = parse_frontmatter(md->fm_format, copy, &fm_err);
+    if (!md->frontmatter && md->fm_format != SC_MD_FRONTMATTER_NONE) {
+        md->fm_error = fm_err;
+        md->fm_error_set = true;
+    } else {
+        md->fm_error = (ScParseError){ 0 };
+        md->fm_error_set = false;
+    }
 }
 
 bool sc_markdown_set_frontmatter(
@@ -472,16 +498,27 @@ bool sc_markdown_set_frontmatter(
     return true;
 }
 
-/** Parses the raw front matter into an `ScValue` for the known formats. */
-static ScValue *parse_frontmatter(ScMdFrontmatter format, const char *raw) {
+/**
+ * Parses the raw front matter into an `ScValue` for the known formats. On a
+ * sub-parse failure `err` (optional) is filled; its 1-based `line` is shifted
+ * by the opening fence line so it points into the original document.
+ */
+static ScValue *parse_frontmatter(
+    ScMdFrontmatter format, const char *raw, ScParseError *err
+) {
     size_t len = strlen(raw);
+    ScValue *value = NULL;
     if (format == SC_MD_FRONTMATTER_TOML) {
-        return sc_toml_parse(raw, len, NULL);
+        value = sc_toml_parse(raw, len, err);
+    } else if (format == SC_MD_FRONTMATTER_YAML) {
+        value = sc_yaml_parse(raw, len, err);
+    } else {
+        return NULL;
     }
-    if (format == SC_MD_FRONTMATTER_YAML) {
-        return sc_yaml_parse(raw, len, NULL);
+    if (!value && err && err->line > 0) {
+        err->line += 1; // account for the opening `---`/`+++` fence line
     }
-    return NULL;
+    return value;
 }
 
 void sc_md_section_set_body(ScMdSection *section, const char *text) {

@@ -5,6 +5,7 @@
 static void check_frontmatter_toml(void);
 static void check_frontmatter_yaml_raw(void);
 static void check_no_frontmatter(void);
+static void check_frontmatter_malformed(void);
 static void check_section_tree(void);
 static void check_find_and_body(void);
 static void check_code_fence_not_heading(void);
@@ -18,6 +19,7 @@ void test_serde_markdown(void) {
     check_frontmatter_toml();
     check_frontmatter_yaml_raw();
     check_no_frontmatter();
+    check_frontmatter_malformed();
     check_section_tree();
     check_find_and_body();
     check_code_fence_not_heading();
@@ -80,6 +82,84 @@ static void check_no_frontmatter(void) {
           "frontmatter: absent when the document starts with content");
     CHECK(strcmp(sc_markdown_frontmatter_raw(md), "") == 0,
           "frontmatter: raw is empty when absent");
+    CHECK(!sc_markdown_frontmatter_malformed(md),
+          "frontmatter: not malformed when absent");
+    CHECK(sc_markdown_frontmatter_error(md) == NULL,
+          "frontmatter: no error when absent");
+    sc_markdown_free(md);
+}
+
+/**
+ * A present-but-broken front-matter block must be distinguishable from no block:
+ * the parse still succeeds (body usable), but `frontmatter` is NULL while
+ * `frontmatter_malformed` is true and the sub-parse error is exposed.
+ */
+static void check_frontmatter_malformed(void) {
+    // Malformed YAML: an unterminated flow collection.
+    const char *yaml_doc =
+        "---\n"
+        "[unterminated\n"
+        "---\n"
+        "Body.\n";
+    ScMarkdown *md = sc_markdown_parse(yaml_doc, strlen(yaml_doc), NULL);
+    CHECK(md != NULL, "malformed: document still parses (lenient)");
+    CHECK(sc_markdown_frontmatter_format(md) == SC_MD_FRONTMATTER_YAML,
+          "malformed: YAML fence still detected");
+    CHECK(sc_markdown_frontmatter(md) == NULL,
+          "malformed: no parsed value for a broken block");
+    CHECK(sc_markdown_frontmatter_malformed(md),
+          "malformed: flag set for a present-but-broken block");
+    const ScParseError *err = sc_markdown_frontmatter_error(md);
+    CHECK(err != NULL && err->message[0] != '\0',
+          "malformed: sub-parse error is exposed with a message");
+    CHECK(strncmp(sc_markdown_body(md), "Body.", 5) == 0,
+          "malformed: body is still recovered");
+    sc_markdown_free(md);
+
+    // No front matter: not malformed, no error.
+    const char *plain = "# Title\nText.\n";
+    md = sc_markdown_parse(plain, strlen(plain), NULL);
+    CHECK(!sc_markdown_frontmatter_malformed(md)
+              && sc_markdown_frontmatter_error(md) == NULL,
+          "malformed: absent block is not flagged");
+    sc_markdown_free(md);
+
+    // Valid front matter: not malformed, no error.
+    const char *valid =
+        "+++\n"
+        "title = \"Post\"\n"
+        "+++\n"
+        "Body.\n";
+    md = sc_markdown_parse(valid, strlen(valid), NULL);
+    CHECK(!sc_markdown_frontmatter_malformed(md)
+              && sc_markdown_frontmatter_error(md) == NULL
+              && sc_markdown_frontmatter(md) != NULL,
+          "malformed: valid block is not flagged");
+    sc_markdown_free(md);
+
+    // Line offset: the error line points into the original document, past the
+    // opening fence. The broken TOML line is document line 3.
+    const char *toml_doc =
+        "+++\n"
+        "title = \"Post\"\n"
+        "bad line here\n"
+        "+++\n"
+        "Body.\n";
+    md = sc_markdown_parse(toml_doc, strlen(toml_doc), NULL);
+    const ScParseError *terr = sc_markdown_frontmatter_error(md);
+    CHECK(terr != NULL && terr->line == 3,
+          "malformed: error line is offset to the document line");
+    sc_markdown_free(md);
+
+    // set_frontmatter_raw must flag a broken block, then clear on a valid one.
+    md = sc_markdown_new();
+    sc_markdown_set_frontmatter_raw(md, SC_MD_FRONTMATTER_YAML, "[unterminated");
+    CHECK(sc_markdown_frontmatter_malformed(md),
+          "malformed: set_frontmatter_raw flags a broken block");
+    sc_markdown_set_frontmatter_raw(md, SC_MD_FRONTMATTER_YAML, "title: ok");
+    CHECK(!sc_markdown_frontmatter_malformed(md)
+              && sc_markdown_frontmatter_error(md) == NULL,
+          "malformed: a later valid block clears the flag");
     sc_markdown_free(md);
 }
 

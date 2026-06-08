@@ -323,7 +323,9 @@ ScMarkdown     *sc_markdown_parse(const char *src, size_t len, ScParseError *err
 
 ScMdFrontmatter sc_markdown_frontmatter_format(const ScMarkdown *md);
 const char     *sc_markdown_frontmatter_raw(const ScMarkdown *md);   // "" if none
-const ScValue  *sc_markdown_frontmatter(const ScMarkdown *md);       // parsed; NULL if none
+const ScValue  *sc_markdown_frontmatter(const ScMarkdown *md);       // parsed; NULL if none/broken
+bool            sc_markdown_frontmatter_malformed(const ScMarkdown *md);
+const ScParseError *sc_markdown_frontmatter_error(const ScMarkdown *md); // NULL if none
 const char     *sc_markdown_body(const ScMarkdown *md);
 ```
 
@@ -331,6 +333,15 @@ A leading `---` (YAML) or `+++` (TOML) fenced block is split off: the raw block
 is always available, and it is also parsed into an `ScValue` (via the YAML or
 TOML reader). The body is parsed into a tree of heading sections, fenced-code
 aware (a `#` inside ```` ``` ````/`~~~` is not a heading).
+
+`sc_markdown_parse` is **lenient**: a present-but-broken front-matter block does
+not fail the parse (the body stays usable), so `sc_markdown_frontmatter` returns
+`NULL` for both "no block" and "broken block". To tell them apart,
+`sc_markdown_frontmatter_malformed` returns `true` only for a present-but-broken
+block, and `sc_markdown_frontmatter_error` returns the sub-parse `ScParseError`
+(its `line` offset to point into the original document). `set_frontmatter_raw`
+updates the flag the same way (cleared on a later valid block). C++:
+`Markdown::frontmatter_malformed()` / `frontmatter_error()` (`std::optional`).
 
 ### Section tree
 
@@ -510,7 +521,8 @@ std::string out = doc.write();
 ```
 
 `Markdown` (move-only RAII): `parse/create`, `frontmatter_format/_raw`,
-`frontmatter()` (→ `std::optional<View>`), `body()`, `root()`,
+`frontmatter()` (→ `std::optional<View>`), `frontmatter_malformed()`,
+`frontmatter_error()` (→ `std::optional<ParseError>`), `body()`, `root()`,
 `set_frontmatter_raw/set_frontmatter`, `write()`, and `Markdown::parse_file(path)`
 / `write_file(path)`. `Section` (non-owning handle):
 `level/title/body/child_count/child/find` and the editing `set_body/add`.

@@ -68,9 +68,28 @@ SPARCLI_EXPORT const char *sc_markdown_frontmatter_raw(const ScMarkdown *md);
 
 /**
  * Returns the parsed front matter as an `ScValue` (borrowed, owned by the
- * document), or `NULL` when there is none or it was not parsed.
+ * document), or `NULL` when there is none, or when a present block failed to
+ * parse - see `sc_markdown_frontmatter_malformed`/`_error` to tell the two
+ * apart.
  */
 SPARCLI_EXPORT const ScValue *sc_markdown_frontmatter(const ScMarkdown *md);
+
+/**
+ * Returns `true` when a front-matter block was present but could not be parsed
+ * (so `sc_markdown_frontmatter` is `NULL` despite a non-empty raw block). The
+ * document is still returned with a usable body; this is how a caller tells
+ * "no front matter" apart from "malformed front matter".
+ */
+SPARCLI_EXPORT bool sc_markdown_frontmatter_malformed(const ScMarkdown *md);
+
+/**
+ * Returns the front-matter sub-parse error (borrowed, owned by the document)
+ * when `sc_markdown_frontmatter_malformed` is true, else `NULL`. Its 1-based
+ * `line` is offset to point into the original document (past the opening fence).
+ */
+SPARCLI_EXPORT const ScParseError *sc_markdown_frontmatter_error(
+    const ScMarkdown *md
+);
 
 /** Returns the body text (everything after the front matter); `""` if empty. */
 SPARCLI_EXPORT const char *sc_markdown_body(const ScMarkdown *md);

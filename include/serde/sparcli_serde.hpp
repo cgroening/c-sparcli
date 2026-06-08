@@ -574,6 +574,16 @@ public:
         if (value) { return View(value); }
         return std::nullopt;
     }
+    /** True when a front-matter block was present but could not be parsed. */
+    [[nodiscard]] bool frontmatter_malformed() const noexcept {
+        return sc_markdown_frontmatter_malformed(doc_);
+    }
+    /** The front-matter sub-parse error, or empty when the block parsed. */
+    [[nodiscard]] std::optional<ParseError> frontmatter_error() const {
+        const ScParseError *e = sc_markdown_frontmatter_error(doc_);
+        if (e) { return ParseError(*e); }
+        return std::nullopt;
+    }
     [[nodiscard]] std::string_view body() const noexcept {
         return sc_markdown_body(doc_);
     }

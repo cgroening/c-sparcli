@@ -146,6 +146,15 @@ static void check_markdown() {
     CHECK(again.frontmatter().has_value()
               && again.frontmatter()->get("title").as_string() == "Doc",
           "markdown: set_frontmatter from a value re-parses");
+    CHECK(!again.frontmatter_malformed() && !again.frontmatter_error(),
+          "markdown: valid front matter is not flagged malformed");
+
+    // A present-but-broken block: lenient parse, but flagged + error exposed.
+    Markdown broken = Markdown::parse("---\n[unterminated\n---\nBody.\n");
+    CHECK(broken.frontmatter_malformed()
+              && !broken.frontmatter().has_value()
+              && broken.frontmatter_error().has_value(),
+          "markdown: malformed front matter is flagged with an error");
 }
 
 static void check_value_ops() {
