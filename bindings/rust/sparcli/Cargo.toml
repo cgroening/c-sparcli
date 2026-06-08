@@ -98,6 +98,10 @@ name = "input_shortcuts"
 path = "../../../examples/rust/input/shortcuts.rs"
 
 [[example]]
+name = "input_shortcuts_help"
+path = "../../../examples/rust/input/shortcuts_help.rs"
+
+[[example]]
 name = "app_paths"
 path = "../../../examples/rust/app/paths.rs"
 

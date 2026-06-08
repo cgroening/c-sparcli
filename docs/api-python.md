@@ -366,6 +366,18 @@ Besides `key_ctrl`/`key_fn`/`key_alt`/`key_char` (char chords are **case-sensiti
 
 Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`; `fuzzy.cursor_index()`, `fuzzy.remove(i)`; `fuzzy.has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter).
 
+**Display metadata + help screen.** `on_return`/`on_callback` take `name=` (footer text) plus `help=` (longer help-screen description; falls back to `name`) and `in_footer=False` (keep a binding active but off the footer). `section(title)` groups the entries added after it; `help_row(key_display, desc)` adds a help-only line (no binding) for a built-in key. `sc.show_shortcuts(shortcuts, sc.ShortcutHelpOpts(title=…, accent=…, footer_hint=…, in_alt_screen=…))` renders a modal, filterable, full-terminal-height help screen (sections + key column + descriptions, author order). It spans its own alternate screen unless `in_alt_screen=True` (the caller already holds one, e.g. a long-running TUI).
+
+```python
+s = (sc.Shortcuts()
+     .section("Actions")
+     .on_return(sc.key_ctrl("n"), 1, "new", help="create an item")
+     .on_return(sc.key_ctrl("x"), 2, "delete", in_footer=False)  # hidden footer
+     .section("Navigation")
+     .help_row("↑/↓ or j/k", "move the cursor"))                 # help-only
+sc.show_shortcuts(s, sc.ShortcutHelpOpts(title="My app"))
+```
+
 ### Rich prompts & external editor
 
 ```python

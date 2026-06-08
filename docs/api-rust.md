@@ -400,6 +400,23 @@ For driving the decode loop yourself, `decode_key(&bytes) -> (Key, usize)` is th
 
 Live editing of `Select`/`Fuzzy` from a callback: `select.cursor()`, `select.label(i)`, `select.set_label(i, "…")`, `select.remove(i)`, `fuzzy.cursor_index()`, `fuzzy.remove(i)`; `fuzzy.has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter).
 
+**Display metadata + help screen.** The `*_d` overloads take a `ShortcutDisplay { footer, help, in_footer }` (the `Option<&str>`-label methods are wrappers): `footer` is the footer text, `help` the longer help-screen description, `in_footer = false` keeps a binding off the footer. `section(title)` groups the entries added after it; `help_row(key_display, desc)` adds a help-only line (no binding) for a built-in key. `show_shortcuts(&sc, ShortcutHelpOpts { title, accent, footer_hint, in_alt_screen })` renders a modal, filterable, full-terminal-height help screen (sections + key column + descriptions, author order). It spans its own alternate screen unless `in_alt_screen = true` (the caller already holds one, e.g. a long-running TUI).
+
+```rust
+let sc = Shortcuts::new()
+    .section("Actions")
+    .on_return_d(key_ctrl('n'), 1,
+        ShortcutDisplay { footer: Some("new"), help: Some("create an item"),
+                          in_footer: true })
+    .on_return_d(key_ctrl('x'), 2,
+        ShortcutDisplay { footer: Some("delete"), help: None,
+                          in_footer: false })       // bound, hidden from footer
+    .section("Navigation")
+    .help_row("↑/↓ or j/k", "move the cursor");      // help-only (no binding)
+show_shortcuts(&sc, ShortcutHelpOpts { title: Some("My app"),
+    ..Default::default() });
+```
+
 ### Rich prompts & external editor
 
 ```rust

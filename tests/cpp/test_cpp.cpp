@@ -743,6 +743,32 @@ static void test_form_wrapper() {
     Form md{ FormOpts{ .modified_marker = "[*] " } };
     md.add_text("Title", "x", FieldOpts{});
     CHECK(!md.modified(), "form++: modified() is false before any edit");
+
+    // read_only / not_selectable build via the FieldOpts alias and the value
+    // stays readable (display-only, unfocusable field).
+    Form ro{ FormOpts{} };
+    ro.row_begin();
+    int rep = ro.add_text("Repeat", "weekly",
+        FieldOpts{ .read_only = true, .not_selectable = true });
+    ro.add_text("Title", "t", FieldOpts{});
+    CHECK(ro.get_string(rep) == std::string("weekly"),
+          "form++: read_only/not_selectable field readable");
+}
+
+// Headless coverage of the shortcut help screen wrapper (build + no-TTY show).
+static void test_shortcut_help_wrapper() {
+    Shortcuts sc;
+    sc.section("Actions")
+      .on_return(key_ctrl('n'), 1, ShortcutDisplay{ .footer = "new",
+                                                     .help = "create an item" })
+      .on_callback(key_ctrl('x'), [] { return true; },
+                   ShortcutDisplay{ .footer = "delete", .in_footer = false })
+      .section("Navigation")
+      .help_row("\xe2\x86\x91/\xe2\x86\x93", "move cursor");
+    CHECK(sc.fired() == -1, "help++: nothing fired yet");
+    CHECK(sc.help_rows().size() == 5, "help++: section+rows recorded in order");
+    // show_shortcuts is a no-op without a TTY; it must return cleanly.
+    show_shortcuts(sc, ShortcutHelpOpts{ .title = "Keys" });
 }
 
 // Strikethrough attribute + runtime palette override (both new this cycle).
@@ -770,6 +796,7 @@ static void test_strike_and_palette() {
 int main() {
     std::printf("\nC++ wrapper assertion suite:\n");
     test_form_wrapper();
+    test_shortcut_help_wrapper();
     test_table_owns_temporaries();
     test_table_null_cell();
     test_table_survives_move();

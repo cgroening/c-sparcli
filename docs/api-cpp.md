@@ -437,6 +437,19 @@ if (sc.fired() == 1) { /* F2 → edit s2.label(...) / s2.set_label(...) */ }
 
 A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open unless its lambda returns `false` (it must not open another prompt). For live edits use `Select::cursor/label/set_label/remove` and `Fuzzy::cursor_index/remove`; `Fuzzy::has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter). `Esc` / `Ctrl-C` stay reserved.
 
+**Display metadata + help screen.** Each binding carries a footer label, a (longer) help-screen description and a section. The rich overloads take a `ShortcutDisplay{ footer, help, in_footer }` (the `const char*`-label overloads are thin wrappers); `in_footer = false` keeps a binding active but off the footer. `section(title)` groups the entries added after it, and `help_row(key_display, desc)` adds a help-only line documenting a built-in key (no binding). `show_shortcuts(sc, ShortcutHelpOpts{ title, accent, footer_hint, in_alt_screen })` then renders a modal, filterable, full-terminal-height help screen from the set (sections + key column + descriptions, author order). It spans its own alternate screen unless `in_alt_screen = true` (the caller — e.g. a long-running TUI — already holds one).
+
+```cpp
+Shortcuts sc;
+sc.section("Actions")
+  .on_return(key_ctrl('n'), 1, { .footer = "new",    .help = "create an item" })
+  .on_return(key_ctrl('x'), 2, { .footer = "delete", .help = "delete the item",
+                                  .in_footer = false })   // bound, not in footer
+  .section("Navigation")
+  .help_row("↑/↓ or j/k", "move the cursor");             // help-only (no binding)
+show_shortcuts(sc, { .title = "My app · shortcuts" });
+```
+
 ### Form (grid layout)
 
 `Form` wraps `sc_form`: add fields row by row, `run()`, then read values back.

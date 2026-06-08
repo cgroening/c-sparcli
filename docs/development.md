@@ -521,7 +521,7 @@ The **C++ wrapper** (`include/sparcli.hpp`, namespace `sparcli`) is a thin, head
 
 The **output/input boundary is physical**: `src/core` and `src/output` are stream-oriented and write through the redirectable `sc_output_stream()`; `src/tty` and `src/input` drive a real terminal in raw mode.
 
-To **add a source file**, append its path (e.g. `src/output/foo.c`) to `SRC` in the `Makefile` – the build tree mirrors `src/` automatically. Public headers go under `include/<area>/`, and cross-includes use root-relative paths (`#include "core/sparcli_core.h"`, resolved via `-Iinclude`). The table renderer is split into sub-modules that are `#include`-chained from `table.c`, so only `src/output/table/table.c` appears in `SRC`.
+To **add a source file**, append its path (e.g. `src/output/foo.c`) to `SRC` in the `Makefile` – the build tree mirrors `src/` automatically. Public headers go under `include/<area>/`, and cross-includes use root-relative paths (`#include "core/sparcli_core.h"`, resolved via `-Iinclude`). The table renderer is split into sub-modules that are `#include`-chained from `table.c`, so only `src/output/table/table.c` appears in `SRC`. **The Rust and Python bindings compile the C sources themselves**, so a new `.c` must *also* be added to the source list in `bindings/rust/sparcli-sys/build.rs` **and** `bindings/python/build_sparcli.py` – otherwise those builds fail to link the new symbols (an unresolved-symbol error at import/test time).
 
 To **add public API**, declare it inside the header's `SPARCLI_BEGIN_DECLS` / `SPARCLI_END_DECLS` block (these provide the `extern "C"` wrapper for C++ consumers) and mark the prototype `SPARCLI_EXPORT` – symbols are hidden by default, so an unmarked function won't be part of the shared-library ABI.
 
