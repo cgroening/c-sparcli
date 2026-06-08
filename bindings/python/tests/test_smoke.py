@@ -158,6 +158,14 @@ def test_strip_ansi():
     assert sc.strip_ansi("plain") == "plain"
 
 
+def test_edit_file_no_tty_guard():
+    # conftest sets SPARCLI_NO_TTY, so the editor must refuse to launch (-1)
+    # instead of opening a terminal. The happy path is covered by the C PTY
+    # suite. Accepts a str or Path and an optional editor command.
+    assert sc.edit_file("/tmp/sparcli-py-noopen", cmd="true") == -1
+    assert sc.edit_file("") == -1
+
+
 def test_truncate():
     assert sc.truncate("hello world", 5) == "hell…"
     assert sc.truncate("hi", 10) == "hi"

@@ -98,6 +98,14 @@ fn special_key_chords() {
 }
 
 #[test]
+fn edit_file_no_tty_guard() {
+    // The suite runs with SPARCLI_NO_TTY=1, so the editor must refuse to
+    // launch and report -1 instead of opening /dev/tty.
+    assert_eq!(sparcli::edit_file(Some("true"), "/tmp/sparcli-rs-noopen"), -1);
+    assert_eq!(sparcli::edit_file(None, ""), -1);
+}
+
+#[test]
 fn named_keys_and_modifier_chords() {
     use sparcli::{key_delete, key_home, key_up};
     // New named-key builders render words/glyphs.

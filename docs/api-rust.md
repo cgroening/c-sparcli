@@ -173,6 +173,10 @@ let pager = sparcli::Pager::begin(sparcli::PagerOpts::new());
 markup::println("[bold]long report…[/]");
 let status = pager.end();
 
+// External editor on an existing file (inherits the terminal, edits in place).
+// cmd=None resolves $VISUAL/$EDITOR; -1 when no terminal is available.
+let rc = sparcli::edit_file(None, "/tmp/note.md");
+
 // Live display: re-render a composed frame in place (dashboard).
 // Off-terminal, only the final frame is printed when the session ends.
 // .prompt_rows(n) reserves rows below the frame for an interactive prompt

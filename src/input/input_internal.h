@@ -700,6 +700,21 @@ bool sc_run_editor(const char *cmd, const char *initial, const char *suffix,
                    char **out);
 
 /**
+ * Resolves an editor command string: explicit `cmd` (non-empty) wins, then
+ * `$VISUAL`, `$EDITOR`, then "nvim" ("vi" is the exec-time last resort).
+ * Shared by `sc_run_editor` and the public `sc_edit_file` (editor_file.c).
+ */
+const char *sc_editor_resolve(const char *cmd);
+
+/**
+ * Forks a child that runs `cmd` (whitespace-tokenized argv, no shell) on `file`
+ * with its stdio on the controlling terminal, and waits. Returns the child's
+ * exit status (0 = clean), `127` when the command was not found, or `-1` on a
+ * fork/setup failure or signal. Does not touch raw mode.
+ */
+int sc_editor_run_child(const char *cmd, const char *file);
+
+/**
  * Optional custom shortcuts consulted by the engine before `on_key`, shared
  * by every widget. Built from the widget's `Sc*Opts.shortcuts` fields. Pass
  * `NULL` to `sc_prompt_run` when no shortcuts are configured.

@@ -1393,6 +1393,23 @@ inline ProcResult run(const std::vector<std::string>& argv,
     return ProcResult(sc_run(cargv.data(), opts));
 }
 
+/**
+ * Opens an external editor on an existing file (inheriting the controlling
+ * terminal) and waits for it to exit; the file is edited in place. Returns the
+ * editor's exit code, `127` if the command was not found, or `-1` when no
+ * controlling terminal is available. Call only when no prompt session is
+ * active. @see sc_edit_file
+ */
+inline int edit_file(const std::string& cmd, const std::string& path) {
+    return sc_edit_file(cmd.c_str(), path.c_str());
+}
+
+/** Edits `path` with the default editor ($VISUAL/$EDITOR, then a platform
+ *  fallback). @see sc_edit_file */
+inline int edit_file(const std::string& path) {
+    return sc_edit_file(nullptr, path.c_str());
+}
+
 // ── Logging ──────────────────────────────────────────────────────────────────
 // Leveled, colored terminal output + plain-text file sinks. @see sparcli_log.h
 

@@ -23,3 +23,4 @@
 #include "input/sparcli_fuzzy.h"        // IWYU pragma: export
 #include "input/sparcli_datepicker.h"   // IWYU pragma: export
 #include "input/sparcli_form.h"         // IWYU pragma: export
+#include "input/sparcli_editor.h"       // IWYU pragma: export

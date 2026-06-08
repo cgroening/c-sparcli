@@ -39,6 +39,7 @@ void test_history(void);
 void test_no_tty(void);
 void test_threads(void);
 void test_form(void);
+void test_editor(void);
 
 /* Interactive widget tests (require a TTY). */
 void test_confirm(void);

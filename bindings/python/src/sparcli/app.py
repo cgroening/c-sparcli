@@ -88,6 +88,32 @@ def _take_path(out, described: str) -> Path:
         lib.free(out)
 
 
+def edit_file(path: str | Path, cmd: str | None = None) -> int:
+    """Open an external editor on an existing file, inheriting the terminal.
+
+    Edits the file in place and waits for the editor to exit (nothing is
+    captured); re-read the file yourself afterwards. Call only when no sparcli
+    prompt session is active.
+
+    Parameters
+    ----------
+    path
+        File to edit (must exist / be creatable by the editor).
+    cmd
+        Editor command (whitespace-split, no shell). ``None`` resolves
+        ``$VISUAL``, then ``$EDITOR``, then a platform default (``nvim``/``vi``
+        on POSIX, ``notepad`` on Windows).
+
+    Returns
+    -------
+    int
+        The editor's exit code (``0`` = clean), ``127`` when the command was not
+        found, or ``-1`` on a spawn failure or when no terminal is available.
+    """
+    arena: list = []
+    return int(lib.sc_edit_file(cstr(arena, cmd), cstr(arena, str(path))))
+
+
 class Pager:
     """Pipe sparcli output through a pager (``$PAGER`` / ``less -R``).
 

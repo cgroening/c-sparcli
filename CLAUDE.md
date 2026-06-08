@@ -1327,6 +1327,22 @@ void         sc_proc_result_free(ScProcResult *result);   /* always call it */
 
 ---
 
+## File Editor (`src/input/editor_file.c`)
+
+Launch an external editor on an **existing** file, inheriting the controlling terminal, and wait for it to exit — the counterpart to `sc_run` for the interactive case (which captures output and so is unusable for a full-screen editor). Header: `input/sparcli_editor.h` (in the `input/sparcli_input.h` umbrella → `<sparcli.h>`). It is tty-oriented (the editor drives the real terminal), not stream-oriented.
+
+```c
+int sc_edit_file(const char *cmd, const char *path);
+```
+
+- Edits the file **in place** (no temp file, no capture); the caller re-reads it afterwards. This is the public face of the internal `sc_editor_run_child`/`sc_editor_resolve` primitives in `editor.c` (promoted from static, shared with `sc_run_editor`). The POSIX path forks → attaches stdio to `/dev/tty` → `execvp` (whitespace-split argv, **no shell**) → `waitpid`, with the same signal handling as the text-widget editor.
+- `cmd` NULL/empty resolves `$VISUAL`, then `$EDITOR`, then a platform default (`nvim`/`vi` on POSIX, `notepad` on Windows). Returns the editor's exit code (`0` = clean), `127` when the command was not found, or `-1` on a spawn/wait failure **or when no controlling terminal is available** (respects `SPARCLI_NO_TTY` / `sc_input_available()`, so callers can fall back).
+- **Call only when no prompt / alt-screen session is active** (terminal in cooked mode) — e.g. between finder runs (RETURN-shortcut ends the finder → edit → re-run).
+- **Cross-platform:** the POSIX path (macOS/Linux) is the live, tested one; the **Windows** path (`CreateProcessW`, inherited console, in the same file under `#ifdef _WIN32`) is written but **forward-looking** — sparcli's tty/input layer is otherwise POSIX-only, so there is no Windows build today and that branch is not compiled by the (POSIX) Makefile. A future Windows port compiles `editor_file.c` with the other branch.
+- Tests: `tests/input/logic/test_editor.c` (no-TTY guard + NULL/empty path, headless) and the `edit-file-ok`/`edit-file-fail` cases in `tests/input/pty/test_pty.c` (real launch over a PTY under ASan/UBSan, using the suite's stub editor). Bindings: C++ `sparcli::edit_file(cmd, path)` / `edit_file(path)`, Rust `sparcli::edit_file(cmd: Option<&str>, path)`, Python `sc.edit_file(path, cmd=None)`.
+
+---
+
 ## Config (`src/app/config.c`)
 
 Layered application configuration — the "klammer" over serde + the framework: **defaults < file < env < flags**, each layer deep-merged via `sc_value_merge`. Header: `app/sparcli_config.h`. **Depends on serde, so it is NOT in the `app/sparcli_app.h` umbrella — include it explicitly** (like `<serde/sparcli_serde.h>`).

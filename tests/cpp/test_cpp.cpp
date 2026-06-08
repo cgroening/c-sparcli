@@ -689,6 +689,16 @@ static void test_process_wrapper() {
     CHECK(sink.exit_code() == 0, "process: result survives a move");
 }
 
+static void test_edit_file_wrapper() {
+    // Force the no-TTY path so the editor refuses to launch and reports -1
+    // (the happy path needs a terminal; covered by the PTY suite).
+    setenv("SPARCLI_NO_TTY", "1", 1);
+    CHECK(edit_file("true", "/tmp/sparcli-cpp-noopen") == -1,
+          "edit_file: refuses (-1) with no terminal");
+    CHECK(edit_file("") == -1, "edit_file: empty path → -1");
+    unsetenv("SPARCLI_NO_TTY");
+}
+
 // Headless coverage of the Form wrapper (construction + initial getters).
 static void test_form_wrapper() {
     Form f{ FormOpts{ .title = "Contact", .accent = sparcli::cyan() } };
@@ -787,6 +797,7 @@ int main() {
     test_diff_wrapper();
     test_multiprogress_wrapper();
     test_process_wrapper();
+    test_edit_file_wrapper();
 
     if (g_failures > 0) {
         std::printf("\033[31m%d check(s) failed.\033[0m\n", g_failures);

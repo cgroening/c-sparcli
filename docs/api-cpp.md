@@ -260,6 +260,10 @@ auto log = paths::file(SC_PATH_STATE, "myapp", "logs/run.log");
     int status = pager.end();          // or implicit on scope exit
 }
 
+// External editor on an existing file (inherits the terminal, edits in place).
+// edit_file(path) uses $VISUAL/$EDITOR; -1 when no terminal is available.
+int rc = edit_file("/tmp/note.md");    // or edit_file("nvim", "/tmp/note.md")
+
 // RAII live display: re-render a composed frame in place (dashboard).
 // Off-terminal, only the final frame is printed when the session ends.
 {

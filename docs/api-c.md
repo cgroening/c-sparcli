@@ -1070,6 +1070,21 @@ int status = sc_pager_end(pager);     /* user quit less */
 
 ---
 
+## File Editor
+
+Launches an external editor on an **existing** file, inheriting the controlling terminal, and waits for it to exit (the editor counterpart to `sc_run`, which captures output). The file is edited in place; the caller re-reads it. Header: `input/sparcli_editor.h` (in `<sparcli.h>`).
+
+```c
+int sc_edit_file(const char *cmd, const char *path);
+```
+
+- `cmd` is whitespace-split into an argv (**no shell**); NULL/empty resolves `$VISUAL`, then `$EDITOR`, then a platform default (`nvim`/`vi` on POSIX, `notepad` on Windows).
+- Returns the editor's exit code (`0` = clean), `127` when the command was not found, or `-1` on a spawn/wait failure **or when no controlling terminal is available** (respects `SPARCLI_NO_TTY` / `sc_input_available()`).
+- Call only when no prompt / alt-screen session is active (terminal in cooked mode) — e.g. between finder runs.
+- macOS/Linux are the live, tested platforms; the Windows path is written but forward-looking (sparcli's tty layer is otherwise POSIX-only — no Windows build yet).
+
+---
+
 ## Live Display
 
 Re-renders a composed frame in place, so multiple widgets (tables, panels, progress bars, columns, ...) form a continuously updating dashboard - like Rich's `Live`. Frames are built with the capture API (`sc_capture_*`, `sc_vstack`, `ScColumns`); the live session only handles the in-place redraw. Header: `output/sparcli_live.h`.

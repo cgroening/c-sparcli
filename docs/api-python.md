@@ -146,6 +146,10 @@ with sc.Pager() as pager:
     table.print(sc.TableOpts(header_row=True))
 print(pager.exit_status)
 
+# External editor on an existing file (inherits the terminal, edits in place).
+# cmd=None resolves $VISUAL/$EDITOR; returns -1 when no terminal is available.
+rc = sc.edit_file("/tmp/note.md")          # or cmd="nvim"
+
 # Live display: re-render a composed frame in place (dashboard).
 # Off-terminal, only the final frame is printed when the session ends.
 with sc.Live() as live:                       # Live(alt_screen=True) = fullscreen

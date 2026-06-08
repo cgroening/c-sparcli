@@ -23,7 +23,7 @@ from __future__ import annotations
 from . import _sparcli_cffi as sys  # raw FFI escape hatch (ffi, lib)
 from . import capture, humanize, markup
 from .app import (ErrorReport, Pager, app_dir, app_file, cache_dir,
-                  config_dir, data_dir, state_dir)
+                  config_dir, data_dir, edit_file, state_dir)
 from .diff import DiffOpts, diff, diff_rendered
 from .humanize import HumanizeOpts
 from .multiprogress import MultiProgress, MultiProgressOpts
@@ -85,6 +85,7 @@ __all__ = [
     "SparcliError", "SparcliInputUnavailable",
     # app helpers (XDG paths, pager, pretty errors)
     "app_dir", "config_dir", "data_dir", "cache_dir", "state_dir", "app_file",
+    "edit_file",
     "Pager", "ErrorReport",
     # logging
     "Logger", "LogLevel", "log_set_level", "log_level", "log_add_file",

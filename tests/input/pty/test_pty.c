@@ -1344,6 +1344,43 @@ static int child_case(int c) {
             sc_form_free(f);
             return ok ? 0 : 1;
         }
+        case 91: {
+            /* sc_edit_file: edits an existing file in place via the stub
+               editor (which overwrites it), inheriting the PTY. Returns the
+               editor's exit code and leaves the new content on disk. */
+            char path[256];
+            const char *dir = getenv("TMPDIR");
+            if (!dir || !dir[0]) { dir = "/tmp"; }
+            snprintf(path, sizeof path, "%s/sparcli-editfile-XXXXXX", dir);
+            int fd = mkstemp(path);
+            if (fd < 0) { return 1; }
+            (void)!write(fd, "before", 6);
+            close(fd);
+
+            int rc = sc_edit_file(g_editor, path);
+
+            char buf[128] = "";
+            int rfd = open(path, O_RDONLY);
+            ssize_t n = rfd >= 0 ? read(rfd, buf, sizeof buf - 1) : -1;
+            if (rfd >= 0) { close(rfd); }
+            if (n >= 0) { buf[n] = '\0'; }
+            unlink(path);
+            int ok = (rc == 0 && strcmp(buf, "from-editor\nsecond") == 0);
+            return ok ? 0 : 1;
+        }
+        case 92: {
+            /* sc_edit_file propagates a non-zero editor exit code. */
+            char path[256];
+            const char *dir = getenv("TMPDIR");
+            if (!dir || !dir[0]) { dir = "/tmp"; }
+            snprintf(path, sizeof path, "%s/sparcli-editfail-XXXXXX", dir);
+            int fd = mkstemp(path);
+            if (fd < 0) { return 1; }
+            close(fd);
+            int rc = sc_edit_file(g_editor_fail, path);
+            unlink(path);
+            return rc == 1 ? 0 : 1;
+        }
         default: return 2;
     }
 }
@@ -1452,6 +1489,8 @@ static const Case CASES[] = {
     { "modal-normal-backspace-fires", "\x7f" },     /* BS fires shortcut in normal */
     { "form-modified-after-edit", "\rX\r\x04" },    /* edit a->aX -> modified() */
     { "form-not-modified", "\x04" },                /* submit unchanged -> not modified */
+    { "edit-file-ok", "" },         /* sc_edit_file: stub editor rewrites file */
+    { "edit-file-fail", "" },       /* sc_edit_file: non-zero exit propagates */
 };
 #define N_CASES ((int)(sizeof CASES / sizeof CASES[0]))
 

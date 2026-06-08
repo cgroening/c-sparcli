@@ -18,7 +18,7 @@
  * Resolves the editor command string: explicit `cmd` (non-empty) wins, then
  * `$VISUAL`, `$EDITOR`, then "nvim", then "vi".
  */
-static const char *resolve_editor(const char *cmd) {
+const char *sc_editor_resolve(const char *cmd) {
     if (cmd && cmd[0]) {
         return cmd;
     }
@@ -105,7 +105,8 @@ static int build_editor_argv(char *cmd, char **argv, const char *file) {
 }
 
 /**
- * Child half of `run_child`: attach stdio to the controlling terminal, restore
+ * Child half of `sc_editor_run_child`: attach stdio to the controlling
+ * terminal, restore
  * the inherited signal mask, then `execvp` the editor (`vi` as a last resort).
  * Only async-signal-safe calls; never returns.
  */
@@ -132,7 +133,7 @@ static void exec_editor_child(
  * controlling terminal. Returns the child's exit status (0 = clean), or -1 on
  * fork/setup failure.
  */
-static int run_child(const char *cmd, const char *file) {
+int sc_editor_run_child(const char *cmd, const char *file) {
     char *cmd_copy = strdup(cmd);
     if (!cmd_copy) {
         return -1;
@@ -240,7 +241,7 @@ bool sc_run_editor(const char *cmd, const char *initial, const char *suffix,
         return false;
     }
 
-    int status = run_child(resolve_editor(cmd), path);
+    int status = sc_editor_run_child(sc_editor_resolve(cmd), path);
     bool ok = false;
     if (status == 0) {
         char *content = read_all(path);

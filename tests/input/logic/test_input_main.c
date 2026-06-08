@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
         { "Input History",  test_history,        0 },
         { "Form (logic)",   test_form,           0 },
         { "No-TTY Override", test_no_tty,        0 },
+        { "File Editor",    test_editor,         0 },
         { "Thread Safety",  test_threads,        0 },
         { "Confirm",        test_confirm,        1 },
         { "Text Input",     test_text_input,     1 },

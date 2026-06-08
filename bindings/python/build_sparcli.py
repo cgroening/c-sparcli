@@ -71,6 +71,7 @@ _SOURCES = [
     "input/theme.c",
     "input/shortcut.c",
     "input/editor.c",
+    "input/editor_file.c",
     "input/confirm.c",
     "input/text_input.c",
     "input/password_input.c",
@@ -610,6 +611,9 @@ typedef struct {
 } ScPagerOpts;
 ScPager *sc_pager_begin(ScPagerOpts opts);
 int sc_pager_end(ScPager *pager);
+
+/* ── External file editor ──────────────────────────────────────────────── */
+int sc_edit_file(const char *cmd, const char *path);
 
 /* ── Live display ──────────────────────────────────────────────────────── */
 typedef struct ScLive ScLive;

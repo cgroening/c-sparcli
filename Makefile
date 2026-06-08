@@ -78,7 +78,8 @@ SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/tty/term.c src/tty/key.c src/tty/screen.c \
           \
           src/input/prompt.c src/input/line_editor.c src/input/theme.c \
-          src/input/shortcut.c src/input/editor.c src/input/confirm.c \
+          src/input/shortcut.c src/input/editor.c src/input/editor_file.c \
+          src/input/confirm.c \
           src/input/text_input.c src/input/password_input.c src/input/number_input.c \
           src/input/calc.c \
           src/input/textarea.c \
@@ -220,6 +221,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_history.c \
                  tests/input/logic/test_form.c \
                  tests/input/logic/test_no_tty.c \
+                 tests/input/logic/test_editor.c \
                  tests/input/logic/test_threads.c
 INPUT_TEST_BIN = tests/input/logic/test_input_main
 

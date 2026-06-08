@@ -1992,6 +1992,13 @@ extern "C" {
     #[doc = " Ends a pager session: flushes and closes the pipe, restores the\n previous output stream and `SIGPIPE` disposition, waits for the pager\n process to exit, and frees the handle.\n\n @param pager  Session from `sc_pager_begin`; safe to pass `NULL`.\n @return       The pager's exit status (`0` on clean exit), `0` for\n               no-op sessions, `-1` when the pager was killed by a\n               signal or waiting failed."]
     pub fn sc_pager_end(pager: *mut ScPager) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    #[doc = " Opens an external editor on an existing file (inheriting the controlling\n terminal) and waits for it to exit; the file is edited in place. `cmd`\n NULL/empty resolves $VISUAL/$EDITOR then a platform default. Returns the\n editor exit code, 127 if not found, or -1 on failure / no terminal."]
+    pub fn sc_edit_file(
+        cmd: *const ::std::os::raw::c_char,
+        path: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ScLive {

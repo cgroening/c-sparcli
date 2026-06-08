@@ -76,6 +76,28 @@ pub mod paths {
     }
 }
 
+/// Opens an external editor on an existing file, inheriting the controlling
+/// terminal, and waits for it to exit. The file is edited in place (nothing is
+/// captured) — re-read it yourself afterwards. Call only when no prompt session
+/// is active.
+///
+/// `cmd` is the editor command (split on whitespace, no shell); `None` resolves
+/// `$VISUAL`, then `$EDITOR`, then a platform default (`nvim`/`vi` on POSIX,
+/// `notepad` on Windows). Returns the editor's exit code (`0` = clean), `127`
+/// when the command was not found, or `-1` on a spawn failure or when no
+/// controlling terminal is available.
+///
+/// ```no_run
+/// let rc = sparcli::edit_file(None, "/tmp/note.md");
+/// ```
+pub fn edit_file(cmd: Option<&str>, path: &str) -> i32 {
+    let c_cmd = cmd.map(cstring);
+    let cmd_ptr = c_cmd
+        .as_ref()
+        .map_or(std::ptr::null(), |c| c.as_ptr());
+    unsafe { ffi::sc_edit_file(cmd_ptr, cstring(path).as_ptr()) }
+}
+
 /// Options for [`Pager`]. Zero-init (`Default`) pages through `$PAGER` /
 /// `less -R`, and only when the output stream is a terminal.
 #[derive(Clone, Debug, Default)]
