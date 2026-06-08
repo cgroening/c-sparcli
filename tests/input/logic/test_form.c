@@ -71,6 +71,18 @@ static int form_line_of(const ScRendered *frame, const char *needle) {
     return -1;
 }
 
+/* Display width of an ANSI-stripped UTF-8 line, counting one column per
+   codepoint (the form's box glyphs / ellipsis are all single-width). */
+static int line_cols(const ScRendered *frame, int idx) {
+    char *plain = sc_strip_ansi(frame->lines[idx]);
+    int cols = 0;
+    for (const char *p = plain ? plain : ""; *p; p++) {
+        if (((unsigned char)*p & 0xC0) != 0x80) { cols++; }  /* not a UTF-8 tail */
+    }
+    free(plain);
+    return cols;
+}
+
 /* True when any RAW (un-stripped) line of `frame` contains `needle` — used to
    assert an ANSI escape (e.g. a color code) is actually emitted. */
 static bool form_raw_has(const ScRendered *frame, const char *needle) {
@@ -325,6 +337,35 @@ void test_form(void) {
         ScRendered *fr = sc_form_frame(f);
         CHECK(form_raw_has(fr, "\033[32m"),
               "value_style callback colors the cell value (green)");
+        sc_rendered_free(fr);
+        sc_form_free(f);
+    }
+
+    /* ── Long title must not widen the box (top border == body width) ── */
+    {
+        /* A narrow fixed-width field whose title is longer than the column. The
+           modified_marker prefix would extend the title the same way; either
+           way the top border (title) must be clamped to the box width, not grow
+           past it (which previously broke the grid). */
+        ScForm *f = sc_form_new((ScFormOpts){ .modified_marker = "[*] " });
+        sc_form_row_begin(f);
+        sc_form_add_text(f, "Priority Level Indicator", "x",
+            (ScFieldOpts){ .width_mode = SC_FWIDTH_FIXED, .width = 16 });
+        ScRendered *fr = sc_form_frame(f);
+        int top = form_line_of(fr, "\xe2\x95\xad");   /* ╭ top-left corner */
+        int mid = form_line_of(fr, "\xe2\x94\x82");   /* │ body vertical */
+        int bot = form_line_of(fr, "\xe2\x95\xb0");   /* ╰ bottom-left corner */
+        CHECK(top >= 0 && mid >= 0 && bot >= 0,
+              "long-title box renders top/body/bottom border lines");
+        if (top >= 0 && mid >= 0 && bot >= 0) {
+            CHECK(line_cols(fr, top) == line_cols(fr, mid)
+                  && line_cols(fr, mid) == line_cols(fr, bot),
+                  "overlong title is clamped: top border width == body width");
+            CHECK(line_cols(fr, top) == 16,
+                  "the box keeps its fixed 16-column width");
+        }
+        CHECK(form_raw_has(fr, "\xe2\x80\xa6"),
+              "the overlong title is elided with an ellipsis");
         sc_rendered_free(fr);
         sc_form_free(f);
     }

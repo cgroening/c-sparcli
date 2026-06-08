@@ -565,10 +565,30 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
     print_colored(hborder.left_edge_character, hborder.border_style);
 
     bool has_title = title.rich_text || (title.text && *title.text);
+    /* A plain title that does not fit the interior is truncated (display-width
+       aware, with an ellipsis) so the top border is never wider than the body;
+       the box geometry must not depend on the title length. Reserve one dash on
+       each side (plus the title padding) for the available title width. */
+    char *trunc = NULL;
+    int tlen = 0;
     if (has_title) {
-        int tlen   = title.rich_text
+        tlen = title.rich_text
             ? (int)sc_text_visible_width(title.rich_text)
             : (int)sc_utf8_string_length(title.text, strlen(title.text));
+        if (!title.rich_text) {
+            int avail = hborder.inner_width - 2 * title.pad - 2;
+            if (avail <= 0) {
+                has_title = false;   // no room for any title -> full border
+            } else if (tlen > avail) {
+                trunc = sc_truncate(title.text, avail, "\xe2\x80\xa6");
+                if (trunc) {
+                    title.text = trunc;
+                    tlen = (int)sc_utf8_string_length(trunc, strlen(trunc));
+                }
+            }
+        }
+    }
+    if (has_title) {
         int dashes = hborder.inner_width - tlen - 2 * title.pad;
         if (dashes < 0) { dashes = 0; }
 
@@ -602,6 +622,7 @@ static void render_horizontal_border(HBorder hborder, ScTitle title) {
 
     print_colored(hborder.right_edge_character, hborder.border_style);
     fputc('\n', sc_output_stream());
+    free(trunc);
 }
 
 /**
