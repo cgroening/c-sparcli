@@ -276,6 +276,7 @@ cc app.c -I<prefix>/include -L<prefix>/lib -lsparcli -o app
 
 ### Requirements
 
+- **A POSIX platform: macOS or Linux.** sparcli's tty/input layer is POSIX-only, so there is no Windows build today (a Windows port is on the [roadmap](#roadmap)).
 - C11 compiler (`cc`, `gcc`, or `clang`)
 - A UTF-8-capable terminal
 - Truecolor support recommended for `[rgb(…)]` markup; 8-color ANSI works everywhere
@@ -518,6 +519,7 @@ See **[`docs/development.md`](docs/development.md)** for the full build/test/ in
 - **Structured data (serde)** – ✅ the opt-in `serde/` layer: JSON/CSV/TOML/YAML/Markdown readers and writers over a shared `ScValue` model, in C and the C++ wrapper, with its own `make qa-serde` gate; see [`docs/api-serde.md`](docs/api-serde.md).
 - **CLI on the args module** – migrate [`cli/`](cli/) from `getopt_long` + hand-written usage strings to the argument parser (`sc_args_*`) once its API has stabilized through real-world use. This would remove the duplicated option/usage/completion definitions and give `sparcli --help` widget-rendered output. Deferred on purpose: the CLI is stable and golden-tested; coupling it to a brand-new API would force follow-up changes on every API adjustment.
 - **Output theming** – a process-wide `sc_output_set_theme(...)` for output components (default border style/color, title styling, …), mirroring the existing [`sc_input_set_theme`](#input-widgets) for input widgets.
+- **Windows support** – sparcli is currently **macOS/Linux only**: the tty/input layer (raw mode, signals, `/dev/tty`) is POSIX-only. A Windows port (VT mode + ConPTY for the interactive widgets) is planned.
 - **`examples/` directory** – ✅ self-contained, copy-pasteable examples for every component in all four languages, grouped by language and area; see [`docs/examples.md`](docs/examples.md).
 
 ---
