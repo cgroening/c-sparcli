@@ -1199,7 +1199,9 @@ void sc_form_free(ScForm *form);
 # MSVC (the default compiler for CPython on Windows) takes /-style flags and
 # enables stack canaries (/GS) by default; GCC/Clang take the -f form.
 if os.name == "nt":
-    _compile_args = ["/std:c11"]
+    # /experimental:c11atomics enables MSVC's <stdatomic.h> (used by sanitize.c,
+    # prompt.c, log.c) under /std:c11.
+    _compile_args = ["/std:c11", "/experimental:c11atomics"]
 else:
     _compile_args = ["-std=c11", "-fstack-protector-strong"]
 

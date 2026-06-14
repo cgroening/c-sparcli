@@ -2,7 +2,8 @@
 
 #ifdef _WIN32
 
-#include <io.h>
+#include "input/sparcli_term.h" /* sc_input_available (honors SPARCLI_NO_TTY) */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,8 +46,8 @@ int sc_edit_file(const char *cmd, const char *path) {
     if (!path || !path[0]) {
         return -1;
     }
-    if (!_isatty(_fileno(stdin))) {
-        return -1; /* no console attached */
+    if (!sc_input_available()) {
+        return -1; /* no console / SPARCLI_NO_TTY */
     }
 
     /* Build the command line `<editor> "<path>"` as one UTF-8 string, then

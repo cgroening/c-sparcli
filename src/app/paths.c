@@ -16,6 +16,29 @@
 /** Directory mode for created path components (user-private). */
 #define PATH_DIR_MODE 0700
 
+/* Path-separator predicate and the home environment variable differ by OS. */
+#ifdef _WIN32
+#  define SC_PATH_HOME_ENV "USERPROFILE"
+#  define SC_IS_SEP(c) ((c) == '/' || (c) == '\\')
+#else
+#  define SC_PATH_HOME_ENV "HOME"
+#  define SC_IS_SEP(c) ((c) == '/')
+#endif
+
+/** Returns true for an absolute path: `/foo` everywhere, plus `C:\...` / `\\`
+ *  (UNC) / `\foo` on Windows. */
+static bool path_is_absolute(const char *p) {
+    if (!p || !p[0]) { return false; }
+#ifdef _WIN32
+    if (SC_IS_SEP(p[0])) { return true; }
+    bool drive_letter = (p[0] >= 'A' && p[0] <= 'Z')
+                     || (p[0] >= 'a' && p[0] <= 'z');
+    return drive_letter && p[1] == ':';
+#else
+    return p[0] == '/';
+#endif
+}
+
 /** Number of entries in `PATH_SPECS` (mirrors `ScPathKind`). */
 #define PATH_KIND_COUNT 4
 
@@ -162,12 +185,12 @@ static char *resolve_base_dir(ScPathKind kind) {
 
     // Per the XDG spec, relative values in $XDG_* must be ignored
     const char *env_value = getenv(spec->env_var);
-    if (env_value && env_value[0] == '/') {
+    if (env_value && path_is_absolute(env_value)) {
         return strdup(env_value);
     }
 
-    const char *home = getenv("HOME");
-    if (!home || home[0] != '/') { return NULL; }
+    const char *home = getenv(SC_PATH_HOME_ENV);
+    if (!home || !path_is_absolute(home)) { return NULL; }
     return join_paths(home, spec->home_fallback);
 }
 
@@ -194,15 +217,28 @@ static bool make_dirs(const char *path) {
     char *working_copy = strdup(path);
     if (!working_copy) { return false; }
 
-    // Create each parent component, then the full path itself
-    for (char *cursor = working_copy + 1; *cursor; cursor++) {
-        if (*cursor != '/') { continue; }
+    char *start = working_copy + 1;
+#ifdef _WIN32
+    /* Skip a leading drive prefix ("C:") so we never mkdir("C:"). */
+    bool drive_letter = (working_copy[0] >= 'A' && working_copy[0] <= 'Z')
+                     || (working_copy[0] >= 'a' && working_copy[0] <= 'z');
+    if (drive_letter && working_copy[1] == ':') {
+        start = working_copy + 2;
+        if (SC_IS_SEP(*start)) { start++; }
+    }
+#endif
+
+    // Create each parent component, then the full path itself. Existing
+    // components return EEXIST and are accepted.
+    for (char *cursor = start; *cursor; cursor++) {
+        if (!SC_IS_SEP(*cursor)) { continue; }
+        char separator = *cursor;
         *cursor = '\0';
         if (mkdir(working_copy, PATH_DIR_MODE) != 0 && errno != EEXIST) {
             free(working_copy);
             return false;
         }
-        *cursor = '/';
+        *cursor = separator;
     }
     bool created = mkdir(working_copy, PATH_DIR_MODE) == 0 || errno == EEXIST;
 

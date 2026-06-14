@@ -40,10 +40,10 @@ static const struct {
     ScColor         color;
     ScTextAttribute attr;
 } LEVEL_PRESETS[] = {
-    [SC_LOG_DEBUG] = { "DEBUG", SC_ANSI_COLOR_MAGENTA, SC_TEXT_ATTR_DIM  },
-    [SC_LOG_INFO]  = { "INFO ", SC_ANSI_COLOR_CYAN,    SC_TEXT_ATTR_BOLD },
-    [SC_LOG_WARN]  = { "WARN ", SC_ANSI_COLOR_YELLOW,  SC_TEXT_ATTR_BOLD },
-    [SC_LOG_ERROR] = { "ERROR", SC_ANSI_COLOR_RED,     SC_TEXT_ATTR_BOLD },
+    [SC_LOG_DEBUG] = { "DEBUG", SC_ANSI_COLOR_MAGENTA_INIT, SC_TEXT_ATTR_DIM  },
+    [SC_LOG_INFO]  = { "INFO ", SC_ANSI_COLOR_CYAN_INIT,    SC_TEXT_ATTR_BOLD },
+    [SC_LOG_WARN]  = { "WARN ", SC_ANSI_COLOR_YELLOW_INIT,  SC_TEXT_ATTR_BOLD },
+    [SC_LOG_ERROR] = { "ERROR", SC_ANSI_COLOR_RED_INIT,     SC_TEXT_ATTR_BOLD },
 };
 
 /** Span styles shared by every record. */

@@ -11,11 +11,11 @@ static const struct {
     const char *label;  /**< title label after icon */
     ScColor     color;  /**< border + title color */
 } alert_presets[] = {
-    [SC_ALERT_INFO]    = { "\xe2\x84\xb9", "Info",    SC_ANSI_COLOR_BLUE    },
-    [SC_ALERT_DEBUG]   = { "\xe2\x9a\x99", "Debug",   SC_ANSI_COLOR_MAGENTA },
-    [SC_ALERT_WARNING] = { "\xe2\x9a\xa0", "Warning", SC_ANSI_COLOR_YELLOW  },
-    [SC_ALERT_ERROR]   = { "\xe2\x9c\x96", "Error",   SC_ANSI_COLOR_RED     },
-    [SC_ALERT_SUCCESS] = { "\xe2\x9c\x94", "Success", SC_ANSI_COLOR_GREEN   },
+    [SC_ALERT_INFO]    = { "\xe2\x84\xb9", "Info",    SC_ANSI_COLOR_BLUE_INIT    },
+    [SC_ALERT_DEBUG]   = { "\xe2\x9a\x99", "Debug",   SC_ANSI_COLOR_MAGENTA_INIT },
+    [SC_ALERT_WARNING] = { "\xe2\x9a\xa0", "Warning", SC_ANSI_COLOR_YELLOW_INIT  },
+    [SC_ALERT_ERROR]   = { "\xe2\x9c\x96", "Error",   SC_ANSI_COLOR_RED_INIT     },
+    [SC_ALERT_SUCCESS] = { "\xe2\x9c\x94", "Success", SC_ANSI_COLOR_GREEN_INIT   },
 };
 
 

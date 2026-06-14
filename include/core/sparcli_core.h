@@ -92,15 +92,28 @@ typedef struct ScColor {
  *
  * @{
  */
-#define SC_ANSI_COLOR_NONE    ((ScColor){ 0, 0, 0, 0 })
-#define SC_ANSI_COLOR_BLACK   ((ScColor){ 1, 0, 0, 0 })
-#define SC_ANSI_COLOR_RED     ((ScColor){ 2, 0, 0, 0 })
-#define SC_ANSI_COLOR_GREEN   ((ScColor){ 3, 0, 0, 0 })
-#define SC_ANSI_COLOR_YELLOW  ((ScColor){ 4, 0, 0, 0 })
-#define SC_ANSI_COLOR_BLUE    ((ScColor){ 5, 0, 0, 0 })
-#define SC_ANSI_COLOR_MAGENTA ((ScColor){ 6, 0, 0, 0 })
-#define SC_ANSI_COLOR_CYAN    ((ScColor){ 7, 0, 0, 0 })
-#define SC_ANSI_COLOR_WHITE   ((ScColor){ 8, 0, 0, 0 })
+/* Each color is defined once as a brace-initializer `_INIT` (usable in a
+ * static/constant initializer - MSVC's C compiler rejects a compound literal
+ * there); the value macro casts it to a compound literal for expressions. */
+#define SC_ANSI_COLOR_NONE_INIT    { 0, 0, 0, 0 }
+#define SC_ANSI_COLOR_BLACK_INIT   { 1, 0, 0, 0 }
+#define SC_ANSI_COLOR_RED_INIT     { 2, 0, 0, 0 }
+#define SC_ANSI_COLOR_GREEN_INIT   { 3, 0, 0, 0 }
+#define SC_ANSI_COLOR_YELLOW_INIT  { 4, 0, 0, 0 }
+#define SC_ANSI_COLOR_BLUE_INIT    { 5, 0, 0, 0 }
+#define SC_ANSI_COLOR_MAGENTA_INIT { 6, 0, 0, 0 }
+#define SC_ANSI_COLOR_CYAN_INIT    { 7, 0, 0, 0 }
+#define SC_ANSI_COLOR_WHITE_INIT   { 8, 0, 0, 0 }
+
+#define SC_ANSI_COLOR_NONE    ((ScColor)SC_ANSI_COLOR_NONE_INIT)
+#define SC_ANSI_COLOR_BLACK   ((ScColor)SC_ANSI_COLOR_BLACK_INIT)
+#define SC_ANSI_COLOR_RED     ((ScColor)SC_ANSI_COLOR_RED_INIT)
+#define SC_ANSI_COLOR_GREEN   ((ScColor)SC_ANSI_COLOR_GREEN_INIT)
+#define SC_ANSI_COLOR_YELLOW  ((ScColor)SC_ANSI_COLOR_YELLOW_INIT)
+#define SC_ANSI_COLOR_BLUE    ((ScColor)SC_ANSI_COLOR_BLUE_INIT)
+#define SC_ANSI_COLOR_MAGENTA ((ScColor)SC_ANSI_COLOR_MAGENTA_INIT)
+#define SC_ANSI_COLOR_CYAN    ((ScColor)SC_ANSI_COLOR_CYAN_INIT)
+#define SC_ANSI_COLOR_WHITE   ((ScColor)SC_ANSI_COLOR_WHITE_INIT)
 /** @} */
 
 /**
