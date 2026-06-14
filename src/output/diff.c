@@ -22,7 +22,12 @@ static bool split_lines(const char *s, Lines *out) {
     if (!s) { s = ""; }
     char *buf = strdup(s);
     if (!buf) { return false; }
-    if (buf[0] == '\0') { out->buf = buf; return true; }   /* zero lines */
+    if (buf[0] == '\0') {                                  /* zero lines */
+        out->buf = buf;
+        out->items = calloc(1, sizeof *out->items);  /* keep items non-NULL */
+        if (!out->items) { free(buf); out->buf = NULL; return false; }
+        return true;
+    }
 
     size_t cap = 8, count = 0;
     char **items = malloc(cap * sizeof *items);

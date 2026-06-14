@@ -737,6 +737,7 @@ static ScRendered *form_build_body(
     const int *colw, const int *colx, const int *rowy, const int *rowh,
     int total_w, int total_lines, bool with_edit
 ) {
+    if (self->count == 0) { return sc_capture_str(""); }
     ScRendered **panels = calloc(self->count, sizeof *panels);
     if (!panels) {
         return sc_capture_str("");
