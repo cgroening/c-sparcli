@@ -5,6 +5,7 @@
 #pragma once
 
 #include "sparcli.h"
+#include "platform/sc_compat.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -184,7 +185,7 @@ ScCliCtx sc_cli_ctx_init(const char *prog);
  * @return     Always `SC_CLI_EXIT_ERROR`.
  */
 int sc_cli_error(const ScCliCtx *ctx, const char *fmt, ...)
-    __attribute__((format(printf, 2, 3)));
+    SC_ATTR_FORMAT(2, 3);
 
 /**
  * Handles a common option value returned by `getopt_long`.

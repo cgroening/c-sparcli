@@ -1,4 +1,5 @@
 #include "sparcli.h"
+#include "platform/sc_compat.h"
 
 #include <stdio.h>
 
@@ -10,7 +11,7 @@
  * touches its own thread's value. Zero-initialized TLS is NULL, so every thread
  * still defaults to `stdout`.
  */
-static _Thread_local FILE *current_output = NULL;
+static SC_THREAD_LOCAL FILE *current_output = NULL;
 
 
 FILE *sc_output_stream(void) {

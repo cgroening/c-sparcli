@@ -36,13 +36,19 @@
  * `SPARCLI_EXPORT` marks a symbol as part of the public ABI.
  *
  * On Windows it expands to `__declspec(dllexport)` when sparcli itself is
- * being built (when `SPARCLI_BUILDING` is defined by the build system) and
- * to `__declspec(dllimport)` when sparcli is being consumed. On Unix-like
- * systems it expands to `__attribute__((visibility("default")))` so that
- * symbols not so annotated can be hidden via `-fvisibility=hidden`.
+ * being built into a DLL (when `SPARCLI_BUILDING` is defined by the build
+ * system) and to `__declspec(dllimport)` when consuming that DLL. When linking
+ * the static library (or compiling the sources directly into a consumer, as
+ * the cffi / cc-crate bindings do) `SPARCLI_STATIC` suppresses the decoration
+ * entirely - a `dllimport` symbol resolved from a static archive otherwise
+ * mis-links. On Unix-like systems it expands to
+ * `__attribute__((visibility("default")))` so that symbols not so annotated
+ * can be hidden via `-fvisibility=hidden`.
  */
 #if defined(_WIN32) || defined(__CYGWIN__)
-#  ifdef SPARCLI_BUILDING
+#  if defined(SPARCLI_STATIC)
+#    define SPARCLI_EXPORT
+#  elif defined(SPARCLI_BUILDING)
 #    define SPARCLI_EXPORT __declspec(dllexport)
 #  else
 #    define SPARCLI_EXPORT __declspec(dllimport)

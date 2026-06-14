@@ -1,6 +1,7 @@
 #include "sparcli.h"
 #include "core/sanitize_internal.h"
 #include "core/text_internal.h"
+#include "platform/sc_compat.h"
 
 #include <stdarg.h>
 #include <stdatomic.h>
@@ -84,15 +85,9 @@ static void emit_record(
     ScLogLevel level, const char *file, int line,
     const char *format, va_list args
 )
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((format(printf, 7, 0)))
-#endif
-    ;
+    SC_ATTR_FORMAT(7, 0);
     static char *format_message(const char *format, va_list args)
-#if defined(__GNUC__) || defined(__clang__)
-        __attribute__((format(printf, 1, 0)))
-#endif
-        ;
+        SC_ATTR_FORMAT(1, 0);
     static ScText *build_record(
         ScLoggerOpts opts, ScLogLevel level,
         const char *file, int line, const char *message

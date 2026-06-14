@@ -2,6 +2,7 @@
 
 #include "core/sparcli_core.h"
 #include "core/sparcli_export.h"
+#include "platform/sc_compat.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -143,10 +144,7 @@ SPARCLI_EXPORT void sc_logger_log(
     ScLogger *logger, ScLogLevel level, const char *file, int line,
     const char *format, ...
 )
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((format(printf, 5, 6)))
-#endif
-    ;
+    SC_ATTR_FORMAT(5, 6);
 
 /**
  * Frees a logger: flushes and closes its file sinks (terminal streams
@@ -229,10 +227,7 @@ SPARCLI_EXPORT void sc_log_reset(void);
 SPARCLI_EXPORT void sc_log_log(
     ScLogLevel level, const char *file, int line, const char *format, ...
 )
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((format(printf, 4, 5)))
-#endif
-    ;
+    SC_ATTR_FORMAT(4, 5);
 
 /** Emits a `SC_LOG_DEBUG` record on the global logger. */
 #define sc_log_debug(...)                                                     \

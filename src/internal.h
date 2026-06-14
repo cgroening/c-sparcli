@@ -2,14 +2,27 @@
 
 #include "sparcli.h"
 #include "core/sanitize_internal.h"
+#include "platform/sc_compat.h"
 
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
+#ifdef _WIN32
+/* WIN32_LEAN_AND_MEAN trims the heavyweight sub-headers; NOMINMAX keeps the
+ * min()/max() macros from colliding with code that uses those identifiers. */
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <windows.h>
+#else
+#  include <sys/ioctl.h>
+#  include <unistd.h>
+#endif
 
 
 void sc_apply_colors(ScColor fg, ScColor bg);
@@ -135,12 +148,22 @@ static inline bool sc_no_tty_override(void) {
  * be determined (terminal not attached, ioctl failure, etc.).
  */
 static inline int sc_terminal_width(void) {
+#ifdef _WIN32
+    CONSOLE_SCREEN_BUFFER_INFO info;
+    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (out != INVALID_HANDLE_VALUE && GetConsoleScreenBufferInfo(out, &info)) {
+        int columns = info.srWindow.Right - info.srWindow.Left + 1;
+        if (columns > 0) { return columns; }
+    }
+    return 80;
+#else
     struct winsize window_size;
     int ioctl_return_code = ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
     if (ioctl_return_code == 0 && window_size.ws_col > 0) {
         return (int)window_size.ws_col;
     }
     return 80;
+#endif
 }
 
 /**
@@ -148,12 +171,22 @@ static inline int sc_terminal_width(void) {
  * be determined (terminal not attached, ioctl failure, etc.).
  */
 static inline int sc_terminal_height(void) {
+#ifdef _WIN32
+    CONSOLE_SCREEN_BUFFER_INFO info;
+    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (out != INVALID_HANDLE_VALUE && GetConsoleScreenBufferInfo(out, &info)) {
+        int rows = info.srWindow.Bottom - info.srWindow.Top + 1;
+        if (rows > 0) { return rows; }
+    }
+    return 24;
+#else
     struct winsize window_size;
     int ioctl_return_code = ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
     if (ioctl_return_code == 0 && window_size.ws_row > 0) {
         return (int)window_size.ws_row;
     }
     return 24;
+#endif
 }
 
 /**

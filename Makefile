@@ -13,9 +13,10 @@ HARDEN_CFLAGS = -O2 -fstack-protector-strong -U_FORTIFY_SOURCE \
                 -D_FORTIFY_SOURCE=2
 
 CFLAGS  = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 -Wnull-dereference \
-          -Wcast-align -Wconversion -Wsign-conversion -fPIC $(HARDEN_CFLAGS) \
-          -Iinclude -Isrc $(EXTRA_CFLAGS)
-CXXFLAGS = -std=c++20 -Wall -Wextra $(HARDEN_CFLAGS) -Iinclude $(EXTRA_CFLAGS)
+          -Wcast-align -Wconversion -Wsign-conversion $(PIC) $(HARDEN_CFLAGS) \
+          -Iinclude -Isrc $(PLATFORM_CPPFLAGS) $(EXTRA_CFLAGS)
+CXXFLAGS = -std=c++20 -Wall -Wextra $(HARDEN_CFLAGS) -Iinclude \
+           $(PLATFORM_CPPFLAGS) $(EXTRA_CFLAGS)
 LDFLAGS = $(HARDEN_LDFLAGS)
 
 # Version. Keep in sync with SPARCLI_VERSION_* in include/sparcli_export.h.
@@ -35,6 +36,17 @@ ZSHFUNCDIR    ?= $(PREFIX)/share/zsh/site-functions
 
 # Platform-specific shared library naming.
 UNAME_S := $(shell uname -s)
+
+# Executable suffix: empty on Unix; ".exe" on Windows, where MinGW/MSYS ld
+# appends it to the linker output - so every binary target must carry it too,
+# or make never sees the file it asked for and `./prog` fails to launch.
+EXE :=
+
+# Extra preprocessor defines selected per platform. On Windows the build links
+# the static library, so SPARCLI_STATIC strips the dllimport/dllexport
+# decoration (see include/core/sparcli_export.h). Empty on Unix.
+PLATFORM_CPPFLAGS :=
+
 ifeq ($(UNAME_S),Darwin)
     SHLIB         := libsparcli.$(VERSION).dylib
     SHLIB_SONAME  := libsparcli.$(VERSION_MAJOR).dylib
@@ -46,6 +58,24 @@ ifeq ($(UNAME_S),Darwin)
     PTY_LDLIBS    :=             # forkpty lives in libSystem on macOS
     PTHREAD_LDLIBS :=            # pthreads in libSystem on macOS
     HARDEN_LDFLAGS :=            # PIE is the default on macOS; RELRO is ELF-only
+    PIC           := -fPIC
+else ifneq (,$(filter MINGW% MSYS% UCRT% CLANG% CYGWIN%,$(UNAME_S)))
+    # Windows via MSYS2 (MinGW-w64 UCRT64 is the supported dev toolchain). A
+    # Windows DLL is unversioned: the import library (.dll.a) is what the
+    # linker resolves against; the .dll is what gets loaded at runtime.
+    EXE           := .exe
+    SHLIB         := libsparcli.dll
+    SHLIB_SONAME  := libsparcli.dll
+    SHLIB_LINK    := libsparcli.dll
+    SHLIB_LDFLAGS := -shared -Wl,--out-implib,libsparcli.dll.a
+    PTY_LDLIBS    :=             # no forkpty; the ConPTY harness links its own
+    PTHREAD_LDLIBS :=            # winpthreads is linked by default under UCRT64
+    HARDEN_LDFLAGS :=            # RELRO / noexecstack are ELF-only
+    # mingw-w64's libc does not implement the _FORTIFY_SOURCE wrappers; keep the
+    # stack canaries (libssp is auto-linked) but drop the fortify define.
+    HARDEN_CFLAGS := -O2 -fstack-protector-strong
+    PIC           :=             # all Windows code is position-independent
+    PLATFORM_CPPFLAGS := -DSPARCLI_STATIC
 else
     SHLIB         := libsparcli.so.$(VERSION)
     SHLIB_SONAME  := libsparcli.so.$(VERSION_MAJOR)
@@ -54,6 +84,7 @@ else
     PTY_LDLIBS    := -lutil      # forkpty
     PTHREAD_LDLIBS := -lpthread
     HARDEN_LDFLAGS := -Wl,-z,relro,-z,now -Wl,-z,noexecstack
+    PIC           := -fPIC
 endif
 
 # ── Core (foundation: color, text, print, output stream, render) ──────────
@@ -130,13 +161,14 @@ CLI_SRC          = cli/main.c cli/cli_common.c cli/cli_parse.c \
                    cli/cmd_progress.c cli/cmd_input.c cli/cmd_select.c
 CLI_OBJ          = $(patsubst cli/%.c,$(BUILDDIR)/cli/%.o,$(CLI_SRC))
 CLI_DEP          = $(CLI_OBJ:.o=.d)
-CLI_BIN          = sparcli
+CLI_BIN          = sparcli$(EXE)
 CLI_CFLAGS       = -std=c11 -Wall -Wextra -Wshadow -Wformat=2 \
                    -Wnull-dereference -Wcast-align -Wconversion \
-                   -Wsign-conversion -Iinclude $(EXTRA_CFLAGS)
+                   -Wsign-conversion -Iinclude $(PLATFORM_CPPFLAGS) \
+                   $(EXTRA_CFLAGS)
 CLI_SANITIZE_OBJ = $(patsubst cli/%.c,$(SANITIZE_BUILDDIR)/cli/%.o,$(CLI_SRC))
 CLI_SANITIZE_DEP = $(CLI_SANITIZE_OBJ:.o=.d)
-CLI_SANITIZE_BIN = sparcli-sanitize
+CLI_SANITIZE_BIN = sparcli-sanitize$(EXE)
 
 # Sanitizer build artefacts live in a separate tree so plain `make` and
 # `make sanitize` never share .o files or a .a - mixing them produces undefined
@@ -145,7 +177,7 @@ SANITIZE_BUILDDIR = build.sanitize.nosync
 SANITIZE_OBJ      = $(patsubst src/%.c,$(SANITIZE_BUILDDIR)/%.o,$(SRC))
 SANITIZE_DEP      = $(SANITIZE_OBJ:.o=.d)
 SANITIZE_LIB      = libsparcli-sanitize.a
-SANITIZE_TEST_BIN = tests/output/test_main_sanitize
+SANITIZE_TEST_BIN = tests/output/test_main_sanitize$(EXE)
 SANITIZE_FLAGS    = -fsanitize=address,undefined -fno-omit-frame-pointer \
                     -g -O1 -U_FORTIFY_SOURCE
 
@@ -155,7 +187,7 @@ TSAN_BUILDDIR = build.tsan.nosync
 TSAN_OBJ      = $(patsubst src/%.c,$(TSAN_BUILDDIR)/%.o,$(SRC))
 TSAN_DEP      = $(TSAN_OBJ:.o=.d)
 TSAN_LIB      = libsparcli-tsan.a
-TSAN_TEST_BIN = tests/input/logic/test_input_main_tsan
+TSAN_TEST_BIN = tests/input/logic/test_input_main_tsan$(EXE)
 TSAN_FLAGS    = -fsanitize=thread -fno-omit-frame-pointer -g -O1 \
                 -U_FORTIFY_SOURCE
 
@@ -195,7 +227,7 @@ TEST_SRC = tests/output/test_main.c \
            tests/output/test_markup.c \
            tests/output/test_links.c \
            tests/output/test_errors.c
-TEST_BIN = tests/output/test_main
+TEST_BIN = tests/output/test_main$(EXE)
 
 # ── Input logic + widget suite (tests/input/logic/) - interactive ─────────
 # (`ARGS=--logic` runs only the non-interactive logic tests, suitable for CI.)
@@ -225,7 +257,7 @@ INPUT_TEST_SRC = tests/input/logic/test_input_main.c \
                  tests/input/logic/test_no_tty.c \
                  tests/input/logic/test_editor.c \
                  tests/input/logic/test_threads.c
-INPUT_TEST_BIN = tests/input/logic/test_input_main
+INPUT_TEST_BIN = tests/input/logic/test_input_main$(EXE)
 
 # ── Input style snapshot suite (tests/input/style/) - non-interactive ─────
 STYLE_TEST_SRC = tests/input/style/test_style_main.c \
@@ -238,13 +270,13 @@ STYLE_TEST_SRC = tests/input/style/test_style_main.c \
                  tests/input/style/test_style_datepicker.c \
                  tests/input/style/test_style_form.c \
                  tests/input/style/test_style_help.c
-STYLE_TEST_BIN = tests/input/style/test_style_main
+STYLE_TEST_BIN = tests/input/style/test_style_main$(EXE)
 
 # ── Self-driving PTY suite: runs the interactive widgets under a pseudo-
 # terminal (no human needed). Built with the sanitizers so it also gives
 # AddressSanitizer/UBSan coverage of the interactive code paths.
 PTY_TEST_SRC = tests/input/pty/test_pty.c
-PTY_TEST_BIN = tests/input/pty/test_pty
+PTY_TEST_BIN = tests/input/pty/test_pty$(EXE)
 
 # ── Application-framework suite (tests/app/) - non-interactive ────────────
 # Pure logic tests for the app helpers (XDG paths, pager); safe in CI.
@@ -255,7 +287,7 @@ APP_TEST_SRC = tests/app/test_app_main.c \
                tests/app/test_log.c \
                tests/app/test_process.c \
                tests/app/test_config.c
-APP_TEST_BIN = tests/app/test_app_main
+APP_TEST_BIN = tests/app/test_app_main$(EXE)
 
 # ── Argument-parser suite (tests/args/) - non-interactive ─────────────────
 # Parse logic, error reporting, help/completion rendering; safe in CI.
@@ -264,7 +296,7 @@ ARGS_TEST_SRC = tests/args/test_args_main.c \
                 tests/args/test_args_errors.c \
                 tests/args/test_args_help.c \
                 tests/args/test_args_split.c
-ARGS_TEST_BIN = tests/args/test_args_main
+ARGS_TEST_BIN = tests/args/test_args_main$(EXE)
 
 # ── Serde suite (tests/serde/) - non-interactive; outside `make test`/`qa` ─
 # Data-model + format round-trip tests. Run via `make test-serde`; the
@@ -277,16 +309,16 @@ SERDE_TEST_SRC          = tests/serde/test_serde_main.c \
                           tests/serde/test_yaml.c \
                           tests/serde/test_markdown.c \
                           tests/serde/test_file.c
-SERDE_TEST_BIN          = tests/serde/test_serde_main
-SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize
+SERDE_TEST_BIN          = tests/serde/test_serde_main$(EXE)
+SERDE_SANITIZE_TEST_BIN = tests/serde/test_serde_main_sanitize$(EXE)
 SERDE_CPP_TEST_SRC      = tests/cpp/test_serde_cpp.cpp
 
 # ── View suite (tests/view/) - non-interactive; outside `make test`/`qa` ───
 # The view layer renders serde models to the terminal; like serde it is
 # opt-in, so it has its own targets (`make test-view`, `make qa-view`).
 VIEW_TEST_SRC          = tests/view/test_view.c
-VIEW_TEST_BIN          = tests/view/test_view
-VIEW_SANITIZE_TEST_BIN = tests/view/test_view_sanitize
+VIEW_TEST_BIN          = tests/view/test_view$(EXE)
+VIEW_SANITIZE_TEST_BIN = tests/view/test_view_sanitize$(EXE)
 
 # Example programs (see docs/examples.md). The tree is grouped by language:
 # examples/c/ and examples/cpp/ compile to binaries in EXAMPLES_BUILDDIR
@@ -303,7 +335,7 @@ EXAMPLES_CPP_BIN  = $(patsubst examples/%.cpp,$(EXAMPLES_BUILDDIR)/%,$(EXAMPLES_
 # Public headers: the C headers plus the header-only C++ wrapper (sparcli.hpp).
 HEADERS = $(shell find include \( -name '*.h' -o -name '*.hpp' \))
 
-.PHONY: all cli test qa test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all test-serde qa-serde-sanitize qa-serde-fuzz qa-serde-cpp qa-serde test-view qa-view-sanitize qa-view-cpp qa-view
+.PHONY: all cli test qa qa-win qa-win-compile test-output test-output-check test-output-golden test-input test-input-style test-input-style-check test-input-style-golden test-input-pty test-app test-args test-cli-check test-cli-golden test-cli-completion test-cli-pty test-cpp test-cpp-golden clean install uninstall sanitize tsan fuzz lint pkgconfig shared examples run-example rust rust-test rust-lint python python-test python-test-debug rebuild-all test-serde qa-serde-sanitize qa-serde-fuzz qa-serde-cpp qa-serde test-view qa-view-sanitize qa-view-cpp qa-view
 
 # `make` must build the C library + CLI (as documented), not the first target
 # that happens to be defined above (the rust/python binding helpers).
@@ -459,6 +491,47 @@ qa:
 	$(MAKE) python-test-debug
 	@echo "\033[32m✔ All QA gates passed.\033[0m"
 
+# ── Windows QA gate (subset of `qa`; run from the MSYS2 UCRT64 shell) ──────
+# `make qa` (macOS/Linux) stays the full gate incl. TSan/UBSan + a real PTY.
+# qa-win grows one phase at a time as the platform/ backends land; see
+# docs/windows.md. TSan/UBSan and the zsh completion remain Unix-only.
+#
+# WIN_CORE_SRC is the set of translation units that already build cleanly on
+# Windows (MinGW/UCRT64). It expands every phase - capture sites (columns,
+# multiprogress, form, args_help, log) join after the memstream shim (Phase 1),
+# the tty/input/app backends after Phases 2-4 - until it covers all of $(SRC)
+# and is replaced by a plain `make all` on Windows.
+WIN_CORE_SRC = src/core/output.c src/core/version.c src/core/text_attributes.c \
+               src/core/print.c src/core/color.c src/core/text.c \
+               src/core/render_wrap.c src/core/sanitize.c src/core/humanize.c \
+               src/output/panel.c src/output/rule.c src/output/tree.c \
+               src/output/list.c src/output/progressbar.c src/output/spinner.c \
+               src/output/kv.c src/output/alert.c src/output/badge.c \
+               src/output/util.c src/output/pad.c src/output/markup.c \
+               src/output/diff.c \
+               src/output/table/table.c src/output/table/table_print.c \
+               src/output/table/table_print_init.c \
+               src/output/table/table_print_render.c \
+               src/output/table/table_print_render_cell.c \
+               src/output/table/table_print_render_border.c \
+               src/output/table/table_print_render_row.c \
+               $(SERDE_SRC) $(VIEW_SRC) \
+               src/args/args.c src/args/args_value.c src/args/args_suggest.c \
+               src/args/args_parse.c src/args/args_complete.c \
+               src/args/args_complete_bash.c src/args/args_complete_fish.c \
+               src/args/args_split.c
+WIN_CORE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(WIN_CORE_SRC))
+
+# Compile-only gate: builds the portable core to object files (no link, since
+# the full library still depends on the not-yet-ported backends). Reuses the
+# normal $(BUILDDIR)/%.o rule, so EXTRA_CFLAGS=-Werror propagates here too.
+qa-win-compile: $(WIN_CORE_OBJ)
+	@echo "compiled $(words $(WIN_CORE_SRC)) portable translation units"
+
+qa-win:
+	$(MAKE) qa-win-compile EXTRA_CFLAGS=-Werror
+	@echo "\033[32m✔ qa-win (Phase 0 subset) passed.\033[0m"
+
 # Visual output gallery: builds and runs the output suite for eyeballing.
 # ARGS: --no-animated (skip animations), --focus (focused subset), or both.
 # Linked against the static .a so it never depends on the install path / dyld
@@ -605,7 +678,7 @@ test-input-style-golden: $(LIB)
 # Deterministic off a TTY (width falls back to 80) plus explicit --width flags.
 CLI_GOLDEN       = tests/cli/expected.txt
 CLI_PTY_TEST_SRC = tests/cli/test_cli_pty.c
-CLI_PTY_TEST_BIN = tests/cli/test_cli_pty
+CLI_PTY_TEST_BIN = tests/cli/test_cli_pty$(EXE)
 
 test-cli-check: $(CLI_BIN) | $(BUILDDIR)
 	sh tests/cli/run_output.sh ./$(CLI_BIN) > $(BUILDDIR)/cli.actual.txt
@@ -769,7 +842,7 @@ $(EXAMPLES_BUILDDIR)/%: examples/%.c $(LIB) | $(EXAMPLES_BUILDDIR)
 # The C++ examples are built at C++23 (for std::print) - one step above the
 # C++20 the wrapper itself requires, so they show the modern call style.
 EXAMPLES_CXXFLAGS = -std=c++23 -Wall -Wextra $(HARDEN_CFLAGS) -Iinclude \
-                    $(EXTRA_CFLAGS)
+                    $(PLATFORM_CPPFLAGS) $(EXTRA_CFLAGS)
 $(EXAMPLES_BUILDDIR)/%: examples/%.cpp $(LIB) | $(EXAMPLES_BUILDDIR)
 	@mkdir -p $(dir $@)
 	$(CXX) $(EXAMPLES_CXXFLAGS) $< $(LIB) $(LDFLAGS) -o $@
