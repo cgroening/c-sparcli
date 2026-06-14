@@ -66,26 +66,46 @@ make CC=x86_64-w64-mingw32-gcc qa-win-compile   # compile-only smoke check
 ## Bindings
 
 - **Rust** (`bindings/rust/`): `build.rs` compiles the C sources via the `cc`
-  crate and defines `SPARCLI_STATIC`. The crate builds with a MinGW (`-gnu`)
-  target. Note: on an **ARM64** Windows host, `cargo` also needs a host
-  toolchain for build scripts — install the **ARM64 MSVC build tools** (native
-  `aarch64-pc-windows-msvc` host), since the `x86_64-pc-windows-gnu` *cross*
-  path conflicts with MSYS2's `link` shadowing the MSVC `link.exe`.
+  crate (`SPARCLI_STATIC`, `/experimental:c11atomics`, and it strips the `\\?\`
+  prefix `canonicalize()` adds so MSVC's `cl` accepts the paths). The C compiles
+  cleanly under MSVC. Building `cargo test` needs an MSVC environment, e.g. on an
+  ARM64 host via the x64-emulated toolchain:
+
+  ```bat
+  call vcvarsall.bat arm64_x64
+  cargo +stable-x86_64-pc-windows-msvc test --manifest-path bindings\rust\Cargo.toml
+  ```
+
+  **Open item:** the committed `sparcli-sys/src/bindings.rs` was generated on
+  macOS and hard-codes that platform's struct layouts (e.g. `struct tm` = 56
+  bytes); its bindgen layout assertions fail to compile on Windows, where
+  `struct tm` is smaller. Fix by regenerating bindings per target (the `regen`
+  feature needs libclang) or by gating the layout tests per `target_os` rather
+  than committing a single platform's bindings.
 
 - **Python** (`bindings/python/`): `build_sparcli.py` compiles the sources into
-  a cffi extension. On Windows it references the real `src`/`include` by
-  absolute path (the `csrc`/`cinclude` symlinks check out as text files when
-  git `core.symlinks` is off) and selects MSVC flags (`/std:c11`). CPython on
-  Windows builds extensions with **MSVC**, which is the same compiler the PyPI
-  wheels use (built via `cibuildwheel --platform windows`, `win_amd64`).
+  a cffi extension with **MSVC** (the compiler CPython-on-Windows uses, and the
+  same one the PyPI wheels use). It references the real `src`/`include` by
+  absolute path (the `csrc`/`cinclude` symlinks check out as text files when git
+  `core.symlinks` is off) and passes `/std:c11 /experimental:c11atomics`. The
+  full suite passes:
+
+  ```powershell
+  python bindings\python\build_sparcli.py
+  $env:PYTHONPATH="src"; $env:SPARCLI_NO_TTY="1"; $env:PYTHONUTF8="1"
+  python -m pytest bindings\python\tests -q     # 64 passed
+  ```
+
+  `PYTHONUTF8=1` makes Python's text I/O UTF-8 (matching POSIX), so tests that
+  read back rendered box-drawing output decode correctly. Wheels:
+  `cibuildwheel --platform windows` (`win_amd64`).
 
 ### MSVC notes
 
-MSVC's C compiler is stricter than GCC/Clang in two ways the port accounts for:
-`__attribute__`/`_Thread_local`/`ssize_t` (shimmed in `sc_compat.h`), and
-constant initializers — MSVC rejects a compound-literal color macro
-(`SC_ANSI_COLOR_*`) as a static initializer (C2099), so static style tables use
-designated initializers instead. Completing the MSVC build (and thus the
-wheels) requires this designated-initializer treatment across the colour
-registry (`src/core/color.c`) and any remaining static colour tables, plus
-confirming `<stdatomic.h>` under the installed MSVC version.
+MSVC's C compiler is stricter than GCC/Clang; the port accounts for it:
+`__attribute__` / `_Thread_local` / `ssize_t` are shimmed in `sc_compat.h`;
+`<stdatomic.h>` needs `/experimental:c11atomics`; and a compound-literal color
+macro is not a constant initializer (C2099), so every colour is defined once as
+a brace-initializer `SC_*_INIT` (used by the static colour/style tables) with
+the value macro `SC_*` derived as `((ScColor)SC_*_INIT)` for expressions
+(`include/core/sparcli_core.h`, `sparcli_palette.h`).

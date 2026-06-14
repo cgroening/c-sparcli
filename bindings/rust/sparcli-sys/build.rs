@@ -73,7 +73,16 @@ const SOURCES: &[&str] = &[
 fn main() {
     // bindings/rust/sparcli-sys -> repo root is three levels up.
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    let root = manifest.join("../../..").canonicalize().unwrap();
+    let root = {
+        let canonical = manifest.join("../../..").canonicalize().unwrap();
+        // Windows canonicalize() yields a \\?\ extended-length path that MSVC's
+        // cl.exe rejects (C1083); strip it. No-op on POSIX.
+        let text = canonical.to_string_lossy();
+        match text.strip_prefix(r"\\?\") {
+            Some(stripped) => PathBuf::from(stripped),
+            None => canonical,
+        }
+    };
     let include = root.join("include");
     let src = root.join("src");
 
@@ -86,6 +95,9 @@ fn main() {
     // Stack canaries for the embedded C code (matches the Makefile
     // hardening; skipped silently where unsupported).
     build.flag_if_supported("-fstack-protector-strong");
+    // MSVC needs this to enable <stdatomic.h> (sanitize.c/prompt.c/log.c);
+    // ignored by GCC/Clang via flag_if_supported.
+    build.flag_if_supported("/experimental:c11atomics");
     for s in SOURCES {
         let p = root.join(s);
         println!("cargo:rerun-if-changed={}", p.display());
