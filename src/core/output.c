@@ -36,6 +36,9 @@ static void sc_enable_vt_output(void) {
             SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
         }
     }
+    /* UTF-8 output so box-drawing glyphs and multibyte text render as the
+     * bytes sparcli emits (it produces UTF-8 throughout). */
+    SetConsoleOutputCP(CP_UTF8);
 }
 #endif
 

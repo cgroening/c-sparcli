@@ -510,6 +510,8 @@ WIN_CORE_SRC = src/core/output.c src/core/version.c src/core/text_attributes.c \
                src/output/kv.c src/output/alert.c src/output/badge.c \
                src/output/util.c src/output/pad.c src/output/markup.c \
                src/output/diff.c src/output/columns.c src/output/multiprogress.c \
+               src/output/live.c \
+               src/tty/term.c src/tty/key.c src/tty/screen.c \
                src/output/table/table.c src/output/table/table_print.c \
                src/output/table/table_print_init.c \
                src/output/table/table_print_render.c \

@@ -1,12 +1,20 @@
 #include "sparcli.h"
 #include "internal.h"   /* sc_terminal_height */
 
-#include <signal.h>
+#include <signal.h>     /* sig_atomic_t (the POSIX sigaction path is guarded) */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+#  include <io.h>       /* _isatty, _fileno, _write (POSIX aliases) */
+#else
+#  include <unistd.h>
+#endif
 
 
 /* ── Terminal escape sequences ──────────────────────────────────────────── */
@@ -50,16 +58,18 @@ struct ScLive {
  * not trapped (same stance as the tty layer: keep debugger/sanitizer
  * handlers intact).
  */
+#ifndef _WIN32
 static const int CLEANUP_SIGNALS[] = { SIGINT, SIGTERM, SIGHUP, SIGQUIT };
 #define N_CLEANUP_SIGNALS \
     ((int)(sizeof CLEANUP_SIGNALS / sizeof CLEANUP_SIGNALS[0]))
+static struct sigaction cleanup_old_actions[N_CLEANUP_SIGNALS];
+#endif
 
 static volatile sig_atomic_t cleanup_fd = -1;        /* fd to restore */
 static volatile sig_atomic_t cleanup_show_cursor = 0;
 static volatile sig_atomic_t cleanup_leave_alt = 0;
 static bool cleanup_atexit_registered = false;
 static bool cleanup_handlers_installed = false;
-static struct sigaction cleanup_old_actions[N_CLEANUP_SIGNALS];
 
 /* Stream of the active alt-screen session (sc_altscreen_begin), or NULL. */
 static FILE *altscreen_out = NULL;
@@ -77,7 +87,11 @@ static void end_buffered_session(ScLive *live);
 static void cleanup_register(const ScLive *live);
     static void cleanup_arm(int fd, bool show_cursor, bool leave_alt);
     static void cleanup_install_handlers(void);
+#ifdef _WIN32
+        static BOOL WINAPI cleanup_ctrl_handler(DWORD type);
+#else
         static void cleanup_on_signal(int signum);
+#endif
             static void cleanup_restore_terminal(void);
     static void cleanup_on_exit(void);
 static void cleanup_unregister(void);
@@ -405,6 +419,9 @@ static void cleanup_install_handlers(void) {
     if (cleanup_handlers_installed) {
         return;
     }
+#ifdef _WIN32
+    SetConsoleCtrlHandler(cleanup_ctrl_handler, TRUE);
+#else
     struct sigaction action;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
@@ -412,9 +429,19 @@ static void cleanup_install_handlers(void) {
     for (int i = 0; i < N_CLEANUP_SIGNALS; i++) {
         sigaction(CLEANUP_SIGNALS[i], &action, &cleanup_old_actions[i]);
     }
+#endif
     cleanup_handlers_installed = true;
 }
 
+#ifdef _WIN32
+/** Console control handler: restore cursor/alt-screen, then let the default
+ *  action run. (Ctrl-C is byte 0x03 in raw mode and does not reach here.) */
+static BOOL WINAPI cleanup_ctrl_handler(DWORD type) {
+    (void)type;
+    cleanup_restore_terminal();
+    return FALSE;
+}
+#else
 /** Restores the terminal, then re-raises `signum` with the default handler. */
 static void cleanup_on_signal(int signum) {
     cleanup_restore_terminal();
@@ -425,6 +452,7 @@ static void cleanup_on_signal(int signum) {
     sigaction(signum, &dfl, NULL);
     raise(signum);
 }
+#endif
 
 /**
  * Restores cursor visibility and leaves the alternate screen. Idempotent
@@ -436,6 +464,16 @@ static void cleanup_restore_terminal(void) {
     if (fd < 0) {
         return;
     }
+#ifdef _WIN32
+    if (cleanup_leave_alt) {
+        (void)_write(fd, LIVE_ALT_SCREEN_LEAVE,
+                     (unsigned)(sizeof(LIVE_ALT_SCREEN_LEAVE) - 1));
+    }
+    if (cleanup_show_cursor) {
+        (void)_write(fd, LIVE_CURSOR_SHOW,
+                     (unsigned)(sizeof(LIVE_CURSOR_SHOW) - 1));
+    }
+#else
     ssize_t ignored = 0;
     if (cleanup_leave_alt) {
         ignored = write(fd, LIVE_ALT_SCREEN_LEAVE,
@@ -445,6 +483,7 @@ static void cleanup_restore_terminal(void) {
         ignored = write(fd, LIVE_CURSOR_SHOW, sizeof(LIVE_CURSOR_SHOW) - 1);
     }
     (void)ignored;
+#endif
     cleanup_fd = -1;
     cleanup_show_cursor = 0;
     cleanup_leave_alt = 0;
@@ -461,9 +500,13 @@ static void cleanup_unregister(void) {
     cleanup_show_cursor = 0;
     cleanup_leave_alt = 0;
     if (cleanup_handlers_installed) {
+#ifdef _WIN32
+        SetConsoleCtrlHandler(cleanup_ctrl_handler, FALSE);
+#else
         for (int i = 0; i < N_CLEANUP_SIGNALS; i++) {
             sigaction(CLEANUP_SIGNALS[i], &cleanup_old_actions[i], NULL);
         }
+#endif
         cleanup_handlers_installed = false;
     }
 }

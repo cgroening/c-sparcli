@@ -43,6 +43,16 @@ void sc_tty_puts(const char *str);
 /** Returns the descriptor used for terminal reads (shared with key.c). */
 int sc_tty_internal_fd(void);
 
+#ifdef _WIN32
+/**
+ * Windows console input HANDLE used for key reads (shared with key.c). Typed
+ * as `void *` so this header stays free of <windows.h>; key.c casts it back to
+ * HANDLE. Returns INVALID_HANDLE_VALUE-equivalent (NULL) when no session is
+ * active.
+ */
+void *sc_tty_input_handle(void);
+#endif
+
 /** Returns the terminal height in rows (fallback 24 when unknown). */
 int sc_tty_rows(void);
 

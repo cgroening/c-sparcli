@@ -1,9 +1,17 @@
 #include "tty_internal.h"
 
-#include <errno.h>
+#include <stdio.h>
 #include <string.h>
-#include <sys/select.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+#else
+#  include <errno.h>
+#  include <sys/select.h>
+#  include <unistd.h>
+#endif
 
 
 static size_t decode_paste_content(const char *buf, size_t len, ScKey *out);
@@ -25,6 +33,189 @@ static size_t g_buf_len = 0;
 static bool g_in_paste = false;
 
 
+#ifdef _WIN32
+/* ── Windows: translate console KEY_EVENT records into decoder bytes ──────── */
+
+static void win_push(const char *s, size_t n) {
+    if (g_buf_len + n > sizeof g_buf) {
+        n = sizeof g_buf - g_buf_len;   /* truncate; overflow guard upstream */
+    }
+    memcpy(g_buf + g_buf_len, s, n);
+    g_buf_len += n;
+}
+
+static void win_push_str(const char *s) {
+    win_push(s, strlen(s));
+}
+
+/*
+ * Emits the VT byte sequence a POSIX terminal would send for one keydown event,
+ * so the shared decoder handles it unchanged. Navigation / function keys map to
+ * CSI/SS3 sequences (with the xterm 1;<mod> modifier form when Shift/Alt/Ctrl
+ * are held); everything else rides on the event's Unicode char (Enter, Tab,
+ * Backspace, Esc and Ctrl-letters already arrive as their control byte).
+ * Returns true when bytes were produced (pure modifier presses produce none).
+ */
+static bool win_translate_key(const KEY_EVENT_RECORD *k) {
+    WORD  vk  = k->wVirtualKeyCode;
+    DWORD cks = k->dwControlKeyState;
+    bool shift = (cks & SHIFT_PRESSED) != 0;
+    bool alt   = (cks & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
+    bool ctrl  = (cks & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+    int  mod   = 1 + (shift ? 1 : 0) + (alt ? 2 : 0) + (ctrl ? 4 : 0);
+    char seq[24];
+
+    char final = 0;
+    switch (vk) {
+        case VK_UP:    final = 'A'; break;
+        case VK_DOWN:  final = 'B'; break;
+        case VK_RIGHT: final = 'C'; break;
+        case VK_LEFT:  final = 'D'; break;
+        case VK_HOME:  final = 'H'; break;
+        case VK_END:   final = 'F'; break;
+        default: break;
+    }
+    if (final) {
+        int n = (mod > 1)
+            ? snprintf(seq, sizeof seq, "\x1b[1;%d%c", mod, final)
+            : snprintf(seq, sizeof seq, "\x1b[%c", final);
+        if (n > 0) { win_push(seq, (size_t)n); }
+        return true;
+    }
+
+    int tilde = 0;
+    switch (vk) {
+        case VK_INSERT: tilde = 2;  break;
+        case VK_DELETE: tilde = 3;  break;
+        case VK_PRIOR:  tilde = 5;  break;
+        case VK_NEXT:   tilde = 6;  break;
+        case VK_F5:     tilde = 15; break;
+        case VK_F6:     tilde = 17; break;
+        case VK_F7:     tilde = 18; break;
+        case VK_F8:     tilde = 19; break;
+        case VK_F9:     tilde = 20; break;
+        case VK_F10:    tilde = 21; break;
+        case VK_F11:    tilde = 23; break;
+        case VK_F12:    tilde = 24; break;
+        default: break;
+    }
+    if (tilde) {
+        int n = (mod > 1)
+            ? snprintf(seq, sizeof seq, "\x1b[%d;%d~", tilde, mod)
+            : snprintf(seq, sizeof seq, "\x1b[%d~", tilde);
+        if (n > 0) { win_push(seq, (size_t)n); }
+        return true;
+    }
+
+    const char *ss3 = NULL;
+    switch (vk) {
+        case VK_F1: ss3 = "\x1bOP"; break;
+        case VK_F2: ss3 = "\x1bOQ"; break;
+        case VK_F3: ss3 = "\x1bOR"; break;
+        case VK_F4: ss3 = "\x1bOS"; break;
+        default: break;
+    }
+    if (ss3) {
+        if (alt) { win_push("\x1b", 1); }
+        win_push_str(ss3);
+        return true;
+    }
+
+    if (vk == VK_TAB && shift) {
+        win_push_str("\x1b[Z");   /* Shift-Tab / BackTab */
+        return true;
+    }
+
+    WCHAR wc = k->uChar.UnicodeChar;
+    if (wc != 0) {
+        char utf8[8];
+        int n = WideCharToMultiByte(CP_UTF8, 0, &wc, 1, utf8,
+                                    (int)sizeof utf8, NULL, NULL);
+        if (n > 0) {
+            if (alt && (unsigned)wc >= 0x20) { win_push("\x1b", 1); }
+            win_push(utf8, (size_t)n);
+            return true;
+        }
+    }
+    return false;   /* lone surrogate or pure modifier: nothing to emit */
+}
+
+ScKey sc_tty_read_key(void) {
+    const ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
+    const ScKey resize = {
+        .type = SC_KEY_RESIZE, .codepoint = 0, .bytes = {0}
+    };
+
+    HANDLE hin = (HANDLE)sc_tty_input_handle();
+    if (hin == NULL || hin == INVALID_HANDLE_VALUE) {
+        return none;
+    }
+
+    for (;;) {
+        ScKey key;
+        size_t used = g_in_paste
+            ? decode_paste_content(g_buf, g_buf_len, &key)
+            : sc_key_decode(g_buf, g_buf_len, &key);
+        if (used > 0) {
+            memmove(g_buf, g_buf + used, g_buf_len - used);
+            g_buf_len -= used;
+            if (key.type == SC_KEY_PASTE_START) { g_in_paste = true; continue; }
+            if (key.type == SC_KEY_PASTE_END)   { g_in_paste = false; continue; }
+            if (key.type == SC_KEY_NONE) { continue; }
+            return key;
+        }
+
+        // A lone ESC may begin a sequence still in flight or be the Escape key.
+        // Wait 25 ms for more bytes; if none arrive, treat it as Esc.
+        if (!g_in_paste && g_buf_len > 0 && (unsigned char)g_buf[0] == 0x1b) {
+            DWORD waited = WaitForSingleObject(hin, 25);
+            if (waited == WAIT_TIMEOUT) {
+                memmove(g_buf, g_buf + 1, g_buf_len - 1);
+                g_buf_len -= 1;
+                ScKey esc = { .type = SC_KEY_ESC, .codepoint = 0, .bytes = {0} };
+                return esc;
+            }
+            if (waited == WAIT_FAILED) { return none; }
+            // input ready: fall through and read it
+        }
+
+        if (g_buf_len == sizeof g_buf) {
+            g_buf_len = 0;   // overflow guard
+        }
+
+        // Drain console input records, translating keydowns into g_buf bytes,
+        // until something is produced. A window resize surfaces immediately.
+        bool produced = false;
+        while (!produced) {
+            DWORD pending = 0;
+            if (!GetNumberOfConsoleInputEvents(hin, &pending)) {
+                return none;
+            }
+            if (pending == 0) {
+                if (WaitForSingleObject(hin, INFINITE) == WAIT_FAILED) {
+                    return none;
+                }
+                continue;
+            }
+            INPUT_RECORD rec;
+            DWORD got = 0;
+            if (!ReadConsoleInputW(hin, &rec, 1, &got) || got == 0) {
+                return none;
+            }
+            if (rec.EventType == WINDOW_BUFFER_SIZE_EVENT) {
+                return resize;
+            }
+            if (rec.EventType == KEY_EVENT && rec.Event.KeyEvent.bKeyDown) {
+                if (win_translate_key(&rec.Event.KeyEvent)) {
+                    produced = true;
+                }
+            }
+            if (g_buf_len == sizeof g_buf) { break; }
+        }
+    }
+}
+
+#else
 ScKey sc_tty_read_key(void) {
     const ScKey none = { .type = SC_KEY_NONE, .codepoint = 0, .bytes = {0} };
     const ScKey resize = {
@@ -109,6 +300,7 @@ ScKey sc_tty_read_key(void) {
         g_buf_len += (size_t)n_read;
     }
 }
+#endif  /* _WIN32 */
 
 void sc_tty_input_reset(void) {
     g_buf_len = 0;
