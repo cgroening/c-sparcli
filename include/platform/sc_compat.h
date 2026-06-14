@@ -88,6 +88,10 @@ typedef SSIZE_T ssize_t;
  * reversed argument order and the errno_t return. */
 static inline struct tm *sc_compat_localtime_r(const time_t *t,
                                                struct tm *out) {
+    /* localtime_s is a pure output parameter (it fills *out). memset first so
+     * static analyzers don't read it as an uninitialized buffer; the cost is
+     * negligible and localtime_s overwrites it anyway. */
+    memset(out, 0, sizeof *out);
     return localtime_s(out, t) == 0 ? out : NULL;
 }
 #  ifndef localtime_r
