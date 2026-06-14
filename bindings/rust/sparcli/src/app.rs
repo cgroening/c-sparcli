@@ -78,7 +78,7 @@ pub mod paths {
 
 /// Opens an external editor on an existing file, inheriting the controlling
 /// terminal, and waits for it to exit. The file is edited in place (nothing is
-/// captured) — re-read it yourself afterwards. Call only when no prompt session
+/// captured) - re-read it yourself afterwards. Call only when no prompt session
 /// is active.
 ///
 /// `cmd` is the editor command (split on whitespace, no shell); `None` resolves

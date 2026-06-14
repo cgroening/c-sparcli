@@ -21,7 +21,7 @@ used for the PyPI wheels (see *Bindings* below).
 | Key reading | `read()` + `select()` | `ReadConsoleInputW` + `WaitForSingleObject`; key events translated to the VT byte sequences the shared decoder already understands |
 | Resize | `SIGWINCH` | `WINDOW_BUFFER_SIZE_EVENT` → `SC_KEY_RESIZE` |
 | Cleanup on exit/interrupt | `sigaction` + `atexit` | `SetConsoleCtrlHandler` + `atexit` |
-| Capture stream | `open_memstream` | temp file under `%TEMP%` (`GetTempFileNameW` + `_wfopen("w+bTD")`) — see `src/core/memstream.c` |
+| Capture stream | `open_memstream` | temp file under `%TEMP%` (`GetTempFileNameW` + `_wfopen("w+bTD")`) – see `src/core/memstream.c` |
 | Subprocess (`sc_run`) | `fork`/`exec`/`poll` | `CreatePipe` + `CreateProcessW` + I/O threads |
 | Editor / pager | `fork`/`execvp` | `CreateProcessW` (editor, inherited console) / `_popen` (pager, default `more`) |
 | CLI `spin` | `fork` + `waitpid` | `_spawnvp(_P_NOWAIT)` + `WaitForSingleObject` tick loop |

@@ -133,7 +133,7 @@ SPARCLI_EXPORT ScKeyChord sc_key_special(ScKeyType key);
  * Builds a chord for a named key with modifiers, e.g.
  * `sc_key_mod(SC_KEY_UP, SC_MOD_ALT)` (Alt+Up) or
  * `sc_key_mod(SC_KEY_UP, SC_MOD_SHIFT | SC_MOD_ALT)`. The decoder reports these
- * from the xterm `ESC[1;<mod>X` sequences. Shift only applies to named keys —
+ * from the xterm `ESC[1;<mod>X` sequences. Shift only applies to named keys -
  * terminals fold Shift into the character for letters (use the uppercase
  * codepoint there). `sc_key_special(key)` == `sc_key_mod(key, 0)`.
  *

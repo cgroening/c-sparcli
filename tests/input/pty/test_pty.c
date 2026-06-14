@@ -1433,7 +1433,7 @@ static int child_case(int c) {
         case 97: {
             /* A bare-letter ('r') RETURN shortcut is SUPPRESSED while editing:
                Enter opens the editor (seed "a"), "r" types into the field
-               ("ar"), Enter saves, Ctrl-D submits normally — the shortcut never
+               ("ar"), Enter saves, Ctrl-D submits normally - the shortcut never
                fires (act stays -1). */
             int act = -1;
             ScShortcut sk[] = {

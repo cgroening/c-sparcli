@@ -394,7 +394,7 @@ extern "C" {
     pub fn sc_color_from_rgb(r: u8, g: u8, b: u8) -> ScColor;
 }
 extern "C" {
-    #[doc = " Resolves a color name to an `ScColor`.\n\n Recognizes the eight ANSI color names (`\"black\"`, `\"red\"`, …, `\"white\"`)\n and the named RGB palette (`SC_COLOR_*`, e.g. `\"orange\"`, `\"accent\"`,\n `\"error\"`, `\"bg_darken_1\"`). The eight plain hue names always resolve to\n the ANSI colors; the palette's own soft hues (`SC_COLOR_RED` etc.) are not\n reachable by bare name here — use `#RRGGBB` or the `SC_COLOR_*` macro.\n\n @param name  Color name (case-sensitive); must not be `NULL`.\n @param out   Receives the resolved color on success; must not be `NULL`.\n @return      `true` when `name` matched, `false` otherwise (`*out` unset)."]
+    #[doc = " Resolves a color name to an `ScColor`.\n\n Recognizes the eight ANSI color names (`\"black\"`, `\"red\"`, …, `\"white\"`)\n and the named RGB palette (`SC_COLOR_*`, e.g. `\"orange\"`, `\"accent\"`,\n `\"error\"`, `\"bg_darken_1\"`). The eight plain hue names always resolve to\n the ANSI colors; the palette's own soft hues (`SC_COLOR_RED` etc.) are not\n reachable by bare name here - use `#RRGGBB` or the `SC_COLOR_*` macro.\n\n @param name  Color name (case-sensitive); must not be `NULL`.\n @param out   Receives the resolved color on success; must not be `NULL`.\n @return      `true` when `name` matched, `false` otherwise (`*out` unset)."]
     pub fn sc_color_by_name(name: *const ::std::os::raw::c_char, out: *mut ScColor) -> bool;
 }
 extern "C" {

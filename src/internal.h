@@ -220,7 +220,7 @@ static inline size_t sc_utf8_decode(
 /**
  * Display width of a Unicode codepoint in terminal columns: 0 for combining /
  * zero-width marks, 2 for East-Asian Wide / Fullwidth characters and width-2
- * emoji, 1 otherwise. Conservative on purpose — ambiguous-width symbols below
+ * emoji, 1 otherwise. Conservative on purpose - ambiguous-width symbols below
  * U+2E80 (box drawing, arrows, `✔`/`✖`, bullets, …) stay 1 column, matching how
  * sparcli renders its own glyphs and the surrounding terminals.
  */
@@ -298,7 +298,7 @@ static inline size_t sc_utf8_string_length(
  * to pass to `fwrite()` or `memcpy()`. Display-width-aware (`sc_codepoint_width`):
  * a 2-column glyph that would cross `max_columns` is left out entirely (the trim
  * never splits a wide glyph), so the result can be one column short of
- * `max_columns` — callers that need an exact width pad the difference. ANSI
+ * `max_columns` - callers that need an exact width pad the difference. ANSI
  * escape sequences are included in the byte count but occupy no columns, so a
  * trim never cuts inside an escape sequence.
  */

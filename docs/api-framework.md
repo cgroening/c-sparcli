@@ -339,7 +339,7 @@ Getters search the matched command **and its ancestors**, so global flags (`--ve
 
 ### Dispatch: attaching an action to each command
 
-Instead of a name-compare switch after `sc_args_parse`, give each command node a pointer with `sc_args_cmd_set_userdata` — the matched node *is* the dispatch table. The pointer is **borrowed** (sparcli stores it verbatim, never frees or dereferences it); its lifetime is entirely yours.
+Instead of a name-compare switch after `sc_args_parse`, give each command node a pointer with `sc_args_cmd_set_userdata` – the matched node *is* the dispatch table. The pointer is **borrowed** (sparcli stores it verbatim, never frees or dereferences it); its lifetime is entirely yours.
 
 ```c
 sc_args_cmd_set_userdata(build, &build_command);   /* e.g. a struct or fn ptr */
@@ -353,7 +353,7 @@ if (status == SC_ARGS_MATCHED) {
 
 Full C example (a `Command` descriptor per node): `examples/c/app/args.c`.
 
-In **C++** the wrapper builds on this with a handler arena: attach a `std::function<int(const Args&)>` directly to a subcommand with `ArgsCmd::handler(...)`, then run the matched one with `Args::dispatch(...)` (the clap/cobra model — command and action live in one place):
+In **C++** the wrapper builds on this with a handler arena: attach a `std::function<int(const Args&)>` directly to a subcommand with `ArgsCmd::handler(...)`, then run the matched one with `Args::dispatch(...)` (the clap/cobra model – command and action live in one place):
 
 ```cpp
 args.root().subcommand("build", "Build the project")
@@ -368,7 +368,7 @@ if (auto matched = args.parse(argc, argv)) {
 return args.exit_code();                       // --help/--version handled, or error
 ```
 
-The handler is owned by the `Args` (stored until it is destroyed) and survives a move of the parser. `ArgsCmd::userdata(ptr)` / `userdata<T>()` is the raw, borrowed passthrough (1:1 with the C API); it shares the node's single slot with `handler`, and `dispatch` only fires handlers the parser itself stored — so `has_handler` reports `false` for a raw `userdata` pointer rather than misinterpreting it. Full example: `examples/cpp/app/args.cpp`.
+The handler is owned by the `Args` (stored until it is destroyed) and survives a move of the parser. `ArgsCmd::userdata(ptr)` / `userdata<T>()` is the raw, borrowed passthrough (1:1 with the C API); it shares the node's single slot with `handler`, and `dispatch` only fires handlers the parser itself stored – so `has_handler` reports `false` for a raw `userdata` pointer rather than misinterpreting it. Full example: `examples/cpp/app/args.cpp`.
 
 ### REPL loops: tokenizing & re-parsing
 
@@ -497,7 +497,7 @@ sc_proc_result_free(&r);
 
 ## Config
 
-Layered application configuration — **defaults < file < env < flags**, each layer deep-merged via the serde `sc_value_merge`. Header: `app/sparcli_config.h`. Because it depends on the serde `ScValue` model, it is **opt-in and NOT in the `sparcli.h` / `app/sparcli_app.h` umbrella** — include it explicitly (like `<serde/sparcli_serde.h>`).
+Layered application configuration – **defaults < file < env < flags**, each layer deep-merged via the serde `sc_value_merge`. Header: `app/sparcli_config.h`. Because it depends on the serde `ScValue` model, it is **opt-in and NOT in the `sparcli.h` / `app/sparcli_app.h` umbrella** – include it explicitly (like `<serde/sparcli_serde.h>`).
 
 ```c
 ScConfig *sc_config_new(void);  void sc_config_free(ScConfig *);
@@ -516,8 +516,8 @@ double      sc_config_get_float (const ScConfig *, const char *path, double fall
 const char *sc_config_get_string(const ScConfig *, const char *path, const char *fallback);
 ```
 
-- **File** — format chosen by extension (`.json`/`.toml`/`.yaml`/`.yml`). A missing file returns `SC_CONFIG_MISSING` (not an error, so the same call works with or without a user config); a parse failure returns `SC_CONFIG_ERROR` (and fills `err`). Non-object roots are rejected.
-- **Env** — for each variable starting with `prefix`, the remainder is lowercased into a key path where **`__` denotes nesting** and single `_` stays literal: with `prefix="MYAPP_"`, `MYAPP_SERVER__MAX_CONN=10` sets `server.max_conn`. Values are coerced (`true`/`false` → bool, int/float literals → numbers, else string).
+- **File** – format chosen by extension (`.json`/`.toml`/`.yaml`/`.yml`). A missing file returns `SC_CONFIG_MISSING` (not an error, so the same call works with or without a user config); a parse failure returns `SC_CONFIG_ERROR` (and fills `err`). Non-object roots are rejected.
+- **Env** – for each variable starting with `prefix`, the remainder is lowercased into a key path where **`__` denotes nesting** and single `_` stays literal: with `prefix="MYAPP_"`, `MYAPP_SERVER__MAX_CONN=10` sets `server.max_conn`. Values are coerced (`true`/`false` → bool, int/float literals → numbers, else string).
 - **`sc_config_set`** creates intermediate objects along the dotted path and **takes ownership** of `value` (freed on success and failure). Getters resolve dotted paths.
 
 ```c

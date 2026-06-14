@@ -55,7 +55,7 @@ static ScFuzzy *build_help_fuzzy(const ScShortcutHelpRow *rows, size_t n,
         .stretch_columns = 1u << 1,
         /* Fill the terminal height (rows pinned at the top, the rest blank) for
            a typical full-screen help look. fullscreen needs an alternate screen
-           — sc_shortcut_help_show opens one unless the caller already holds it. */
+           - sc_shortcut_help_show opens one unless the caller already holds it. */
         .fullscreen = true,
         .valign = SC_VALIGN_TOP,
         .hide_summary = true,

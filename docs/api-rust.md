@@ -15,7 +15,7 @@ sparcli = { path = "bindings/rust/sparcli" }
 - **RAII handles** (`Text`, `Table`, `List`, `Tree`, `Kv`, `Columns`, `Rendered`, `ProgressBar`, `Spinner`, `Select`, `Fuzzy`, `History`) free themselves on drop. They hold raw pointers and are therefore **not `Send`/`Sync`**: the C output target is thread-local and the input session is process-global, so build and use a handle on one thread (each thread may build its own).
 - **Builders.** Every `*Opts` is a plain struct with `Default` and chainable setters; public fields give full access. Borrowed strings (`Title`, cell text, …) are interned into an internal arena for the duration of the call.
 - **Colors / enums.** `Color::{NONE, RED, …, rgb(r,g,b)}`, `Style::bold()`, `Attr` (`BOLD`/`DIM`/`ITALIC`/`UNDERLINE`/`STRIKE`, combine with `|`; markup `[strike]`/`[s]`), `Align`, `VAlign`, `BorderType`, `Position`, `ListMarker`, `ProgressType`, `SpinnerType`, `AlertType`, `WeekStart`, `HintLayout`, `HintPos`.
-- **Named RGB palette.** The curated `SC_COLOR_*` set as `pub const Color`s under `sparcli::palette` — `palette::ACCENT`, `palette::ERROR`, `palette::ORANGE`, `palette::RED_VIVID`, `palette::BG_DARKEN_1`, … (all 53; additional to the eight ANSI `Color` constants). Also usable in markup as `[accent]`, `[error]`, … Example: `BorderStyle::new(BorderType::Rounded).color(palette::ACCENT)`. **Runtime override:** `palette::set("accent", color)` / `palette::get("accent")` / `palette::reset()` recolor a name at runtime — honored by markup, the CLI and palette-name widget defaults (e.g. the fuzzy accent). Set once before spawning threads.
+- **Named RGB palette.** The curated `SC_COLOR_*` set as `pub const Color`s under `sparcli::palette` – `palette::ACCENT`, `palette::ERROR`, `palette::ORANGE`, `palette::RED_VIVID`, `palette::BG_DARKEN_1`, … (all 53; additional to the eight ANSI `Color` constants). Also usable in markup as `[accent]`, `[error]`, … Example: `BorderStyle::new(BorderType::Rounded).color(palette::ACCENT)`. **Runtime override:** `palette::set("accent", color)` / `palette::get("accent")` / `palette::reset()` recolor a name at runtime – honored by markup, the CLI and palette-name widget defaults (e.g. the fuzzy accent). Set once before spawning threads.
 - **Prompts** return `Result<Option<T>>`: `Ok(Some(v))` = value, `Ok(None)` = cancelled (Esc/Ctrl-C), `Err(Error::Unavailable)` = no TTY / read error. The env var `SPARCLI_NO_TTY=1` forces the no-TTY error even with a terminal attached (used by `make rust-test`).
 - **Escape hatch.** The raw FFI is re-exported as `sparcli::sys`.
 
@@ -361,7 +361,7 @@ default `ValignScope::All` aligns the whole block) and `FormOpts { editor_suffix
 Some(".md".into()), .. }` (extension for the external-editor temp file).
 `FieldOpts { read_only: true, .. }` shows a field but blocks all editing, and
 `FieldOpts { not_selectable: true, .. }` skips it in focus navigation (and never
-blocks submit) — combine them for a display-only, unfocusable summary field.
+blocks submit) – combine them for a display-only, unfocusable summary field.
 
 ```rust
 use sparcli::{Form, FormOpts, FieldOpts, FieldWidthMode};

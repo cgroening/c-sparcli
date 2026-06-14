@@ -43,10 +43,10 @@ The suites split along the output/input boundary. Everything except `make test-i
 
 ### `test` vs `qa` – two tiers, not synonyms
 
-The targets come in two tiers, and they are **not** content-equivalent — `test ⊂ qa`:
+The targets come in two tiers, and they are **not** content-equivalent – `test ⊂ qa`:
 
 - **`test*`** is the *fast functional* tier: build the test binaries and run them (optionally `-Werror`). "Do the checks pass?" Quick; what you run constantly while developing.
-- **`qa*`** is the *full pre-commit battery*: it runs the matching `test` tier with `-Werror` **and then adds** the heavy gates — sanitizers (ASan/UBSan), ThreadSanitizer, static analysis (cppcheck/clang-tidy), fuzzing, and the language bindings. "Is this commit-ready?" Much slower.
+- **`qa*`** is the *full pre-commit battery*: it runs the matching `test` tier with `-Werror` **and then adds** the heavy gates – sanitizers (ASan/UBSan), ThreadSanitizer, static analysis (cppcheck/clang-tidy), fuzzing, and the language bindings. "Is this commit-ready?" Much slower.
 
 Concretely, `make qa` literally begins with `make test EXTRA_CFLAGS=-Werror` and layers the heavy gates on top (see the list below), so running `make test` covers a strict subset of what `make qa` does. The same relationship holds per opt-in area: `test-serde ⊂ qa-serde` and `test-view ⊂ qa-view`.
 

@@ -86,7 +86,7 @@ std::optional<Color> c3 = color_by_name("accent"); // ANSI or palette names
 Version v = version();            // {major,minor,patch}; or version_string()
 ```
 
-**Named RGB palette** — the C `SC_COLOR_*` set is exposed as functions under `sparcli::palette` (the C macros are compound literals, unusable in standard C++). All 53 colors are available; each returns a 24-bit RGB `Color`:
+**Named RGB palette** – the C `SC_COLOR_*` set is exposed as functions under `sparcli::palette` (the C macros are compound literals, unusable in standard C++). All 53 colors are available; each returns a 24-bit RGB `Color`:
 
 ```cpp
 using namespace sparcli;
@@ -95,7 +95,7 @@ panel_str("hi", PanelOpts{ .border = { SC_BORDER_ROUNDED, palette::accent() },
 alert_text(SC_ALERT_ERROR, *markup::parse("[error]disk full[/]"));   // markup names too
 ```
 
-Names mirror the macros lower-cased: `palette::accent()`, `palette::error()`, `palette::orange()`, `palette::red_vivid()`, `palette::bg_selected()`, … In string contexts (markup tags) the eight plain hue names stay ANSI; see `docs/api-c.md`. **Runtime override:** `palette::set("accent", color)` / `palette::get("accent")` (→ `std::optional<Color>`) / `palette::reset()` recolor a name at runtime — honored by markup, the CLI and palette-name widget defaults (e.g. the fuzzy accent). Set once before spawning threads.
+Names mirror the macros lower-cased: `palette::accent()`, `palette::error()`, `palette::orange()`, `palette::red_vivid()`, `palette::bg_selected()`, … In string contexts (markup tags) the eight plain hue names stay ANSI; see `docs/api-c.md`. **Runtime override:** `palette::set("accent", color)` / `palette::get("accent")` (→ `std::optional<Color>`) / `palette::reset()` recolor a name at runtime – honored by markup, the CLI and palette-name widget defaults (e.g. the fuzzy accent). Set once before spawning threads.
 
 All `ScColor`/`ScTextStyle` enum/macro constants (`SC_TEXT_ATTR_*`, `SC_BORDER_*`, `SC_ALIGN_*`, …) are plain enums and work as-is.
 
@@ -437,7 +437,7 @@ if (sc.fired() == 1) { /* F2 → edit s2.label(...) / s2.set_label(...) */ }
 
 A RETURN shortcut ends the prompt; a CALLBACK runs in place and keeps it open unless its lambda returns `false` (it must not open another prompt). For live edits use `Select::cursor/label/set_label/remove` and `Fuzzy::cursor_index/remove`; `Fuzzy::has_selection()` reports whether a row currently matches (so a forward/submit shortcut can avoid acting on an empty filter). `Esc` / `Ctrl-C` stay reserved.
 
-**Display metadata + help screen.** Each binding carries a footer label, a (longer) help-screen description and a section. The rich overloads take a `ShortcutDisplay{ footer, help, in_footer }` (the `const char*`-label overloads are thin wrappers); `in_footer = false` keeps a binding active but off the footer. `section(title)` groups the entries added after it, and `help_row(key_display, desc)` adds a help-only line documenting a built-in key (no binding). `show_shortcuts(sc, ShortcutHelpOpts{ title, accent, footer_hint, in_alt_screen })` then renders a modal, filterable, full-terminal-height help screen from the set (sections + key column + descriptions, author order). It spans its own alternate screen unless `in_alt_screen = true` (the caller — e.g. a long-running TUI — already holds one).
+**Display metadata + help screen.** Each binding carries a footer label, a (longer) help-screen description and a section. The rich overloads take a `ShortcutDisplay{ footer, help, in_footer }` (the `const char*`-label overloads are thin wrappers); `in_footer = false` keeps a binding active but off the footer. `section(title)` groups the entries added after it, and `help_row(key_display, desc)` adds a help-only line documenting a built-in key (no binding). `show_shortcuts(sc, ShortcutHelpOpts{ title, accent, footer_hint, in_alt_screen })` then renders a modal, filterable, full-terminal-height help screen from the set (sections + key column + descriptions, author order). It spans its own alternate screen unless `in_alt_screen = true` (the caller – e.g. a long-running TUI – already holds one).
 
 ```cpp
 Shortcuts sc;
@@ -461,11 +461,11 @@ prompt on cancel), and `FormOpts{ .modified_marker = "[*] " }` prefixes a change
 field's box title.
 
 **Per-field colors.** `set_choice_styles(field, { style… })` colors a
-select/multiselect's choices (in the dropdown and the selected grid cell) — e.g.
+select/multiselect's choices (in the dropdown and the selected grid cell) – e.g.
 a color-coded priority list. `FieldOpts{ .value_style = cb }` (an
 `ScFieldCellStyle` raw fn ptr `(const ScForm*, int field, void*) → TextStyle`,
 like `validate`) colors just a cell's value text and is called on every render,
-so it updates live — e.g. color a date by overdue/today/future (read the value
+so it updates live – e.g. color a date by overdue/today/future (read the value
 with `get_date` inside the callback).
 
 ```cpp

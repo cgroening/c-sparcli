@@ -647,7 +647,7 @@ typedef struct ScPromptVTable {
 
     /**
      * Optional predicate: when set and it returns true for `key`, the engine
-     * runs the external-editor action for that key — in addition to the
+     * runs the external-editor action for that key - in addition to the
      * configured `ScPromptEditor.chord`. Lets a widget bind extra keys to the
      * editor (e.g. Enter on a multiline form field, alongside Ctrl-G). Only
      * consulted when an editor is enabled and `edit_get`/`edit_set` are set.

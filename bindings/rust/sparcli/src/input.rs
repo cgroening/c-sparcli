@@ -2463,7 +2463,7 @@ pub struct FieldOpts {
     /// wizard). Default = editable.
     pub read_only: bool,
     /// Skip this field in all focus navigation (arrows, Tab/Shift-Tab, the
-    /// initial active field, autoedit) — the cursor can never land on it. A
+    /// initial active field, autoedit) - the cursor can never land on it. A
     /// non-selectable field cannot block submit (its `required` is treated as
     /// satisfied). Combine with [`read_only`](Self::read_only) for a
     /// display-only, unfocusable field. Default = selectable.

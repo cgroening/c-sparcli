@@ -400,7 +400,7 @@ SPARCLI_EXPORT ScColor sc_color_from_rgb(uint8_t r, uint8_t g, uint8_t b);
  * and the named RGB palette (`SC_COLOR_*`, e.g. `"orange"`, `"accent"`,
  * `"error"`, `"bg_darken_1"`). The eight plain hue names always resolve to
  * the ANSI colors; the palette's own soft hues (`SC_COLOR_RED` etc.) are not
- * reachable by bare name here — use `#RRGGBB` or the `SC_COLOR_*` macro.
+ * reachable by bare name here - use `#RRGGBB` or the `SC_COLOR_*` macro.
  *
  * @param name  Color name (case-sensitive); must not be `NULL`.
  * @param out   Receives the resolved color on success; must not be `NULL`.
@@ -421,9 +421,9 @@ SPARCLI_EXPORT bool sc_color_by_name_n(
  *
  * Recolors any name accepted by @ref sc_color_by_name (the eight ANSI names and
  * the named RGB palette, e.g. `"accent"`, `"accent_dark"`, `"error"`). The
- * override is honored by every name-based consumer — @ref sc_color_by_name and
+ * override is honored by every name-based consumer - @ref sc_color_by_name and
  * thus markup (`[accent]`), the `sparcli` CLI (`--color accent`) and the args
- * parser (`SC_ARG_COLOR`) — and by widget defaults that resolve a palette name
+ * parser (`SC_ARG_COLOR`) - and by widget defaults that resolve a palette name
  * (e.g. the fuzzy finder's accent). Pass a zero-init / `SC_ANSI_COLOR_NONE`
  * color to clear a single override.
  *

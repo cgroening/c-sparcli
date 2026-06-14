@@ -461,7 +461,7 @@ listed at the bottom of each command's `--help` (e.g. `prompt`, `value`,
 tables; `marker` for lists; `key`/`val` for kv; `label` for progress/spin;
 `text` for badge).
 
-`SPEC` reuses sparcli's markup vocabulary without the brackets — whitespace-
+`SPEC` reuses sparcli's markup vocabulary without the brackets – whitespace-
 separated tokens:
 
 | Token | Effect |

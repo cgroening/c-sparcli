@@ -517,7 +517,7 @@ static void render_cell_line_truncated(
         char *clipped = strndup(text, byte_count);
         // `trim_to_cols` may stop a column short of `keep` (it never splits a
         // double-width glyph), so measure what was actually kept and pad the
-        // cell to the full column width below — otherwise a CJK/emoji boundary
+        // cell to the full column width below - otherwise a CJK/emoji boundary
         // would leave the cell one column short and misalign the border.
         int clipped_w = (int)sc_utf8_string_length(clipped, byte_count);
         print_span_with_bg(clipped, style, cell_bg);

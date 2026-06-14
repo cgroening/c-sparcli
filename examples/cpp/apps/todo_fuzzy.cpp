@@ -111,7 +111,7 @@ static void add_tasks(Fuzzy& f) {
 static void run_todo() {
     static const char* headers[] = { "Time", "Task", "Status" };
 
-    // Normal-mode actions are bare keys (no modifier) — in insert mode those
+    // Normal-mode actions are bare keys (no modifier) - in insert mode those
     // letters type into the query instead. The Ctrl- alternates fire in both.
     Shortcuts shortcuts;
     shortcuts.on_return(key_char('d'), ACT_DONE, "done")

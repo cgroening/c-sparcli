@@ -83,7 +83,7 @@ static int line_cols(const ScRendered *frame, int idx) {
     return cols;
 }
 
-/* True when any RAW (un-stripped) line of `frame` contains `needle` — used to
+/* True when any RAW (un-stripped) line of `frame` contains `needle` - used to
    assert an ANSI escape (e.g. a color code) is actually emitted. */
 static bool form_raw_has(const ScRendered *frame, const char *needle) {
     if (!frame) { return false; }

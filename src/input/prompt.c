@@ -15,7 +15,7 @@ static atomic_bool g_prompt_active = false;
 /**
  * Renders exactly `n` blank lines, or NULL when n <= 0. `sc_capture_str` yields
  * one line per `\n`, so a string of `n` newlines captures to `n` empty lines
- * (an empty string captures to zero lines — hence the explicit count).
+ * (an empty string captures to zero lines - hence the explicit count).
  */
 static ScRendered *blank_lines(int n) {
     if (n <= 0) {
