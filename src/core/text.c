@@ -15,9 +15,7 @@ ScText *sc_text_new(void) {
 }
 
 ScText *sc_text_from_str(const char *s) {
-    static const ScTextStyle plain = {
-        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
+    static const ScTextStyle plain = { 0 };   /* no attrs, no color */
     ScText *t = sc_text_new();
     sc_text_append(t, s, plain);
     return t;

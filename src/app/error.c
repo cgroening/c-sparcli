@@ -21,18 +21,12 @@
 
 
 /** Span styles used by the error body. */
-static const ScTextStyle MESSAGE_STYLE = {
-    SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
-static const ScTextStyle CAUSE_STYLE = {
-    SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
-static const ScTextStyle HINT_LABEL_STYLE = {
-    SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
-static const ScTextStyle PLAIN_STYLE = {
-    SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
+/* Designated initializers (fg/bg zero = no color): a compound-literal color
+ * macro is not a constant initializer under MSVC's C compiler. */
+static const ScTextStyle MESSAGE_STYLE    = { .attr = SC_TEXT_ATTR_BOLD };
+static const ScTextStyle CAUSE_STYLE      = { .attr = SC_TEXT_ATTR_DIM };
+static const ScTextStyle HINT_LABEL_STYLE = { .attr = SC_TEXT_ATTR_BOLD };
+static const ScTextStyle PLAIN_STYLE      = { 0 };
 
 
 /** Structured error report (opaque to callers). */

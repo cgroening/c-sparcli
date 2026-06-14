@@ -170,11 +170,7 @@ static void resolve_cell_span(
     const ScCell *cell, size_t span_index,
     const char **out_text, ScTextStyle *out_style
 ) {
-    static const ScTextStyle plain = {
-        SC_TEXT_ATTR_NONE,
-        SC_ANSI_COLOR_NONE,
-        SC_ANSI_COLOR_NONE,
-    };
+    static const ScTextStyle plain = { 0 };   /* no attrs, no color */
 
     if (cell->kind == SC_CELL_STR || !cell->text) {
         // SC_CELL_STR, or a rich cell built with a NULL ScText (e.g.

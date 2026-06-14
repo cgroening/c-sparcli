@@ -577,9 +577,7 @@ ScRendered *sc_capture_panel_rendered(
     // bytes as plain text). The panel's width math is ANSI-aware.
     ScText *text = sc_text_new();
     if (!text) { return NULL; }
-    static const ScTextStyle plain = {
-        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
+    static const ScTextStyle plain = { 0 };   /* no attrs, no color */
     // With a content background, split each line at its `\033[0m` resets into
     // one raw span per segment. The panel re-applies its background after
     // *every* span, so the background fills behind the whole line even though

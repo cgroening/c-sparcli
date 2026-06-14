@@ -206,9 +206,7 @@ void sc_panel_text(const ScText *text, ScPanelOpts opts) {
 
 void sc_panel_str(const char *raw_str, ScPanelOpts opts) {
     if (!raw_str) { return; }
-    static const ScTextStyle plain = {
-        SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-    };
+    static const ScTextStyle plain = { 0 };   /* no attrs, no color */
 
     // Content crosses the trust boundary here, honoring opts.ansi
     char *clean = sc_sanitize_copy_mode(raw_str, opts.ansi);

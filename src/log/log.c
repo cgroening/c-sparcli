@@ -47,12 +47,10 @@ static const struct {
 };
 
 /** Span styles shared by every record. */
-static const ScTextStyle DIM_STYLE = {
-    SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
-static const ScTextStyle PLAIN_STYLE = {
-    SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
+/* Designated init (no compound-literal color: MSVC rejects those in a static
+ * initializer). fg/bg default to zero = no color. */
+static const ScTextStyle DIM_STYLE   = { .attr = SC_TEXT_ATTR_DIM };
+static const ScTextStyle PLAIN_STYLE = { 0 };
 
 
 /** One output target of a logger. */

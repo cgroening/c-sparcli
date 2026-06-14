@@ -27,8 +27,15 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 # extension source/include paths to be relative to the setup.py directory and
 # refuses paths that escape it ("..") or are absolute, so we reference the C
 # files through these in-package links - a single source of truth, no copy.
-_SRC = "csrc"
-_INCLUDE = "cinclude"
+# On Windows the csrc/cinclude symlinks check out as plain text files (git's
+# core.symlinks is off by default there), so reference the real C tree by
+# absolute path. POSIX keeps the in-package symlinks (single source of truth).
+if os.name == "nt":
+    _SRC = os.path.abspath(os.path.join(_HERE, "..", "..", "src"))
+    _INCLUDE = os.path.abspath(os.path.join(_HERE, "..", "..", "include"))
+else:
+    _SRC = "csrc"
+    _INCLUDE = "cinclude"
 
 # C sources, mirroring the `SRC` list in the repo Makefile (and the Rust
 # build.rs `SOURCES` array). Only `table/table.c` is compiled directly; it
@@ -1189,6 +1196,13 @@ void sc_form_free(ScForm *form);
 """
 )
 
+# MSVC (the default compiler for CPython on Windows) takes /-style flags and
+# enables stack canaries (/GS) by default; GCC/Clang take the -f form.
+if os.name == "nt":
+    _compile_args = ["/std:c11"]
+else:
+    _compile_args = ["-std=c11", "-fstack-protector-strong"]
+
 ffibuilder.set_source(
     "sparcli._sparcli_cffi",
     r"""
@@ -1197,8 +1211,16 @@ ffibuilder.set_source(
     """,
     sources=[f"{_SRC}/{s}" for s in _SOURCES],
     include_dirs=[_INCLUDE, _SRC],
-    # Stack canaries for the embedded C code (matches the Makefile hardening).
-    extra_compile_args=['-std=c11', '-fstack-protector-strong'],
+    # SPARCLI_STATIC: sources are compiled straight into the extension (static
+    # link), so drop the Windows dllimport/dllexport decoration. The _CRT_*
+    # defines silence MSVC's deprecation warnings for the ISO C / POSIX names
+    # (strdup, strtok_r, ...) the library uses (no-ops off MSVC).
+    define_macros=[
+        ("SPARCLI_STATIC", None),
+        ("_CRT_SECURE_NO_WARNINGS", None),
+        ("_CRT_NONSTDC_NO_WARNINGS", None),
+    ],
+    extra_compile_args=_compile_args,
 )
 
 

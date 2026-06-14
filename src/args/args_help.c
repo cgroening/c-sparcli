@@ -30,17 +30,13 @@ typedef struct StringArena {
 
 
 /** Span styles used by the help renderer. */
-static const ScTextStyle BOLD_STYLE = {
-    SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
-static const ScTextStyle DIM_STYLE = {
-    SC_TEXT_ATTR_DIM, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
-static const ScTextStyle PLAIN_STYLE = {
-    SC_TEXT_ATTR_NONE, SC_ANSI_COLOR_NONE, SC_ANSI_COLOR_NONE
-};
+/* Designated init: a compound-literal color macro is not a constant
+ * initializer under MSVC. fg/bg default to zero = no color; cyan = index 7. */
+static const ScTextStyle BOLD_STYLE    = { .attr = SC_TEXT_ATTR_BOLD };
+static const ScTextStyle DIM_STYLE     = { .attr = SC_TEXT_ATTR_DIM };
+static const ScTextStyle PLAIN_STYLE   = { 0 };
 static const ScTextStyle HEADING_STYLE = {
-    SC_TEXT_ATTR_BOLD, SC_ANSI_COLOR_CYAN, SC_ANSI_COLOR_NONE
+    .attr = SC_TEXT_ATTR_BOLD, .fg = { .index = 7 }
 };
 
 

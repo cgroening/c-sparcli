@@ -79,6 +79,10 @@ fn main() {
 
     let mut build = cc::Build::new();
     build.std("c11").include(&include).include(&src).warnings(false);
+    // The sources are compiled straight into the crate (a static archive), so
+    // suppress the dllimport/dllexport decoration on Windows (no-op elsewhere;
+    // see include/core/sparcli_export.h).
+    build.define("SPARCLI_STATIC", None);
     // Stack canaries for the embedded C code (matches the Makefile
     // hardening; skipped silently where unsupported).
     build.flag_if_supported("-fstack-protector-strong");
