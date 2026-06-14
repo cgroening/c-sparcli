@@ -531,9 +531,14 @@ WIN_CORE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(WIN_CORE_SRC))
 qa-win-compile: $(WIN_CORE_OBJ)
 	@echo "compiled $(words $(WIN_CORE_SRC)) portable translation units"
 
+# The whole library, shared object and CLI now build on Windows, so qa-win
+# builds the real artifacts with warnings-as-errors (the qa-win-compile subset
+# above is kept as a quick smoke target). Logic/golden/ConPTY gates layer on
+# top in later phases.
 qa-win:
-	$(MAKE) qa-win-compile EXTRA_CFLAGS=-Werror
-	@echo "\033[32m✔ qa-win (Phase 0 subset) passed.\033[0m"
+	$(MAKE) cli EXTRA_CFLAGS=-Werror
+	$(MAKE) shared EXTRA_CFLAGS=-Werror
+	@echo "\033[32m✔ qa-win (full build) passed.\033[0m"
 
 # Visual output gallery: builds and runs the output suite for eyeballing.
 # ARGS: --no-animated (skip animations), --focus (focused subset), or both.

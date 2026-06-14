@@ -5,7 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+#ifdef _WIN32
+#  include <direct.h>
+#  define mkdir(path, mode) _mkdir(path)   /* Win _mkdir takes no mode */
+#else
+#  include <sys/stat.h>
+#endif
 
 
 /** Directory mode for created path components (user-private). */

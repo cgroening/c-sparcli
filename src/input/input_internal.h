@@ -2,6 +2,7 @@
 
 #include "sparcli.h"
 #include "tty/tty_internal.h"
+#include "platform/sc_compat.h"
 
 #include <stdbool.h>
 #include <stddef.h>

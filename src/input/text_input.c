@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>    /* strncasecmp */
+#ifndef _WIN32
+#include <strings.h>    /* strncasecmp (Windows: shimmed in sc_compat.h) */
+#endif
 
 
 /** Render-time state for a single text/password prompt. */

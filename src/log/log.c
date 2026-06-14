@@ -11,7 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  include <io.h>       /* _isatty / isatty */
+#else
+#  include <unistd.h>
+#endif
 
 
 /** Maximum number of file sinks on the global logger. */

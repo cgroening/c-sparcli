@@ -6,11 +6,26 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  include <io.h>       /* _access */
+#  ifndef F_OK
+#    define F_OK 0
+#  endif
+#  ifndef access
+#    define access _access
+#  endif
+#else
+#  include <unistd.h>
+#endif
 
 
-/** The process environment (POSIX). */
+/** The process environment. POSIX exposes `environ`; the Windows CRT exposes
+ *  the same "KEY=VALUE" vector as `_environ` (declared in <stdlib.h>). */
+#ifdef _WIN32
+#  define environ _environ
+#else
 extern char **environ;
+#endif
 
 /** Max dotted-path segments handled by the path helpers. */
 #define CONFIG_MAX_SEGMENTS 32

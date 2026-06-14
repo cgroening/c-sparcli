@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>   /* strcasecmp (ORDER_COLUMN) */
+#ifndef _WIN32
+#include <strings.h>   /* strcasecmp (ORDER_COLUMN); Windows: sc_compat.h */
+#endif
 
 
 /**

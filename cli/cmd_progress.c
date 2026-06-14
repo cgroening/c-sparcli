@@ -13,9 +13,19 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <process.h>   /* _spawnvp, _P_NOWAIT */
+#  include <windows.h>
+#  define SC_CLI_TTY_PATH "CONOUT$"
+#else
+#  include <sys/wait.h>
+#  include <unistd.h>
+#  define SC_CLI_TTY_PATH "/dev/tty"
+#endif
 
 enum {
     SC_CLI_SPIN_TICK_MS    = 80,
@@ -25,7 +35,9 @@ enum {
     SC_CLI_NS_PER_MS        = 1000000,
 };
 
+#ifndef _WIN32
 static void sleep_ms(int milliseconds);
+#endif
 
 
 /* ── spin ───────────────────────────────────────────────────────────────── */
@@ -38,9 +50,11 @@ typedef struct SpinArgs {
 
 static int run_spin_command(ScCliCtx *ctx, const SpinArgs *args,
                             char **command);
+#ifndef _WIN32
     static int run_child(char **command);
     static int wait_with_spinner(pid_t pid, ScSpinner *spinner);
     static int exit_code_from_status(int status);
+#endif
 static int run_spin_stdin(const SpinArgs *args);
 
 static const char SPIN_USAGE[] =
@@ -119,6 +133,43 @@ int sc_cli_cmd_spin(ScCliCtx *ctx, int argc, char **argv) {
     return run_spin_stdin(&args);
 }
 
+#ifdef _WIN32
+/* Spawns COMMAND (inheriting our console/std handles) and animates the spinner
+   on the console while polling the child, then propagates its exit code. */
+static int run_spin_command(ScCliCtx *ctx, const SpinArgs *args,
+                            char **command) {
+    intptr_t handle = _spawnvp(_P_NOWAIT, command[0],
+                               (const char *const *)command);
+    if (handle == -1) {
+        return sc_cli_error(ctx, "cannot run '%s': %s", command[0],
+                            strerror(errno));
+    }
+    HANDLE proc = (HANDLE)handle;
+    FILE *tty = fopen(SC_CLI_TTY_PATH, "w");
+    if (tty == NULL) {
+        /* No console: just wait and propagate the child's status. */
+        WaitForSingleObject(proc, INFINITE);
+        DWORD code = 0;
+        GetExitCodeProcess(proc, &code);
+        CloseHandle(proc);
+        return (int)code;
+    }
+    sc_output_set_stream(tty);
+    ScSpinner *spinner = sc_spinner_new(args->title, args->opts);
+    while (WaitForSingleObject(proc, SC_CLI_SPIN_TICK_MS) == WAIT_TIMEOUT) {
+        sc_spinner_tick(spinner);
+    }
+    DWORD code = 0;
+    GetExitCodeProcess(proc, &code);
+    int exit_code = (int)code;
+    sc_spinner_finish(spinner, exit_code == 0, args->title);
+    sc_spinner_free(spinner);
+    sc_output_set_stream(NULL);
+    fclose(tty);
+    CloseHandle(proc);
+    return exit_code;
+}
+#else
 /* Forks COMMAND and animates the spinner on /dev/tty until it exits.
    Falls back to plain execution when there is no terminal to draw on. */
 static int run_spin_command(ScCliCtx *ctx, const SpinArgs *args,
@@ -188,10 +239,11 @@ static int exit_code_from_status(int status) {
     }
     return SC_CLI_EXIT_ERROR;
 }
+#endif  /* _WIN32 */
 
 /* Spins while consuming stdin to EOF (for use at the end of a pipe). */
 static int run_spin_stdin(const SpinArgs *args) {
-    FILE *tty = fopen("/dev/tty", "w");
+    FILE *tty = fopen(SC_CLI_TTY_PATH, "w");
     if (tty != NULL) {
         sc_output_set_stream(tty);
     }
@@ -456,6 +508,7 @@ static int run_progress(ScCliCtx *ctx, const ProgressArgs *args) {
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
 
+#ifndef _WIN32
 static void sleep_ms(int milliseconds) {
     struct timespec duration = {
         .tv_sec  = milliseconds / SC_CLI_MS_PER_SECOND,
@@ -464,3 +517,4 @@ static void sleep_ms(int milliseconds) {
     };
     nanosleep(&duration, NULL);
 }
+#endif

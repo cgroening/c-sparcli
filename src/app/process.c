@@ -1,14 +1,22 @@
 #include "sparcli.h"
 #include "core/sanitize_internal.h"
 
-#include <errno.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
+
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+#else
+#  include <errno.h>
+#  include <fcntl.h>
+#  include <poll.h>
+#  include <signal.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#endif
 
 
 /* Read chunk size for draining the child's stdout/stderr pipes. */
@@ -62,7 +70,210 @@ static char *finish_capture(Buf *b, bool raw, size_t *out_len) {
 }
 
 
-/* ── helpers ─────────────────────────────────────────────────────────────── */
+#ifdef _WIN32
+/* ════════════════════════════════════════════════════════════════════════
+ * Windows backend: CreatePipe + CreateProcessW + I/O threads (no fork/poll).
+ *
+ * Three pipes (stdin/stdout/stderr) connect to the child; a writer thread
+ * feeds stdin and one reader thread per output drains it, so a large input and
+ * a chatty child cannot deadlock - the same guarantee poll() gives on POSIX.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/** UTF-8 -> UTF-16 (heap, caller frees). NULL on failure / NULL input. */
+static wchar_t *utf8_to_wide(const char *s) {
+    if (!s) { return NULL; }
+    int n = MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
+    if (n <= 0) { return NULL; }
+    wchar_t *w = malloc((size_t)n * sizeof(wchar_t));
+    if (!w) { return NULL; }
+    MultiByteToWideChar(CP_UTF8, 0, s, -1, w, n);
+    return w;
+}
+
+/**
+ * Joins argv into a single command line quoted per the CommandLineToArgvW
+ * rules (CreateProcess has no argv form). Returns a NUL-terminated heap
+ * string, or NULL on OOM.
+ */
+static char *build_command_line(const char *const *argv) {
+    Buf b = { 0 };
+    for (size_t i = 0; argv[i]; i++) {
+        if (i > 0) { buf_append(&b, " ", 1); }
+        const char *a = argv[i];
+        bool need_quote = (a[0] == '\0');
+        for (const char *p = a; *p && !need_quote; p++) {
+            if (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\v'
+                || *p == '"') {
+                need_quote = true;
+            }
+        }
+        if (!need_quote) {
+            buf_append(&b, a, strlen(a));
+            continue;
+        }
+        buf_append(&b, "\"", 1);
+        size_t slashes = 0;
+        for (const char *p = a;; p++) {
+            if (*p == '\\') { slashes++; continue; }
+            if (*p == '\0') {
+                for (size_t k = 0; k < slashes * 2; k++) { buf_append(&b, "\\", 1); }
+                break;
+            }
+            if (*p == '"') {
+                for (size_t k = 0; k < slashes * 2 + 1; k++) { buf_append(&b, "\\", 1); }
+                buf_append(&b, "\"", 1);
+            } else {
+                for (size_t k = 0; k < slashes; k++) { buf_append(&b, "\\", 1); }
+                buf_append(&b, p, 1);
+            }
+            slashes = 0;
+        }
+        buf_append(&b, "\"", 1);
+    }
+    size_t out_len;
+    return buf_finish(&b, &out_len);
+}
+
+typedef struct { HANDLE pipe; const char *data; size_t len; } WriterArg;
+typedef struct { HANDLE pipe; Buf *buf; } ReaderArg;
+
+/** Feeds `data` to the child's stdin pipe, then closes it (signals EOF). */
+static DWORD WINAPI writer_thread(LPVOID param) {
+    WriterArg *arg = param;
+    size_t sent = 0;
+    while (sent < arg->len) {
+        DWORD wrote = 0;
+        if (!WriteFile(arg->pipe, arg->data + sent,
+                       (DWORD)(arg->len - sent), &wrote, NULL) || wrote == 0) {
+            break;   /* child closed stdin early (broken pipe): stop */
+        }
+        sent += wrote;
+    }
+    CloseHandle(arg->pipe);
+    return 0;
+}
+
+/** Drains one output pipe into its buffer until the child closes it. */
+static DWORD WINAPI reader_thread(LPVOID param) {
+    ReaderArg *arg = param;
+    char chunk[PROC_CHUNK];
+    for (;;) {
+        DWORD got = 0;
+        if (!ReadFile(arg->pipe, chunk, sizeof chunk, &got, NULL) || got == 0) {
+            break;
+        }
+        buf_append(arg->buf, chunk, got);
+    }
+    return 0;
+}
+
+ScProcResult sc_run(const char *const *argv, ScProcOpts opts) {
+    ScProcResult result = { 0 };
+    result.exit_code = -1;
+    if (!argv || !argv[0]) { return result; }
+
+    size_t input_len = opts.input_len;
+    if (opts.input && input_len == 0) { input_len = strlen(opts.input); }
+    bool need_err = !opts.merge_stderr;
+
+    SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };   /* inheritable */
+    HANDLE in_r = NULL, in_w = NULL, out_r = NULL, out_w = NULL;
+    HANDLE err_r = NULL, err_w = NULL;
+    wchar_t *wcmd = NULL, *wcwd = NULL;
+
+    if (!CreatePipe(&in_r, &in_w, &sa, 0)
+        || !CreatePipe(&out_r, &out_w, &sa, 0)
+        || (need_err && !CreatePipe(&err_r, &err_w, &sa, 0))) {
+        goto cleanup;
+    }
+    /* Parent-side ends must not leak into the child. */
+    SetHandleInformation(in_w, HANDLE_FLAG_INHERIT, 0);
+    SetHandleInformation(out_r, HANDLE_FLAG_INHERIT, 0);
+    if (need_err) { SetHandleInformation(err_r, HANDLE_FLAG_INHERIT, 0); }
+
+    char *cmdline = build_command_line(argv);
+    wcmd = utf8_to_wide(cmdline ? cmdline : "");
+    free(cmdline);
+    if (opts.cwd) {
+        wcwd = utf8_to_wide(opts.cwd);
+        if (!wcwd) { goto cleanup; }
+    }
+    if (!wcmd) { goto cleanup; }
+
+    STARTUPINFOW si = { 0 };
+    si.cb = sizeof si;
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = in_r;
+    si.hStdOutput = out_w;
+    si.hStdError = opts.merge_stderr ? out_w : err_w;
+    PROCESS_INFORMATION pi = { 0 };
+
+    if (!CreateProcessW(NULL, wcmd, NULL, NULL, TRUE, CREATE_NO_WINDOW,
+                        NULL, wcwd, &si, &pi)) {
+        goto cleanup;
+    }
+    free(wcmd); wcmd = NULL;
+    free(wcwd); wcwd = NULL;
+
+    /* Close the child's ends in the parent so EOF propagates correctly. */
+    CloseHandle(in_r);  in_r = NULL;
+    CloseHandle(out_w); out_w = NULL;
+    if (need_err) { CloseHandle(err_w); err_w = NULL; }
+
+    Buf out_buf = { 0 };
+    Buf err_buf = { 0 };
+    HANDLE wt = NULL, ot = NULL, et = NULL;
+    WriterArg wa = { in_w, opts.input, input_len };
+    if (opts.input && input_len > 0) {
+        wt = CreateThread(NULL, 0, writer_thread, &wa, 0, NULL);
+        if (!wt) { CloseHandle(in_w); }
+        in_w = NULL;   /* owned by the writer thread (or already closed) */
+    } else {
+        CloseHandle(in_w); in_w = NULL;   /* no input: child sees EOF at once */
+    }
+    ReaderArg oa = { out_r, &out_buf };
+    ot = CreateThread(NULL, 0, reader_thread, &oa, 0, NULL);
+    ReaderArg ea = { err_r, &err_buf };
+    if (need_err) { et = CreateThread(NULL, 0, reader_thread, &ea, 0, NULL); }
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+
+    if (wt) { WaitForSingleObject(wt, INFINITE); CloseHandle(wt); }
+    if (ot) { WaitForSingleObject(ot, INFINITE); CloseHandle(ot); }
+    if (et) { WaitForSingleObject(et, INFINITE); CloseHandle(et); }
+    CloseHandle(out_r); out_r = NULL;
+    if (need_err) { CloseHandle(err_r); err_r = NULL; }
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    result.ok = true;
+    result.exit_code = (int)code;
+    result.out = finish_capture(&out_buf, opts.raw, &result.out_len);
+    if (need_err) {
+        result.err = finish_capture(&err_buf, opts.raw, &result.err_len);
+    } else {
+        free(err_buf.data);
+    }
+    return result;
+
+cleanup:
+    free(wcmd);
+    free(wcwd);
+    if (in_r)  { CloseHandle(in_r); }
+    if (in_w)  { CloseHandle(in_w); }
+    if (out_r) { CloseHandle(out_r); }
+    if (out_w) { CloseHandle(out_w); }
+    if (err_r) { CloseHandle(err_r); }
+    if (err_w) { CloseHandle(err_w); }
+    return result;
+}
+
+#else
+/* ════════════════════════════════════════════════════════════════════════
+ * POSIX backend: fork + pipe + poll + waitpid.
+ * ════════════════════════════════════════════════════════════════════════ */
 
 /** Sets O_NONBLOCK on `fd`. */
 static void set_nonblock(int fd) {
@@ -255,6 +466,9 @@ ScProcResult sc_run(const char *const *argv, ScProcOpts opts) {
 
     return result;
 }
+
+#endif  /* _WIN32 */
+
 
 void sc_proc_result_free(ScProcResult *result) {
     if (!result) { return; }

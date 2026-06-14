@@ -1,103 +1,80 @@
 #include "sparcli.h"
 #include "internal.h"   /* sc_no_tty_override */
 
-#include <errno.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  include <io.h>       /* _isatty, _fileno (POSIX aliases) */
+#else
+#  include <errno.h>
+#  include <signal.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#endif
 
 
 /** Max whitespace-separated tokens in a pager command (+ NULL). */
 #define PAGER_MAX_ARGS 16
 
 /** Default pager when neither `opts.command` nor `$PAGER` is set. */
-#define PAGER_DEFAULT_COMMAND "less -R"
+#ifdef _WIN32
+#  define PAGER_DEFAULT_COMMAND "more"
+#else
+#  define PAGER_DEFAULT_COMMAND "less -R"
+#endif
 
 
 /** Pager session state (opaque to callers). */
 struct ScPager {
     FILE *pipe_stream;      /**< Write end of the pipe to the pager. */
     FILE *previous_stream;  /**< Output stream to restore on end. */
-    pid_t child_pid;        /**< Pager process id. */
-
-    /** `SIGPIPE` disposition to restore on end. */
-    struct sigaction previous_sigpipe;
 
     /** `false` = no-op session (non-TTY or startup failure). */
     bool active;
+
+#ifndef _WIN32
+    pid_t child_pid;        /**< Pager process id. */
+    /** `SIGPIPE` disposition to restore on end. */
+    struct sigaction previous_sigpipe;
+#endif
 };
 
 
-// Forward declarations indented to reflect call hierarchy
-static bool start_pager_process(ScPager *pager, ScPagerOpts opts);
-    static const char *resolve_pager_command(const char *command);
-    static int build_pager_argv(char *command, char **argv);
-    static void exec_pager_child(int read_fd, char *const argv[]);
-
-
-ScPager *sc_pager_begin(ScPagerOpts opts) {
-    ScPager *pager = calloc(1, sizeof(ScPager));
-    if (!pager) { return NULL; }
-
-    // Off-terminal output (pipe, file, capture) is not paged by default;
-    // the SPARCLI_NO_TTY override counts as "off terminal" too.
-    FILE *current = sc_output_stream();
-    int current_fd = fileno(current);
-    bool off_terminal = sc_no_tty_override()
-        || current_fd < 0 || !isatty(current_fd);
-    if (!opts.always && off_terminal) {
-        return pager;
+/**
+ * Resolves the pager command string: explicit `command` (non-empty) wins,
+ * then `$PAGER`, then the built-in default.
+ */
+static const char *resolve_pager_command(const char *command) {
+    if (command && command[0]) {
+        return command;
     }
-
-    if (!start_pager_process(pager, opts)) {
-        return pager;   // degrade to a no-op session
+    const char *env_pager = getenv("PAGER");
+    if (env_pager && env_pager[0]) {
+        return env_pager;
     }
-
-    // Quitting the pager early must not kill the program via SIGPIPE
-    struct sigaction ignore_action = { .sa_handler = SIG_IGN };
-    sigemptyset(&ignore_action.sa_mask);
-    ignore_action.sa_flags = 0;
-    sigaction(SIGPIPE, &ignore_action, &pager->previous_sigpipe);
-
-    pager->previous_stream = current;
-    pager->active = true;
-    sc_output_set_stream(pager->pipe_stream);
-    return pager;
+    return PAGER_DEFAULT_COMMAND;
 }
 
-int sc_pager_end(ScPager *pager) {
-    if (!pager) { return 0; }
-    if (!pager->active) {
-        free(pager);
-        return 0;
+
+#ifdef _WIN32
+/* ── Windows: _popen the pager (cmd.exe runs $PAGER / "more") ─────────────── */
+
+static bool start_pager_process(ScPager *pager, ScPagerOpts opts) {
+    FILE *pipe_stream = _popen(resolve_pager_command(opts.command), "w");
+    if (!pipe_stream) {
+        return false;
     }
-
-    sc_output_set_stream(pager->previous_stream);
-
-    // Closing the write end sends EOF, letting the pager finish
-    fflush(pager->pipe_stream);
-    fclose(pager->pipe_stream);
-
-    int status = 0;
-    int exit_code = -1;
-    while (waitpid(pager->child_pid, &status, 0) < 0) {
-        if (errno != EINTR) {
-            status = -1;
-            break;
-        }
-    }
-    if (status >= 0 && WIFEXITED(status)) {
-        exit_code = WEXITSTATUS(status);
-    }
-
-    sigaction(SIGPIPE, &pager->previous_sigpipe, NULL);
-    free(pager);
-    return exit_code;
+    pager->pipe_stream = pipe_stream;
+    return true;
 }
+
+#else
+/* ── POSIX: fork + pipe + execvp ──────────────────────────────────────────── */
+
+static int build_pager_argv(char *command, char **argv);
+static void exec_pager_child(int read_fd, char *const argv[]);
 
 /**
  * Forks the pager process and connects a pipe to its stdin. On success
@@ -145,21 +122,6 @@ static bool start_pager_process(ScPager *pager, ScPagerOpts opts) {
 }
 
 /**
- * Resolves the pager command string: explicit `command` (non-empty) wins,
- * then `$PAGER`, then the built-in default.
- */
-static const char *resolve_pager_command(const char *command) {
-    if (command && command[0]) {
-        return command;
-    }
-    const char *env_pager = getenv("PAGER");
-    if (env_pager && env_pager[0]) {
-        return env_pager;
-    }
-    return PAGER_DEFAULT_COMMAND;
-}
-
-/**
  * Tokenizes `command` (a mutable copy) on whitespace into `argv` and
  * appends a NULL terminator. Returns argc, or 0 when there are no tokens.
  * Shell-free: no quoting or expansion.
@@ -190,4 +152,75 @@ static void exec_pager_child(int read_fd, char *const argv[]) {
     char *cat_argv[] = { "cat", NULL };
     execvp("cat", cat_argv);
     _exit(127);
+}
+
+#endif  /* _WIN32 */
+
+
+ScPager *sc_pager_begin(ScPagerOpts opts) {
+    ScPager *pager = calloc(1, sizeof(ScPager));
+    if (!pager) { return NULL; }
+
+    // Off-terminal output (pipe, file, capture) is not paged by default;
+    // the SPARCLI_NO_TTY override counts as "off terminal" too.
+    FILE *current = sc_output_stream();
+    int current_fd = fileno(current);
+    bool off_terminal = sc_no_tty_override()
+        || current_fd < 0 || !isatty(current_fd);
+    if (!opts.always && off_terminal) {
+        return pager;
+    }
+
+    if (!start_pager_process(pager, opts)) {
+        return pager;   // degrade to a no-op session
+    }
+
+#ifndef _WIN32
+    // Quitting the pager early must not kill the program via SIGPIPE
+    struct sigaction ignore_action = { .sa_handler = SIG_IGN };
+    sigemptyset(&ignore_action.sa_mask);
+    ignore_action.sa_flags = 0;
+    sigaction(SIGPIPE, &ignore_action, &pager->previous_sigpipe);
+#endif
+
+    pager->previous_stream = current;
+    pager->active = true;
+    sc_output_set_stream(pager->pipe_stream);
+    return pager;
+}
+
+int sc_pager_end(ScPager *pager) {
+    if (!pager) { return 0; }
+    if (!pager->active) {
+        free(pager);
+        return 0;
+    }
+
+    sc_output_set_stream(pager->previous_stream);
+
+    // Closing the write end sends EOF, letting the pager finish
+    fflush(pager->pipe_stream);
+
+#ifdef _WIN32
+    int exit_code = _pclose(pager->pipe_stream);
+#else
+    fclose(pager->pipe_stream);
+
+    int status = 0;
+    int exit_code = -1;
+    while (waitpid(pager->child_pid, &status, 0) < 0) {
+        if (errno != EINTR) {
+            status = -1;
+            break;
+        }
+    }
+    if (status >= 0 && WIFEXITED(status)) {
+        exit_code = WEXITSTATUS(status);
+    }
+
+    sigaction(SIGPIPE, &pager->previous_sigpipe, NULL);
+#endif
+
+    free(pager);
+    return exit_code;
 }

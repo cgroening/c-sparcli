@@ -1,13 +1,22 @@
 #include "input_internal.h"
 #include "core/sanitize_internal.h"
 
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+#  include <io.h>
+#else
+#  include <errno.h>
+#  include <fcntl.h>
+#  include <signal.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#endif
 
 
 /* Max whitespace-separated tokens in an editor command (+ file + NULL). */
@@ -16,7 +25,8 @@
 
 /**
  * Resolves the editor command string: explicit `cmd` (non-empty) wins, then
- * `$VISUAL`, `$EDITOR`, then "nvim", then "vi".
+ * `$VISUAL`, `$EDITOR`, then the platform default (nvim/vi on POSIX, notepad
+ * on Windows).
  */
 const char *sc_editor_resolve(const char *cmd) {
     if (cmd && cmd[0]) {
@@ -30,8 +40,104 @@ const char *sc_editor_resolve(const char *cmd) {
     if (v && v[0]) {
         return v;
     }
+#ifdef _WIN32
+    return "notepad";
+#else
     return "nvim";   // execvp falls through to "vi" below if this is missing
+#endif
 }
+
+
+#ifdef _WIN32
+/* ── Windows: temp file via GetTempFileNameW, editor via CreateProcessW ───── */
+
+static wchar_t *utf8_to_wide(const char *s) {
+    int n = MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
+    if (n <= 0) { return NULL; }
+    wchar_t *w = malloc((size_t)n * sizeof *w);
+    if (!w) { return NULL; }
+    if (MultiByteToWideChar(CP_UTF8, 0, s, -1, w, n) <= 0) {
+        free(w);
+        return NULL;
+    }
+    return w;
+}
+
+static char *make_temp(const char *initial, const char *suffix,
+                       size_t *out_len) {
+    if (!suffix) { suffix = ""; }
+    wchar_t dir[MAX_PATH];
+    wchar_t wbase[MAX_PATH];
+    DWORD n = GetTempPathW(MAX_PATH, dir);
+    if (n == 0 || n > MAX_PATH) { return NULL; }
+    if (GetTempFileNameW(dir, L"scl", 0, wbase) == 0) { return NULL; }
+
+    int u = WideCharToMultiByte(CP_UTF8, 0, wbase, -1, NULL, 0, NULL, NULL);
+    if (u <= 0) { DeleteFileW(wbase); return NULL; }
+    char *path = malloc((size_t)u + strlen(suffix));
+    if (!path) { DeleteFileW(wbase); return NULL; }
+    WideCharToMultiByte(CP_UTF8, 0, wbase, -1, path, u, NULL, NULL);
+    if (suffix[0]) {
+        /* Want the suffix (e.g. ".md") for editor filetype detection: drop the
+         * generated .tmp file and use the suffixed name instead. */
+        DeleteFileW(wbase);
+        strcat(path, suffix);
+    }
+
+    FILE *f = fopen(path, "wb");
+    if (!f) { free(path); return NULL; }
+    size_t len = initial ? strlen(initial) : 0;
+    if (len && fwrite(initial, 1, len, f) != len) {
+        fclose(f);
+        remove(path);
+        free(path);
+        return NULL;
+    }
+    fclose(f);
+    *out_len = len;
+    return path;
+}
+
+/**
+ * Runs the editor on `file` with the current console inherited (no
+ * redirection), so an interactive editor drives the terminal directly.
+ * Returns the child's exit code, 127 when the editor is not found, or -1.
+ */
+int sc_editor_run_child(const char *cmd, const char *file) {
+    size_t need = strlen(cmd) + strlen(file) + 4;   /* ' ' + 2 quotes + NUL */
+    char *line = malloc(need);
+    if (!line) { return -1; }
+    snprintf(line, need, "%s \"%s\"", cmd, file);
+    wchar_t *wline = utf8_to_wide(line);
+    free(line);
+    if (!wline) { return -1; }
+
+    STARTUPINFOW si;
+    PROCESS_INFORMATION pi;
+    memset(&si, 0, sizeof si);
+    si.cb = sizeof si;
+    memset(&pi, 0, sizeof pi);
+
+    BOOL ok = CreateProcessW(NULL, wline, NULL, NULL, FALSE, 0, NULL, NULL,
+                             &si, &pi);
+    free(wline);
+    if (!ok) {
+        DWORD err = GetLastError();
+        return (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND)
+                   ? 127 : -1;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD code = 0;
+    if (!GetExitCodeProcess(pi.hProcess, &code)) {
+        code = (DWORD)-1;
+    }
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return (int)code;
+}
+
+#else
+/* ── POSIX: temp file via mkstemp(s), editor via fork + execvp ────────────── */
 
 /**
  * Creates a 0600 temp file seeded with `initial`. Returns a heap path (caller
@@ -191,16 +297,19 @@ int sc_editor_run_child(const char *cmd, const char *file) {
     return -1;   // killed by a signal
 }
 
+#endif  /* _WIN32 */
+
+
 /** Reads the file at `path` into a heap buffer (caller frees), or NULL. */
 static char *read_all(const char *path) {
-    int fd = open(path, O_RDONLY);
-    if (fd < 0) {
+    FILE *f = fopen(path, "rb");
+    if (!f) {
         return NULL;
     }
     size_t cap = 4096, len = 0;
     char *buf = malloc(cap);
     if (!buf) {
-        close(fd);
+        fclose(f);
         return NULL;
     }
     for (;;) {
@@ -209,23 +318,24 @@ static char *read_all(const char *path) {
             char *grown = realloc(buf, ncap);
             if (!grown) {
                 free(buf);
-                close(fd);
+                fclose(f);
                 return NULL;
             }
             buf = grown;
             cap = ncap;
         }
-        ssize_t n = read(fd, buf + len, 4096);
-        if (n < 0) {
-            if (errno == EINTR) { continue; }
-            free(buf);
-            close(fd);
-            return NULL;
+        size_t n = fread(buf + len, 1, 4096, f);
+        len += n;
+        if (n < 4096) {
+            if (ferror(f)) {
+                free(buf);
+                fclose(f);
+                return NULL;
+            }
+            break;   // EOF
         }
-        if (n == 0) { break; }
-        len += (size_t)n;
     }
-    close(fd);
+    fclose(f);
     buf[len] = '\0';
     return buf;
 }
@@ -255,7 +365,7 @@ bool sc_run_editor(const char *cmd, const char *initial, const char *suffix,
         }
     }
 
-    unlink(path);
+    remove(path);
     free(path);
     return ok;
 }

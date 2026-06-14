@@ -729,9 +729,18 @@ int sc_cli_cmd_date(ScCliCtx *ctx, int argc, char **argv) {
     if (status == SC_INPUT_OK) {
         enum { DATE_BUFFER_SIZE = 256 };
         char buffer[DATE_BUFFER_SIZE] = { 0 };
+        /* `format` is a user-supplied strftime template by design; GCC's
+         * -Wformat-nonliteral (under -Wformat=2) flags the non-literal. */
+#if defined(__GNUC__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
         if (strftime(buffer, sizeof(buffer), format, &picked) == 0) {
             return sc_cli_error(ctx, "invalid date format '%s'", format);
         }
+#if defined(__GNUC__)
+#  pragma GCC diagnostic pop
+#endif
         printf("%s\n", buffer);
     }
     return sc_cli_input_exit(status);

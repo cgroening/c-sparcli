@@ -82,6 +82,17 @@ typedef SSIZE_T ssize_t;
 #if defined(_WIN32)
 #  include <stdlib.h>
 #  include <string.h>
+#  include <time.h>
+
+/* POSIX localtime_r(&t, &tm); Windows has localtime_s(&tm, &t) - note the
+ * reversed argument order and the errno_t return. */
+static inline struct tm *sc_compat_localtime_r(const time_t *t,
+                                               struct tm *out) {
+    return localtime_s(out, t) == 0 ? out : NULL;
+}
+#  ifndef localtime_r
+#    define localtime_r sc_compat_localtime_r
+#  endif
 
 static inline char *sc_compat_strndup(const char *s, size_t n) {
     size_t len = 0;
