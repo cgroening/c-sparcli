@@ -1,0 +1,12 @@
+# Line-ending policy: LF in the repository AND in every working tree,
+# on every platform. sparcli's MinGW/MSYS2 Windows build runs shell scripts
+# (tests/cli/*.sh, completions) and a Makefile through /bin/sh - a CRLF
+# shebang line breaks the interpreter, and a stray CR leaks into make
+# variable values. macOS/Linux already use LF, so this is a no-op there.
+* text=auto eol=lf
+
+# Binary assets must never be eol-converted.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
