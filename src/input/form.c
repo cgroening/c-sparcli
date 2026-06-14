@@ -1,5 +1,6 @@
 #include "input_internal.h"
 #include "internal.h"   /* sc_terminal_width */
+#include "core/sc_memstream.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -983,7 +984,8 @@ static ScRendered *compose_grid(const ScForm *self,
     for (int y = 0; y < total_lines; y++) {
         char *buf = NULL;
         size_t size = 0;
-        FILE *mem = open_memstream(&buf, &size);
+        ScMemStream ms;
+        FILE *mem = sc_memstream_open(&ms, &buf, &size);
         if (!mem) { out->lines[y] = strdup(""); continue; }
 
         int cur_x = 0;
@@ -1029,7 +1031,7 @@ static ScRendered *compose_grid(const ScForm *self,
             cur_x += fieldw;
         }
         if (cur_x < total_w) { put_spaces(mem, total_w - cur_x); }
-        fclose(mem);
+        sc_memstream_close(&ms);
         out->lines[y] = buf ? buf : strdup("");
         out->column_widths[y] = total_w;
     }

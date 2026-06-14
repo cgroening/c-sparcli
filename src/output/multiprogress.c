@@ -1,6 +1,7 @@
 #include "sparcli.h"
 #include "output/sparcli_multiprogress.h"
 #include "internal.h"
+#include "core/sc_memstream.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,14 +27,15 @@ struct ScMultiProgress {
 static char *capture_bar_line(ScProgressBar *bar, double value, double max) {
     char *buf = NULL;
     size_t size = 0;
-    FILE *ms = open_memstream(&buf, &size);
+    ScMemStream mstream;
+    FILE *ms = sc_memstream_open(&mstream, &buf, &size);
     if (!ms) { return NULL; }
 
     FILE *prev = sc_output_stream();
     sc_output_set_stream(ms);
     sc_progressbar_draw(bar, value, max);
     sc_output_set_stream(prev);
-    fclose(ms);
+    sc_memstream_close(&mstream);
 
     if (!buf) { return NULL; }
     size_t n = size;

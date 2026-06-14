@@ -43,6 +43,7 @@ _SOURCES = [
     "core/render_wrap.c",
     "core/sanitize.c",
     "core/humanize.c",
+    "core/memstream.c",
     "output/panel.c",
     "output/table/table.c",
     "output/table/table_print.c",

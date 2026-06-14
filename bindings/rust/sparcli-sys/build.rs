@@ -12,6 +12,7 @@ const SOURCES: &[&str] = &[
     "src/core/render_wrap.c",
     "src/core/sanitize.c",
     "src/core/humanize.c",
+    "src/core/memstream.c",
     "src/output/panel.c",
     "src/output/table/table.c",
     "src/output/table/table_print.c",

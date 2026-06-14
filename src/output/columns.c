@@ -1,12 +1,15 @@
 #include "sparcli.h"
 #include "internal.h"
 #include "core/text_internal.h"
+#include "core/sc_memstream.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
 
 /** Initial capacity used when growing the line buffer in a captured render. */
@@ -256,7 +259,8 @@ static ScRendered *buffer_to_rendered(const char *buffer, size_t size) {
 static ScRendered *capture_render(void (*render_fn)(void *), void *ctx) {
     char *buffer = NULL;
     size_t size = 0;
-    FILE *mem = open_memstream(&buffer, &size);
+    ScMemStream ms;
+    FILE *mem = sc_memstream_open(&ms, &buffer, &size);
     if (!mem) { return NULL; }
 
     FILE *saved = sc_output_stream();
@@ -264,7 +268,7 @@ static ScRendered *capture_render(void (*render_fn)(void *), void *ctx) {
     render_fn(ctx);
     fflush(mem);
     sc_output_set_stream(saved);
-    fclose(mem);
+    sc_memstream_close(&ms);
 
     ScRendered *rendered = buffer_to_rendered(buffer ? buffer : "", size);
     free(buffer);
@@ -379,8 +383,10 @@ static void push_entry(
         }
         columns->entries = grown;
     }
+    /* panel_opts intentionally omitted -> zero-initialized (no stretch
+     * filler needed for a plain entry). */
     columns->entries[columns->count++] = (ScColEntry){
-        rendered, item, false, (ScPanelOpts){ 0 }
+        .rendered = rendered, .item = item, .stretch = false,
     };
 }
 
@@ -684,7 +690,8 @@ static char *make_empty_panel_line(
 
     char *buffer = NULL;
     size_t size = 0;
-    FILE *mem = open_memstream(&buffer, &size);
+    ScMemStream ms;
+    FILE *mem = sc_memstream_open(&ms, &buffer, &size);
     if (!mem) { return NULL; }
 
     FILE *saved = sc_output_stream();
@@ -708,7 +715,7 @@ static char *make_empty_panel_line(
 
     fflush(mem);
     sc_output_set_stream(saved);
-    fclose(mem);
+    sc_memstream_close(&ms);
     return buffer ? buffer : strdup("");
 }
 

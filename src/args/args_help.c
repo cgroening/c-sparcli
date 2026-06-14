@@ -1,6 +1,7 @@
 #include "sparcli.h"
 #include "args/args_internal.h"
 #include "core/text_internal.h"
+#include "core/sc_memstream.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -339,7 +340,8 @@ static void compose_option_left_column(
 static char *compose_option_help(const ArgOption *option) {
     char *buffer = NULL;
     size_t size = 0;
-    FILE *stream = open_memstream(&buffer, &size);
+    ScMemStream ms;
+    FILE *stream = sc_memstream_open(&ms, &buffer, &size);
     if (!stream) { return NULL; }
 
     fputs(option->help, stream);
@@ -356,7 +358,7 @@ static char *compose_option_help(const ArgOption *option) {
         }
         fputs("]", stream);
     }
-    fclose(stream);
+    sc_memstream_close(&ms);
     return buffer;
 }
 

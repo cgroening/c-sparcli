@@ -1,6 +1,7 @@
 #include "sparcli.h"
 #include "core/sanitize_internal.h"
 #include "core/text_internal.h"
+#include "core/sc_memstream.h"
 #include "platform/sc_compat.h"
 
 #include <stdarg.h>
@@ -401,7 +402,8 @@ static void append_message(
 static char *render_to_string(const ScText *record) {
     char *buffer = NULL;
     size_t size = 0;
-    FILE *stream = open_memstream(&buffer, &size);
+    ScMemStream ms;
+    FILE *stream = sc_memstream_open(&ms, &buffer, &size);
     if (!stream) { return NULL; }
 
     FILE *previous = sc_output_stream();
@@ -410,7 +412,7 @@ static char *render_to_string(const ScText *record) {
     fputc('\n', stream);
     sc_output_set_stream(previous);
 
-    fclose(stream);
+    sc_memstream_close(&ms);
     return buffer;
 }
 

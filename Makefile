@@ -90,7 +90,7 @@ endif
 # ── Core (foundation: color, text, print, output stream, render) ──────────
 SRC     = src/core/output.c src/core/version.c src/core/text_attributes.c \
           src/core/print.c src/core/color.c src/core/text.c src/core/render_wrap.c \
-          src/core/sanitize.c src/core/humanize.c \
+          src/core/sanitize.c src/core/humanize.c src/core/memstream.c \
           \
           src/output/panel.c \
           src/output/table/table.c \
@@ -504,11 +504,12 @@ qa:
 WIN_CORE_SRC = src/core/output.c src/core/version.c src/core/text_attributes.c \
                src/core/print.c src/core/color.c src/core/text.c \
                src/core/render_wrap.c src/core/sanitize.c src/core/humanize.c \
+               src/core/memstream.c \
                src/output/panel.c src/output/rule.c src/output/tree.c \
                src/output/list.c src/output/progressbar.c src/output/spinner.c \
                src/output/kv.c src/output/alert.c src/output/badge.c \
                src/output/util.c src/output/pad.c src/output/markup.c \
-               src/output/diff.c \
+               src/output/diff.c src/output/columns.c src/output/multiprogress.c \
                src/output/table/table.c src/output/table/table_print.c \
                src/output/table/table_print_init.c \
                src/output/table/table_print_render.c \
@@ -517,7 +518,7 @@ WIN_CORE_SRC = src/core/output.c src/core/version.c src/core/text_attributes.c \
                src/output/table/table_print_render_row.c \
                $(SERDE_SRC) $(VIEW_SRC) \
                src/args/args.c src/args/args_value.c src/args/args_suggest.c \
-               src/args/args_parse.c src/args/args_complete.c \
+               src/args/args_parse.c src/args/args_help.c src/args/args_complete.c \
                src/args/args_complete_bash.c src/args/args_complete_fish.c \
                src/args/args_split.c
 WIN_CORE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(WIN_CORE_SRC))
